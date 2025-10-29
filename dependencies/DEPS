@@ -47,6 +47,7 @@ deps = {
         "commands": [
             f'python3 script/lib/npx.py yarn@1.22.22 install --frozen-lockfile'
         ],
+        "condition": system in ['linux', 'darwin']
     },
     'buildtools/gn': {
         "type": "http",

@@ -27,4 +27,4 @@ jobs:
           path: src/lynxtron
       - name: Run file type check
         run: |
-          ls -al
+          echo "to check file type"
