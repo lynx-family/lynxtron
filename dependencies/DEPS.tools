@@ -1,0 +1,20 @@
+import os
+import platform
+
+system = platform.system().lower()
+machine = platform.machine().lower()
+machine = "x86_64" if machine == "amd64" else machine
+
+python_path = "python3"
+if system == "windows":
+    python_path = "python"
+
+deps = {
+    "./tools_shared": {
+        "type": "solution",
+        "url": "https://github.com/lynx-family/tools-shared.git",
+        "commit": "f13686a7f3ea237475af97b106c894652b2c0ef2",
+        'deps_file': 'dependencies/DEPS',
+        "ignore_in_git": True,
+    },
+}

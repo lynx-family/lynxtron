@@ -1,0 +1,388 @@
+import os
+import platform
+
+machine = platform.machine().lower()
+machine = "x86_64" if machine == "amd64" else machine
+system = platform.system().lower()
+
+yarn_version = '1.22.22'
+chromium_git = 'https://chromium.googlesource.com'
+boringssl_git = 'https://github.com/google/boringssl.git'
+nodejs_git = 'https://github.com/nodejs'
+
+url_revision = 'e93dc734ccd3f4a5b1f554121697749018b61f36'
+crypto_revision = 'e023bab238d9800a0f59ee3ca5a527c5e93577a3'
+v8_revision = 'fdb12b460f148895f6af2ff0e0d870ff8889f154'
+node_version = 'c9ff1aecf268802fc29272c93aaa4b0691c7c6d8' #v22.18.0
+base_version = '94e25914771ed7d72590c5a7b75dcf0a8e7ac9bd'
+build_version = '5bb4abc6c9696e47a38e64ebc96451400037b3dc'
+buildtools_version = '460cef8967904d3a5fcfad728eb33db0c3a7da70'
+testing_version = '4ba43a16dce6d48bda21a2192657c1b73c381b3d'
+tools_version = '979ea287cf0943e39dd22ff16c294fc9b3a01067'
+boringssl_revision = '71147d3763466094df692df97afef42e4ce26a4f'
+compiler_rt_revision = '4b7737323cd4916a55a1a234168eeec9bc51db04'
+dragonbox_revision = '6c7c925b571d54486b9ffae8d9d18a822801cbda'
+fast_float_revision = 'cb1d42aaa1e14b09e1452cfdef373d051b8c02a4'
+fp16_revision = 'b3720617faf1a4581ed7e6787cc51722ec7751f0'
+fuzztest_revision = '2bc33128266f1e4385d42dabc0999b42e463b708'
+google_benchmark_revision = '761305ec3b33abf30e08d50eb829e19a802581cc'
+googletest_revision = '244cec869d12e53378fa0efb610cd4c32a454ec8'
+highway_revision = '00fe003dac355b979f36157f9407c7c46448958e'
+jsoncpp_revision = '42e892d96e47b1f6e29844cc705e148ec4856448'
+libcxx_revision = '6f8fe913d64254ab2231e0e98d2b6b5650ef4917'
+libcxxabi_revision = 'a6c815c69d55ec59d020abde636754d120b402ad'
+llvm_libc_revision = '6f9300acc74ac52d909e21b6d8bf2355fe6c78a7'
+catapult_revision = 'b768acbe184d829b6719faa0308668faaed1a6a8'
+nasm_revision = 'e2c93c34982b286b27ce8b56dd7159e0b90869a2'
+
+deps = {
+    '..': {
+        'type': 'git',
+        'url': 'git@code.byted.org:lynx/lynxtron-buildroot.git',
+        'commit': '02fba5c9f5f274b0f2702f923c2c3e261148d1d0',
+    },
+    'electron_npm_deps': {
+        "type": "action",
+        "cwd": root_dir,
+        "commands": [
+            f'python3 script/lib/npx.py yarn@1.22.22 install --frozen-lockfile'
+        ],
+    },
+    'buildtools/gn': {
+        "type": "http",
+        "url": f"https://github.com/zsy-jason/buildtools/releases/download/gn-07d3c6f4/buildtools-gn-{system}-{machine}.tar.gz",
+        "ignore_in_git": True,
+        "condition": system in ['linux', 'darwin', 'windows']
+    },
+    'buildtools/ninja': {
+        "type": "http",
+        "url": {
+            "linux": "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip",
+            "darwin": "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-mac.zip",
+            "windows": "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-win.zip"
+        }.get(system, None),
+        "sha256": {
+            "linux": "b901ba96e486dce377f9a070ed4ef3f79deb45f4ffe2938f8e7ddc69cfb3df77",
+            "darwin": "482ecb23c59ae3d4f158029112de172dd96bb0e97549c4b1ca32d8fad11f873e",
+            "windows": "524b344a1a9a55005eaf868d991e090ab8ce07fa109f1820d40e74642e289abc"
+        }.get(system, None),
+        "ignore_in_git": True,
+        "condition": system in ['linux', 'darwin', 'windows']
+    },
+    "./tools_shared": {
+        "type": "solution",
+        "url": "https://github.com/lynx-family/tools-shared.git",
+        "commit": "f13686a7f3ea237475af97b106c894652b2c0ef2",
+        'deps_file': 'dependencies/DEPS',
+        "ignore_in_git": True,
+    },
+    'change_executable_permission': {
+        "type": "action",
+        "cwd": root_dir,
+        "commands": [
+            "chmod +x buildtools/ninja/ninja",
+            "chmod +x buildtools/gn/gn",
+        ],
+        "require": ["buildtools/ninja", "buildtools/gn"],
+        "condition": system in ['linux', 'darwin']
+    },
+    '../url': {
+        'type': 'git',
+        'url': f'{chromium_git}/chromium/src/url.git',
+        'commit': url_revision,
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../crypto': {
+        'type': 'git',
+        'url': f'{chromium_git}/chromium/src/crypto.git',
+        'commit': crypto_revision,
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../v8': {
+        'type': 'git',
+        'url': f'{chromium_git}/v8/v8.git',
+        'commit': v8_revision,
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../third_party/node': {
+        'type': 'git',
+        'url': f'{nodejs_git}/node.git',
+        'commit': node_version,
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../base': {
+        'type': 'git',
+        'url': f'{chromium_git}/chromium/src/base.git',
+        'commit': base_version,
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../buildtools': {
+        'type': 'git',
+        'url': f'{chromium_git}/chromium/src/buildtools.git',
+        'commit': buildtools_version,
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../build': {
+        'type': 'git',
+        'url': f'{chromium_git}/chromium/src/build.git',
+        'commit': build_version,
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../testing': {
+        'type': 'git',
+        'url': f'{chromium_git}/chromium/src/testing.git',
+        'commit': testing_version,
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../tools': {
+        'type': 'git',
+        'url': f'{chromium_git}/chromium/src/tools.git',
+        'commit': tools_version,
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../third_party/rust': {
+        'type': 'git',
+        'url': f'{chromium_git}/chromium/src/third_party/rust.git',
+        'commit': '88f2fff708fb2748ecd986dff52001fe554bee8b',
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../third_party/protobuf': {
+        'type': 'git',
+        'url': f'{chromium_git}/chromium/src/third_party/protobuf.git',
+        'commit': '78c1ca719e3117e1c426a3da1e6938a5344061cb',
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../third_party/boringssl/src': {
+        'type': 'git',
+        'url': f'{boringssl_git}',
+        'commit': boringssl_revision,
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../third_party/ced/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/google/compact_enc_det.git',
+        'commit': 'ba412eaaacd3186085babcd901679a48863c7dd5',
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../third_party/compiler-rt/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/llvm/llvm-project/compiler-rt.git',
+        'commit': compiler_rt_revision,
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../third_party/dragonbox/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/jk-jeon/dragonbox.git',
+        'commit': dragonbox_revision,
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../third_party/fast_float/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/fastfloat/fast_float.git',
+        'commit': fast_float_revision,
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../third_party/fp16/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/Maratyszcza/FP16.git',
+        'commit': fp16_revision,
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../third_party/fuzztest/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/google/fuzztest.git',
+        'commit': fuzztest_revision,
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../third_party/google_benchmark/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/google/benchmark.git',
+        'commit': google_benchmark_revision,
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../third_party/googletest/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/google/googletest.git',
+        'commit': googletest_revision,
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../third_party/highway/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/google/highway.git',
+        'commit': highway_revision,
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../third_party/icu': {
+        'type': 'git',
+        'url': f'{chromium_git}/chromium/deps/icu.git',
+        'commit': '1b2e3e8a421efae36141a7b932b41e315b089af8',
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../third_party/jsoncpp/source': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/open-source-parsers/jsoncpp.git',
+        'commit': jsoncpp_revision,
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../third_party/llvm-libc/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/llvm/llvm-project/libc.git',
+        'commit': llvm_libc_revision,
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../third_party/perfetto':
+    {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/google/perfetto.git',
+        'commit': '6588e8474439752ab9e2c95dfde99f9c132dc83d',
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../third_party/re2/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/google/re2.git',
+        'commit': '6569a9a3df256f4c0c3813cb8ee2f8eef6e2c1fb',
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../third_party/libc++/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/llvm/llvm-project/libcxx.git',
+        'commit': libcxx_revision,
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../third_party/libc++abi/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/llvm/llvm-project/libcxxabi.git',
+        'commit': libcxxabi_revision,
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../third_party/nasm': {
+        'type': 'git',
+        'url': f'{chromium_git}/chromium/deps/nasm.git',
+        'commit': nasm_revision,
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../third_party/sqlite/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/chromium/deps/sqlite.git',
+        'commit': 'cc08c79629643fdd5b592f1391e738815f5577b6',
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../third_party/catapult': {
+        'type': 'git',
+        'url': f'{chromium_git}/catapult.git',
+        'commit': catapult_revision,
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    '../third_party/zstd/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/facebook/zstd.git',
+        'commit': 'e128976193546dceb24249206a02ff8f444f7120',
+        'ignore_in_git': True,
+        "require": [".."],
+    },
+    'apply_all_patches': {
+        "type": "action",
+        "cwd": os.path.join(root_dir, '..'),
+        "commands": [
+            "python3 lynxtron/script/apply_all_patches.py lynxtron/patches/config.json",
+        ],
+        "require": ["../base", "../build", "../third_party/node", "../url", "../tools", "../v8"],
+    },
+    'update_lastchange': {
+        "type": "action",
+        "cwd": root_dir,
+        "commands": [
+            "python3 ../build/util/lastchange.py -o ../build/util/LASTCHANGE",
+        ],
+        "require": ["apply_all_patches"],
+    },
+    'generate_gclient_args': {
+        "type": "action",
+        "cwd": root_dir,
+        "commands": [
+            "python3 tools/gn/generate_gn_args.py -f ../build/config/gclient_args.gni" + " "
+            "-p "
+            "build_with_chromium=true "
+            "generate_location_tags=true "
+        ],
+        "require": ["apply_all_patches"],
+    },
+    '../tools/clang/dsymutil/bin': {
+        "type": "http",
+        "url": f"https://github.com/zsy-jason/buildtools/releases/download/dsymutil-8e05e94b/dsymutil-{system}-{machine}.tar.gz",
+        "ignore_in_git": True,
+        "condition": system in ['darwin'],
+        "require": ["apply_all_patches"],
+    },
+    'change_dsymutil_executable_permission': {
+        "type": "action",
+        "cwd": root_dir,
+        "commands": [
+            f"mv ../tools/clang/dsymutil/bin/dsymutil-{system}-{machine} ../tools/clang/dsymutil/bin/dsymutil",
+            "chmod +x ../tools/clang/dsymutil/bin/dsymutil",
+        ],
+        "require": ["../tools/clang/dsymutil/bin"],
+        "condition": system in ['darwin'],
+    },
+    '../third_party/llvm-build/Release+Asserts': {
+        "type": "http",
+        "url": f"https://github.com/zsy-jason/buildtools/releases/download/chromium-140/clang-{system}-{machine}.tar.xz",
+        "ignore_in_git": True,
+        "condition": system in ['linux', 'darwin', 'windows'],
+        "require": ["apply_all_patches"],
+    },
+    '../third_party/llvm-build/Release+Asserts/llvmobjdump.tar.xz': {
+        "type": "http",
+        "url": f"https://github.com/zsy-jason/buildtools/releases/download/chromium-140/llvmobjdump-{system}-{machine}.tar.xz",
+        "ignore_in_git": True,
+        "condition": system in ['linux', 'darwin', 'windows'],
+        "decompress": False,
+        "require": ["../third_party/llvm-build/Release+Asserts"],
+    },
+    'decompress_llvmobjdump': {
+        "type": "action",
+        "cwd": root_dir,
+        "commands": [
+            "python3 tools/decompress_helper.py --file_path ../third_party/llvm-build/Release+Asserts/llvmobjdump.tar.xz --output_dir ../third_party/llvm-build/Release+Asserts/",
+        ],
+        "require": ['../third_party/llvm-build/Release+Asserts/llvmobjdump.tar.xz']
+    },
+    '../third_party/rust-toolchain': {
+        "type": "http",
+        "url": f"https://github.com/zsy-jason/buildtools/releases/download/chromium-140/rust-toolchain-{system}-{machine}.tar.xz",
+        "ignore_in_git": True,
+        "condition": system in ['linux', 'darwin', 'windows'],
+        "require": ["apply_all_patches"],
+    },
+}

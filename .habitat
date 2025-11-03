@@ -1,0 +1,11 @@
+habitat_version = "0.3.145"
+solutions = [
+    {
+        'name': '.',
+        'deps_file': 'dependencies/DEPS',
+        'url': 'git@github.com:lynx-family/lynxtron.git',
+        'target_deps_files': {
+            'tools': 'dependencies/DEPS.tools',
+        },
+    }
+]
