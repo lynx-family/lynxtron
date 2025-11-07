@@ -25,8 +25,12 @@ jobs:
           fetch-depth: 2
           ref: ${{ github.event.pull_request.head.sha }}
           path: src/lynxtron
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
       - name: Install Common Dependencies
-        uses: ./lynxtron/.github/actions/common-deps
+        uses: ./src/lynxtron/.github/actions/common-deps
         with:
           target: 'tools'
           target_only: 'true'

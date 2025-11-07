@@ -10,6 +10,11 @@ if system == "windows":
     python_path = "python"
 
 deps = {
+    '..': {
+        'type': 'git',
+        'url': 'git@github.com:lynx-family/lynxtron-buildroot.git',
+        'commit': '02fba5c9f5f274b0f2702f923c2c3e261148d1d0',
+    },
     "./tools_shared": {
         "type": "solution",
         "url": "https://github.com/lynx-family/tools-shared.git",

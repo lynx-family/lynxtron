@@ -38,7 +38,7 @@ nasm_revision = 'e2c93c34982b286b27ce8b56dd7159e0b90869a2'
 deps = {
     '..': {
         'type': 'git',
-        'url': 'git@code.byted.org:lynx/lynxtron-buildroot.git',
+        'url': 'git@github.com:lynx-family/lynxtron-buildroot.git',
         'commit': '02fba5c9f5f274b0f2702f923c2c3e261148d1d0',
     },
     'electron_npm_deps': {
