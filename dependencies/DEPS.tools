@@ -13,7 +13,7 @@ deps = {
     '..': {
         'type': 'git',
         'url': 'git@github.com:lynx-family/lynxtron-buildroot.git',
-        'commit': '02fba5c9f5f274b0f2702f923c2c3e261148d1d0',
+        'commit': '9af0e5711e5f71d4c3600553ffa83d6944116395',
     },
     "./tools_shared": {
         "type": "solution",
