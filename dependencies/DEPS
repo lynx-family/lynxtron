@@ -36,10 +36,19 @@ catapult_revision = 'b768acbe184d829b6719faa0308668faaed1a6a8'
 nasm_revision = 'e2c93c34982b286b27ce8b56dd7159e0b90869a2'
 
 deps = {
+    '../lynx': {
+        'type': 'solution',
+        'url': 'git@github.com:lynx-family/lynx.git',
+        'commit': '0ef3bcb52b8486df7153ebea8f902cb484a7d3a8',
+        "deps_file": "dependencies/DEPS.lynxtron",
+        "ignore_in_git": True,
+        "require": [".."],
+    },
     '..': {
         'type': 'git',
         'url': 'git@github.com:lynx-family/lynxtron-buildroot.git',
-        'commit': '9af0e5711e5f71d4c3600553ffa83d6944116395',
+        'commit': 'd5e48b79b1b623097f50b03a90a1f8a50e8befe5',
+        "ignore_in_git": True,
     },
     'electron_npm_deps': {
         "type": "action",
@@ -164,13 +173,6 @@ deps = {
         'ignore_in_git': True,
         "require": [".."],
     },
-    '../third_party/boringssl/src': {
-        'type': 'git',
-        'url': f'{boringssl_git}',
-        'commit': boringssl_revision,
-        'ignore_in_git': True,
-        "require": [".."],
-    },
     '../third_party/ced/src': {
         'type': 'git',
         'url': f'{chromium_git}/external/github.com/google/compact_enc_det.git',
@@ -220,31 +222,10 @@ deps = {
         'ignore_in_git': True,
         "require": [".."],
     },
-    '../third_party/googletest/src': {
-        'type': 'git',
-        'url': f'{chromium_git}/external/github.com/google/googletest.git',
-        'commit': googletest_revision,
-        'ignore_in_git': True,
-        "require": [".."],
-    },
     '../third_party/highway/src': {
         'type': 'git',
         'url': f'{chromium_git}/external/github.com/google/highway.git',
         'commit': highway_revision,
-        'ignore_in_git': True,
-        "require": [".."],
-    },
-    '../third_party/icu': {
-        'type': 'git',
-        'url': f'{chromium_git}/chromium/deps/icu.git',
-        'commit': '1b2e3e8a421efae36141a7b932b41e315b089af8',
-        'ignore_in_git': True,
-        "require": [".."],
-    },
-    '../third_party/jsoncpp/source': {
-        'type': 'git',
-        'url': f'{chromium_git}/external/github.com/open-source-parsers/jsoncpp.git',
-        'commit': jsoncpp_revision,
         'ignore_in_git': True,
         "require": [".."],
     },
