@@ -1,0 +1,25 @@
+import os
+import platform
+
+machine = platform.machine().lower()
+machine = "x86_64" if machine == "amd64" else machine
+system = platform.system().lower()
+
+deps = {
+    'electron_npm_deps': {
+        "type": "action",
+        "cwd": root_dir,
+        "commands": [
+            f'python3 script/lib/npx.py yarn@1.22.22 install --frozen-lockfile'
+        ],
+        "condition": system in ['linux', 'darwin']
+    },
+    'apply_all_patches': {
+        "type": "action",
+        "cwd": os.path.join(root_dir, '..'),
+        "commands": [
+            "python3 lynxtron/script/apply_all_patches.py lynxtron/patches/config.json",
+        ],
+        "require": ["../base", "../build", "../third_party/node", "../url", "../tools", "../v8"],
+    },
+}

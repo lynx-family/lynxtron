@@ -1,0 +1,73 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samuel Attard <marshallofsound@electronjs.org>
+Date: Tue, 7 Mar 2023 16:17:41 -0800
+Subject: fix: lazyload fs in esm loaders to apply asar patches
+
+Changes { foo } from fs to just "fs.foo" so that our patching of fs is applied to esm loaders
+
+diff --git a/lib/internal/modules/esm/load.js b/lib/internal/modules/esm/load.js
+index 6e730bd9152af8180fb1f9566f20bad46675e02d..72f3f3f55c7e489c8972f52df911afa24b71b2c1 100644
+--- a/lib/internal/modules/esm/load.js
++++ b/lib/internal/modules/esm/load.js
+@@ -10,7 +10,7 @@ const {
+ const { defaultGetFormat } = require('internal/modules/esm/get_format');
+ const { validateAttributes, emitImportAssertionWarning } = require('internal/modules/esm/assert');
+ const { getOptionValue } = require('internal/options');
+-const { readFileSync } = require('fs');
++const fs = require('fs');
+ 
+ const defaultType =
+   getOptionValue('--experimental-default-type');
+@@ -38,7 +38,7 @@ function getSourceSync(url, context) {
+   const responseURL = href;
+   let source;
+   if (protocol === 'file:') {
+-    source = readFileSync(url);
++    source = fs.readFileSync(url);
+   } else if (protocol === 'data:') {
+     const result = dataURLProcessor(url);
+     if (result === 'failure') {
+diff --git a/lib/internal/modules/esm/resolve.js b/lib/internal/modules/esm/resolve.js
+index f57c50e8e8302c4bcc59bb64efe3e1215a409346..89492fa16fe2aaa720c7300d77cefd52685d114a 100644
+--- a/lib/internal/modules/esm/resolve.js
++++ b/lib/internal/modules/esm/resolve.js
+@@ -25,7 +25,7 @@ const {
+ const assert = require('internal/assert');
+ const internalFS = require('internal/fs/utils');
+ const { BuiltinModule } = require('internal/bootstrap/realm');
+-const { realpathSync } = require('fs');
++const fs = require('fs');
+ const { getOptionValue } = require('internal/options');
+ // Do not eagerly grab .manifest, it may be in TDZ
+ const { sep, posix: { relative: relativePosixPath }, resolve } = require('path');
+@@ -276,7 +276,7 @@ function finalizeResolution(resolved, base, preserveSymlinks) {
+   }
+ 
+   if (!preserveSymlinks) {
+-    const real = realpathSync(path, {
++    const real = fs.realpathSync(path, {
+       [internalFS.realpathCacheKey]: realpathCache,
+     });
+     const { search, hash } = resolved;
+diff --git a/lib/internal/modules/esm/translators.js b/lib/internal/modules/esm/translators.js
+index 1a45cc73fb737f8578878dbff26d4f6d66251cf1..d1b1e5b8baffaebf301689f37ae48acf4df0ea05 100644
+--- a/lib/internal/modules/esm/translators.js
++++ b/lib/internal/modules/esm/translators.js
+@@ -25,7 +25,7 @@ const {
+ 
+ const { BuiltinModule } = require('internal/bootstrap/realm');
+ const assert = require('internal/assert');
+-const { readFileSync } = require('fs');
++const fs = require('fs');
+ const { dirname, extname } = require('path');
+ const {
+   assertBufferSource,
+@@ -274,7 +274,7 @@ translators.set('commonjs', function commonjsStrategy(url, source, isMain) {
+ 
+   try {
+     // We still need to read the FS to detect the exports.
+-    source ??= readFileSync(new URL(url), 'utf8');
++    source ??= fs.readFileSync(new URL(url), 'utf8');
+   } catch {
+     // Continue regardless of error.
+   }

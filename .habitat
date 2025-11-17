@@ -5,6 +5,7 @@ solutions = [
         'deps_file': 'dependencies/DEPS',
         'url': 'git@github.com:lynx-family/lynxtron.git',
         'target_deps_files': {
+            'lynxtron': 'dependencies/DEPS.lynxtron',
             'tools': 'dependencies/DEPS.tools',
         },
     }

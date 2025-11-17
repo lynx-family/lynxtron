@@ -1,0 +1,4 @@
+build_disable_thin_lto_mac.patch
+build_disable_gclient.patch
+build_change_mac_sdk_min_to_14_from_15.patch
+0001-adapt-lynx-compile.patch

@@ -1,0 +1,21 @@
+#include "base/allocator/early_zone_registration_apple.h"
+#include "shell/app/library_main.h"
+
+int main(int argc, char* argv[]) {
+  partition_alloc::EarlyMallocZoneRegistration();
+  return LynxtronMain(argc, argv);
+
+  // TODO(Guo Xi): relauncher
+  // base::CommandLine::Init(argc, argv);
+  // lynxtron::LynxtronCommandLine::Init(argc, argv);
+  // constexpr char kRelauncherProcess[] = "relauncher";
+  // base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
+  // const std::string process_type =
+  //     command_line->GetSwitchValueASCII(kProcessType);
+  // if (process_type == kRelauncherProcess) {
+  //   // TODO(Guo Xi): relauncher
+  //   // relauncher::RelauncherMain();
+  //   return 0;
+  // } else {
+  // }
+}

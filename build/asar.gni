@@ -1,0 +1,92 @@
+run_node_script = rebase_path("run-node.py")
+gn_asar_js = rebase_path("../script/gn-asar.js")
+gn_asar_hash_js = rebase_path("../script/gn-asar-hash.js")
+gn_plist_but_with_hashes_js =
+    rebase_path("../script/gn-plist-but-with-hashes.js")
+template("node_action") {
+  assert(defined(invoker.script), "Need script path to run")
+  assert(defined(invoker.args), "Need script arguments")
+
+  action(target_name) {
+    forward_variables_from(invoker,
+                           [
+                             "deps",
+                             "public_deps",
+                             "sources",
+                             "inputs",
+                             "outputs",
+                           ])
+    if (!defined(inputs)) {
+      inputs = []
+    }
+    inputs += [ invoker.script ]
+    script = run_node_script
+    args = [ rebase_path(invoker.script) ] + invoker.args
+  }
+}
+
+template("asar") {
+  assert(defined(invoker.sources),
+         "Need sources in $target_name listing the source files")
+  assert(defined(invoker.outputs),
+         "Need asar name (as 1-element array, e.g. \$root_out_dir/foo.asar)")
+  assert(defined(invoker.root), "Need the base dir for generating the ASAR")
+
+  node_action(target_name) {
+    forward_variables_from(invoker,
+                           "*",
+                           [
+                             "script",
+                             "args",
+                           ])
+
+    script = gn_asar_js
+    args = [
+             "--base",
+             rebase_path(root),
+             "--files",
+           ] + rebase_path(sources) +
+           [
+             "--out",
+             rebase_path(outputs[0]),
+           ]
+  }
+
+  node_action(target_name + "_header_hash") {
+    invoker_out = invoker.outputs
+
+    deps = [ ":" + invoker.target_name ]
+    sources = invoker.outputs
+
+    script = gn_asar_hash_js
+    outputs = [ "$target_gen_dir/asar_hashes/$target_name.hash" ]
+
+    args = [
+      rebase_path(invoker_out[0]),
+      rebase_path(outputs[0]),
+    ]
+  }
+}
+
+template("asar_hashed_info_plist") {
+  node_action(target_name) {
+    assert(defined(invoker.plist_file),
+           "Need plist_file to add hashed assets to")
+    assert(defined(invoker.keys), "Need keys to replace with asset hash")
+    assert(defined(invoker.hash_targets), "Need hash_targets to read hash from")
+
+    deps = invoker.hash_targets
+
+    script = gn_plist_but_with_hashes_js
+    inputs = [ invoker.plist_file ]
+    outputs = [ "$target_gen_dir/hashed_plists/$target_name.plist" ]
+    hash_files = []
+    foreach(hash_target, invoker.hash_targets) {
+      hash_files += get_target_outputs(hash_target)
+    }
+    args = [
+             rebase_path(invoker.plist_file),
+             rebase_path(outputs[0]),
+           ] + invoker.keys + rebase_path(hash_files)
+  }
+}

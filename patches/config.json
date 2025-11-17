@@ -1,0 +1,9 @@
+[
+  { "patch_dir": "lynxtron/patches/base", "repo": "base" },
+  { "patch_dir": "lynxtron/patches/build", "repo": "build" },
+  { "patch_dir": "lynxtron/patches/node", "repo": "third_party/node" },
+  { "patch_dir": "lynxtron/patches/url", "repo": "url" },
+  { "patch_dir": "lynxtron/patches/tools", "repo": "tools" },
+  { "patch_dir": "lynxtron/patches/v8", "repo": "v8" },
+  { "patch_dir": "lynxtron/patches/protobuf", "repo": "third_party/protobuf" }
+]

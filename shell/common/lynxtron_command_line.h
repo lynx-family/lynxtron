@@ -1,0 +1,42 @@
+// Copyright (c) 2015 GitHub, Inc.
+// Use of this source code is governed by the MIT license that can be
+// found in the LICENSE file.
+
+#ifndef LYNXTRON_SHELL_COMMON_LYNXTRON_COMMAND_LINE_H_
+#define LYNXTRON_SHELL_COMMON_LYNXTRON_COMMAND_LINE_H_
+
+#include <string>
+#include <vector>
+
+#include "base/command_line.h"
+#include "build/build_config.h"
+
+namespace lynxtron {
+
+// Singleton to remember the original "argc" and "argv".
+class LynxtronCommandLine {
+ public:
+  // disable copy
+  LynxtronCommandLine() = delete;
+  LynxtronCommandLine(const LynxtronCommandLine&) = delete;
+  LynxtronCommandLine& operator=(const LynxtronCommandLine&) = delete;
+
+  static const base::CommandLine::StringVector& argv() { return argv_; }
+
+  static std::vector<std::string> AsUtf8();
+
+  static void Init(int argc, base::CommandLine::CharType const* const* argv);
+
+#if BUILDFLAG(IS_LINUX)
+  // On Linux the command line has to be read from base::CommandLine since
+  // it is using zygote.
+  static void InitializeFromCommandLine();
+#endif
+
+ private:
+  static base::CommandLine::StringVector argv_;
+};
+
+}  // namespace lynxtron
+
+#endif  // LYNXTRON_SHELL_COMMON_LYNXTRON_COMMAND_LINE_H_

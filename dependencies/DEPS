@@ -50,14 +50,6 @@ deps = {
         'commit': 'd5e48b79b1b623097f50b03a90a1f8a50e8befe5',
         "ignore_in_git": True,
     },
-    'electron_npm_deps': {
-        "type": "action",
-        "cwd": root_dir,
-        "commands": [
-            f'python3 script/lib/npx.py yarn@1.22.22 install --frozen-lockfile'
-        ],
-        "condition": system in ['linux', 'darwin']
-    },
     'buildtools/gn': {
         "type": "http",
         "url": f"https://github.com/zsy-jason/buildtools/releases/download/gn-07d3c6f4/buildtools-gn-{system}-{machine}.tar.gz",
@@ -292,14 +284,6 @@ deps = {
         'commit': 'e128976193546dceb24249206a02ff8f444f7120',
         'ignore_in_git': True,
         "require": [".."],
-    },
-    'apply_all_patches': {
-        "type": "action",
-        "cwd": os.path.join(root_dir, '..'),
-        "commands": [
-            "python3 lynxtron/script/apply_all_patches.py lynxtron/patches/config.json",
-        ],
-        "require": ["../base", "../build", "../third_party/node", "../url", "../tools", "../v8"],
     },
     'update_lastchange': {
         "type": "action",

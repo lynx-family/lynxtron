@@ -1,0 +1,38 @@
+{
+  "name": "lynxtron",
+  "version": "0.0.0-development",
+  "repository": "https://github.com/electron/electron",
+  "description": "Build cross platform desktop apps with JavaScript, HTML, and CSS",
+  "devDependencies": {
+    "@electron/asar": "^3.2.13",
+    "@types/node": "^22.7.7",
+    "@types/semver": "^7.5.8",
+    "pre-flight": "^2.0.0",
+    "process": "^0.11.10",
+    "semver": "^7.6.3",
+    "ts-loader": "^8.0.2",
+    "ts-node": "6.2.0",
+    "typescript": "^5.6.2",
+    "webpack": "^5.95.0",
+    "webpack-cli": "^5.1.4",
+    "wrapper-webpack-plugin": "^2.2.0",
+    "folder-hash": "^2.1.1",
+    "dugite": "^2.7.1"
+  },
+  "private": true,
+  "scripts": {
+    "generate-version-json": "node script/generate-version-json.js",
+    "pre-flight": "pre-flight",
+    "tsc": "tsc",
+    "webpack": "webpack",
+    "test": "node ./script/spec-runner.js"
+  },
+  "license": "MIT",
+  "author": "Electron Community",
+  "keywords": [
+    "electron"
+  ],
+  "resolutions": {
+    "nan": "nodejs/nan#e14bdcd1f72d62bca1d541b66da43130384ec213"
+  }
+}

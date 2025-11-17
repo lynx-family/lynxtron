@@ -1,0 +1,26 @@
+import("//build/config/compiler/compiler.gni")
+
+source_set("lynx_holder") {
+  sources = [
+    "lynx_view.cc",
+    "lynx_view.h",
+  ]
+
+  if (is_build_with_lynx) {
+    defines = [ "BUILD_WITH_LYNX=1" ]
+  }
+
+  include_dirs = [
+    "../..",
+    "..",
+  ]
+
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [ "//build/config/compiler:no_chromium_code" ]
+  configs -= [ "//build/config/clang:find_bad_constructs" ]
+
+  deps = [
+    "../lynx:lynx_lib",
+    "//base",
+  ]
+}
