@@ -10,10 +10,26 @@ if system == "windows":
     python_path = "python"
 
 deps = {
-    '..': {
-        'type': 'git',
-        'url': 'git@github.com:lynx-family/lynxtron-buildroot.git',
-        'commit': '9af0e5711e5f71d4c3600553ffa83d6944116395',
+    'buildtools/gn': {
+        "type": "http",
+        "url": f"https://github.com/zsy-jason/buildtools/releases/download/gn-07d3c6f4/buildtools-gn-{system}-{machine}.tar.gz",
+        "ignore_in_git": True,
+        "condition": system in ['linux', 'darwin', 'windows']
+    },
+    'buildtools/ninja': {
+        "type": "http",
+        "url": {
+            "linux": "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip",
+            "darwin": "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-mac.zip",
+            "windows": "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-win.zip"
+        }.get(system, None),
+        "sha256": {
+            "linux": "b901ba96e486dce377f9a070ed4ef3f79deb45f4ffe2938f8e7ddc69cfb3df77",
+            "darwin": "482ecb23c59ae3d4f158029112de172dd96bb0e97549c4b1ca32d8fad11f873e",
+            "windows": "524b344a1a9a55005eaf868d991e090ab8ce07fa109f1820d40e74642e289abc"
+        }.get(system, None),
+        "ignore_in_git": True,
+        "condition": system in ['linux', 'darwin', 'windows']
     },
     "./tools_shared": {
         "type": "solution",
@@ -21,5 +37,81 @@ deps = {
         "commit": "f13686a7f3ea237475af97b106c894652b2c0ef2",
         'deps_file': 'dependencies/DEPS',
         "ignore_in_git": True,
+    },
+    'change_executable_permission': {
+        "type": "action",
+        "cwd": root_dir,
+        "commands": [
+            "chmod +x buildtools/ninja/ninja",
+            "chmod +x buildtools/gn/gn",
+        ],
+        "require": ["buildtools/ninja", "buildtools/gn"],
+        "condition": system in ['linux', 'darwin']
+    },
+    'update_lastchange': {
+        "type": "action",
+        "cwd": root_dir,
+        "commands": [
+            "python3 ../build/util/lastchange.py -o ../build/util/LASTCHANGE",
+        ],
+        # "require": ["apply_all_patches"],
+    },
+    'generate_gclient_args': {
+        "type": "action",
+        "cwd": root_dir,
+        "commands": [
+            "python3 tools/gn/generate_gn_args.py -f ../build/config/gclient_args.gni" + " "
+            "-p "
+            "build_with_chromium=true "
+            "generate_location_tags=true "
+        ],
+        # "require": ["apply_all_patches"],
+    },
+    '../tools/clang/dsymutil/bin': {
+        "type": "http",
+        "url": f"https://github.com/zsy-jason/buildtools/releases/download/dsymutil-8e05e94b/dsymutil-{system}-{machine}.tar.gz",
+        "ignore_in_git": True,
+        "condition": system in ['darwin'],
+        # "require": ["apply_all_patches"],
+    },
+    'change_dsymutil_executable_permission': {
+        "type": "action",
+        "cwd": root_dir,
+        "commands": [
+            f"mv ../tools/clang/dsymutil/bin/dsymutil-{system}-{machine} ../tools/clang/dsymutil/bin/dsymutil",
+            "chmod +x ../tools/clang/dsymutil/bin/dsymutil",
+        ],
+        "require": ["../tools/clang/dsymutil/bin"],
+        "condition": system in ['darwin'],
+    },
+    '../third_party/llvm-build/Release+Asserts': {
+        "type": "http",
+        "url": f"https://github.com/zsy-jason/buildtools/releases/download/chromium-140/clang-{system}-{machine}.tar.xz",
+        "ignore_in_git": True,
+        "condition": system in ['linux', 'darwin', 'windows'],
+        # "require": ["apply_all_patches"],
+    },
+    '../third_party/llvm-build/Release+Asserts/llvmobjdump.tar.xz': {
+        "type": "http",
+        "url": f"https://github.com/zsy-jason/buildtools/releases/download/chromium-140/llvmobjdump-{system}-{machine}.tar.xz",
+        "ignore_in_git": True,
+        "condition": system in ['linux', 'darwin', 'windows'],
+        "decompress": False,
+        "require": ["../third_party/llvm-build/Release+Asserts"],
+    },
+    'decompress_llvmobjdump': {
+        "type": "action",
+        "cwd": root_dir,
+        "commands": [
+            "python3 tools/decompress_helper.py --file_path ../third_party/llvm-build/Release+Asserts/llvmobjdump.tar.xz --output_dir ../third_party/llvm-build/Release+Asserts/",
+        ],
+        "require": ['../third_party/llvm-build/Release+Asserts/llvmobjdump.tar.xz']
+    },
+    '../third_party/rust-toolchain': {
+        "type": "http",
+        "url": f"https://github.com/zsy-jason/buildtools/releases/download/chromium-140/rust-toolchain-{system}-{machine}.tar.xz",
+        "ignore_in_git": True,
+        "condition": system in ['linux', 'darwin', 'windows'],
+        # "require": ["apply_all_patches"],
     },
 }

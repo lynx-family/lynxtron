@@ -5,8 +5,10 @@ solutions = [
         'deps_file': 'dependencies/DEPS',
         'url': 'git@github.com:lynx-family/lynxtron.git',
         'target_deps_files': {
+            'lynx': 'dependencies/DEPS.lynx',
             'lynxtron': 'dependencies/DEPS.lynxtron',
             'tools': 'dependencies/DEPS.tools',
+            'tools_shared': 'dependencies/DEPS.tools_shared',
         },
     }
 ]
