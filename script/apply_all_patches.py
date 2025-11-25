@@ -9,6 +9,8 @@ from lib import git
 from lib.patches import patch_from_dir
 
 THREEWAY = "ELECTRON_USE_THREE_WAY_MERGE_FOR_PATCHES" in os.environ
+COLORED_GREEN_MSG = '\033[92m'
+COLORED_PRINT_END = '\033[0m'
 
 def apply_patches(target):
   repo = target.get('repo')
@@ -16,6 +18,7 @@ def apply_patches(target):
     warnings.warn(f'repo not found: {repo}')
     return
   patch_dir = target.get('patch_dir')
+  print(f'{COLORED_GREEN_MSG}applying patches from {patch_dir} to {repo}{COLORED_PRINT_END}')
   git.import_patches(
     committer_email="scripts@lynxtron",
     committer_name="Lynxtron Scripts",
