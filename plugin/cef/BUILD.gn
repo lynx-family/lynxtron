@@ -1,0 +1,87 @@
+# Copyright 2025 The Lynxtron Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+
+import("cef_sources.gni")
+
+shared_library("cef_plugin") {
+  deps = [ ":cef_sources" ]
+}
+
+config("cef_config") {
+  cflags = [ "-Wno-undefined-var-template" ]
+}
+
+binary_dir = "Release"
+if (is_debug) {
+  binary_dir = "Debug"
+}
+
+if (is_mac) {
+  copy("copy_chromium_embeddable_framework") {
+    sources = [ "../../../../third_party/cef_binary/$binary_dir/Chromium Embedded Framework.framework" ]
+    outputs = [ "$root_out_dir/cef/{{source_file_part}}" ]
+  }
+}
+if (is_win) {
+  copy("copy_cef_dll") {
+    sources = [
+      "../../../../third_party/cef_binary/$binary_dir/chrome_elf.dll",
+      "../../../../third_party/cef_binary/$binary_dir/d3dcompiler_47.dll",
+      "../../../../third_party/cef_binary/$binary_dir/libEGL.dll",
+      "../../../../third_party/cef_binary/$binary_dir/libGLESv2.dll",
+      "../../../../third_party/cef_binary/$binary_dir/libcef.dll",
+      "../../../../third_party/cef_binary/$binary_dir/v8_context_snapshot.bin",
+      "../../../../third_party/cef_binary/$binary_dir/vk_swiftshader.dll",
+      "../../../../third_party/cef_binary/$binary_dir/vk_swiftshader_icd.json",
+      "../../../../third_party/cef_binary/$binary_dir/vulkan-1.dll",
+    ]
+    if (target_cpu == "x64") {
+      sources += [
+        "../../../../third_party/cef_binary/$binary_dir/dxcompiler.dll",
+        "../../../../third_party/cef_binary/$binary_dir/dxil.dll",
+      ]
+    }
+    outputs = [ "$root_out_dir/cef/{{source_file_part}}" ]
+  }
+
+  copy("copy_cef_resources") {
+    sources = [
+      "../../../../third_party/cef_binary/Resources/chrome_100_percent.pak",
+      "../../../../third_party/cef_binary/Resources/chrome_200_percent.pak",
+      "../../../../third_party/cef_binary/Resources/icudtl.dat",
+      "../../../../third_party/cef_binary/Resources/locales",
+      "../../../../third_party/cef_binary/Resources/resources.pak",
+    ]
+
+    outputs = [ "$root_build_dir/cef/{{source_file_part}}" ]
+  }
+}
+
+source_set("cef_sources") {
+  sources = lib_cef_dll_sources_path
+
+  include_dirs = [ "../../../../third_party/cef_binary" ]
+  defines = [ "WRAPPING_CEF_SHARED" ]
+  configs += [ ":cef_config" ]
+  deps = []
+
+  if (is_mac) {
+    framework_dirs = [ "../../../../third_party/cef_binary/$binary_dir" ]
+    frameworks = [ "Chromium Embedded Framework.framework" ]
+    deps += [ ":copy_chromium_embeddable_framework" ]
+  }
+
+  if (is_win) {
+    lib_dirs = [ "../../../../third_party/cef_binary/$binary_dir" ]
+    libs = [
+      "libcef.lib",
+      "Imm32.lib",
+      "Comctl32.lib",
+    ]
+    deps += [
+      ":copy_cef_dll",
+      ":copy_cef_resources",
+    ]
+  }
+}

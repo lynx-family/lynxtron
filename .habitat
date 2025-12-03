@@ -9,6 +9,7 @@ solutions = [
             'lynxtron': 'dependencies/DEPS.lynxtron',
             'tools': 'dependencies/DEPS.tools',
             'tools_shared': 'dependencies/DEPS.tools_shared',
+            'plugin': 'dependencies/DEPS.plugin',
         },
     }
 ]
