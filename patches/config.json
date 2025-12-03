@@ -1,5 +1,6 @@
 [
   { "patch_dir": "lynxtron/patches/base", "repo": "base" },
+  { "patch_dir": "lynxtron/patches/lynx", "repo": "lynx" },
   { "patch_dir": "lynxtron/patches/build", "repo": "build" },
   { "patch_dir": "lynxtron/patches/node", "repo": "third_party/node" },
   { "patch_dir": "lynxtron/patches/url", "repo": "url" },

@@ -8,7 +8,7 @@
 #include <CoreGraphics/CoreGraphics.h>
 
 #include "base/containers/flat_map.h"
-#include "base/mac/scoped_cftyperef.h"
+// #include "base/apple/scoped_cftyperef.h"
 #include "base/no_destructor.h"
 #include "shell/ui/gfx/color_space.h"
 
@@ -32,7 +32,7 @@ class DisplayICCProfiles {
   static DisplayICCProfiles* GetInstance();
 
   // This will return null if |color_space| does not correspond to a display.
-  base::ScopedCFTypeRef<CFDataRef> GetDataForColorSpace(
+  base::apple::ScopedCFTypeRef<CFDataRef> GetDataForColorSpace(
       const ColorSpace& color_space);
 
  private:
@@ -47,7 +47,7 @@ class DisplayICCProfiles {
 
   void UpdateIfNeeded();
 
-  base::flat_map<ColorSpace, base::ScopedCFTypeRef<CFDataRef>> map_;
+  base::flat_map<ColorSpace, base::apple::ScopedCFTypeRef<CFDataRef>> map_;
   bool needs_update_ = true;
 };
 

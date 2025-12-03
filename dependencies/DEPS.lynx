@@ -13,4 +13,12 @@ deps = {
         "deps_file": "dependencies/DEPS.lynxtron",
         "ignore_in_git": True,
     },
+    'apply_lynx_patches': {
+        "type": "action",
+        "cwd": os.path.join(root_dir, '..'),
+        "commands": [
+            "python3 lynxtron/script/apply_all_patches.py lynxtron/patches/lynx/config.json",
+        ],
+        "require": ["../lynx"],
+    },
 }

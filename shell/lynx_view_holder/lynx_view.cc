@@ -1,3 +1,6 @@
+// Copyright 2025 The Lynx Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
 
 #include "shell/lynx_view_holder/lynx_view.h"
 
@@ -19,8 +22,13 @@
 #endif
 
 #if BUILDFLAG(IS_WIN)
+#if BUILD_WITH_LYNX
+#include "lynx/platform/embedder/public/lynx_view.h"
+#include "lynx/platform/embedder/public/lynx_view_client.h"
+#else
 #include "shell/lynx/lynx_lib/lib/win/include/lynx_view.h"
 #include "shell/lynx/lynx_lib/lib/win/include/lynx_view_client.h"
+#endif
 #endif
 
 namespace lynxtron {

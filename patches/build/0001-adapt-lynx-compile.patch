@@ -1,4 +1,4 @@
-From 612d804da96aa685e95696686a7c31b586c72bd7 Mon Sep 17 00:00:00 2001
+From 2a4ad0915c592ad7084af011345dbc2d6b46a13c Mon Sep 17 00:00:00 2001
 From: tangyongjie <80395553+yongjieTang@users.noreply.github.com>
 Date: Fri, 14 Nov 2025 14:46:37 +0800
 Subject: [PATCH] adapt lynx compile
@@ -18,8 +18,8 @@ Subject: [PATCH] adapt lynx compile
  apple/templates/metal_compiler.gni            |  88 +++++
  apple/templates/storyboards.gni               |  50 +++
  apple/templates/xib.gni                       |  55 +++
- config/BUILD.gn                               |  63 ++++
- config/BUILDCONFIG.gn                         |  28 ++
+ config/BUILD.gn                               |  72 ++++
+ config/BUILDCONFIG.gn                         |  30 ++
  config/clang/BUILD.gn                         |  28 +-
  config/compiler/BUILD.gn                      |  15 +
  config/ios/bundle_identifier_prefix.gni       |   8 +
@@ -45,7 +45,8 @@ Subject: [PATCH] adapt lynx compile
  secondary/third_party/wuffs/BUILD.gn          |  61 ++++
  toolchain/clang.gni                           |  41 +++
  util/write_cmake_config.gni                   |   1 +
- 41 files changed, 2694 insertions(+), 14 deletions(-)
+ util/write_cmake_config.py                    | 123 +++++++
+ 42 files changed, 2828 insertions(+), 14 deletions(-)
  create mode 100644 apple/resources/Info.plist
  create mode 100644 apple/resources/compiler-Info.plist
  create mode 100644 apple/script/compile_storyboard.py
@@ -82,10 +83,11 @@ Subject: [PATCH] adapt lynx compile
  create mode 100644 secondary/third_party/wuffs/BUILD.gn
  create mode 100644 toolchain/clang.gni
  create mode 100644 util/write_cmake_config.gni
+ create mode 100644 util/write_cmake_config.py
 
 diff --git a/apple/resources/Info.plist b/apple/resources/Info.plist
 new file mode 100644
-index 000000000..75b54f5db
+index 0000000..75b54f5
 --- /dev/null
 +++ b/apple/resources/Info.plist
 @@ -0,0 +1,20 @@
@@ -111,7 +113,7 @@ index 000000000..75b54f5db
 +</plist>
 diff --git a/apple/resources/compiler-Info.plist b/apple/resources/compiler-Info.plist
 new file mode 100644
-index 000000000..0a025174f
+index 0000000..0a02517
 --- /dev/null
 +++ b/apple/resources/compiler-Info.plist
 @@ -0,0 +1,33 @@
@@ -150,7 +152,7 @@ index 000000000..0a025174f
 +</plist>
 diff --git a/apple/script/compile_storyboard.py b/apple/script/compile_storyboard.py
 new file mode 100644
-index 000000000..56b1dcb60
+index 0000000..56b1dcb
 --- /dev/null
 +++ b/apple/script/compile_storyboard.py
 @@ -0,0 +1,63 @@
@@ -219,7 +221,7 @@ index 000000000..56b1dcb60
 +  sys.exit(main(sys.argv[1:]))
 diff --git a/apple/script/hardlink.py b/apple/script/hardlink.py
 new file mode 100644
-index 000000000..7f1be5978
+index 0000000..7f1be59
 --- /dev/null
 +++ b/apple/script/hardlink.py
 @@ -0,0 +1,71 @@
@@ -296,7 +298,7 @@ index 000000000..7f1be5978
 +  Main()
 diff --git a/apple/script/merge_plist.py b/apple/script/merge_plist.py
 new file mode 100644
-index 000000000..f13ce0077
+index 0000000..f13ce00
 --- /dev/null
 +++ b/apple/script/merge_plist.py
 @@ -0,0 +1,138 @@
@@ -440,7 +442,7 @@ index 000000000..f13ce0077
 +  sys.exit(main(sys.argv[1:]))
 diff --git a/apple/script/metal_compiler.py b/apple/script/metal_compiler.py
 new file mode 100644
-index 000000000..61b4a01ea
+index 0000000..61b4a01
 --- /dev/null
 +++ b/apple/script/metal_compiler.py
 @@ -0,0 +1,106 @@
@@ -552,7 +554,7 @@ index 000000000..61b4a01ea
 +  sys.exit(main())
 diff --git a/apple/script/write_pkg_info.py b/apple/script/write_pkg_info.py
 new file mode 100644
-index 000000000..ae7c5272f
+index 0000000..ae7c527
 --- /dev/null
 +++ b/apple/script/write_pkg_info.py
 @@ -0,0 +1,56 @@
@@ -614,7 +616,7 @@ index 000000000..ae7c5272f
 +  sys.exit(Main())
 diff --git a/apple/templates/asset_catalog.gni b/apple/templates/asset_catalog.gni
 new file mode 100644
-index 000000000..ccd271f2a
+index 0000000..ccd271f
 --- /dev/null
 +++ b/apple/templates/asset_catalog.gni
 @@ -0,0 +1,149 @@
@@ -769,7 +771,7 @@ index 000000000..ccd271f2a
 +}
 diff --git a/apple/templates/darwin_binary_bundle.gni b/apple/templates/darwin_binary_bundle.gni
 new file mode 100644
-index 000000000..914204dfa
+index 0000000..914204d
 --- /dev/null
 +++ b/apple/templates/darwin_binary_bundle.gni
 @@ -0,0 +1,184 @@
@@ -959,7 +961,7 @@ index 000000000..914204dfa
 +}
 diff --git a/apple/templates/darwin_general_bundle.gni b/apple/templates/darwin_general_bundle.gni
 new file mode 100644
-index 000000000..50af34bba
+index 0000000..50af34b
 --- /dev/null
 +++ b/apple/templates/darwin_general_bundle.gni
 @@ -0,0 +1,156 @@
@@ -1122,7 +1124,7 @@ index 000000000..50af34bba
 \ No newline at end of file
 diff --git a/apple/templates/merge_plist.gni b/apple/templates/merge_plist.gni
 new file mode 100644
-index 000000000..2010faaee
+index 0000000..2010faa
 --- /dev/null
 +++ b/apple/templates/merge_plist.gni
 @@ -0,0 +1,85 @@
@@ -1213,7 +1215,7 @@ index 000000000..2010faaee
 +}
 diff --git a/apple/templates/metal_compiler.gni b/apple/templates/metal_compiler.gni
 new file mode 100644
-index 000000000..abb10e0c0
+index 0000000..abb10e0
 --- /dev/null
 +++ b/apple/templates/metal_compiler.gni
 @@ -0,0 +1,88 @@
@@ -1308,7 +1310,7 @@ index 000000000..abb10e0c0
 \ No newline at end of file
 diff --git a/apple/templates/storyboards.gni b/apple/templates/storyboards.gni
 new file mode 100644
-index 000000000..8be624620
+index 0000000..8be6246
 --- /dev/null
 +++ b/apple/templates/storyboards.gni
 @@ -0,0 +1,50 @@
@@ -1364,7 +1366,7 @@ index 000000000..8be624620
 +}
 diff --git a/apple/templates/xib.gni b/apple/templates/xib.gni
 new file mode 100644
-index 000000000..6beb472df
+index 0000000..6beb472
 --- /dev/null
 +++ b/apple/templates/xib.gni
 @@ -0,0 +1,55 @@
@@ -1424,16 +1426,17 @@ index 000000000..6beb472df
 +  }
 +}
 diff --git a/config/BUILD.gn b/config/BUILD.gn
-index 56ca3ca73..31adedf98 100644
+index 56ca3ca..9837dac 100644
 --- a/config/BUILD.gn
 +++ b/config/BUILD.gn
-@@ -430,3 +430,66 @@ config("precompiled_headers") {
+@@ -430,3 +430,75 @@ config("precompiled_headers") {
  config("compress_debug_sections") {
    ldflags = [ "-gz" ]
  }
 +
 +
 +config("lynx_config") {
++if (is_mac) {
 +  __configs = [
 +    "-Wno-nonportable-include-path",
 +    "-Wno-deprecated-this-capture",
@@ -1472,13 +1475,21 @@ index 56ca3ca73..31adedf98 100644
 +    "-Wno-thread-safety-analysis",
 +
 +  ]
-+  if(is_mac) {
-+    cflags = __configs
-+    cflags_cc = __configs
-+    cflags_c = __configs
-+    cflags_objc = __configs
-+    cflags_objcc = __configs
++
++}
++
++  if(is_win) {
++    __configs = [
++      "-Wno-unknown-argument",
++      "-Wno-vla-cxx-extension",
++    ]
 +  }
++
++  cflags = __configs
++  cflags_cc = __configs
++  cflags_c = __configs
++  cflags_objc = __configs
++  cflags_objcc = __configs
 +
 +  include_dirs = [
 +    "//$target_gen_dir/lynx/oss/",
@@ -1495,7 +1506,7 @@ index 56ca3ca73..31adedf98 100644
 +config("symbol_visibility_hidden") {
 +}
 diff --git a/config/BUILDCONFIG.gn b/config/BUILDCONFIG.gn
-index 5af795411..42db22425 100644
+index 5af7954..c5f6776 100644
 --- a/config/BUILDCONFIG.gn
 +++ b/config/BUILDCONFIG.gn
 @@ -14,6 +14,10 @@
@@ -1509,7 +1520,7 @@ index 5af795411..42db22425 100644
  # =============================================================================
  # PLATFORM SELECTION
  # =============================================================================
-@@ -168,6 +172,20 @@ declare_args() {
+@@ -168,6 +172,22 @@ declare_args() {
  declare_args() {
    # Debug build. Enabling official builds automatically sets is_debug to false.
    is_debug = !is_official_build
@@ -1527,10 +1538,12 @@ index 5af795411..42db22425 100644
 +  default_library_type = "static_library"
 +
 +  is_build_with_lynx = false
++
++  use_flutter_cxx = false
  }
  
  declare_args() {
-@@ -327,6 +345,8 @@ is_fuchsia = current_os == "fuchsia"
+@@ -327,6 +347,8 @@ is_fuchsia = current_os == "fuchsia"
  is_ios = current_os == "ios"
  is_linux = current_os == "linux"
  is_mac = current_os == "mac"
@@ -1539,7 +1552,7 @@ index 5af795411..42db22425 100644
  
  # TODO(crbug.com/40511454): Remove is_nacl from all build files, then
  #                           remove the is_nacl variable.
-@@ -384,6 +404,7 @@ default_compiler_configs = [
+@@ -384,6 +406,7 @@ default_compiler_configs = [
    "//build/config/coverage:default_coverage",
    "//build/config/sanitizers:default_sanitizer_flags",
    "//build/config:feature_flags",
@@ -1547,7 +1560,7 @@ index 5af795411..42db22425 100644
  ]
  
  if (is_win) {
-@@ -432,6 +453,13 @@ if (is_debug) {
+@@ -432,6 +455,13 @@ if (is_debug) {
    default_compiler_configs += [ "//build/config:release" ]
  }
  
@@ -1562,7 +1575,7 @@ index 5af795411..42db22425 100644
  set_defaults("static_library") {
    configs = default_compiler_configs
 diff --git a/config/clang/BUILD.gn b/config/clang/BUILD.gn
-index 7aaa87300..109c34022 100644
+index 7aaa873..109c340 100644
 --- a/config/clang/BUILD.gn
 +++ b/config/clang/BUILD.gn
 @@ -92,22 +92,22 @@ clang_plugin("raw_ptr_check") {
@@ -1603,7 +1616,7 @@ index 7aaa87300..109c34022 100644
  
  # A plugin for incrementally applying the -Wunsafe-buffer-usage warning.
 diff --git a/config/compiler/BUILD.gn b/config/compiler/BUILD.gn
-index 32c9abdab..da19a7d3e 100644
+index 32c9abd..da19a7d 100644
 --- a/config/compiler/BUILD.gn
 +++ b/config/compiler/BUILD.gn
 @@ -306,6 +306,19 @@ config("no_unresolved_symbols") {
@@ -1644,7 +1657,7 @@ index 32c9abdab..da19a7d3e 100644
  config("no_chromium_code") {
 diff --git a/config/ios/bundle_identifier_prefix.gni b/config/ios/bundle_identifier_prefix.gni
 new file mode 100644
-index 000000000..97c47cc72
+index 0000000..97c47cc
 --- /dev/null
 +++ b/config/ios/bundle_identifier_prefix.gni
 @@ -0,0 +1,8 @@
@@ -1657,7 +1670,7 @@ index 000000000..97c47cc72
 +  default_bundle_identifier_prefix = "com.google"
 +}
 diff --git a/config/mac/BUILD.gn b/config/mac/BUILD.gn
-index d9218b3ca..11e19f287 100644
+index d9218b3..11e19f2 100644
 --- a/config/mac/BUILD.gn
 +++ b/config/mac/BUILD.gn
 @@ -8,6 +8,26 @@ import("//build/config/mac/mac_sdk.gni")
@@ -1689,7 +1702,7 @@ index d9218b3ca..11e19f287 100644
  # is applied to all targets. It is here to separate out the logic.
 diff --git a/config/mac/script/sdk_info.py b/config/mac/script/sdk_info.py
 new file mode 100644
-index 000000000..7d1eff9b4
+index 0000000..7d1eff9
 --- /dev/null
 +++ b/config/mac/script/sdk_info.py
 @@ -0,0 +1,130 @@
@@ -1825,7 +1838,7 @@ index 000000000..7d1eff9b4
 +  sys.exit(main(sys.argv[1:]))
 diff --git a/config/mac/sdk_info.gni b/config/mac/sdk_info.gni
 new file mode 100644
-index 000000000..e94b9f55b
+index 0000000..e94b9f5
 --- /dev/null
 +++ b/config/mac/sdk_info.gni
 @@ -0,0 +1,14 @@
@@ -1845,7 +1858,7 @@ index 000000000..e94b9f55b
 +                       "json")
 diff --git a/config/mac/templates/mac_app_bundle.gni b/config/mac/templates/mac_app_bundle.gni
 new file mode 100644
-index 000000000..ad85c5b8b
+index 0000000..ad85c5b
 --- /dev/null
 +++ b/config/mac/templates/mac_app_bundle.gni
 @@ -0,0 +1,116 @@
@@ -1968,14 +1981,14 @@ index 000000000..ad85c5b8b
 \ No newline at end of file
 diff --git a/config/profiler.gni b/config/profiler.gni
 new file mode 100644
-index 000000000..7ebe02114
+index 0000000..7ebe021
 --- /dev/null
 +++ b/config/profiler.gni
 @@ -0,0 +1 @@
 +import("//build/config/compiler/compiler.gni")
 diff --git a/config/win/win.gni b/config/win/win.gni
 new file mode 100644
-index 000000000..a7c7483e1
+index 0000000..a7c7483
 --- /dev/null
 +++ b/config/win/win.gni
 @@ -0,0 +1,7 @@
@@ -1989,7 +2002,7 @@ index 000000000..a7c7483e1
 \ No newline at end of file
 diff --git a/fuchsia/sdk.gni b/fuchsia/sdk.gni
 new file mode 100644
-index 000000000..49960a126
+index 0000000..49960a1
 --- /dev/null
 +++ b/fuchsia/sdk.gni
 @@ -0,0 +1,326 @@
@@ -2321,7 +2334,7 @@ index 000000000..49960a126
 +}
 diff --git a/ls.py b/ls.py
 new file mode 100755
-index 000000000..6c05ecc64
+index 0000000..6c05ecc
 --- /dev/null
 +++ b/ls.py
 @@ -0,0 +1,38 @@
@@ -2365,7 +2378,7 @@ index 000000000..6c05ecc64
 +  sys.exit(main(args.target_directory, args.file_extension))
 diff --git a/secondary/lynx/testing/FuzzFramework/BUILD.gn b/secondary/lynx/testing/FuzzFramework/BUILD.gn
 new file mode 100644
-index 000000000..3d3a2346e
+index 0000000..3d3a234
 --- /dev/null
 +++ b/secondary/lynx/testing/FuzzFramework/BUILD.gn
 @@ -0,0 +1,90 @@
@@ -2461,7 +2474,7 @@ index 000000000..3d3a2346e
 +}
 diff --git a/secondary/lynx/testing/FuzzFramework/fuzz_test.gni b/secondary/lynx/testing/FuzzFramework/fuzz_test.gni
 new file mode 100644
-index 000000000..9d8bf145f
+index 0000000..9d8bf14
 --- /dev/null
 +++ b/secondary/lynx/testing/FuzzFramework/fuzz_test.gni
 @@ -0,0 +1,30 @@
@@ -2497,7 +2510,7 @@ index 000000000..9d8bf145f
 +}
 diff --git a/secondary/lynx/third_party/googletest/BUILD.gn b/secondary/lynx/third_party/googletest/BUILD.gn
 new file mode 100644
-index 000000000..53089c8f9
+index 0000000..53089c8
 --- /dev/null
 +++ b/secondary/lynx/third_party/googletest/BUILD.gn
 @@ -0,0 +1,160 @@
@@ -2663,7 +2676,7 @@ index 000000000..53089c8f9
 +}
 diff --git a/secondary/lynx/third_party/ocmock/BUILD.gn b/secondary/lynx/third_party/ocmock/BUILD.gn
 new file mode 100644
-index 000000000..446c47a74
+index 0000000..446c47a
 --- /dev/null
 +++ b/secondary/lynx/third_party/ocmock/BUILD.gn
 @@ -0,0 +1,124 @@
@@ -2793,7 +2806,7 @@ index 000000000..446c47a74
 +}
 diff --git a/secondary/third_party/boringssl/BUILD.gn b/secondary/third_party/boringssl/BUILD.gn
 new file mode 100644
-index 000000000..e2b7cc140
+index 0000000..e2b7cc1
 --- /dev/null
 +++ b/secondary/third_party/boringssl/BUILD.gn
 @@ -0,0 +1,119 @@
@@ -2918,7 +2931,7 @@ index 000000000..e2b7cc140
 +}
 diff --git a/secondary/third_party/glfw/BUILD.gn b/secondary/third_party/glfw/BUILD.gn
 new file mode 100644
-index 000000000..fa8e399e3
+index 0000000..fa8e399
 --- /dev/null
 +++ b/secondary/third_party/glfw/BUILD.gn
 @@ -0,0 +1,5 @@
@@ -2929,7 +2942,7 @@ index 000000000..fa8e399e3
 +}
 diff --git a/secondary/third_party/jsoncpp/BUILD.gn b/secondary/third_party/jsoncpp/BUILD.gn
 new file mode 100644
-index 000000000..93aba4f6f
+index 0000000..93aba4f
 --- /dev/null
 +++ b/secondary/third_party/jsoncpp/BUILD.gn
 @@ -0,0 +1,9 @@
@@ -2945,7 +2958,7 @@ index 000000000..93aba4f6f
 \ No newline at end of file
 diff --git a/secondary/third_party/khronos/BUILD.gn b/secondary/third_party/khronos/BUILD.gn
 new file mode 100644
-index 000000000..136391419
+index 0000000..1363914
 --- /dev/null
 +++ b/secondary/third_party/khronos/BUILD.gn
 @@ -0,0 +1,5 @@
@@ -2957,7 +2970,7 @@ index 000000000..136391419
 \ No newline at end of file
 diff --git a/secondary/third_party/libwebp/BUILD.gn b/secondary/third_party/libwebp/BUILD.gn
 new file mode 100644
-index 000000000..589e07e03
+index 0000000..589e07e
 --- /dev/null
 +++ b/secondary/third_party/libwebp/BUILD.gn
 @@ -0,0 +1,5 @@
@@ -2968,7 +2981,7 @@ index 000000000..589e07e03
 +}
 diff --git a/secondary/third_party/ocmock/BUILD.gn b/secondary/third_party/ocmock/BUILD.gn
 new file mode 100644
-index 000000000..75a929fa3
+index 0000000..75a929f
 --- /dev/null
 +++ b/secondary/third_party/ocmock/BUILD.gn
 @@ -0,0 +1,5 @@
@@ -2979,7 +2992,7 @@ index 000000000..75a929fa3
 +}
 diff --git a/secondary/third_party/vulkan_memory_allocator/BUILD.gn b/secondary/third_party/vulkan_memory_allocator/BUILD.gn
 new file mode 100644
-index 000000000..0e584ddd2
+index 0000000..0e584dd
 --- /dev/null
 +++ b/secondary/third_party/vulkan_memory_allocator/BUILD.gn
 @@ -0,0 +1,5 @@
@@ -2990,7 +3003,7 @@ index 000000000..0e584ddd2
 +}
 diff --git a/secondary/third_party/wuffs/BUILD.gn b/secondary/third_party/wuffs/BUILD.gn
 new file mode 100644
-index 000000000..1a57a3169
+index 0000000..1a57a31
 --- /dev/null
 +++ b/secondary/third_party/wuffs/BUILD.gn
 @@ -0,0 +1,61 @@
@@ -3057,7 +3070,7 @@ index 000000000..1a57a3169
 +}
 diff --git a/toolchain/clang.gni b/toolchain/clang.gni
 new file mode 100644
-index 000000000..50b93ea5f
+index 0000000..50b93ea
 --- /dev/null
 +++ b/toolchain/clang.gni
 @@ -0,0 +1,41 @@
@@ -3104,12 +3117,142 @@ index 000000000..50b93ea5f
 +}
 diff --git a/util/write_cmake_config.gni b/util/write_cmake_config.gni
 new file mode 100644
-index 000000000..091c93dd7
+index 0000000..091c93d
 --- /dev/null
 +++ b/util/write_cmake_config.gni
 @@ -0,0 +1 @@
 +import("//lynx/build/util/write_cmake_config.gni")
 \ No newline at end of file
---
+diff --git a/util/write_cmake_config.py b/util/write_cmake_config.py
+new file mode 100644
+index 0000000..737389e
+--- /dev/null
++++ b/util/write_cmake_config.py
+@@ -0,0 +1,123 @@
++#!/usr/bin/env python3
++r"""Emulates the bits of CMake's configure_file() function needed in LLVM.
++
++The CMake build uses configure_file() for several things.  This emulates that
++function for the GN build.  In the GN build, this runs at build time instead
++of at generator time.
++
++Takes a list of KEY=VALUE pairs (where VALUE can be empty).
++
++The sequence `\` `n` in each VALUE is replaced by a newline character.
++
++On each line, replaces '${KEY}' or '@KEY@' with VALUE.
++
++Then, handles these special cases (note that FOO= sets the value of FOO to the
++empty string, which is falsy, but FOO=0 sets it to '0' which is truthy):
++
++1.) #cmakedefine01 FOO
++    Checks if key FOO is set to a truthy value, and depending on that prints
++    one of the following two lines:
++
++        #define FOO 1
++        #define FOO 0
++
++2.) #cmakedefine FOO [...]
++    Checks if key FOO is set to a truthy value, and depending on that prints
++    one of the following two lines:
++
++        #define FOO [...]
++        /* #undef FOO */
++
++Fails if any of the KEY=VALUE arguments aren't needed for processing the
++input file, or if the input file references keys that weren't passed in.
++"""
++
++from __future__ import print_function
++
++import argparse
++import os
++import re
++import sys
++from distutils.util import strtobool
++
++def main():
++    parser = argparse.ArgumentParser(
++                 epilog=__doc__,
++                 formatter_class=argparse.RawDescriptionHelpFormatter)
++    parser.add_argument('input', help='input file')
++    parser.add_argument('values', nargs='*', help='several KEY=VALUE pairs')
++    parser.add_argument('-o', '--output', required=True,
++                        help='output file')
++    args = parser.parse_args()
++
++    values = {}
++    for value in args.values:
++        key, val = value.split('=', 1)
++        if key in values:
++            print('duplicate key "%s" in args' % key, file=sys.stderr)
++            # Allowing value to be overwritten by last definition is reasonable
++        values[key] = val.replace('\\n', '\n')
++    unused_values = set(values.keys())
++
++    # Matches e.g. '${FOO}' or '@FOO@' and captures FOO in group 1 or 2.
++    var_re = re.compile(r'\$\{([^}]*)\}|@([^@]*)@')
++
++    with open(args.input) as f:
++        in_lines = f.readlines()
++    out_lines = []
++    for in_line in in_lines:
++        def repl(m):
++            key = m.group(1) or m.group(2)
++            unused_values.discard(key)
++            return values.get(key, '')
++        in_line = var_re.sub(repl, in_line)
++        if in_line.startswith('#cmakedefine01 '):
++            _, var = in_line.split()
++            bool_value = values.get(var, '0')
++            try:
++                bool_value = strtobool(bool_value)
++            except:
++                pass
++            in_line = '#define %s %d\n' % (var, 1 if bool_value else 0)
++            unused_values.discard(var)
++        elif in_line.startswith('#cmakedefine '):
++            _, var = in_line.split(None, 1)
++            try:
++                var, val = var.split(None, 1)
++                in_line = '#define %s %s' % (var, val)  # val ends in \n.
++            except:
++                var = var.rstrip()
++                in_line = '#define %s\n' % var
++            defined_value = values.get(var, '')
++            if not defined_value:
++                in_line = '/* #undef %s */\n' % var
++            unused_values.discard(var)
++        out_lines.append(in_line)
++
++    if unused_values:
++        print('unused values args:', file=sys.stderr)
++        print('    ' + '\n    '.join(unused_values), file=sys.stderr)
++        return 1
++
++    output = ''.join(out_lines)
++
++    leftovers = var_re.findall(output)
++    if leftovers:
++        print(
++            'unprocessed values:\n',
++            '\n'.join([x[0] or x[1] for x in leftovers]),
++            file=sys.stderr)
++        return 1
++
++    def read(filename):
++        with open(args.output) as f:
++            return f.read()
++
++    if not os.path.exists(args.output) or read(args.output) != output:
++        with open(args.output, 'w') as f:
++            f.write(output)
++        os.chmod(args.output, os.stat(args.input).st_mode & 0o777)
++
++
++if __name__ == '__main__':
++    sys.exit(main())
+\ No newline at end of file
+-- 
 2.50.1 (Apple Git-155)
 

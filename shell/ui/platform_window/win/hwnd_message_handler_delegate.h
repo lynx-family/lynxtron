@@ -8,7 +8,7 @@
 #include "base/win/windows_types.h"
 #include "shell/ui/base/ui_base_types.h"
 // #include "shell/ui/events/base_event.h"
-#include "shell/ui/gfx/native_widget_types.h"
+#include "shell/ui/gfx/native_ui_types.h"
 
 namespace gfx {
 class Insets;

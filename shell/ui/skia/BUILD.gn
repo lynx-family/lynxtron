@@ -1,0 +1,118 @@
+# Copyright 2013 The Chromium Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import("//build/buildflag_header.gni")
+import("//build/config/compiler/compiler.gni")
+import("//build/config/features.gni")
+
+config("skia_ext_config") {
+  include_dirs = [ ".." ]
+}
+component("skia_ext") {
+  # include_dirs = [ "//lynxtron/shell/ui" ]
+  public_configs = [ ":skia_ext_config" ]
+  public_deps = [
+    "//base",
+    "//third_party/skia",
+  ]
+  public = [
+    # "ext/benchmarking_canvas.h",
+    # "ext/cicp.h",
+    # "ext/codec_utils.h",
+    "ext/convolver.h",
+
+    # "ext/draw_gainmap_image.h",
+    "ext/event_tracer_impl.h",
+
+    # "ext/font_utils.h",
+    "ext/geometry.h",
+    "ext/image_operations.h",
+    "ext/legacy_display_globals.h",
+    "ext/opacity_filter_canvas.h",
+    "ext/pmcolor_utils.h",
+    "ext/recursive_gaussian_convolution.h",
+    "ext/rgba_to_yuva.h",
+    "ext/skcolorspace_primaries.h",
+
+    # "ext/skcolorspace_trfn.h",
+    # "ext/skia_memory_dump_provider.h",
+    # "ext/skia_trace_memory_dump_impl.h",
+    # "ext/skia_utils_base.h",
+    # "rusty_png_feature.h",
+  ]
+  sources = [
+    # Chrome sources.
+    "ext/SkDiscardableMemory_chrome.cc",
+    "ext/SkDiscardableMemory_chrome.h",
+    "ext/SkMemory_new_handler.cpp",
+
+    # "ext/benchmarking_canvas.cc",
+    # "ext/cicp.cc",
+    # "ext/codec_utils.cc",
+    "ext/convolver.cc",
+
+    # "ext/draw_gainmap_image.cc",
+    "ext/event_tracer_impl.cc",
+
+    # "ext/font_utils.cc",
+    # "ext/geometry.cc",
+    "ext/google_logging.cc",
+    "ext/image_operations.cc",
+
+    # "ext/legacy_display_globals.cc",
+    "ext/opacity_filter_canvas.cc",
+    "ext/recursive_gaussian_convolution.cc",
+    "ext/rgba_to_yuva.cc",
+    "ext/skcolorspace_primaries.cc",
+
+    # "ext/skcolorspace_trfn.cc",
+    "ext/skia_histogram.cc",
+    "ext/skia_histogram.h",
+
+    # "ext/skia_memory_dump_provider.cc",
+    # "ext/skia_trace_memory_dump_impl.cc",
+    # "ext/skia_utils_base.cc",
+    # "rusty_png_feature.cc",
+  ]
+
+  if (is_mac) {
+    public += [ "ext/skia_utils_mac.h" ]
+    sources += [ "ext/skia_utils_mac.mm" ]
+  }
+  if (is_win) {
+    # public += [ "ext/skia_utils_win.h" ]
+    # sources += [ "ext/skia_utils_win.cc" ]
+  }
+
+  if (current_cpu == "x86" || current_cpu == "x64") {
+    sources += [
+      "ext/convolver_SSE2.cc",
+      "ext/convolver_SSE2.h",
+    ]
+  } else if (current_cpu == "mipsel" && mips_dsp_rev >= 2) {
+    sources += [
+      "ext/convolver_mips_dspr2.cc",
+      "ext/convolver_mips_dspr2.h",
+    ]
+  } else if (current_cpu == "arm" || current_cpu == "arm64") {
+    if (arm_use_neon) {
+      sources += [
+        "ext/convolver_neon.cc",
+        "ext/convolver_neon.h",
+      ]
+    }
+  } else if (current_cpu == "loong64") {
+    sources += [
+      "ext/convolver_LSX.cc",
+      "ext/convolver_LSX.h",
+    ]
+  }
+
+  if (is_win) {
+    sources += [
+      # Select the right BitmapPlatformDevice.
+      # "ext/raster_handle_allocator_win.cc",
+    ]
+  }
+}

@@ -4,9 +4,10 @@ const { GitProcess } = require('dugite');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { execSync } = require('node:child_process');
 
-const ELECTRON_DIR = path.resolve(__dirname, '..', '..');
-const SRC_DIR = path.resolve(ELECTRON_DIR, '..');
+const LYNXTRON_DIR = execSync('git rev-parse --show-toplevel').toString().trim();
+const SRC_DIR = path.resolve(LYNXTRON_DIR, '..');
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const pass = chalk.green('✓');
@@ -147,6 +148,6 @@ module.exports = {
   getOutDir,
   getAbsoluteElectronExec,
   handleGitCall,
-  ELECTRON_DIR,
+  LYNXTRON_DIR,
   SRC_DIR
 };

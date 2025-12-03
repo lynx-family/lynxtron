@@ -33,7 +33,7 @@ const base::Feature kIOSurfaceUseNamedSRGBForREC709{
 void AddIntegerValue(CFMutableDictionaryRef dictionary,
                      const CFStringRef key,
                      int32_t value) {
-  base::ScopedCFTypeRef<CFNumberRef> number(
+  base::apple::ScopedCFTypeRef<CFNumberRef> number(
       CFNumberCreate(NULL, kCFNumberSInt32Type, &value));
   CFDictionaryAddValue(dictionary, key, number.get());
 }
@@ -135,7 +135,7 @@ bool IOSurfaceSetColorSpace(IOSurfaceRef io_surface,
                             const ColorSpace& color_space) {
   auto* cmd_line = base::CommandLine::ForCurrentProcess();
   if (cmd_line->HasSwitch(switches::kDisableColorCorrectRendering)) {
-    base::ScopedCFTypeRef<CFDataRef> system_icc(
+    base::apple::ScopedCFTypeRef<CFDataRef> system_icc(
         CGColorSpaceCopyICCProfile(base::mac::GetSystemColorSpace()));
     IOSurfaceSetValue(io_surface, CFSTR("IOSurfaceColorSpace"), system_icc);
     return true;
@@ -216,7 +216,7 @@ bool IOSurfaceSetColorSpace(IOSurfaceRef io_surface,
 
   // Package it as a CFDataRef and send it to the IOSurface.
   std::vector<char> icc_profile_data = icc_profile.GetData();
-  base::ScopedCFTypeRef<CFDataRef> cf_data_icc_profile(CFDataCreate(
+  base::apple::ScopedCFTypeRef<CFDataRef> cf_data_icc_profile(CFDataCreate(
       nullptr, reinterpret_cast<const UInt8*>(icc_profile_data.data()),
       icc_profile_data.size()));
 
@@ -233,7 +233,7 @@ IOSurfaceRef CreateIOSurface(const gfx::Size& size,
   TRACE_EVENT0("ui", "CreateIOSurface");
   base::TimeTicks start_time = base::TimeTicks::Now();
 
-  base::ScopedCFTypeRef<CFMutableDictionaryRef> properties(
+  base::apple::ScopedCFTypeRef<CFMutableDictionaryRef> properties(
       CFDictionaryCreateMutable(kCFAllocatorDefault, 0,
                                 &kCFTypeDictionaryKeyCallBacks,
                                 &kCFTypeDictionaryValueCallBacks));
@@ -247,7 +247,7 @@ IOSurfaceRef CreateIOSurface(const gfx::Size& size,
   // http://crbug.com/527556
   size_t num_planes = gfx::NumberOfPlanesForLinearBufferFormat(format);
   if (num_planes > 1) {
-    base::ScopedCFTypeRef<CFMutableArrayRef> planes(CFArrayCreateMutable(
+    base::apple::ScopedCFTypeRef<CFMutableArrayRef> planes(CFArrayCreateMutable(
         kCFAllocatorDefault, num_planes, &kCFTypeArrayCallBacks));
     size_t total_bytes_alloc = 0;
     for (size_t plane = 0; plane < num_planes; ++plane) {
@@ -263,7 +263,7 @@ IOSurfaceRef CreateIOSurface(const gfx::Size& size,
       const size_t plane_offset =
           IOSurfaceAlignProperty(kIOSurfacePlaneOffset, total_bytes_alloc);
 
-      base::ScopedCFTypeRef<CFMutableDictionaryRef> plane_info(
+      base::apple::ScopedCFTypeRef<CFMutableDictionaryRef> plane_info(
           CFDictionaryCreateMutable(kCFAllocatorDefault, 0,
                                     &kCFTypeDictionaryKeyCallBacks,
                                     &kCFTypeDictionaryValueCallBacks));
@@ -313,7 +313,7 @@ IOSurfaceRef CreateIOSurface(const gfx::Size& size,
   auto* cmd_line = base::CommandLine::ForCurrentProcess();
   if (cmd_line->HasSwitch(switches::kDisableColorCorrectRendering)) {
     CGColorSpaceRef color_space = base::mac::GetSystemColorSpace();
-    base::ScopedCFTypeRef<CFDataRef> color_space_icc(
+    base::apple::ScopedCFTypeRef<CFDataRef> color_space_icc(
         CGColorSpaceCopyICCProfile(color_space));
     IOSurfaceSetValue(surface, CFSTR("IOSurfaceColorSpace"), color_space_icc);
     return surface;
@@ -324,7 +324,7 @@ IOSurfaceRef CreateIOSurface(const gfx::Size& size,
     IOSurfaceSetValue(surface, CFSTR("IOSurfaceColorSpace"), kCGColorSpaceSRGB);
   } else {
     CGColorSpaceRef color_space = base::mac::GetSRGBColorSpace();
-    base::ScopedCFTypeRef<CFDataRef> color_space_icc(
+    base::apple::ScopedCFTypeRef<CFDataRef> color_space_icc(
         CGColorSpaceCopyICCProfile(color_space));
     IOSurfaceSetValue(surface, CFSTR("IOSurfaceColorSpace"), color_space_icc);
   }
@@ -346,9 +346,10 @@ void IOSurfaceSetColorSpace(IOSurfaceRef io_surface,
   }
 }
 
-GFX_EXPORT base::ScopedCFTypeRef<IOSurfaceRef> IOSurfaceMachPortToIOSurface(
+GFX_EXPORT base::apple::ScopedCFTypeRef<IOSurfaceRef>
+IOSurfaceMachPortToIOSurface(
     ScopedRefCountedIOSurfaceMachPort io_surface_mach_port) {
-  base::ScopedCFTypeRef<IOSurfaceRef> io_surface;
+  base::apple::ScopedCFTypeRef<IOSurfaceRef> io_surface;
   if (!io_surface_mach_port) {
     DLOG(ERROR) << "Invalid mach port.";
     return io_surface;

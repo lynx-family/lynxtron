@@ -16,10 +16,10 @@ DisplayICCProfiles* DisplayICCProfiles::GetInstance() {
   return profiles.get();
 }
 
-base::ScopedCFTypeRef<CFDataRef> DisplayICCProfiles::GetDataForColorSpace(
-    const ColorSpace& color_space) {
+base::apple::ScopedCFTypeRef<CFDataRef>
+DisplayICCProfiles::GetDataForColorSpace(const ColorSpace& color_space) {
   UpdateIfNeeded();
-  base::ScopedCFTypeRef<CFDataRef> result;
+  base::apple::ScopedCFTypeRef<CFDataRef> result;
   auto found = map_.find(color_space);
   if (found != map_.end()) {
     result = found->second;
@@ -44,7 +44,7 @@ void DisplayICCProfiles::UpdateIfNeeded() {
   map_.clear();
 
   // Always add Apple's sRGB profile.
-  base::ScopedCFTypeRef<CFDataRef> srgb_icc(CGColorSpaceCopyICCProfile(
+  base::apple::ScopedCFTypeRef<CFDataRef> srgb_icc(CGColorSpaceCopyICCProfile(
       CGColorSpaceCreateWithName(kCGColorSpaceSRGB)));
   map_[ColorSpace::CreateSRGB()] = srgb_icc;
 
@@ -67,12 +67,12 @@ void DisplayICCProfiles::UpdateIfNeeded() {
   }
 
   for (uint32_t i = 0; i < display_count; ++i) {
-    base::ScopedCFTypeRef<CGColorSpaceRef> cg_color_space(
+    base::apple::ScopedCFTypeRef<CGColorSpaceRef> cg_color_space(
         CGDisplayCopyColorSpace(displays[i]));
     if (!cg_color_space) {
       continue;
     }
-    base::ScopedCFTypeRef<CFDataRef> icc_data(
+    base::apple::ScopedCFTypeRef<CFDataRef> icc_data(
         CGColorSpaceCopyICCProfile(cg_color_space));
     if (!icc_data) {
       continue;

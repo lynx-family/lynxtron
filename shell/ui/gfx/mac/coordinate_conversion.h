@@ -7,7 +7,7 @@
 
 #import <Foundation/Foundation.h>
 
-#include "shell/ui/gfx/gfx_export.h"
+#include "ui/gfx/gfx_export.h"
 
 namespace gfx {
 

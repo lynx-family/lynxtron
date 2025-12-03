@@ -4,7 +4,6 @@
 
 #include "shell/app/native_window.h"
 
-// #include <algorithm>
 #include <algorithm>
 #include <string>
 #include <vector>
@@ -367,7 +366,7 @@ gfx::Size NativeWindow::GetContentMaximumSize() const {
   return maximum_size;
 }
 
-// TODO(Guo Xi): review sheet related logic on macOS
+// TODO(Guo Xi): 在 macOS 上review sheet 相关的逻辑
 void NativeWindow::SetSheetOffset(const double offsetX, const double offsetY) {
   sheet_offset_x_ = offsetX;
   sheet_offset_y_ = offsetY;

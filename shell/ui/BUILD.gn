@@ -1,10 +1,14 @@
+# Copyright 2025 The Lynx Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+
 config("ui_config") {
   include_dirs = [ ".." ]
 }
 
 source_set("ui") {
   public_configs = [ ":ui_config" ]
-  include_dirs = [ "../.." ]
+  include_dirs = [ "//lynxtron" ]
   deps = [ "//base" ]
   sources = [
     # "base/clipboard/clipboard.cc",
@@ -32,7 +36,7 @@ source_set("ui") {
     # "base/idle/scoped_set_idle_state.h",
     # "base/resource/resource_scale_factor.cc",
     # "base/resource/resource_scale_factor.h",
-    "base/ui_base_types.h",
+    # "base/ui_base_types.h",
 
     # "display/display.cc",
     # "display/display.h",
@@ -52,7 +56,7 @@ source_set("ui") {
     # "display/screen.h",
     # "display/utils/display_util.cc",
     # "display/utils/display_util.h",
-    "gfx/buffer_types.h",
+    # "gfx/buffer_types.h",
 
     # "gfx/codec/jpeg_codec.cc",
     # "gfx/codec/jpeg_codec.h",
@@ -64,43 +68,43 @@ source_set("ui") {
     # "gfx/color_space.h",
     # "gfx/display_color_spaces.cc",
     # "gfx/display_color_spaces.h",
-    "gfx/geometry/insets.cc",
-    "gfx/geometry/insets.h",
-    "gfx/geometry/insets_conversions.cc",
-    "gfx/geometry/insets_conversions.h",
-    "gfx/geometry/insets_f.cc",
-    "gfx/geometry/insets_f.h",
-    "gfx/geometry/insets_outsets_base.cc",
-    "gfx/geometry/insets_outsets_base.h",
-    "gfx/geometry/point.cc",
-    "gfx/geometry/point.h",
-    "gfx/geometry/point_conversions.cc",
-    "gfx/geometry/point_conversions.h",
-    "gfx/geometry/point_f.cc",
-    "gfx/geometry/point_f.h",
-    "gfx/geometry/rect.cc",
-    "gfx/geometry/rect.h",
-    "gfx/geometry/rect_conversions.cc",
-    "gfx/geometry/rect_conversions.h",
-    "gfx/geometry/rect_f.cc",
-    "gfx/geometry/rect_f.h",
-    "gfx/geometry/resize_utils.cc",
-    "gfx/geometry/resize_utils.h",
-    "gfx/geometry/size.cc",
-    "gfx/geometry/size.h",
-    "gfx/geometry/size_conversions.cc",
-    "gfx/geometry/size_conversions.h",
-    "gfx/geometry/size_f.cc",
-    "gfx/geometry/size_f.h",
+    # "gfx/geometry/insets.cc",
+    # "gfx/geometry/insets.h",
+    # "gfx/geometry/insets_conversions.cc",
+    # "gfx/geometry/insets_conversions.h",
+    # "gfx/geometry/insets_f.cc",
+    # "gfx/geometry/insets_f.h",
+    # "gfx/geometry/insets_outsets_base.cc",
+    # "gfx/geometry/insets_outsets_base.h",
+    # "gfx/geometry/point.cc",
+    # "gfx/geometry/point.h",
+    # "gfx/geometry/point_conversions.cc",
+    # "gfx/geometry/point_conversions.h",
+    # "gfx/geometry/point_f.cc",
+    # "gfx/geometry/point_f.h",
+    # "gfx/geometry/rect.cc",
+    # "gfx/geometry/rect.h",
+    # "gfx/geometry/rect_conversions.cc",
+    # "gfx/geometry/rect_conversions.h",
+    # "gfx/geometry/rect_f.cc",
+    # "gfx/geometry/rect_f.h",
+    # "gfx/geometry/resize_utils.cc",
+    # "gfx/geometry/resize_utils.h",
+    # "gfx/geometry/size.cc",
+    # "gfx/geometry/size.h",
+    # "gfx/geometry/size_conversions.cc",
+    # "gfx/geometry/size_conversions.h",
+    # "gfx/geometry/size_f.cc",
+    # "gfx/geometry/size_f.h",
 
     # "gfx/geometry/skia_conversions.cc",
     # "gfx/geometry/skia_conversions.h",
-    "gfx/geometry/vector2d.cc",
-    "gfx/geometry/vector2d.h",
-    "gfx/geometry/vector2d_conversions.cc",
-    "gfx/geometry/vector2d_conversions.h",
-    "gfx/geometry/vector2d_f.cc",
-    "gfx/geometry/vector2d_f.h",
+    # "gfx/geometry/vector2d.cc",
+    # "gfx/geometry/vector2d.h",
+    # "gfx/geometry/vector2d_conversions.cc",
+    # "gfx/geometry/vector2d_conversions.h",
+    # "gfx/geometry/vector2d_f.cc",
+    # "gfx/geometry/vector2d_f.h",
 
     # "gfx/geometry/vector3d_f.cc",
     # "gfx/geometry/vector3d_f.h",
@@ -108,7 +112,7 @@ source_set("ui") {
     # "gfx/gpu_extra_info.h",
     # "gfx/hdr_static_metadata.cc",
     # "gfx/hdr_static_metadata.h",
-    "native_widget_types.h",
+    # "native_ui_types.h",
 
     # "gfx/icc_profile.cc",
     # "gfx/icc_profile.h",

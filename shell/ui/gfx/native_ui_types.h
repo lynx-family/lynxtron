@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_GFX_NATIVE_WIDGET_TYPES_H_
-#define UI_GFX_NATIVE_WIDGET_TYPES_H_
+#ifndef UI_GFX_NATIVE_UI_TYPES_H_
+#define UI_GFX_NATIVE_UI_TYPES_H_
 
 #include <stdint.h>
 
@@ -33,7 +33,7 @@
 #include "base/win/windows_types.h"
 #endif
 
-// This file provides cross platform typedefs for native widget types.
+// This file provides cross platform typedefs for native ui types.
 //   NativeWindow: this is a handle to a native, top-level window
 //   NativeView: this is a handle to a native UI element. It may be the
 //     same type as a NativeWindow on some platforms.
@@ -44,7 +44,7 @@
 //
 //     As a rule of thumb - if you're in the renderer, you should be dealing
 //     with NativeViewIds. This should remind you that you shouldn't be doing
-//     direct operations on platform widgets from the renderer process.
+//     direct operations on platform ui types from the renderer process.
 //
 //     If you're in the browser, you're probably dealing with NativeViews,
 //     unless you're in the IPC layer, which will be translating between
@@ -100,7 +100,6 @@ class WindowAndroid;
 class ViewAndroid;
 }  // namespace ui
 #endif
-class SkBitmap;
 
 #if BUILDFLAG(IS_LINUX)
 extern "C" {
@@ -121,8 +120,13 @@ using NativeCursor = void*;
 using NativeView = base::apple::WeakUIView;
 using NativeWindow = base::apple::WeakUIWindow;
 #if BUILDFLAG(USE_BLINK)
+#if BUILDFLAG(IS_IOS_TVOS)
+using NativeEvent =
+    std::variant<base::apple::OwnedUIEvent, base::apple::OwnedUIPress>;
+#else
 using NativeEvent =
     std::variant<base::apple::OwnedUIEvent, base::apple::OwnedBEKeyEntry>;
+#endif  // BUILDFLAG(IS_IOS_TVOS)
 #else
 using NativeEvent = base::apple::OwnedUIEvent;
 #endif  // BUILDFLAG(USE_BLINK)
@@ -206,23 +210,28 @@ using NativeViewId = intptr_t;
 // AcceleratedWidget provides a surface to compositors to paint pixels.
 #if BUILDFLAG(IS_WIN)
 using AcceleratedWidget = HWND;
-constexpr AcceleratedWidget kNullAcceleratedWidget = nullptr;
+// The compiler doesn't realize that a const nullptr can't point to anything
+// mutable, so it's okay for this pointer to be duplicated.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunique-object-duplication"
+inline constexpr AcceleratedWidget kNullAcceleratedWidget = nullptr;
+#pragma clang diagnostic pop
 #elif BUILDFLAG(IS_IOS)
 using AcceleratedWidget = uint64_t;
-constexpr AcceleratedWidget kNullAcceleratedWidget = 0;
+inline constexpr AcceleratedWidget kNullAcceleratedWidget = 0;
 #elif BUILDFLAG(IS_MAC)
 using AcceleratedWidget = uint64_t;
-constexpr AcceleratedWidget kNullAcceleratedWidget = 0;
+inline constexpr AcceleratedWidget kNullAcceleratedWidget = 0;
 #elif BUILDFLAG(IS_ANDROID)
 using AcceleratedWidget = ANativeWindow*;
 constexpr AcceleratedWidget kNullAcceleratedWidget = nullptr;
 #elif BUILDFLAG(IS_OZONE)
 using AcceleratedWidget = uint32_t;
-constexpr AcceleratedWidget kNullAcceleratedWidget = 0;
+inline constexpr AcceleratedWidget kNullAcceleratedWidget = 0;
 #else
 #error unknown platform
 #endif
 
 }  // namespace gfx
 
-#endif  // UI_GFX_NATIVE_WIDGET_TYPES_H_
+#endif  // UI_GFX_NATIVE_UI_TYPES_H_

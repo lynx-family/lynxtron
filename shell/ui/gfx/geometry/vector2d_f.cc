@@ -4,7 +4,6 @@
 
 #include "ui/gfx/geometry/vector2d_f.h"
 
-#include <cmath>
 #include <utility>
 
 #include "base/strings/stringprintf.h"

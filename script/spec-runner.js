@@ -34,7 +34,7 @@ for (const flag of unknownFlags) {
 const utils = require('./lib/utils');
 const { YARN_VERSION } = require('./yarn');
 
-const BASE = path.resolve(__dirname, '../..');
+const BASE = utils.SRC_DIR;
 const NPX_CMD = process.platform === 'win32' ? 'npx.cmd' : 'npx';
 
 const runners = new Map([

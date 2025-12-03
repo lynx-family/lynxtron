@@ -126,7 +126,7 @@ describe('LynxWindow module', () => {
     // });
   });
 
-  // TODO(Guo Xi): LynxWindow load and unload needs event ?
+  // TODO(Guo Xi): LynxWindow load 和 unload 需要 event 吗
   // describe('window.close()', () => {
   //   let w: LynxWindow;
   //   beforeEach(() => {

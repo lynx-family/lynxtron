@@ -8,7 +8,7 @@
 #include <IOSurface/IOSurface.h>
 #include <mach/mach.h>
 
-#include "base/mac/scoped_cftyperef.h"
+// #include "base/apple/scoped_cftyperef.h"
 #include "shell/ui/gfx/buffer_types.h"
 #include "shell/ui/gfx/color_space.h"
 // #include "shell/ui/gfx/generic_shared_memory_id.h"
@@ -63,7 +63,7 @@ using ScopedInUseIOSurface =
     base::ScopedTypeRef<IOSurfaceRef, internal::ScopedInUseIOSurfaceTraits>;
 
 // A scoper for holding a reference to an IOSurface.
-using ScopedIOSurface = base::ScopedCFTypeRef<IOSurfaceRef>;
+using ScopedIOSurface = base::apple::ScopedCFTypeRef<IOSurfaceRef>;
 
 // Return true if there exists a value for IOSurfaceColorSpace or
 // IOSurfaceICCProfile that will make CoreAnimation render using |color_space|.
@@ -80,7 +80,8 @@ GFX_EXPORT uint32_t
 BufferFormatToIOSurfacePixelFormat(gfx::BufferFormat format);
 
 // Return an IOSurface consuming |io_surface_mach_port|.
-GFX_EXPORT base::ScopedCFTypeRef<IOSurfaceRef> IOSurfaceMachPortToIOSurface(
+GFX_EXPORT base::apple::ScopedCFTypeRef<IOSurfaceRef>
+IOSurfaceMachPortToIOSurface(
     ScopedRefCountedIOSurfaceMachPort io_surface_mach_port);
 
 }  // namespace gfx

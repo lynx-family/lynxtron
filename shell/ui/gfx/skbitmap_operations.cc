@@ -212,10 +212,10 @@ namespace HSLShift {
 
 // Routine used to process a line; typically specialized for specific kinds of
 // HSL shifts (to optimize).
-// typedef void (*LineProcessor)(const color_utils::HSL&,
-// const SkPMColor*,
-// SkPMColor*,
-// int width);
+typedef void (*LineProcessor)(const color_utils::HSL&,
+                              const SkPMColor*,
+                              SkPMColor*,
+                              int width);
 
 enum OperationOnH { kOpHNone = 0, kOpHShift, kNumHOps };
 enum OperationOnS { kOpSNone = 0, kOpSDec, kOpSInc, kNumSOps };

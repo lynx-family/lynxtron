@@ -5,10 +5,8 @@
 #ifndef UI_GFX_SKBITMAP_OPERATIONS_H_
 #define UI_GFX_SKBITMAP_OPERATIONS_H_
 
-// #include "base/gtest_prod_util.h"
-// #include "shell/ui/gfx/color_utils.h"
-// #include "shell/ui/gfx/gfx_export.h"
-// #include "shell/ui/gfx/shadow_value.h"
+#include "ui/gfx/color_utils.h"
+#include "ui/gfx/shadow_value.h"
 
 class SkBitmap;
 
@@ -64,8 +62,8 @@ class SkBitmapOperations {
   //    0 = remove all lightness (make all pixels black).
   //    0.5 = leave unchanged.
   //    1 = full lightness (make all pixels white).
-  // static SkBitmap CreateHSLShiftedBitmap(const SkBitmap& bitmap,
-  //  const color_utils::HSL& hsl_shift);
+  static SkBitmap CreateHSLShiftedBitmap(const SkBitmap& bitmap,
+                                         const color_utils::HSL& hsl_shift);
 
   // Create a bitmap that is cropped from another bitmap. This is special
   // because it tiles the original bitmap, so your coordinates can extend
@@ -106,8 +104,8 @@ class SkBitmapOperations {
   // the shadows to add. The created bitmap would be padded to have enough space
   // for shadows and have original bitmap in the center. The image must use the
   // kARGB_8888_Config config.
-  // static SkBitmap CreateDropShadow(const SkBitmap& bitmap,
-  //  const gfx::ShadowValues& shadows);
+  static SkBitmap CreateDropShadow(const SkBitmap& bitmap,
+                                   const gfx::ShadowValues& shadows);
 
   // Rotates the given source bitmap clockwise by the requested amount.
   static SkBitmap Rotate(const SkBitmap& source, RotationAmount rotation);

@@ -10,13 +10,13 @@ if system == "windows":
     python_path = "python"
 
 deps = {
-    'buildtools/gn': {
+    '../buildtools/gn': {
         "type": "http",
         "url": f"https://github.com/zsy-jason/buildtools/releases/download/gn-07d3c6f4/buildtools-gn-{system}-{machine}.tar.gz",
         "ignore_in_git": True,
         "condition": system in ['linux', 'darwin', 'windows']
     },
-    'buildtools/ninja': {
+    '../buildtools/ninja': {
         "type": "http",
         "url": {
             "linux": "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip",

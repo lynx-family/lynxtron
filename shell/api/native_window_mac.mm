@@ -1,3 +1,6 @@
+// Copyright 2025 The Lynx Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
 #include "shell/api/native_window_mac.h"
 
 #include <algorithm>
@@ -937,6 +940,10 @@ void NativeWindowMac::SetWindowButtonVisibility(bool visible) {
   InternalSetWindowButtonVisibility(visible);
 
   // NotifyLayoutWindowControlsOverlay();
+}
+
+void NativeWindowMac::SetVibrancy(const std::string& type, int duration) {
+  // TODO(Guo Xi): Add vibrancy support.
 }
 
 bool NativeWindowMac::GetWindowButtonVisibility() const {

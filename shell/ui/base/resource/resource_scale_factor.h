@@ -5,6 +5,8 @@
 #ifndef UI_BASE_RESOURCE_RESOURCE_SCALE_FACTOR_H_
 #define UI_BASE_RESOURCE_RESOURCE_SCALE_FACTOR_H_
 
+#include <vector>
+
 namespace ui {
 
 // Supported resource scale factors for the platform. This is used as an index
@@ -24,6 +26,9 @@ enum ResourceScaleFactor : int {
 // Returns the image scale for the scale factor passed in.
 float GetScaleForResourceScaleFactor(ResourceScaleFactor scale_factor);
 
+std::vector<ui::ResourceScaleFactor> GetSupportedResourceScaleFactors();
+
+ui::ResourceScaleFactor GetSupportedResourceScaleFactorForRescale(float scale);
 }  // namespace ui
 
 #endif  // UI_BASE_RESOURCE_RESOURCE_SCALE_FACTOR_H_

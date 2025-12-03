@@ -17,7 +17,7 @@
 #include "base/functional/bind.h"
 #include "base/win/windows_types.h"
 #include "shell/api/dpi_win.h"
-// #include "base/callback_helpers.h"
+// #include "base/functional/callback_helpers.h"
 #include "base/debug/gdi_debug_util_win.h"
 #include "base/location.h"
 #include "base/logging.h"
@@ -2166,7 +2166,7 @@ LRESULT HWNDMessageHandler::OnNCCreate(LPCREATESTRUCT lpCreateStruct) {
   return FALSE;
 }
 
-// TODO(Guo Xi): handle this function
+// TODO(Guo Xi): 处理 这个函数
 LRESULT HWNDMessageHandler::OnNCHitTest(const gfx::Point& point) {
   if (!delegate_->CanResize()) {
     return HTNOWHERE;

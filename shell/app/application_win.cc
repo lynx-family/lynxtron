@@ -591,7 +591,7 @@ bool Application::IsDefaultProtocolClient(const std::string& protocol,
   return keyVal == exe;
 }
 
-// TODO(Guo Xi): refer to old code for win7 compatibility
+// TODO(Guo Xi): 参考旧代码处理win7兼容性
 std::u16string Application::GetApplicationNameForProtocol(const GURL& url) {
   return base::WideToUTF16(GetAppDisplayNameForProtocol(url));
 }

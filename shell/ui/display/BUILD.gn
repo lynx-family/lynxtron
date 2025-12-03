@@ -1,0 +1,112 @@
+# Copyright 2025 The Lynx Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+import("//build/config/ui.gni")
+
+config("display_config") {
+  include_dirs = [
+    "../..",
+    "../../../",
+    "//",
+
+    # "//lynxtron/shell/ui",
+    # "//lynxtron",
+  ]
+}
+
+component("display") {
+  public_configs = [ ":display_config" ]
+
+  sources = [
+    "desktop_screen.h",
+    "display.cc",
+    "display.h",
+    "display_change_notifier.cc",
+    "display_change_notifier.h",
+    "display_export.h",
+
+    # "display_layout.cc",
+    # "display_layout.h",
+    # "display_layout_builder.cc",
+    # "display_layout_builder.h",
+    # "display_list.cc",
+    # "display_list.h",
+    "display_observer.cc",
+    "display_observer.h",
+    "screen.cc",
+    "screen.h",
+    "tablet_state.h",
+    "types/display_constants.h",
+    "util/display_util.cc",
+    "util/display_util.h",
+  ]
+
+  if (is_mac) {
+    sources += [
+      "mac/cv_display_link_mac.h",
+      "mac/cv_display_link_mac.mm",
+      "mac/display_link_mac.h",
+      "mac/display_link_mac.mm",
+      "mac/screen_mac.mm",
+    ]
+  }
+
+  if (is_win) {
+    sources += [
+      "win/base_window_finder_win.cc",
+      "win/base_window_finder_win.h",
+      "win/color_profile_reader.cc",
+      "win/color_profile_reader.h",
+      "win/desktop_screen_win.cc",
+      "win/desktop_screen_win.h",
+      "win/display_info.cc",
+      "win/display_info.h",
+      "win/dpi.cc",
+      "win/dpi.h",
+
+      # "win/scaling_util.cc",
+      # "win/scaling_util.h",
+      # "win/screen_win.cc",
+      # "win/screen_win.h",
+      "win/screen_win_display.cc",
+      "win/screen_win_display.h",
+      "win/topmost_window_finder_win.h",
+
+      # "win/uwp_text_scale_factor.cc",
+      # "win/uwp_text_scale_factor.h",
+    ]
+  }
+
+  # configs += [
+  #   "//build/config:precompiled_headers",
+  #   "//build/config/compiler:wexit_time_destructors",
+  # ]
+
+  # defines = [ "DISPLAY_IMPLEMENTATION" ]
+
+  # public_deps = [
+  #   "//base",
+  #   "//lynxtron/shell/ui/gfx",
+  #   "//lynxtron/shell/ui/gfx/geometry",
+  #   "//lynxtron/shell/ui/gfx/geometry:geometry_skia",
+  # ]
+
+  deps = [
+    "../skia:skia_ext",
+    "//base",
+  ]
+
+  # if (is_mac) {
+  #   frameworks = [
+  #     "AppKit.framework",
+  #     "CoreGraphics.framework",
+  #     "CoreVideo.framework",
+  #     "QuartzCore.framework",
+  #   ]
+  # }
+
+  # if (!is_debug) {
+  #   configs -= [ "//build/config/compiler:default_optimization" ]
+  #   configs += [ "//build/config/compiler:optimize_max" ]
+  # }
+}

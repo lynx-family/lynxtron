@@ -18,7 +18,7 @@
 #include "shell/common/size_constraints.h"
 #include "shell/ui/base/ui_base_types.h"
 #include "shell/ui/gfx/geometry/rect.h"
-#include "shell/ui/gfx/native_widget_types.h"
+#include "shell/ui/gfx/native_ui_types.h"
 
 namespace base {
 class DictionaryValue;

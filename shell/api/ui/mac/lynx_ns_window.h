@@ -1,3 +1,6 @@
+// Copyright 2025 The Lynx Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
 #ifndef LYNXTRON_SHELL_API_UI_MAC_LYNX_NS_WINDOW_H_
 #define LYNXTRON_SHELL_API_UI_MAC_LYNX_NS_WINDOW_H_
 

@@ -1,3 +1,6 @@
+# Copyright 2025 The Lynx Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
 import("//build/config/win/manifest.gni")
 import("//testing/test.gni")
 import("//tools/v8_context_snapshot/v8_context_snapshot.gni")
@@ -104,6 +107,9 @@ browser_bundle_deps = [
   "lib/browser/api/exports/lynxtron.ts",
   "lib/browser/api/lynx-window.ts",
   "lib/browser/api/module-list.ts",
+  "lib/browser/api/native-image.ts",
+  "lib/browser/api/screen.ts",
+  "lib/browser/api/shell.ts",
   "lib/browser/init.ts",
   "lib/common/define-properties.ts",
   "lib/common/webpack-globals-provider.ts",
@@ -246,6 +252,8 @@ gin_helper_sources = [
 gin_converters_sources = [
   "shell/common/gin_converters/gfx_converter.cc",
   "shell/common/gin_converters/gfx_converter.h",
+  "shell/common/gin_converters/image_converter.cc",
+  "shell/common/gin_converters/image_converter.h",
   "shell/common/gin_converters/login_item_settings_converter.cc",
   "shell/common/gin_converters/login_item_settings_converter.h",
   "shell/common/gin_converters/value_converter.cc",
@@ -254,7 +262,7 @@ gin_converters_sources = [
 
 if (is_mac) {
   ui_sources_macos = [
-    "shell/ui/gfx/native_widget_types_mac.mm",
+    "shell/ui/gfx/native_ui_types_mac.mm",
     "shell/ui/gfx/mac/coordinate_conversion.mm",
     "shell/ui/gfx/mac/coordinate_conversion.h",
   ]
@@ -276,12 +284,15 @@ source_set("lynxtron_lib") {
     ":electron_version_header",
     ":lynxtron_js2c",
     "shell/lynx_view_holder:lynx_holder",
-    "shell/ui",
+    "shell/ui/display",
+    "shell/ui/gfx",
+    "shell/ui/gfx/codec",
     "//base",
     "//base:i18n",
     "//crypto",
     "//gin",
     "//third_party/node:libnode",
+    "//third_party/re2",
     "//url",
     "//v8",
     "//v8:v8_libplatform",
@@ -307,9 +318,13 @@ source_set("lynxtron_lib") {
     "shell/api/api_event_emitter.h",
     "shell/api/api_lynx_window.cc",
     "shell/api/api_lynx_window.h",
+    "shell/api/api_screen.cc",
+    "shell/api/api_screen.h",
     "shell/api/api_shell.cc",
     "shell/api/api_v8_util.cc",
     "shell/api/api_v8_util.h",
+    "shell/api/electron_api_native_image.cc",
+    "shell/api/electron_api_native_image.h",
     "shell/api/lynxtron_bindings.cc",
     "shell/api/lynxtron_bindings.h",
     "shell/app/application.cc",
@@ -338,6 +353,12 @@ source_set("lynxtron_lib") {
     "shell/common/asar/asar_util.h",
     "shell/common/asar/scoped_temporary_file.cc",
     "shell/common/asar/scoped_temporary_file.h",
+    "shell/common/color_parser.cc",
+    "shell/common/color_parser.h",
+    "shell/common/color_util.cc",
+    "shell/common/color_util.h",
+    "shell/common/data_url.cc",
+    "shell/common/data_url.h",
     "shell/common/global_thread.cc",
     "shell/common/global_thread.h",
     "shell/common/io_thread.cc",
@@ -362,6 +383,8 @@ source_set("lynxtron_lib") {
     "shell/common/process_singleton/process_singleton_internal.h",
     "shell/common/size_constraints.cc",
     "shell/common/size_constraints.h",
+    "shell/common/skia_util.cc",
+    "shell/common/skia_util.h",
     "shell/common/v8_util.cc",
     "shell/common/v8_util.h",
     "shell/common/v8_value_converter.h",
@@ -382,6 +405,7 @@ source_set("lynxtron_lib") {
     sources += ui_sources_macos
     sources += [
       "shell/api/api_app_mac.mm",
+      "shell/api/electron_api_native_image_mac.mm",
       "shell/api/native_window_mac.h",
       "shell/api/native_window_mac.mm",
       "shell/api/ui/mac/lynx_ns_window.h",
@@ -405,6 +429,8 @@ source_set("lynxtron_lib") {
       "shell/common/mac/main_application_bundle.mm",
       "shell/common/mac/url_conversions.h",
       "shell/common/mac/url_conversions.mm",
+      "shell/common/mac_util.h",
+      "shell/common/mac_util.mm",
       "shell/common/node_bindings_mac.cc",
       "shell/common/node_bindings_mac.h",
       "shell/common/platform_util_mac.mm",
@@ -428,16 +454,17 @@ source_set("lynxtron_lib") {
       "IOKit.framework",
       "AppKit.framework",
     ]
+
+    weak_frameworks = [ "QuickLookThumbnailing.framework" ]
   }
 
   if (is_win) {
     sources += [
       "shell/api/dpi_win.cc",
       "shell/api/dpi_win.h",
+      "shell/api/electron_api_native_image_win.cc",
       "shell/api/native_window_win.cc",
       "shell/api/native_window_win.h",
-
-      # "shell/api/native_window_win_impl.cc",
       "shell/api/ui/win/jump_list.cc",
       "shell/api/ui/win/jump_list.h",
       "shell/app/application_win.cc",
@@ -459,6 +486,12 @@ source_set("lynxtron_lib") {
       "shell/ui/base/win/shell.h",
     ]
   }
+}
+
+bundle_data("lynxtron_app_resource_bundle_data") {
+  sources = [ "//third_party/icu/flutter/icudtl.dat" ]
+
+  outputs = [ "{{bundle_contents_dir}}/Resources/{{source_file_part}}" ]
 }
 
 if (is_mac) {
@@ -523,10 +556,11 @@ if (is_mac) {
   bundle_data("electron_framework_resources") {
     public_deps = []
     sources = []
-    if (icu_use_data_file) {
-      sources += [ "$root_out_dir/icudtl.dat" ]
-      public_deps += [ "//third_party/icu:icudata" ]
-    }
+
+    # if (icu_use_data_file) {
+    #   sources += [ "$root_out_dir/icudtl.dat" ]
+    #   public_deps += [ "//third_party/icu:icudata" ]
+    # }
     if (v8_use_external_startup_data) {
       public_deps += [ "//v8" ]
       sources += [ "$root_out_dir/snapshot_blob.bin" ]
@@ -568,12 +602,6 @@ if (is_mac) {
 
       public_deps += [ "shell/lynx:lynx_runtime_files" ]
     }
-  }
-
-  bundle_data("lynxtron_app_resource_bundle_data") {
-    sources = [ "//third_party/icu/flutter/icudtl.dat" ]
-
-    outputs = [ "{{bundle_contents_dir}}/Resources/{{source_file_part}}" ]
   }
 
   bundle_data("electron_app_resources") {
@@ -636,6 +664,7 @@ if (is_win) {
     public_deps = [
       ":electron_win_rc",
       ":electron_win_resource_files",
+      ":lynxtron_app_resource_bundle_data",
     ]
   }
 
