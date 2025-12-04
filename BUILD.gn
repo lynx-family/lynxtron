@@ -538,6 +538,11 @@ if (is_mac) {
       # "-Wl,-force_load,obj/third_party/node/deps/uv/libuv.a",
     ]
 
+    ldflags += [
+      "-Wl,-dead_strip",
+      "-Wl,-dead_strip_dylibs",
+    ]
+
     if (is_build_with_lynx) {
       frameworks += [
         "Carbon.framework",

@@ -16,7 +16,6 @@ v8_revision = 'fdb12b460f148895f6af2ff0e0d870ff8889f154'
 node_version = 'c9ff1aecf268802fc29272c93aaa4b0691c7c6d8' #v22.18.0
 base_version = '94e25914771ed7d72590c5a7b75dcf0a8e7ac9bd'
 build_version = '5bb4abc6c9696e47a38e64ebc96451400037b3dc'
-buildtools_version = '460cef8967904d3a5fcfad728eb33db0c3a7da70'
 testing_version = '4ba43a16dce6d48bda21a2192657c1b73c381b3d'
 tools_version = '979ea287cf0943e39dd22ff16c294fc9b3a01067'
 boringssl_revision = '71147d3763466094df692df97afef42e4ce26a4f'
@@ -74,13 +73,6 @@ deps = {
         'type': 'git',
         'url': f'{chromium_git}/chromium/src/base.git',
         'commit': base_version,
-        'ignore_in_git': True,
-        "require": [".."],
-    },
-    '../buildtools': {
-        'type': 'git',
-        'url': f'{chromium_git}/chromium/src/buildtools.git',
-        'commit': buildtools_version,
         'ignore_in_git': True,
         "require": [".."],
     },

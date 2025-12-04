@@ -44,9 +44,10 @@ Subject: [PATCH] adapt lynx compile
  .../vulkan_memory_allocator/BUILD.gn          |   5 +
  secondary/third_party/wuffs/BUILD.gn          |  61 ++++
  toolchain/clang.gni                           |  41 +++
+ toolchain/win/toolchain.gni                   |  12 -
  util/write_cmake_config.gni                   |   1 +
  util/write_cmake_config.py                    | 123 +++++++
- 42 files changed, 2828 insertions(+), 14 deletions(-)
+ 43 files changed, 2828 insertions(+), 26 deletions(-)
  create mode 100644 apple/resources/Info.plist
  create mode 100644 apple/resources/compiler-Info.plist
  create mode 100644 apple/script/compile_storyboard.py
@@ -3115,6 +3116,29 @@ index 0000000..50b93ea
 +  # Force to use Xcode toolchain to build for Apple TV.
 +  use_xcode = enable_bitcode || is_tvos
 +}
+diff --git a/toolchain/win/toolchain.gni b/toolchain/win/toolchain.gni
+index c541192..a0618a5 100644
+--- a/toolchain/win/toolchain.gni
++++ b/toolchain/win/toolchain.gni
+@@ -254,18 +254,6 @@ template("msvc_toolchain") {
+       command = "$coverage_wrapper$env_wrapper$cl /c {{source}} /Fo{{output}} /nologo $show_includes $sys_include_flags{{defines}} {{include_dirs}} {{cflags}} /TP {{cflags_cc}} {{module_deps_no_self}} /Fd\"$pdbname\""
+     }
+ 
+-    tool("rc") {
+-      if (treat_warnings_as_errors) {
+-        werror = "-Werror "
+-      } else {
+-        werror = ""
+-      }
+-      command = "\"$python_path\" $_tool_wrapper_path rc-wrapper $env rc.exe /nologo $werror$sys_include_flags{{defines}} {{include_dirs}} /fo{{output}} {{source}}"
+-      depsformat = "msvc"
+-      outputs = [ "$object_subdir/{{source_name_part}}.res" ]
+-      description = "RC {{output}}"
+-    }
+-
+     tool("asm") {
+       is_msvc_assembler = true
+ 
 diff --git a/util/write_cmake_config.gni b/util/write_cmake_config.gni
 new file mode 100644
 index 0000000..091c93d
@@ -3125,7 +3149,7 @@ index 0000000..091c93d
 \ No newline at end of file
 diff --git a/util/write_cmake_config.py b/util/write_cmake_config.py
 new file mode 100644
-index 0000000..737389e
+index 0000000..fbed377
 --- /dev/null
 +++ b/util/write_cmake_config.py
 @@ -0,0 +1,123 @@
@@ -3256,3 +3280,4 @@ index 0000000..737389e
 -- 
 2.50.1 (Apple Git-155)
 
+    
