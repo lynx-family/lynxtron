@@ -5,16 +5,84 @@
 import("cef_sources.gni")
 
 shared_library("cef_plugin") {
-  deps = [ ":cef_sources" ]
+  deps = [ ":cef_module_sources" ]
+
+  frameworks = [ "AppKit.framework" ]
 }
 
 config("cef_config") {
-  cflags = [ "-Wno-undefined-var-template" ]
+  cflags = [
+    "-Wno-undefined-var-template",
+    "-Wno-unused-function",
+  ]
+  if (is_mac) {
+    cflags += [ "-Wno-nullability-completeness" ]
+  }
 }
 
 binary_dir = "Release"
 if (is_debug) {
   binary_dir = "Debug"
+}
+
+source_set("cef_module_sources") {
+  sources = [ "bindings/bind_napi.cc" ]
+  include_dirs = [
+    "$root_gen_dir/node-addon-api",
+    "../../../../third_party/node/src",
+    "../..",
+  ]
+  deps = [
+    ":cef_plugin_sources",
+    "../:copy_node_headers",
+  ]
+  defines = [
+    "USE_PRIMJS_NAPI",
+    "NAPI_DISABLE_CPP_EXCEPTIONS",
+    "NAPI_DISABLE_CPP_RTTI",
+  ]
+}
+
+source_set("cef_plugin_sources") {
+  sources = [
+    "cef_extension_module.cc",
+    "cef_extension_module.h",
+    "cef_webview.cc",
+    "cef_webview.h",
+    "cef_webview_client.cc",
+    "cef_webview_client.h",
+  ]
+
+  if (is_mac) {
+    sources += [
+      "darwin/macos/CEFTextInputClientOSRMac.h",
+      "darwin/macos/CEFTextInputClientOSRMac.mm",
+      "darwin/macos/CEFWebviewClientMac.h",
+      "darwin/macos/CEFWebviewClientMac.mm",
+      "darwin/macos/CEFWebviewMac.h",
+      "darwin/macos/CEFWebviewMac.mm",
+    ]
+  }
+
+  include_dirs = [
+    "../../..",
+    "../..",
+    "../",
+    "../../../../lynx/lynx/base/include/value",
+    "../../../../third_party/cef_binary",
+  ]
+
+  deps = [
+    ":cef_sources",
+    "../..:lynxtron_framework+link",
+  ]
+
+  defines = [ "USE_PRIMJS_NAPI" ]
+  if (is_mac) {
+    defines += [ "OS_MAC=1" ]
+  } else if (is_win) {
+    defines += [ "OS_WIN=1" ]
+  }
 }
 
 if (is_mac) {

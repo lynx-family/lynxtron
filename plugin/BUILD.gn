@@ -1,0 +1,11 @@
+# Copyright 2025 The Lynxtron Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+
+action("copy_node_headers") {
+  script = "copy_node_headers.py"
+
+  # TODO(chenyouhui): fix path
+  args = [ rebase_path("//lynx/oliver/lynx-tasm") ]
+  outputs = [ "$root_gen_dir/node_headers" ]
+}
