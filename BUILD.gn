@@ -316,6 +316,7 @@ source_set("lynxtron_lib") {
     "shell/api/api_environment.cc",
     "shell/api/api_event_emitter.cc",
     "shell/api/api_event_emitter.h",
+    "shell/api/api_lynx_extension_utils.cc",
     "shell/api/api_lynx_window.cc",
     "shell/api/api_lynx_window.h",
     "shell/api/api_screen.cc",

@@ -7,6 +7,8 @@ source_set("lynx_holder") {
   sources = [
     "lynx_view.cc",
     "lynx_view.h",
+    "lynx_view_extension_register.cc",
+    "lynx_view_extension_register.h",
   ]
 
   if (is_build_with_lynx) {
