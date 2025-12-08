@@ -12,7 +12,10 @@ source_set("lynx_holder") {
   ]
 
   if (is_build_with_lynx) {
-    defines = [ "BUILD_WITH_LYNX=1" ]
+    defines = [
+      "BUILD_WITH_LYNX=1",
+      "USE_PRIMJS_NAPI=1",
+    ]
   }
 
   include_dirs = [

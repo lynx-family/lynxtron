@@ -13,9 +13,11 @@
 
 #if BUILDFLAG(IS_MAC)
 #if BUILD_WITH_LYNX
+#include "lynx/platform/embedder/public/capi/lynx_env_capi.h"
 #include "lynx/platform/embedder/public/lynx_view.h"
 #include "lynx/platform/embedder/public/lynx_view_client.h"
 #else
+#include "shell/lynx/lynx_lib/lib/mac/include/capi/lynx_env_capi.h"
 #include "shell/lynx/lynx_lib/lib/mac/include/lynx_view.h"
 #include "shell/lynx/lynx_lib/lib/mac/include/lynx_view_client.h"
 #endif
@@ -23,9 +25,11 @@
 
 #if BUILDFLAG(IS_WIN)
 #if BUILD_WITH_LYNX
+#include "lynx/platform/embedder/public/capi/lynx_env_capi.h"
 #include "lynx/platform/embedder/public/lynx_view.h"
 #include "lynx/platform/embedder/public/lynx_view_client.h"
 #else
+#include "shell/lynx/lynx_lib/lib/win/include/capi/lynx_env_capi.h"
 #include "shell/lynx/lynx_lib/lib/win/include/lynx_view.h"
 #include "shell/lynx/lynx_lib/lib/win/include/lynx_view_client.h"
 #endif
@@ -169,6 +173,11 @@ LynxView::~LynxView() = default;
 
 std::unique_ptr<LynxView> LynxView::Create() {
   return base::WrapUnique(new LynxView());
+}
+
+// static
+void LynxView::SetNodePlatformEnv(void* platform) {
+  lynx_env_set_node_platform(platform);
 }
 
 void LynxView::Init(double width, double height, float dpi, void* parent) {

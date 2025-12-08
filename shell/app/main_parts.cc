@@ -20,6 +20,7 @@
 #include "shell/common/node_bindings.h"
 #include "shell/common/node_includes.h"
 #include "shell/common/path_provider.h"
+#include "shell/lynx_view_holder/lynx_view.h"
 
 namespace lynxtron {
 
@@ -108,6 +109,8 @@ void MainParts::Initialize() {
 
   // Wait for app
   node_bindings_->JoinAppCode();
+
+  LynxView::SetNodePlatformEnv(js_env_->platform());
 
   // #if defined(OS_WIN)
   //   if (!display::Screen::GetScreen()) {
