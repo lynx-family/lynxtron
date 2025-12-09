@@ -72,15 +72,14 @@ source_set("cef_plugin_sources") {
     "../../../../third_party/cef_binary",
   ]
 
-  deps = [
-    ":cef_sources",
-    "../..:lynxtron_framework+link",
-  ]
+  deps = [ ":cef_sources" ]
 
   defines = [ "USE_PRIMJS_NAPI" ]
   if (is_mac) {
+    deps += [ "../..:lynxtron_framework+link" ]
     defines += [ "OS_MAC=1" ]
   } else if (is_win) {
+    deps += [ "../..:lynxtron_shared" ]
     defines += [ "OS_WIN=1" ]
   }
 }
