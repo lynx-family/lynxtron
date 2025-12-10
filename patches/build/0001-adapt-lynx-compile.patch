@@ -1,8 +1,10 @@
-From 2a4ad0915c592ad7084af011345dbc2d6b46a13c Mon Sep 17 00:00:00 2001
+From dfcf333d51a94e7e5732b980f30f7dbf1458868e Mon Sep 17 00:00:00 2001
 From: tangyongjie <80395553+yongjieTang@users.noreply.github.com>
 Date: Fri, 14 Nov 2025 14:46:37 +0800
 Subject: [PATCH] adapt lynx compile
 
+Patch-Dir: lynxtron/lynxtron/patches/build
+Patch-Filename: 0001-adapt-lynx-compile.patch
 ---
  apple/resources/Info.plist                    |  20 ++
  apple/resources/compiler-Info.plist           |  33 ++
@@ -18,10 +20,10 @@ Subject: [PATCH] adapt lynx compile
  apple/templates/metal_compiler.gni            |  88 +++++
  apple/templates/storyboards.gni               |  50 +++
  apple/templates/xib.gni                       |  55 +++
- config/BUILD.gn                               |  72 ++++
+ config/BUILD.gn                               |   4 +
  config/BUILDCONFIG.gn                         |  30 ++
  config/clang/BUILD.gn                         |  28 +-
- config/compiler/BUILD.gn                      |  15 +
+ config/compiler/BUILD.gn                      | 132 +++++++
  config/ios/bundle_identifier_prefix.gni       |   8 +
  config/mac/BUILD.gn                           |  20 ++
  config/mac/script/sdk_info.py                 | 130 +++++++
@@ -47,7 +49,7 @@ Subject: [PATCH] adapt lynx compile
  toolchain/win/toolchain.gni                   |  12 -
  util/write_cmake_config.gni                   |   1 +
  util/write_cmake_config.py                    | 123 +++++++
- 43 files changed, 2828 insertions(+), 26 deletions(-)
+ 43 files changed, 2877 insertions(+), 26 deletions(-)
  create mode 100644 apple/resources/Info.plist
  create mode 100644 apple/resources/compiler-Info.plist
  create mode 100644 apple/script/compile_storyboard.py
@@ -443,7 +445,7 @@ index 0000000..f13ce00
 +  sys.exit(main(sys.argv[1:]))
 diff --git a/apple/script/metal_compiler.py b/apple/script/metal_compiler.py
 new file mode 100644
-index 0000000..61b4a01
+index 0000000..f963dd3
 --- /dev/null
 +++ b/apple/script/metal_compiler.py
 @@ -0,0 +1,106 @@
@@ -962,7 +964,7 @@ index 0000000..914204d
 +}
 diff --git a/apple/templates/darwin_general_bundle.gni b/apple/templates/darwin_general_bundle.gni
 new file mode 100644
-index 0000000..50af34b
+index 0000000..13e3e8b
 --- /dev/null
 +++ b/apple/templates/darwin_general_bundle.gni
 @@ -0,0 +1,156 @@
@@ -1216,7 +1218,7 @@ index 0000000..2010faa
 +}
 diff --git a/apple/templates/metal_compiler.gni b/apple/templates/metal_compiler.gni
 new file mode 100644
-index 0000000..abb10e0
+index 0000000..da77906
 --- /dev/null
 +++ b/apple/templates/metal_compiler.gni
 @@ -0,0 +1,88 @@
@@ -1427,87 +1429,19 @@ index 0000000..6beb472
 +  }
 +}
 diff --git a/config/BUILD.gn b/config/BUILD.gn
-index 56ca3ca..9837dac 100644
+index 56ca3ca..2769caf 100644
 --- a/config/BUILD.gn
 +++ b/config/BUILD.gn
-@@ -430,3 +430,75 @@ config("precompiled_headers") {
+@@ -430,3 +430,7 @@ config("precompiled_headers") {
  config("compress_debug_sections") {
    ldflags = [ "-gz" ]
  }
 +
 +
-+config("lynx_config") {
-+if (is_mac) {
-+  __configs = [
-+    "-Wno-nonportable-include-path",
-+    "-Wno-deprecated-this-capture",
-+    "-Wno-c99-designator",
-+    "-Wno-implicit-fallthrough",
-+    "-Wno-shadow",
-+    "-Wno-deprecated-declarations",
-+    "-Wno-missing-designated-field-initializers",
-+    "-Wno-unreachable-code-return",
-+    "-Wno-objc-property-assign-on-object-type",
-+    "-Wno-unreachable-code-break",
-+    "-Wno-gnu-case-range",
-+    "-Wno-unused-private-field",
-+    "-Wno-character-conversion",
-+    "-Wno-array-parameter",
-+    "-Wno-implicit-retain-self",
-+    "-Wno-header-hygiene",
-+    "-Wno-gnu-auto-type",
-+    "-Wno-unreachable-code",
-+    "-Wno-vla-cxx-extension",
-+    "-Wno-unused-but-set-variable",
-+    "-Wno-implicit-const-int-float-conversion",
-+    "-Wno-deprecated-anon-enum-enum-conversion",
-+    "-Wno-deprecated-pragma",
-+    "-Wno-deprecated-enum-enum-conversion",
-+    "-Wno-rewrite-not-bool",
-+    "-Wno-ambiguous-reversed-operator",
-+    "-Wno-deprecated-enum-float-conversion",
-+    "-Wno-deprecated-array-compare",
-+    "-Wno-array-compare",
-+    "-Wno-sign-compare",
-+    "-Wno-unnecessary-virtual-specifier",
-+    "-Wno-sign-conversion",
-+    "-Wno-arc-bridge-casts-disallowed-in-nonarc",
-+    "-Wno-implicit-function-declaration",
-+    "-Wno-thread-safety-analysis",
-+
-+  ]
-+
-+}
-+
-+  if(is_win) {
-+    __configs = [
-+      "-Wno-unknown-argument",
-+      "-Wno-vla-cxx-extension",
-+    ]
-+  }
-+
-+  cflags = __configs
-+  cflags_cc = __configs
-+  cflags_c = __configs
-+  cflags_objc = __configs
-+  cflags_objcc = __configs
-+
-+  include_dirs = [
-+    "//$target_gen_dir/lynx/oss/",
-+    "//lynx/oss/",
-+    "//lynx/lynx/",
-+    "//lynx/",
-+    "//out/Release/gen/lynx/oss/",
-+    "//lynx/lynx/third_party/jsoncpp/include",
-+  ]
-+
-+}
-+
-+
 +config("symbol_visibility_hidden") {
 +}
 diff --git a/config/BUILDCONFIG.gn b/config/BUILDCONFIG.gn
-index 5af7954..c5f6776 100644
+index 5af7954..746189d 100644
 --- a/config/BUILDCONFIG.gn
 +++ b/config/BUILDCONFIG.gn
 @@ -14,6 +14,10 @@
@@ -1567,8 +1501,8 @@ index 5af7954..c5f6776 100644
  
 +if (is_build_with_lynx) {
 +  default_compiler_configs += [
-+    "//build/config:lynx_config",
 +    "//build/config/compiler:cxx_version_default",
++    "//build/config/compiler:lynx_disable_warning_config",
 +  ]
 +}
 +
@@ -1617,10 +1551,137 @@ index 7aaa873..109c340 100644
  
  # A plugin for incrementally applying the -Wunsafe-buffer-usage warning.
 diff --git a/config/compiler/BUILD.gn b/config/compiler/BUILD.gn
-index 32c9abd..da19a7d 100644
+index 32c9abd..8469fc0 100644
 --- a/config/compiler/BUILD.gn
 +++ b/config/compiler/BUILD.gn
-@@ -306,6 +306,19 @@ config("no_unresolved_symbols") {
+@@ -284,9 +284,126 @@ config("default_include_dirs") {
+   include_dirs = [
+     "//",
+     root_gen_dir,
++    "//$target_gen_dir/lynx/oss/",
++    "//lynx/oss/",
++    "//lynx/lynx/",
++    "//lynx/",
++    "//$root_gen_dir/lynx/oss/",
++    "//lynx/lynx/third_party/jsoncpp/include",
+   ]
+ }
+ 
++# lynx_disable_warning_config --------------------------------------------------
++#
++# This config disables some warnings that are enabled by default in clang.
++config("lynx_disable_warning_config") {
++  if (is_mac) {
++    config_flags = [
++      "-Wno-nonportable-include-path",
++      "-Wno-deprecated-this-capture",
++      "-Wno-c99-designator",
++      "-Wno-implicit-fallthrough",
++      "-Wno-shadow",
++      "-Wno-deprecated-declarations",
++      "-Wno-missing-designated-field-initializers",
++      "-Wno-unreachable-code-return",
++      "-Wno-objc-property-assign-on-object-type",
++      "-Wno-unreachable-code-break",
++      "-Wno-gnu-case-range",
++      "-Wno-unused-private-field",
++      "-Wno-character-conversion",
++      "-Wno-array-parameter",
++      "-Wno-implicit-retain-self",
++      "-Wno-header-hygiene",
++      "-Wno-gnu-auto-type",
++      "-Wno-unreachable-code",
++      "-Wno-vla-cxx-extension",
++      "-Wno-unused-but-set-variable",
++      "-Wno-implicit-const-int-float-conversion",
++      "-Wno-deprecated-anon-enum-enum-conversion",
++      "-Wno-deprecated-pragma",
++      "-Wno-deprecated-enum-enum-conversion",
++      "-Wno-rewrite-not-bool",
++      "-Wno-ambiguous-reversed-operator",
++      "-Wno-deprecated-enum-float-conversion",
++      "-Wno-deprecated-array-compare",
++      "-Wno-array-compare",
++      "-Wno-sign-compare",
++      "-Wno-unnecessary-virtual-specifier",
++      "-Wno-sign-conversion",
++      "-Wno-arc-bridge-casts-disallowed-in-nonarc",
++      "-Wno-implicit-function-declaration",
++      "-Wno-thread-safety-analysis",
++      "-Wno-nontrivial-memcall",
++      "-Wno-switch",
++      "-Wno-deprecated-declarations",
++      "-Wno-undef",
++    ]
++  } else if (is_win) {
++    config_flags = [
++      "-Wno-unknown-argument",
++      "-Wno-vla-cxx-extension",
++      "-Wno-c++98-compat-pedantic",
++      "-Wno-c++98-compat",
++      "-Wno-pre-c++14-compat",
++      "-Wno-ms-bitfield-padding",
++      "-Wno-c99-extensions",
++      "-Wno-character-conversion",
++      "-Wno-deprecated-copy-with-user-provided-dtor",
++      "-Wno-deprecated-declarations",
++      "-Wno-deprecated-redundant-constexpr-static-def",
++      "-Wno-deprecated-this-capture",
++      "-Wno-deprecated-volatile",
++      "-Wno-embedded-directive",
++      "-Wno-exit-time-destructors",
++      "-Wno-extra-semi",
++      "-Wno-extra-semi-stmt",
++      "-Wno-float-conversion",
++      "-Wno-gnu-anonymous-struct",
++      "-Wno-header-hygiene",
++      "-Wno-implicit-const-int-float-conversion",
++      "-Wno-implicit-int-enum-cast",
++      "-Wno-implicit-int-float-conversion",
++      "-Wno-inconsistent-dllimport",
++      "-Wno-macro-redefined",
++      "-Wno-microsoft-cast",
++      "-Wno-missing-designated-field-initializers",
++      "-Wno-missing-field-initializers",
++      "-Wno-missing-noreturn",
++      "-Wno-ms-bitfield-padding",
++      "-Wno-nested-anon-types",
++      "-Wno-nontrivial-memcall",
++      "-Wno-non-virtual-dtor",
++      "-Wno-nrvo",
++      "-Wno-nullability-extension",
++      "-Wno-padded",
++      "-Wno-reserved-identifier",
++      "-Wno-reserved-macro-identifier",
++      "-Wno-return-stack-address",
++      "-Wno-shadow-field",
++      "-Wno-shadow-field-in-constructor",
++      "-Wno-shadow-uncaptured-local",
++      "-Wno-sign-conversion",
++      "-Wno-string-conversion",
++      "-Wno-switch",
++      "-Wno-switch-default",
++      "-Wno-tautological-constant-out-of-range-compare",
++      "-Wno-tautological-type-limit-compare",
++      "-Wno-thread-safety-negative",
++      "-Wno-undef",
++      "-Wno-unique-object-duplication",
++      "-Wno-unknown-warning-option",
++      "-Wno-unsafe-buffer-usage",
++      "-Wno-unsafe-buffer-usage-in-libc-call",
++    ]
++  }
++  cflags = config_flags
++  cflags_cc = config_flags
++  cflags_c = config_flags
++  cflags_objc = config_flags
++  cflags_objcc = config_flags
++}
++
+ # Compiler instrumentation can introduce dependencies in DSOs to symbols in
+ # the executable they are loaded into, so they are unresolved at link-time.
+ config("no_unresolved_symbols") {
+@@ -306,6 +423,19 @@ config("no_unresolved_symbols") {
  # See also "runtime_library" below for related stuff and a discussion about
  # where stuff should go. Put warning related stuff in the "warnings" config.
  
@@ -1640,7 +1701,7 @@ index 32c9abd..da19a7d 100644
  config("compiler") {
    asmflags = []
    cflags = []
-@@ -2281,6 +2294,7 @@ config("prevent_unsafe_narrowing") {
+@@ -2281,6 +2411,7 @@ config("prevent_unsafe_narrowing") {
  # part of Chromium.
  
  config("chromium_code") {
@@ -1648,7 +1709,7 @@ index 32c9abd..da19a7d 100644
    if (is_win) {
      if (is_clang) {
        cflags = [ "/W4" ]  # Warning level 4.
-@@ -2382,6 +2396,7 @@ config("chromium_code") {
+@@ -2382,6 +2513,7 @@ config("chromium_code") {
    if (treat_warnings_as_errors) {
      configs += [ ":treat_warnings_as_errors" ]
    }
@@ -1859,7 +1920,7 @@ index 0000000..e94b9f5
 +                       "json")
 diff --git a/config/mac/templates/mac_app_bundle.gni b/config/mac/templates/mac_app_bundle.gni
 new file mode 100644
-index 0000000..ad85c5b
+index 0000000..bdcacf0
 --- /dev/null
 +++ b/config/mac/templates/mac_app_bundle.gni
 @@ -0,0 +1,116 @@
@@ -1989,7 +2050,7 @@ index 0000000..7ebe021
 +import("//build/config/compiler/compiler.gni")
 diff --git a/config/win/win.gni b/config/win/win.gni
 new file mode 100644
-index 0000000..a7c7483
+index 0000000..591bb6c
 --- /dev/null
 +++ b/config/win/win.gni
 @@ -0,0 +1,7 @@
@@ -2379,7 +2440,7 @@ index 0000000..6c05ecc
 +  sys.exit(main(args.target_directory, args.file_extension))
 diff --git a/secondary/lynx/testing/FuzzFramework/BUILD.gn b/secondary/lynx/testing/FuzzFramework/BUILD.gn
 new file mode 100644
-index 0000000..3d3a234
+index 0000000..12b89bb
 --- /dev/null
 +++ b/secondary/lynx/testing/FuzzFramework/BUILD.gn
 @@ -0,0 +1,90 @@
@@ -2475,7 +2536,7 @@ index 0000000..3d3a234
 +}
 diff --git a/secondary/lynx/testing/FuzzFramework/fuzz_test.gni b/secondary/lynx/testing/FuzzFramework/fuzz_test.gni
 new file mode 100644
-index 0000000..9d8bf14
+index 0000000..4ce30c1
 --- /dev/null
 +++ b/secondary/lynx/testing/FuzzFramework/fuzz_test.gni
 @@ -0,0 +1,30 @@
@@ -2511,7 +2572,7 @@ index 0000000..9d8bf14
 +}
 diff --git a/secondary/lynx/third_party/googletest/BUILD.gn b/secondary/lynx/third_party/googletest/BUILD.gn
 new file mode 100644
-index 0000000..53089c8
+index 0000000..a245aeb
 --- /dev/null
 +++ b/secondary/lynx/third_party/googletest/BUILD.gn
 @@ -0,0 +1,160 @@
@@ -3280,4 +3341,3 @@ index 0000000..fbed377
 -- 
 2.50.1 (Apple Git-155)
 
-    

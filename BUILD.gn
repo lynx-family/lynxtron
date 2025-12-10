@@ -727,7 +727,9 @@ if (is_win) {
       "Wintrust.lib",
       "wtsapi32.lib",
       "Dwmapi.lib",
+      "WebView2LoaderStatic.lib",
     ]
+    lib_dirs = [ "//third_party/webview2/Microsoft.Web.WebView2.1.0.902.49/build/native/$current_cpu" ]
 
     output_name = "lxtn"
   }
