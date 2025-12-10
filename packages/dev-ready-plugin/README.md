@@ -13,7 +13,7 @@ In monorepos you often run multiple dev processes at once (e.g. RSBuild app serv
 
 ## Installation
 ```
-npm i -D @lynx-js/dev-ready-rsbuild-plugin
+npm i -D @lynx-js/dev-ready-plugin
 ```
 Peer dependency: `@rsbuild/core@^1.6.0`.
 
@@ -22,16 +22,16 @@ Register the plugin only for `serve`:
 ```ts
 // rsbuild.config.ts
 import { defineConfig } from '@rsbuild/core'
-import { pluginDevReady } from '@lynx-js/dev-ready-rsbuild-plugin'
+import { pluginRspeedyDevReady } from '@lynx-js/dev-ready-plugin'
 
 export default defineConfig({
-  plugins: [pluginDevReady()],
+  plugins: [pluginRspeedyDevReady()],
 })
 ```
 
 Optional configuration:
 ```ts
-pluginDevReady({
+pluginRspeedyDevReady({
   // Absolute or relative path to the marker file to write.
   // Defaults to "<dist>/dev-ready.json" based on the first environment.
   markerFile: './output/bundle/dev-ready.json',
@@ -85,8 +85,8 @@ Run RSBuild and a dependent process in parallel:
 `dev:shell` starts only after RSBuild writes `dev-ready.json` and the CLI returns success.
 
 ## Internals
-- Plugin implementation: `pluginDevReady` writes the marker on first compile and logs port info on server start (`packages/dev-ready-rsbuild-plugin/dist/index.js:4`).
-- CLIs poll the expected file until it contains a valid JSON and required fields, then exit (`packages/dev-ready-rsbuild-plugin/dist/cli-speedy.js:4`, `packages/dev-ready-rsbuild-plugin/dist/cli.js:25`, `packages/dev-ready-rsbuild-plugin/dist/cli-rspack.js:4`).
+- Plugin implementation: `pluginRspeedyDevReady` writes the marker on first compile and logs port info on server start (`packages/dev-ready-plugin/dist/index.js:4`).
+- CLIs poll the expected file until it contains a valid JSON and required fields, then exit (`packages/dev-ready-plugin/dist/cli-speedy.js:4`, `packages/dev-ready-plugin/dist/cli.js:25`, `packages/dev-ready-plugin/dist/cli-rspack.js:4`).
 
 ## Troubleshooting
 - Seeing “command not found” for `import`?

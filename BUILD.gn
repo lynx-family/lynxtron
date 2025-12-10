@@ -782,6 +782,7 @@ if (is_win) {
   }
 
   executable("lynxtron_app") {
+    output_name = "lynxtron"
     configs -= [ "//build/config/win:console" ]
     configs += [
       "//build/config/win:windowed",

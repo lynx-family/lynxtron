@@ -66,6 +66,8 @@ def am(repo, patch_data, threeway=False, directory=None, exclude=None,
     args += ['--keep-cr']
 
   root_args = ['-C', repo]
+  root_args += ['-c', 'core.autocrlf=false']
+  root_args += ['-c', 'core.eol=lf']
   if committer_name is not None:
     root_args += ['-c', 'user.name=' + committer_name]
   if committer_email is not None:
@@ -122,6 +124,10 @@ def format_patch(repo, since):
     'git',
     '-C',
     repo,
+    '-c',
+    'core.autocrlf=false',
+    '-c',
+    'core.eol=lf',
     '-c',
     'core.attributesfile='
     + os.path.join(
