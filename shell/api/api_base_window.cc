@@ -697,9 +697,6 @@ void BaseWindow::SetParentWindow(v8::Local<v8::Value> value,
 
 #if !BUILDFLAG(IS_MAC)
 v8::Local<v8::Value> BaseWindow::GetNativeWindowHandle() {
-  // TODO(MarshallOfSound): Replace once
-  // https://chromium-review.googlesource.com/c/chromium/src/+/1253094/ has
-  // landed
   NativeWindowHandle handle = window_->GetNativeWindowHandle();
   return ToBuffer(isolate(), base::byte_span_from_ref(handle));
 }

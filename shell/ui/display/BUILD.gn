@@ -1,4 +1,4 @@
-# Copyright 2025 The Lynx Authors. All rights reserved.
+# Copyright 2025 The Lynxtron Authors. All rights reserved.
 # Licensed under the Apache License Version 2.0 that can be found in the
 # LICENSE file in the root directory of this source tree.
 import("//build/config/ui.gni")
@@ -63,17 +63,15 @@ component("display") {
       "win/display_info.h",
       "win/dpi.cc",
       "win/dpi.h",
-
-      # "win/scaling_util.cc",
-      # "win/scaling_util.h",
-      # "win/screen_win.cc",
-      # "win/screen_win.h",
+      "win/scaling_util.cc",
+      "win/scaling_util.h",
+      "win/screen_win.cc",
+      "win/screen_win.h",
       "win/screen_win_display.cc",
       "win/screen_win_display.h",
       "win/topmost_window_finder_win.h",
-
-      # "win/uwp_text_scale_factor.cc",
-      # "win/uwp_text_scale_factor.h",
+      "win/uwp_text_scale_factor.cc",
+      "win/uwp_text_scale_factor.h",
     ]
   }
 

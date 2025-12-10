@@ -5,6 +5,7 @@
 #include "ui/gfx/geometry/resize_utils.h"
 
 #include <algorithm>
+#include <ostream>
 #include <utility>
 
 #include "base/check_op.h"

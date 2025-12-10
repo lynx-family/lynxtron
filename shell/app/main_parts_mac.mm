@@ -27,13 +27,6 @@ void MainParts::PreCreateMainMessageLoop() {
   [[NSUserDefaults standardUserDefaults]
       setObject:@"NO"
          forKey:@"NSTreatUnknownArgumentsAsOpen"];
-
-  // TODO(Guo Xi)
-  // if (!device::GeolocationSystemPermissionManager::GetInstance()) {
-  //   device::GeolocationSystemPermissionManager::SetInstance(
-  //       device::SystemGeolocationSourceApple::
-  //           CreateGeolocationSystemPermissionManager());
-  // }
 }
 
 void MainParts::FreeAppDelegate() {

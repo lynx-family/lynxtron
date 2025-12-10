@@ -5,7 +5,7 @@
 #include "shell/common/gin_converters/file_dialog_converter.h"
 
 #include "gin/dictionary.h"
-#include "shell/browser/api/electron_api_browser_window.h"
+#include "shell/api/api_lynx_window.h"
 #include "shell/common/gin_converters/file_path_converter.h"
 #include "shell/common/gin_converters/native_window_converter.h"
 
@@ -65,7 +65,7 @@ v8::Local<v8::Value> Converter<file_dialog::DialogSettings>::ToV8(
   auto dict = gin::Dictionary::CreateEmpty(isolate);
 
   dict.Set("window",
-           electron::api::BrowserWindow::From(isolate, in.parent_window));
+           lynxtron::api::LynxWindow::From(isolate, in.parent_window));
   dict.Set("title", in.title);
   dict.Set("message", in.message);
   dict.Set("buttonLabel", in.button_label);

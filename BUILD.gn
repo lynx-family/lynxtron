@@ -1,4 +1,4 @@
-# Copyright 2025 The Lynx Authors. All rights reserved.
+# Copyright 2025 The Lynxtron Authors. All rights reserved.
 # Licensed under the Apache License Version 2.0 that can be found in the
 # LICENSE file in the root directory of this source tree.
 import("//build/config/win/manifest.gni")
@@ -250,12 +250,16 @@ gin_helper_sources = [
 ]
 
 gin_converters_sources = [
+  "shell/common/gin_converters/file_dialog_converter.cc",
+  "shell/common/gin_converters/file_dialog_converter.h",
   "shell/common/gin_converters/gfx_converter.cc",
   "shell/common/gin_converters/gfx_converter.h",
   "shell/common/gin_converters/image_converter.cc",
   "shell/common/gin_converters/image_converter.h",
   "shell/common/gin_converters/login_item_settings_converter.cc",
   "shell/common/gin_converters/login_item_settings_converter.h",
+  "shell/common/gin_converters/message_box_converter.cc",
+  "shell/common/gin_converters/message_box_converter.h",
   "shell/common/gin_converters/value_converter.cc",
   "shell/common/gin_converters/value_converter.h",
 ]
@@ -300,8 +304,6 @@ source_set("lynxtron_lib") {
 
   include_dirs = [
     ".",
-
-    # "./shell",
     "$root_gen_dir/lynxtron",
     "$target_gen_dir",
   ]
@@ -324,10 +326,13 @@ source_set("lynxtron_lib") {
     "shell/api/api_shell.cc",
     "shell/api/api_v8_util.cc",
     "shell/api/api_v8_util.h",
+    "shell/api/electron_api_dialog.cc",
     "shell/api/electron_api_native_image.cc",
     "shell/api/electron_api_native_image.h",
     "shell/api/lynxtron_bindings.cc",
     "shell/api/lynxtron_bindings.h",
+    "shell/api/ui/file_dialog.h",
+    "shell/api/ui/message_box.h",
     "shell/app/application.cc",
     "shell/app/application.h",
     "shell/app/javascript_environment.cc",
@@ -409,10 +414,12 @@ source_set("lynxtron_lib") {
       "shell/api/electron_api_native_image_mac.mm",
       "shell/api/native_window_mac.h",
       "shell/api/native_window_mac.mm",
+      "shell/api/ui/file_dialog_mac.mm",
       "shell/api/ui/mac/lynx_ns_window.h",
       "shell/api/ui/mac/lynx_ns_window.mm",
       "shell/api/ui/mac/lynx_ns_window_delegate.h",
       "shell/api/ui/mac/lynx_ns_window_delegate.mm",
+      "shell/api/ui/message_box_mac.mm",
       "shell/app/application_mac.mm",
       "shell/app/mac/dict_util.h",
       "shell/app/mac/dict_util.mm",
@@ -454,6 +461,7 @@ source_set("lynxtron_lib") {
       "Carbon.framework",
       "IOKit.framework",
       "AppKit.framework",
+      "UniformTypeIdentifiers.framework",
     ]
 
     weak_frameworks = [ "QuickLookThumbnailing.framework" ]
@@ -466,6 +474,8 @@ source_set("lynxtron_lib") {
       "shell/api/electron_api_native_image_win.cc",
       "shell/api/native_window_win.cc",
       "shell/api/native_window_win.h",
+      "shell/api/ui/file_dialog_win.cc",
+      "shell/api/ui/message_box_win.cc",
       "shell/api/ui/win/jump_list.cc",
       "shell/api/ui/win/jump_list.h",
       "shell/app/application_win.cc",

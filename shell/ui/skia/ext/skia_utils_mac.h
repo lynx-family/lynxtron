@@ -93,6 +93,9 @@ SK_API NSBitmapImageRep* SkBitmapToNSBitmapImageRepWithColorSpace(
 SK_API NSImage* SkBitmapToNSImageWithColorSpace(const SkBitmap& icon,
                                                 CGColorSpaceRef colorSpace);
 
+// Given an SkBitmap and a color space, return an autoreleased NSImage.
+// TODO(crbug.com/40264240): Restrict this to Objective-C callers.
+SK_API NSImage* SkBitmapToNSImage(const SkBitmap& icon);
 }  // namespace skia
 
 #endif  // SKIA_EXT_SKIA_UTILS_MAC_H_

@@ -1,7 +1,7 @@
 # Contributing to Lynxtron
 
 First off, thank you for considering contributing to Lynxtron!
-We welcome you to join Lynx Authors and become a member.
+We welcome you to join Lynxtron Authors and become a member.
 It's people like you who make this project great.
 
 ## How Can I Contribute?
@@ -106,7 +106,7 @@ When you’re ready to make a code change, please create a Pull Request:
 
 ## Verifying and Reviewing Pull Requests
 
-A Pull Request needs to be verified by the CI workflows and reviewed by the Lynx authors before being merged.
+A Pull Request needs to be verified by the CI workflows and reviewed by the Lynxtron authors before being merged.
 
 Once you submit a Pull Request, you can invite the contributors of the repository to review your changes.
 If you have no idea whom to invite to review your changes,

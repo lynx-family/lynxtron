@@ -6,15 +6,15 @@
 #define ELECTRON_SHELL_COMMON_GIN_CONVERTERS_MESSAGE_BOX_CONVERTER_H_
 
 #include "gin/converter.h"
-#include "shell/browser/ui/message_box.h"
+#include "shell/api/ui/message_box.h"
 
 namespace gin {
 
 template <>
-struct Converter<electron::MessageBoxSettings> {
+struct Converter<lynxtron::MessageBoxSettings> {
   static bool FromV8(v8::Isolate* isolate,
                      v8::Local<v8::Value> val,
-                     electron::MessageBoxSettings* out);
+                     lynxtron::MessageBoxSettings* out);
 };
 
 }  // namespace gin

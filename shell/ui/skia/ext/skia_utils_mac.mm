@@ -17,7 +17,6 @@
 #include "third_party/skia/include/utils/mac/SkCGUtils.h"
 
 namespace {
-
 // Draws an NSImage or an NSImageRep with a given size into a SkBitmap.
 SkBitmap NSImageOrNSImageRepToSkBitmapWithColorSpace(
     NSImage* image,
@@ -257,6 +256,33 @@ NSImage* SkBitmapToNSImageWithColorSpace(const SkBitmap& skiaBitmap,
   NSImage* image = [[NSImage alloc] init];
   NSBitmapImageRep* imageRep =
       SkBitmapToNSBitmapImageRepWithColorSpace(skiaBitmap, colorSpace);
+  if (!imageRep) {
+    return nil;
+  }
+  [image addRepresentation:imageRep];
+  image.size = NSMakeSize(skiaBitmap.width(), skiaBitmap.height());
+  return image;
+}
+
+NSBitmapImageRep* SkBitmapToNSBitmapImageRep(const SkBitmap& skiaBitmap) {
+  // First convert SkBitmap to CGImageRef.
+  base::apple::ScopedCFTypeRef<CGImageRef> cgimage(
+      SkCreateCGImageRef(skiaBitmap));
+  if (!cgimage) {
+    return nil;
+  }
+
+  // Now convert to NSBitmapImageRep.
+  return [[NSBitmapImageRep alloc] initWithCGImage:cgimage.get()];
+}
+
+NSImage* SkBitmapToNSImage(const SkBitmap& skiaBitmap) {
+  if (skiaBitmap.isNull()) {
+    return nil;
+  }
+
+  NSImage* image = [[NSImage alloc] init];
+  NSBitmapImageRep* imageRep = SkBitmapToNSBitmapImageRep(skiaBitmap);
   if (!imageRep) {
     return nil;
   }

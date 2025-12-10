@@ -10,10 +10,10 @@
 
 namespace gin {
 
-bool Converter<electron::MessageBoxSettings>::FromV8(
+bool Converter<lynxtron::MessageBoxSettings>::FromV8(
     v8::Isolate* isolate,
     v8::Local<v8::Value> val,
-    electron::MessageBoxSettings* out) {
+    lynxtron::MessageBoxSettings* out) {
   gin_helper::Dictionary dict;
   int type = 0;
   if (!ConvertFromV8(isolate, val, &dict)) {
@@ -21,7 +21,7 @@ bool Converter<electron::MessageBoxSettings>::FromV8(
   }
   dict.Get("window", &out->parent_window);
   dict.Get("messageBoxType", &type);
-  out->type = static_cast<electron::MessageBoxType>(type);
+  out->type = static_cast<lynxtron::MessageBoxType>(type);
   dict.Get("buttons", &out->buttons);
   dict.GetOptional("id", &out->id);
   dict.Get("defaultId", &out->default_id);

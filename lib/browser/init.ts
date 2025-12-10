@@ -90,7 +90,6 @@ if (process.platform === 'win32') {
 
 const Module = require('module') as NodeJS.ModuleInternal;
 
-// Make a fake Electron module that we will insert into the module cache
 const makeLynxtronModule = (name: string) => {
   const lynxtronModule = new Module('lynxtron', null);
   lynxtronModule.id = 'lynxtron';
@@ -103,20 +102,11 @@ const makeLynxtronModule = (name: string) => {
 };
 
 makeLynxtronModule('lynxtron');
-makeLynxtronModule('lynxtron/main');
 
 const originalResolveFilename = Module._resolveFilename;
 
-// TODO(Guo Xi): we only got electron
-// 'electron/{common,main,renderer,utility}' are module aliases
-// of the 'electron' module for TypeScript purposes, i.e., the types for
-// 'electron/main' consist of only main process modules, etc. It is intentional
-// that these can be `require()`-ed from both the main process as well as the
-// renderer process regardless of the names, they're superficial for TypeScript
-// only.
-const lynxtronModuleNames = new Set(['lynxtron', 'lynxtron/main']);
 Module._resolveFilename = function (request, parent, isMain, options) {
-  if (lynxtronModuleNames.has(request)) {
+  if (request === 'lynxtron') {
     return 'lynxtron';
   } else {
     return originalResolveFilename(request, parent, isMain, options);

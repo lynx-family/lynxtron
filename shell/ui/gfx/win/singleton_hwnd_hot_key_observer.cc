@@ -4,6 +4,9 @@
 
 #include "shell/ui/gfx/win/singleton_hwnd_hot_key_observer.h"
 
+#include <memory>
+
+#include "base/bind.h"
 #include "base/containers/flat_set.h"
 #include "base/functional/bind.h"
 #include "base/memory/ptr_util.h"

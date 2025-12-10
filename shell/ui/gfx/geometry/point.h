@@ -7,6 +7,7 @@
 
 #include <iosfwd>
 #include <string>
+#include <tuple>
 #include <utility>
 
 #include "base/component_export.h"

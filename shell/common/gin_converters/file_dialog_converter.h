@@ -6,7 +6,7 @@
 #define ELECTRON_SHELL_COMMON_GIN_CONVERTERS_FILE_DIALOG_CONVERTER_H_
 
 #include "gin/converter.h"
-#include "shell/browser/ui/file_dialog.h"
+#include "shell/api/ui/file_dialog.h"
 
 namespace gin {
 

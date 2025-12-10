@@ -12,15 +12,6 @@ export default app;
 let dockMenu: Lynxtron.Menu | null = null;
 
 // Properties.
-
-// TODO(Guo Xi): accessibility is not available
-// const nativeASGetter = app.isAccessibilitySupportEnabled;
-// const nativeASSetter = app.setAccessibilitySupportEnabled;
-// Object.defineProperty(app, 'accessibilitySupportEnabled', {
-//   get: () => nativeASGetter.call(app),
-//   set: (enabled) => nativeASSetter.call(app, enabled),
-// });
-
 const nativeBCGetter = app.getBadgeCount;
 const nativeBCSetter = app.setBadgeCount;
 Object.defineProperty(app, 'badgeCount', {

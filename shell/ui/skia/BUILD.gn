@@ -81,8 +81,8 @@ component("skia_ext") {
     sources += [ "ext/skia_utils_mac.mm" ]
   }
   if (is_win) {
-    # public += [ "ext/skia_utils_win.h" ]
-    # sources += [ "ext/skia_utils_win.cc" ]
+    public += [ "ext/skia_utils_win.h" ]
+    sources += [ "ext/skia_utils_win.cc" ]
   }
 
   if (current_cpu == "x86" || current_cpu == "x64") {
@@ -112,7 +112,7 @@ component("skia_ext") {
   if (is_win) {
     sources += [
       # Select the right BitmapPlatformDevice.
-      # "ext/raster_handle_allocator_win.cc",
+      "ext/raster_handle_allocator_win.cc",
     ]
   }
 }

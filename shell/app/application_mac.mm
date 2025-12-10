@@ -16,6 +16,7 @@
 #include "base/mac/mac_util.h"
 #include "base/mac/mac_util.mm"
 #include "base/strings/sys_string_conversions.h"
+#include "shell/api/electron_api_native_image.h"
 #include "shell/app/javascript_environment.h"
 #include "shell/app/mac/dict_util.h"
 #include "shell/app/mac/lynxtron_application.h"
@@ -30,6 +31,7 @@
 #include "shell/common/gin_helper/promise.h"
 #include "shell/common/mac/url_conversions.h"
 #include "shell/common/platform_util.h"
+#include "ui/gfx/image/image.h"
 #include "url/gurl.h"
 #include "url/url_canon.h"
 
@@ -52,6 +54,7 @@ NSString* GetAppPathForProtocol(const GURL& url) {
     // likely kLSApplicationNotFoundErr
     return nullptr;
   }
+
   NSString* app_path = [base::apple::CFToNSPtrCast(openingApp.get()) path];
   return app_path;
 }
@@ -583,19 +586,19 @@ void Application::DockSetMenu(ElectronMenuModel* model) {
 void Application::DockSetIcon(v8::Isolate* isolate, v8::Local<v8::Value> icon) {
   // TODO(Guo Xi): support gfx::image
   // #if !BUILDFLAG(IS_NODE_LYNX)
-  //   gfx::Image image;
+  gfx::Image image;
 
-  //   if (!icon->IsNull()) {
-  //     api::NativeImage* native_image = nullptr;
-  //     if (!api::NativeImage::TryConvertNativeImage(isolate, icon,
-  //                                                  &native_image)) {
-  //       return;
-  //     }
-  //     image = native_image->image();
-  //   }
+  if (!icon->IsNull()) {
+    api::NativeImage* native_image = nullptr;
+    if (!api::NativeImage::TryConvertNativeImage(isolate, icon,
+                                                 &native_image)) {
+      return;
+    }
+    image = native_image->image();
+  }
 
-  //   [[LynxtronApplication sharedApplication]
-  //       setApplicationIconImage:image.AsNSImage()];
+  [[LynxtronApplication sharedApplication]
+      setApplicationIconImage:image.AsNSImage()];
   // #endif
 }
 

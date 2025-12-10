@@ -5,6 +5,7 @@
 #include "ui/gfx/geometry/point_f.h"
 
 #include <algorithm>
+#include <cmath>
 #include <utility>
 
 #include "base/check.h"
