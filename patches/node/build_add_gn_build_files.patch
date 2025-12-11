@@ -337,7 +337,7 @@ index da565473f1ae96b4d009935f7733e6ab15ea9de2..519168b36310c088fcd58b51a7bbc6a2
 +
      sources = [
 +      "src/node_snapshot_stub.cc",
-+      "$root_gen_dir/electron_natives.cc",
++      "$root_gen_dir/lynxtron_natives.cc",
        "$target_gen_dir/node_javascript.cc",
      ] + gypi_values.node_sources
  

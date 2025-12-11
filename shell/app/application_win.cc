@@ -19,7 +19,7 @@
 #include "base/win/registry.h"
 #include "base/win/shlwapi.h"  // NOLINT(build/include_order)
 #include "base/win/windows_version.h"
-#include "lynxtron/electron_version.h"
+#include "lynxtron/lynxtron_version.h"
 #include "shell/api/ui/win/jump_list.h"
 #include "shell/app/application.h"
 #include "shell/app/javascript_environment.h"
@@ -791,7 +791,7 @@ std::string Application::GetExecutableFileVersion() const {
     return base::UTF16ToUTF8(version_info->product_version());
   }
 
-  return ELECTRON_VERSION_STRING;
+  return LYNXTRON_VERSION_STRING;
 }
 
 std::string Application::GetExecutableFileProductName() const {

@@ -449,7 +449,7 @@ index 0000000..f963dd3
 --- /dev/null
 +++ b/apple/script/metal_compiler.py
 @@ -0,0 +1,106 @@
-+# Copyright 2023 The Lynx Authors. All rights reserved.
++# Copyright 2023 The Lynxtron Authors. All rights reserved.
 +#
 +
 +"""
@@ -968,7 +968,7 @@ index 0000000..13e3e8b
 --- /dev/null
 +++ b/apple/templates/darwin_general_bundle.gni
 @@ -0,0 +1,156 @@
-+# Copyright 2023 The Lynx Authors. All rights reserved.
++# Copyright 2023 The Lynxtron Authors. All rights reserved.
 +#
 +
 +import("//build/apple/templates/merge_plist.gni")
@@ -1222,7 +1222,7 @@ index 0000000..da77906
 --- /dev/null
 +++ b/apple/templates/metal_compiler.gni
 @@ -0,0 +1,88 @@
-+# Copyright 2023 The Lynx Authors. All rights reserved.
++# Copyright 2023 The Lynxtron Authors. All rights reserved.
 +#
 +
 +if (is_tvos) {
@@ -1924,7 +1924,7 @@ index 0000000..bdcacf0
 --- /dev/null
 +++ b/config/mac/templates/mac_app_bundle.gni
 @@ -0,0 +1,116 @@
-+# Copyright 2023 The Lynx Authors. All rights reserved.
++# Copyright 2023 The Lynxtron Authors. All rights reserved.
 +#
 +
 +import("//build/apple/templates/darwin_binary_bundle.gni")
@@ -2054,7 +2054,7 @@ index 0000000..591bb6c
 --- /dev/null
 +++ b/config/win/win.gni
 @@ -0,0 +1,7 @@
-+# Copyright 2023 The Lynx Authors. All rights reserved.
++# Copyright 2023 The Lynxtron Authors. All rights reserved.
 +#
 +
 +declare_args() {
@@ -2444,7 +2444,7 @@ index 0000000..12b89bb
 --- /dev/null
 +++ b/secondary/lynx/testing/FuzzFramework/BUILD.gn
 @@ -0,0 +1,90 @@
-+# Copyright 2014 The Lynx Authors. All rights reserved.
++# Copyright 2014 The Lynxtron Authors. All rights reserved.
 +# Licensed under the Apache License Version 2.0 that can be found in the
 +# LICENSE file in the root directory of this source tree.
 +
@@ -2540,7 +2540,7 @@ index 0000000..4ce30c1
 --- /dev/null
 +++ b/secondary/lynx/testing/FuzzFramework/fuzz_test.gni
 @@ -0,0 +1,30 @@
-+# Copyright 2023 The Lynx Authors. All rights reserved.
++# Copyright 2023 The Lynxtron Authors. All rights reserved.
 +
 +template("fuzz_test") {
 +  assert(defined(invoker.sources), "missing sources for ${target_name}")
@@ -2576,7 +2576,7 @@ index 0000000..a245aeb
 --- /dev/null
 +++ b/secondary/lynx/third_party/googletest/BUILD.gn
 @@ -0,0 +1,160 @@
-+# Copyright 2023 The Lynx Authors. All rights reserved.
++# Copyright 2023 The Lynxtron Authors. All rights reserved.
 +
 +config("gtest_private_config") {
 +  visibility = [ ":*" ]

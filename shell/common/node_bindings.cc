@@ -26,7 +26,7 @@
 // #include "chrome/common/chrome_version.h"
 // #include "content/public/common/content_paths.h"
 // #include "electron/buildflags/buildflags.h"
-#include "lynxtron/electron_version.h"
+#include "lynxtron/lynxtron_version.h"
 // #include "electron/fuses.h"
 // #include "electron/mas.h"
 // #include "shell/browser/api/api_app.h"
@@ -764,7 +764,7 @@ void OnNodePreload(node::Environment* env,
   // dict.SetReadOnly("helperExecPath", helper_exec_path);
   gin_helper::Dictionary versions;
   if (dict.Get("versions", &versions)) {
-    versions.SetReadOnly(LYNXTRON_PROJECT_NAME, ELECTRON_VERSION_STRING);
+    versions.SetReadOnly(LYNXTRON_PROJECT_NAME, LYNXTRON_VERSION_STRING);
     // versions.SetReadOnly("chrome", CHROME_VERSION_STRING);
     // TODO(Guo Xi): HAS_VENDOR_VERSION
     // #if BUILDFLAG(HAS_VENDOR_VERSION)

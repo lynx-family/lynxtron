@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_ELECTRON_VERSION_H
-#define ELECTRON_ELECTRON_VERSION_H
+#ifndef ELECTRON_LYNXTRON_VERSION_H
+#define ELECTRON_LYNXTRON_VERSION_H
 
 #define ELECTRON_MAJOR_VERSION $major
 #define ELECTRON_MINOR_VERSION $minor
@@ -13,11 +13,11 @@
 #endif
 
 #ifndef ELECTRON_PRE_RELEASE_VERSION
-#define ELECTRON_VERSION_STRING "$major.$minor.$patch"
+#define LYNXTRON_VERSION_STRING "$major.$minor.$patch"
 #else
-#define ELECTRON_VERSION_STRING "$major.$minor.$patch-$prerelease"
+#define LYNXTRON_VERSION_STRING "$major.$minor.$patch-$prerelease"
 #endif
 
-#define ELECTRON_VERSION "v" ELECTRON_VERSION_STRING
+#define LYNXTRON_VERSION "v" LYNXTRON_VERSION_STRING
 
-#endif  // ELECTRON_ELECTRON_VERSION_H
+#endif  // ELECTRON_LYNXTRON_VERSION_H

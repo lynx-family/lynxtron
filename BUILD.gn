@@ -39,7 +39,7 @@ config("lynxtron_lib_config") {
   include_dirs = [ "." ]
 }
 
-action("electron_generate_node_defines") {
+action("lynxtron_generate_node_defines") {
   script = "build/generate_node_defines.py"
 
   inputs = [
@@ -56,49 +56,49 @@ action("electron_generate_node_defines") {
   args = [ rebase_path(target_gen_dir) ] + rebase_path(inputs)
 }
 
-npm_action("electron_version_args") {
+npm_action("lynxtron_version_args") {
   script = "generate-version-json"
 
-  outputs = [ "$target_gen_dir/electron_version.args" ]
+  outputs = [ "$target_gen_dir/lynxtron_version.args" ]
 
   args = rebase_path(outputs) + [ "$lynxtron_version" ]
 
   inputs = [ "script/generate-version-json.js" ]
 }
 
-templated_file("electron_version_header") {
-  deps = [ ":electron_version_args" ]
+templated_file("lynxtron_version_header") {
+  deps = [ ":lynxtron_version_args" ]
 
-  template = "build/templates/electron_version.tmpl"
-  output = "$target_gen_dir/electron_version.h"
+  template = "build/templates/lynxtron_version.tmpl"
+  output = "$target_gen_dir/lynxtron_version.h"
 
-  args_files = get_target_outputs(":electron_version_args")
+  args_files = get_target_outputs(":lynxtron_version_args")
 }
 
-templated_file("electron_win_rc") {
-  deps = [ ":electron_version_args" ]
+templated_file("lynxtron_win_rc") {
+  deps = [ ":lynxtron_version_args" ]
 
-  template = "build/templates/electron_rc.tmpl"
-  output = "$target_gen_dir/win-resources/electron.rc"
+  template = "build/templates/lynxtron_rc.tmpl"
+  output = "$target_gen_dir/win-resources/lynxtron.rc"
 
-  args_files = get_target_outputs(":electron_version_args")
+  args_files = get_target_outputs(":lynxtron_version_args")
 }
 
-copy("electron_win_resource_files") {
+copy("lynxtron_win_resource_files") {
   sources = [
-    "shell/app/resources/win/electron.ico",
+    "shell/app/resources/win/lynxtron.ico",
     "shell/app/resources/win/resource.h",
   ]
   outputs = [ "$target_gen_dir/win-resources/{{source_file_part}}" ]
 }
 
-templated_file("electron_version_file") {
-  deps = [ ":electron_version_args" ]
+templated_file("lynxtron_version_file") {
+  deps = [ ":lynxtron_version_args" ]
 
   template = "build/templates/version_string.tmpl"
   output = "$root_build_dir/version"
 
-  args_files = get_target_outputs(":electron_version_args")
+  args_files = get_target_outputs(":lynxtron_version_args")
 }
 
 browser_bundle_deps = [
@@ -120,8 +120,8 @@ browser_bundle_deps = [
   "typings/internal-lynxtron.d.ts",
 ]
 
-webpack_build("electron_browser_bundle") {
-  # deps = [ ":build_electron_definitions" ]
+webpack_build("lynxtron_browser_bundle") {
+  # deps = [ ":build_lynxtron_definitions" ]
 
   inputs = browser_bundle_deps
 
@@ -139,8 +139,8 @@ node_bundle_deps = [
   "typings/internal-lynxtron.d.ts",
 ]
 
-webpack_build("electron_node_bundle") {
-  # deps = [ ":build_electron_definitions" ]
+webpack_build("lynxtron_node_bundle") {
+  # deps = [ ":build_lynxtron_definitions" ]
 
   inputs = node_bundle_deps
 
@@ -150,9 +150,9 @@ webpack_build("electron_node_bundle") {
 
 action("lynxtron_js2c") {
   deps = [
-    ":electron_browser_bundle",
-    ":electron_node_bundle",
-    "//third_party/node:node_js2c($electron_js2c_toolchain)",
+    ":lynxtron_browser_bundle",
+    ":lynxtron_node_bundle",
+    "//third_party/node:node_js2c($lynxtron_js2c_toolchain)",
   ]
 
   sources = [
@@ -161,11 +161,11 @@ action("lynxtron_js2c") {
   ]
 
   inputs = sources
-  outputs = [ "$root_gen_dir/electron_natives.cc" ]
+  outputs = [ "$root_gen_dir/lynxtron_natives.cc" ]
 
   script = "build/js2c.py"
   out_dir =
-      get_label_info(":anything($electron_js2c_toolchain)", "root_out_dir")
+      get_label_info(":anything($lynxtron_js2c_toolchain)", "root_out_dir")
   args = [
            rebase_path("$out_dir/node_js2c"),
            rebase_path("$root_gen_dir"),
@@ -176,7 +176,7 @@ action("lynxtron_js2c") {
 target_gen_default_app_js = "$root_gen_dir/lynxtron/js/default_app"
 
 typescript_build("default_app_js") {
-  # deps = [ ":build_electron_definitions" ]
+  # deps = [ ":build_lynxtron_definitions" ]
 
   sources = [ "default_app/main.ts" ]
 
@@ -188,11 +188,7 @@ typescript_build("default_app_js") {
 copy("default_app_static") {
   sources = [
     "default_app/icon.png",
-
-    # "default_app/index.html",
     "default_app/package.json",
-
-    # "default_app/styles.css",
   ]
 
   outputs =
@@ -201,7 +197,7 @@ copy("default_app_static") {
 
 # copy("default_app_octicon_deps") {
 #   sources = filenames.default_app_octicon_sources
-#   outputs = [ "$target_gen_default_app_js/electron/default_app/octicon/{{source_file_part}}" ]
+#   outputs = [ "$target_gen_default_app_js/lynxtron/default_app/octicon/{{source_file_part}}" ]
 # }
 
 asar("default_app_asar") {
@@ -284,9 +280,9 @@ source_set("lynxtron_lib") {
   ]
 
   deps = [
-    ":electron_generate_node_defines",
-    ":electron_version_header",
+    ":lynxtron_generate_node_defines",
     ":lynxtron_js2c",
+    ":lynxtron_version_header",
     "shell/lynx_view_holder:lynx_holder",
     "shell/ui/display",
     "shell/ui/gfx",
@@ -524,15 +520,15 @@ if (is_mac) {
     public_deps = [ ":lynxtron_lib" ]
 
     deps += [
-      ":electron_framework_resources",
+      ":lynxtron_framework_resources",
       "//base",
       "//third_party/node:libnode",
     ]
     info_plist = "shell/common/resources/mac/Info.plist"
 
     extra_substitutions = [
-      "ELECTRON_BUNDLE_ID=$lynxtron_mac_bundle_id.framework",
-      "ELECTRON_VERSION=$lynxtron_version",
+      "LYNXTRON_BUNDLE_ID=$lynxtron_mac_bundle_id.framework",
+      "LYNXTRON_VERSION=$lynxtron_version",
     ]
 
     frameworks = []
@@ -569,7 +565,7 @@ if (is_mac) {
     }
   }
 
-  bundle_data("electron_framework_resources") {
+  bundle_data("lynxtron_framework_resources") {
     public_deps = []
     sources = []
 
@@ -592,7 +588,7 @@ if (is_mac) {
     outputs = [ "{{bundle_resources_dir}}/{{source_file_part}}" ]
   }
 
-  bundle_data("electron_app_framework_bundle_data") {
+  bundle_data("lynxtron_app_framework_bundle_data") {
     sources = [ "$root_out_dir/$lynxtron_framework_name.framework" ]
 
     # if (!is_mas_build) {
@@ -610,8 +606,8 @@ if (is_mac) {
 
     # foreach(helper_params, content_mac_helpers) {
     #   sources +=
-    #       [ "$root_out_dir/${electron_helper_name}${helper_params[2]}.app" ]
-    #   public_deps += [ ":electron_helper_app_${helper_params[0]}" ]
+    #       [ "$root_out_dir/${lynxtron_helper_name}${helper_params[2]}.app" ]
+    #   public_deps += [ ":lynxtron_helper_app_${helper_params[0]}" ]
     # }
     if (!is_build_with_lynx) {
       sources += [ "$root_out_dir/libLynx.dylib" ]
@@ -620,11 +616,11 @@ if (is_mac) {
     }
   }
 
-  bundle_data("electron_app_resources") {
+  bundle_data("lynxtron_app_resources") {
     public_deps = [ ":default_app_asar" ]
     sources = [
       "$root_out_dir/resources/default_app.asar",
-      "shell/app/resources/mac/electron.icns",
+      "shell/app/resources/mac/lynxtron.icns",
     ]
 
     public_deps += [ "shell/lynx:lynx_resources" ]
@@ -645,9 +641,9 @@ if (is_mac) {
     configs += lynxtron_app_extra_configs
     deps = lynxtron_app_extra_deps
     deps += [
-      ":electron_app_framework_bundle_data",
-      ":electron_app_resources",
+      ":lynxtron_app_framework_bundle_data",
       ":lynxtron_app_plist",
+      ":lynxtron_app_resources",
       ":lynxtron_framework+link",
       "//base/allocator:early_zone_registration_apple",
 
@@ -669,22 +665,22 @@ if (is_mac) {
 
     # TODO(Guo Xi): The bundle ID in info.plist needs to be replaced.
     extra_substitutions = [
-      "ELECTRON_BUNDLE_ID=$lynxtron_mac_bundle_id",
-      "ELECTRON_VERSION=$lynxtron_version",
+      "LYNXTRON_BUNDLE_ID=$lynxtron_mac_bundle_id",
+      "LYNXTRON_VERSION=$lynxtron_version",
     ]
   }
 }
 
 if (is_win) {
-  group("electron_win32_resources") {
+  group("lynxtron_win32_resources") {
     public_deps = [
-      ":electron_win_rc",
-      ":electron_win_resource_files",
       ":lynxtron_app_resource_bundle_data",
+      ":lynxtron_win_rc",
+      ":lynxtron_win_resource_files",
     ]
   }
 
-  windows_manifest("electron_app_manifest") {
+  windows_manifest("lynxtron_app_manifest") {
     sources = [
       "shell/app/resources/win/disable_window_filtering.manifest",
       "shell/app/resources/win/dpi_aware.manifest",
@@ -703,9 +699,9 @@ if (is_win) {
 
     deps = [
       ":default_app_asar",
-      ":electron_app_manifest",
-      ":electron_win32_resources",
+      ":lynxtron_app_manifest",
       ":lynxtron_shared",
+      ":lynxtron_win32_resources",
       "//base",
     ]
 

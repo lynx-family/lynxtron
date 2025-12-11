@@ -13,7 +13,7 @@
 	<key>NSSupportsAutomaticGraphicsSwitching</key>
 	<true/>
 	<key>CFBundleVersion</key>
-	<string>ELECTRON_VERSION</string>
+	<string>LYNXTRON_VERSION</string>
 	<key>LSEnvironment</key>
 	<dict>
 		<key>MallocNanoZone</key>

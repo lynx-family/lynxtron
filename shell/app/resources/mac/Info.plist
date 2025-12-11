@@ -7,7 +7,7 @@
     <key>CFBundleExecutable</key>
     <string>${PRODUCT_NAME}</string>
     <key>CFBundleIdentifier</key>
-    <string>${ELECTRON_BUNDLE_ID}</string>
+    <string>${LYNXTRON_BUNDLE_ID}</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
@@ -15,11 +15,11 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleIconFile</key>
-    <string>electron.icns</string>
+    <string>lynxtron.icns</string>
     <key>CFBundleVersion</key>
-    <string>${ELECTRON_VERSION}</string>
+    <string>${LYNXTRON_VERSION}</string>
     <key>CFBundleShortVersionString</key>
-    <string>${ELECTRON_VERSION}</string>
+    <string>${LYNXTRON_VERSION}</string>
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.developer-tools</string>
     <key>LSMinimumSystemVersion</key>
