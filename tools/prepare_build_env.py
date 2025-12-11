@@ -6,6 +6,9 @@ import platform
 import sys
 
 COLORED_YELLOW_MSG = '\033[33m'
+COLORED_RED_MSG = '\033[31m'
+COLORED_GREEN_MSG = '\033[32m'
+
 COLORED_PRINT_END = '\033[0m'
 
 def main():
@@ -16,23 +19,40 @@ def main():
         python3 = "python"
     else:
         hab = os.path.join(os.path.dirname(__file__), "hab")
-        envsetup = os.path.join(os.path.dirname(__file__), "envsetup.sh")
+        envsetup_file = os.path.join(os.path.dirname(__file__), "envsetup.sh")
+        envsetup = f"source {envsetup_file}"
         python3 = "python3"
 
+    os.environ["GIT_LFS_SKIP_SMUDGE"] = "1"
     print(f"{COLORED_YELLOW_MSG}hab: {hab}{COLORED_PRINT_END}")
     print(f"{COLORED_YELLOW_MSG}envsetup: {envsetup}{COLORED_PRINT_END}")
     print(f"{COLORED_YELLOW_MSG}sync lynxtron dependencies............{COLORED_PRINT_END}")
-    os.system(f"{hab} sync . -f --no-history --target lynxtron")
+    return_code = os.system(f"{hab} sync . -f --no-history --target lynxtron")
+    if return_code != 0:
+        print(f"{COLORED_YELLOW_MSG}sync lynxtron dependencies failed, exit{COLORED_PRINT_END}")
+        return return_code
     print(f"{COLORED_YELLOW_MSG}sync tools dependencies............{COLORED_PRINT_END}")
-    os.system(f"{hab} sync . -f --no-history --target tools --target-only")
-    os.system(f"{hab} sync . -f --no-history --target tools_shared --target-only")
+    return_code = os.system(f"{hab} sync . -f --no-history --target tools --target-only")
+    if return_code != 0:
+        print(f"{COLORED_YELLOW_MSG}sync tools dependencies failed, exit{COLORED_PRINT_END}")
+        return return_code
+    return_code = os.system(f"{hab} sync . -f --no-history --target tools_shared --target-only")
+    if return_code != 0:
+        print(f"{COLORED_YELLOW_MSG}sync tools_shared dependencies failed, exit{COLORED_PRINT_END}")
+        return return_code
     print(f"{COLORED_YELLOW_MSG}sync lynx dependencies............{COLORED_PRINT_END}")
-    os.system(f"{hab} sync . -f --no-history --target lynx --target-only")
+    return_code = os.system(f"{hab} sync . -f --no-history --target lynx --target-only")
+    if return_code != 0:
+        print(f"{COLORED_YELLOW_MSG}sync lynx dependencies failed, exit{COLORED_PRINT_END}")
+        return return_code
     print(f"{COLORED_YELLOW_MSG}install lynxtron npm dependencies............{COLORED_PRINT_END}")
-    os.system(f'{python3} script/lib/npx.py yarn@1.22.22 install --frozen-lockfile')
-    print(f"{COLORED_YELLOW_MSG}setup build environment............{COLORED_PRINT_END}")
-    os.system(f"{envsetup}")
-    print(f"{COLORED_YELLOW_MSG}Build environment setup completed.{COLORED_PRINT_END}")
+    return_code = os.system(f'{python3} script/lib/npx.py yarn@1.22.22 install --frozen-lockfile')
+    if return_code != 0:
+        print(f"{COLORED_YELLOW_MSG}install lynxtron npm dependencies failed, exit{COLORED_PRINT_END}")
+        return return_code
+   
+    print(f"{COLORED_RED_MSG}Warning: One final step remains for the build environment, please run the following command manually:{COLORED_PRINT_END}")
+    print(f"{COLORED_GREEN_MSG}{envsetup}{COLORED_PRINT_END}")
 
 
 if __name__ == "__main__":
