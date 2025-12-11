@@ -105,8 +105,6 @@ component("gfx") {
     # "gpu_extra_info.h",
     "../base/resource/resource_scale_factor.cc",
     "../base/resource/resource_scale_factor.h",
-    "icon_util.cc",
-    "icon_util.h",
     "image/buffer_w_stream.cc",
     "image/buffer_w_stream.h",
     "image/image.cc",
@@ -214,28 +212,30 @@ component("gfx") {
       # "path_win.h",
       # "system_fonts_win.cc",
       # "system_fonts_win.h",
-      "win/crash_id_helper.cc",
-      "win/crash_id_helper.h",
-      "win/d3d_shared_fence.cc",
-      "win/d3d_shared_fence.h",
-      "win/direct_write.cc",
-      "win/direct_write.h",
-      "win/get_elevation_icon.cc",
-      "win/get_elevation_icon.h",
-      "win/hwnd_util.cc",
-      "win/hwnd_util.h",
-      "win/msg_util.h",
-      "win/physical_size.cc",
-      "win/physical_size.h",
-      "win/rendering_window_manager.cc",
-      "win/rendering_window_manager.h",
-      "win/scoped_set_map_mode.h",
+      # "win/crash_id_helper.cc",
+      # "win/crash_id_helper.h",
+      # "win/d3d_shared_fence.cc",
+      # "win/d3d_shared_fence.h",
+      # "win/direct_write.cc",
+      # "win/direct_write.h",
+      # "win/get_elevation_icon.cc",
+      # "win/get_elevation_icon.h",
+      # "win/hwnd_util.cc",
+      # "win/hwnd_util.h",
+      # "win/msg_util.h",
+      # "win/physical_size.cc",
+      # "win/physical_size.h",
+      # "win/rendering_window_manager.cc",
+      # "win/rendering_window_manager.h",
+      # "win/scoped_set_map_mode.h",
       "win/singleton_hwnd.cc",
       "win/singleton_hwnd.h",
-      "win/singleton_hwnd_hot_key_observer.cc",
-      "win/singleton_hwnd_hot_key_observer.h",
-      "win/text_analysis_source.cc",
-      "win/text_analysis_source.h",
+
+      # "win/singleton_hwnd_hot_key_observer.cc",
+      # "win/singleton_hwnd_hot_key_observer.h``",
+
+      # "win/text_analysis_source.cc",
+      # "win/text_analysis_source.h",
       "win/window_impl.cc",
       "win/window_impl.h",
     ]
@@ -253,7 +253,8 @@ component("gfx") {
   public_deps = [
     ":color_space",
     ":color_utils",
-    ":gfx_skia",
+
+    #    ":gfx_skia",
 
     # ":gfx_switches",
     # ":memory_buffer_sources",
@@ -316,8 +317,8 @@ component("gfx") {
     sources -= [
       # "gdi_util.cc",
       # "gdi_util.h",
-      "icon_util.cc",
-      "icon_util.h",
+      # "icon_util.cc",
+      # "icon_util.h",
     ]
   }
 
@@ -338,14 +339,14 @@ component("gfx") {
 component("color_space") {
   configs += [ ":gfx_config" ]
   sources = [
-    "color_space.cc",
-    "color_space.h",
+    #"color_space.cc",
+    #"color_space.h",
     "color_space_export.h",
 
     # "color_transform.cc",
     # "color_transform.h",
-    "display_color_spaces.cc",
-    "display_color_spaces.h",
+    #"display_color_spaces.cc",
+    #"display_color_spaces.h",
 
     # "hdr_metadata.cc",
     # "hdr_metadata.h",

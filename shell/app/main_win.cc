@@ -21,6 +21,7 @@
 #pragma clang diagnostic ignored "-Wmacro-redefined"
 
 #include "base/at_exit.h"
+#include "base/debug/alias.h"
 #include "base/files/file.h"
 #include "base/files/file_path.h"
 #include "base/files/file_util.h"

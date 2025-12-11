@@ -8,7 +8,7 @@ config("ui_config") {
 
 source_set("ui") {
   public_configs = [ ":ui_config" ]
-  include_dirs = [ "//lynxtron" ]
+  include_dirs = [ "../.." ]
   deps = [ "//base" ]
   sources = [
     # "base/clipboard/clipboard.cc",

@@ -439,14 +439,14 @@ struct ProcessMemoryInfo {
 ProcessMemoryInfo GetMemoryInfo() {
   ProcessMemoryInfo result;
 
-  PROCESS_MEMORY_COUNTERS_EX info = {};
-  if (::GetProcessMemoryInfo(process.Handle(),
-                             reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&info),
-                             sizeof(info))) {
-    result.working_set_size = info.WorkingSetSize;
-    result.peak_working_set_size = info.PeakWorkingSetSize;
-    result.private_bytes = info.PrivateUsage;
-  }
+  // PROCESS_MEMORY_COUNTERS_EX info = {};
+  // if (::GetProcessMemoryInfo(process.Handle(),
+  //                            reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&info),
+  //                            sizeof(info))) {
+  //   result.working_set_size = info.WorkingSetSize;
+  //   result.peak_working_set_size = info.PeakWorkingSetSize;
+  //   result.private_bytes = info.PrivateUsage;
+  // }
 
   return result;
 }

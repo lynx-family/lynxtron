@@ -5,21 +5,8 @@
 
 #include "base/logging.h"
 #include "build/build_config.h"
-
-#if BUILDFLAG(IS_MAC)
-#if BUILD_WITH_LYNX
 #include "lynx/platform/embedder/public/capi/lynx_env_capi.h"
 #include "lynx/platform/embedder/public/capi/lynx_extension_module_types_capi.h"
-#else
-#include "shell/lynx/lynx_lib/lib/mac/include/capi/lynx_env_capi.h"
-#include "shell/lynx/lynx_lib/lib/mac/include/capi/lynx_extension_module_types_capi.h"
-#endif
-#endif
-
-#if BUILDFLAG(IS_WIN)
-#include "shell/lynx/lynx_lib/lib/mac/include/capi/lynx_env_capi.h"
-#include "shell/lynx/lynx_lib/lib/mac/include/capi/lynx_extension_module_types_capi.h"
-#endif
 
 typedef struct lynx_extension_module_creator_api_t {
   extension_module_creator create_module_func;

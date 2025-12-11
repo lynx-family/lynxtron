@@ -25,7 +25,7 @@
 
 #include "base/win/scoped_handle.h"
 #include "base/win/windows_handle_util.h"
-#include "sandbox/policy/switches.h"
+// #include "sandbox/policy/switches.h"
 #endif
 
 // TODO(Guo Xi): change electron name
@@ -50,7 +50,7 @@ constexpr base::cstring_view kElectronEnableLogging{"ELECTRON_ENABLE_LOGGING"};
 #if BUILDFLAG(IS_WIN)
 base::win::ScopedHandle GetLogInheritedHandle(
     const base::CommandLine& command_line) {
-  auto handle_str = command_line.GetSwitchValueNative(::kLogFile);
+  auto handle_str = command_line.GetSwitchValueNative(kLogFile);
   uint32_t handle_value = 0;
   if (!base::StringToUint(handle_str, &handle_value)) {
     return {};
@@ -128,7 +128,7 @@ DetermineLoggingDestination(const base::CommandLine& command_line,
 #endif
 
 #if BUILDFLAG(IS_WIN)
-  if (logging_destination == "handle" && command_line.HasSwitch(::kLogFile)) {
+  if (logging_destination == "handle" && command_line.HasSwitch(kLogFile)) {
     // Child processes can log to a handle duplicated from the parent, and
     // provided in the log-file switch value.
     return {LOG_TO_FILE, true};

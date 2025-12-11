@@ -242,9 +242,14 @@ class Application : private WindowListObserver {
   }
 
 #endif  // BUILDFLAG(IS_MAC)
-
+// TODO(Guo Xi): remove the macro defines
+#if BUILDFLAG(IS_WIN)
+  void ShowAboutPanel(){};
+  void SetAboutPanelOptions(base::Value::Dict options){};
+#else
   void ShowAboutPanel();
   void SetAboutPanelOptions(base::Value::Dict options);
+#endif
 
 #if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN)
   void ShowEmojiPanel();

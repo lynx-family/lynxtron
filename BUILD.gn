@@ -246,16 +246,18 @@ gin_helper_sources = [
 ]
 
 gin_converters_sources = [
-  "shell/common/gin_converters/file_dialog_converter.cc",
-  "shell/common/gin_converters/file_dialog_converter.h",
+  # "shell/common/gin_converters/file_dialog_converter.cc",
+  # "shell/common/gin_converters/file_dialog_converter.h",
   "shell/common/gin_converters/gfx_converter.cc",
   "shell/common/gin_converters/gfx_converter.h",
-  "shell/common/gin_converters/image_converter.cc",
-  "shell/common/gin_converters/image_converter.h",
+
+  # "shell/common/gin_converters/image_converter.cc",
+  # "shell/common/gin_converters/image_converter.h",
   "shell/common/gin_converters/login_item_settings_converter.cc",
   "shell/common/gin_converters/login_item_settings_converter.h",
-  "shell/common/gin_converters/message_box_converter.cc",
-  "shell/common/gin_converters/message_box_converter.h",
+
+  # "shell/common/gin_converters/message_box_converter.cc",
+  # "shell/common/gin_converters/message_box_converter.h",
   "shell/common/gin_converters/value_converter.cc",
   "shell/common/gin_converters/value_converter.h",
 ]
@@ -317,14 +319,16 @@ source_set("lynxtron_lib") {
     "shell/api/api_lynx_extension_utils.cc",
     "shell/api/api_lynx_window.cc",
     "shell/api/api_lynx_window.h",
-    "shell/api/api_screen.cc",
-    "shell/api/api_screen.h",
+
+    #    "shell/api/api_screen.cc",
+    #    "shell/api/api_screen.h",
     "shell/api/api_shell.cc",
     "shell/api/api_v8_util.cc",
     "shell/api/api_v8_util.h",
-    "shell/api/electron_api_dialog.cc",
-    "shell/api/electron_api_native_image.cc",
-    "shell/api/electron_api_native_image.h",
+
+    # "shell/api/electron_api_dialog.cc",
+    # "shell/api/electron_api_native_image.cc",
+    # "shell/api/electron_api_native_image.h",
     "shell/api/lynxtron_bindings.cc",
     "shell/api/lynxtron_bindings.h",
     "shell/api/ui/file_dialog.h",
@@ -385,8 +389,9 @@ source_set("lynxtron_lib") {
     "shell/common/process_singleton/process_singleton_internal.h",
     "shell/common/size_constraints.cc",
     "shell/common/size_constraints.h",
-    "shell/common/skia_util.cc",
-    "shell/common/skia_util.h",
+
+    #    "shell/common/skia_util.cc",
+    #    "shell/common/skia_util.h",
     "shell/common/v8_util.cc",
     "shell/common/v8_util.h",
     "shell/common/v8_value_converter.h",
@@ -467,11 +472,13 @@ source_set("lynxtron_lib") {
     sources += [
       "shell/api/dpi_win.cc",
       "shell/api/dpi_win.h",
-      "shell/api/electron_api_native_image_win.cc",
+
+      #"shell/api/electron_api_native_image_win.cc",
       "shell/api/native_window_win.cc",
       "shell/api/native_window_win.h",
-      "shell/api/ui/file_dialog_win.cc",
-      "shell/api/ui/message_box_win.cc",
+
+      # "shell/api/ui/file_dialog_win.cc",
+      # "shell/api/ui/message_box_win.cc",
       "shell/api/ui/win/jump_list.cc",
       "shell/api/ui/win/jump_list.h",
       "shell/app/application_win.cc",
@@ -492,7 +499,9 @@ source_set("lynxtron_lib") {
       "shell/ui/base/win/shell.cc",
       "shell/ui/base/win/shell.h",
     ]
+    deps += [ "shell/ui:ui" ]
   }
+  deps += [ "shell/ui:ui" ]
 }
 
 bundle_data("lynxtron_app_resource_bundle_data") {
