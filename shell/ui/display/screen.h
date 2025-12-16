@@ -31,7 +31,7 @@ class Rect;
 
 namespace display {
 class DisplayObserver;
-enum class TabletState;
+// enum class TabletState;
 
 // A utility class for getting various info about screen size, displays,
 // cursor position, etc.
@@ -114,7 +114,7 @@ class DISPLAY_EXPORT Screen {
   // Warning: When determining which scale factor to use for a given native
   // view, use `GetPreferredScaleFactorForView` instead, as it properly
   // supports system-controlled per-window scaling, such as Wayland.
-  virtual Display GetDisplayNearestView(gfx::NativeView view) const;
+  // virtual Display GetDisplayNearestView(gfx::NativeView view) const;
 
   // Returns the display nearest the specified DIP |point|.
   virtual Display GetDisplayNearestPoint(const gfx::Point& point) const = 0;
@@ -156,15 +156,16 @@ class DISPLAY_EXPORT Screen {
   // clamping to the enclosing rect if the coordinates do not fall on pixel
   // boundaries. If |window| is null, the primary display is used as the
   // context.
-  virtual gfx::Rect ScreenToDIPRectInWindow(gfx::NativeWindow window,
-                                            const gfx::Rect& screen_rect) const;
+  // virtual gfx::Rect ScreenToDIPRectInWindow(gfx::NativeWindow window,
+  //                                           const gfx::Rect& screen_rect)
+  //                                           const;
 
   // Converts |dip_rect| to screen coordinates in the context of |window|
   // clamping to the enclosing rect if the coordinates do not fall on pixel
   // boundaries. If |window| is null, the primary display is used as the
   // context.
-  virtual gfx::Rect DIPToScreenRectInWindow(gfx::NativeWindow window,
-                                            const gfx::Rect& dip_rect) const;
+  // virtual gfx::Rect DIPToScreenRectInWindow(gfx::NativeWindow window,
+  //                                           const gfx::Rect& dip_rect) const;
 
   // Returns true if the display with |display_id| is found and returns that
   // display in |display|. Otherwise returns false and |display| remains
@@ -187,10 +188,10 @@ class DISPLAY_EXPORT Screen {
   // Returns the preferred scale factor for |window|, if the underlying platform
   // supports per-window scaling, otherwise returns the scale factor of display
   // nearst to |window|, using GetDisplayNearest[Window|View].
-  virtual std::optional<float> GetPreferredScaleFactorForWindow(
-      gfx::NativeWindow window) const;
-  virtual std::optional<float> GetPreferredScaleFactorForView(
-      gfx::NativeView view) const;
+  // virtual std::optional<float> GetPreferredScaleFactorForWindow(
+  //     gfx::NativeWindow window) const;
+  // virtual std::optional<float> GetPreferredScaleFactorForView(
+  //     gfx::NativeView view) const;
 
   // Returns true when running in headless mode.
   virtual bool IsHeadless() const;

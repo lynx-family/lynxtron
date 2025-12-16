@@ -9,6 +9,10 @@
 
 #include "base/containers/span.h"
 
+#if BUILDFLAG(IS_WIN)
+#include <windows.h>
+#endif
+
 namespace base {
 class FilePath;
 }  // namespace base

@@ -15,7 +15,7 @@
 #include "shell/ui/display/display_export.h"
 #include "shell/ui/display/screen.h"
 #include "shell/ui/display/win/color_profile_reader.h"
-#include "shell/ui/display/win/uwp_text_scale_factor.h"
+// #include "shell/ui/display/win/uwp_text_scale_factor.h"
 #include "shell/ui/gfx/geometry/vector2d_f.h"
 #include "shell/ui/gfx/native_ui_types.h"
 #include "shell/ui/gfx/win/singleton_hwnd_observer.h"
@@ -35,8 +35,7 @@ class DisplayInfo;
 class ScreenWinDisplay;
 
 class DISPLAY_EXPORT ScreenWin : public Screen,
-                                 public ColorProfileReader::Client,
-                                 public UwpTextScaleFactor::Observer {
+                                 public ColorProfileReader::Client {
  public:
   ScreenWin();
   ~ScreenWin() override;
@@ -240,8 +239,8 @@ class DISPLAY_EXPORT ScreenWin : public Screen,
   //-----------------------------------------------------------------
   // UwpTextScaleFactor::Observer:
 
-  void OnUwpTextScaleFactorChanged() override;
-  void OnUwpTextScaleFactorCleanup(UwpTextScaleFactor* source) override;
+  // void OnUwpTextScaleFactorChanged() override;
+  // void OnUwpTextScaleFactorCleanup(UwpTextScaleFactor* source) override;
 
   // Helper implementing the DisplayObserver handling.
   DisplayChangeNotifier change_notifier_;
@@ -266,9 +265,11 @@ class DISPLAY_EXPORT ScreenWin : public Screen,
   // advanced color" setting.
   bool hdr_enabled_ = false;
 
-  base::ScopedObservation<UwpTextScaleFactor, UwpTextScaleFactor::Observer>
-      scale_factor_observation_{this};
+  // base::ScopedObservation<UwpTextScaleFactor, UwpTextScaleFactor::Observer>
+  //     scale_factor_observation_{this};
 };
+
+ScreenWin* GetScreenWin();
 
 }  // namespace win
 }  // namespace display

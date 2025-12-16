@@ -64,9 +64,9 @@
   V(electron_browser_event_emitter)  \
   V(electron_base_window)            \
   V(electron_lynx_window)            \
-  // V(electron_common_native_image)    \
-  // V(electron_browser_screen)         \
-  // V(electron_browser_dialog)
+  V(electron_common_native_image)    \
+  V(electron_browser_screen)         \
+  V(electron_browser_dialog)
 
 #define ELECTRON_TESTING_BINDINGS(V) V(electron_common_testing)
 

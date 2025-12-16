@@ -31,6 +31,8 @@
 #include "base/strings/cstring_view.h"
 #include "shell/app/library_main.h"
 #include "shell/common/lynxtron_command_line.h"
+#include "shell/common/lynxtron_paths.h"
+#include "shell/common/path_provider.h"
 // #include "base/strings/utf_string_conversions.h"
 // #include "base/win/windows_version.h"
 // #include "shell/app/library_main.h"
@@ -92,19 +94,19 @@ bool ModuleCanBeRead(const base::FilePath& file_path) {
       .IsValid();
 }
 
-base::FilePath GetModulePath(base::wcstring_view module_name) {
-  base::FilePath exe_dir;
-  const bool has_path = base::PathService::Get(base::DIR_EXE, &exe_dir);
-  DCHECK(has_path);
-  const base::FilePath module_path = exe_dir.Append(module_name);
-  if (ModuleCanBeRead(module_path)) {
-    return module_path;
-  }
+// base::FilePath GetModulePath(base::wcstring_view module_name) {
+//   base::FilePath exe_dir;
+//   const bool has_path = base::PathService::Get(base::DIR_EXE, &exe_dir);
+//   DCHECK(has_path);
+//   const base::FilePath module_path = exe_dir.Append(module_name);
+//   if (ModuleCanBeRead(module_path)) {
+//     return module_path;
+//   }
 
-  // Othwerwise, return the path to the module in the current executable's
-  // directory. This is the expected location of modules for dev builds.
-  return exe_dir.Append(module_name);
-}
+//   // Othwerwise, return the path to the module in the current executable's
+//   // directory. This is the expected location of modules for dev builds.
+//   return exe_dir.Append(module_name);
+// }
 
 // Prefetches and loads |module| after setting the CWD to |module|'s
 // directory. Returns a handle to the loaded module on success, or nullptr on
@@ -181,13 +183,27 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t* cmd, int) {
 
   base::AtExitManager atexit_manager;
   base::RouteStdioToConsole(false);
-  base::FilePath exe_dir;
-  if (!base::PathService::Get(base::DIR_EXE, &exe_dir)) {
-    PLOG(ERROR) << "Failed to get executable directory";
+  // base::FilePath exe_dir;
+  // base::PathService::RegisterProvider(lynxtron::PathProvider,
+  // lynxtron::PATH_START, lynxtron::PATH_END);
+
+  // if (!base::PathService::Get(base::DIR_EXE, &exe_dir)) {
+  //   PLOG(ERROR) << "Failed to get executable directory";
+  //   return 1;
+  // }
+  // base::FilePath file = exe_dir.Append(L"lxtn.dll");
+  // base::FilePath exe_path;
+  wchar_t exe_buffer[MAX_PATH];
+  const DWORD exe_len = ::GetModuleFileNameW(nullptr, exe_buffer, MAX_PATH);
+  if (exe_len == 0 || exe_len >= MAX_PATH) {
+    PLOG(ERROR) << "Failed to get executable path";
     return 1;
   }
-  base::FilePath file = exe_dir.Append(L"lxtn.dll");
-  HMODULE dll = Load(file);
+  base::FilePath exe_path = base::FilePath(exe_buffer);
+  base::FilePath exe_dir = exe_path.DirName();
+  // base::PathService::Get(base::FILE_EXE, &exe_path);
+  // base::FilePath exe_dir = exe_path.DirName();
+  HMODULE dll = Load(exe_dir.Append(L"lxtn.dll"));
   LynxtronMainPtr entry_point = reinterpret_cast<LynxtronMainPtr>(
       reinterpret_cast<void*>(::GetProcAddress(dll, "LynxtronMain")));
   int exit_code = entry_point();

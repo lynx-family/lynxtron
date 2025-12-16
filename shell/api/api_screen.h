@@ -55,8 +55,10 @@ class Screen : public gin_helper::DeprecatedWrappable<Screen>,
     return screen_->GetDisplayMatching(match_rect);
   }
 
+#if BUILDFLAG(IS_WIN)
   gfx::PointF ScreenToDIPPoint(const gfx::PointF& point_px);
   gfx::Point DIPToScreenPoint(const gfx::Point& point_dip);
+#endif
 
   // display::DisplayObserver:
   void OnDisplayAdded(const display::Display& new_display) override;

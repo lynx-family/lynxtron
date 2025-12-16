@@ -8,7 +8,7 @@
 #include <cmath>
 #include <vector>
 
-#include "base/cxx17_backports.h"
+#include "base/check.h"
 
 namespace gfx {
 
@@ -21,7 +21,7 @@ float SkTransferFnEvalUnclamped(const skcms_TransferFunction& fn, float x) {
 
 float SkTransferFnEval(const skcms_TransferFunction& fn, float x) {
   float fn_at_x_unclamped = SkTransferFnEvalUnclamped(fn, x);
-  return base::clamp(fn_at_x_unclamped, 0.0f, 1.0f);
+  return std::clamp(fn_at_x_unclamped, 0.0f, 1.0f);
 }
 
 skcms_TransferFunction SkTransferFnInverse(const skcms_TransferFunction& fn) {

@@ -8,7 +8,7 @@
 
 #include "base/win/scoped_hdc.h"
 #include "shell/ui/display/display.h"
-#include "shell/ui/display/win/uwp_text_scale_factor.h"
+// #include "shell/ui/display/win/uwp_text_scale_factor.h"
 
 namespace display {
 namespace win {
@@ -34,9 +34,9 @@ int GetDPIFromScalingFactor(float device_scaling_factor) {
   return kDefaultDPI * device_scaling_factor;
 }
 
-double GetAccessibilityFontScale() {
-  return 1.0 / UwpTextScaleFactor::Instance()->GetTextScaleFactor();
-}
+// double GetAccessibilityFontScale() {
+//   return 1.0 / UwpTextScaleFactor::Instance()->GetTextScaleFactor();
+// }
 
 namespace internal {
 

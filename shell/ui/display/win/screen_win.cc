@@ -12,7 +12,6 @@
 #include <utility>
 
 #include "base/containers/contains.h"
-#include "base/cxx17_backports.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback_helpers.h"
 #include "base/metrics/histogram_functions.h"
@@ -20,12 +19,12 @@
 #include "base/trace_event/trace_event.h"
 #include "base/win/win_util.h"
 #include "base/win/windows_version.h"
+#include "shell/common/win_util.h"
 #include "shell/ui/display/display.h"
 #include "shell/ui/display/display_layout.h"
 #include "shell/ui/display/display_layout_builder.h"
 #include "shell/ui/display/win/display_info.h"
 #include "shell/ui/display/win/dpi.h"
-// #include "shell/ui/display/win/local_process_window_finder_win.h"
 #include "shell/ui/display/win/scaling_util.h"
 #include "shell/ui/display/win/screen_win_display.h"
 #include "shell/ui/gfx/geometry/point_conversions.h"
@@ -40,13 +39,11 @@ namespace display {
 namespace win {
 namespace {
 
-// TODO(robliao): http://crbug.com/615514 Remove when ScreenWin usage is
-// resolved with Desktop Aura and WindowTreeHost.
 ScreenWin* g_instance = nullptr;
 
 // Gets the DPI for a particular monitor.
 absl::optional<int> GetPerMonitorDPI(HMONITOR monitor) {
-  if (!base::win::IsProcessPerMonitorDpiAware()) {
+  if (!lynxtron::IsProcessPerMonitorDpiAware()) {
     return absl::nullopt;
   }
 
@@ -67,23 +64,18 @@ absl::optional<int> GetPerMonitorDPI(HMONITOR monitor) {
   return static_cast<int>(dpi_x);
 }
 
-float GetScaleFactorForDPI(int dpi, bool include_accessibility) {
-  const float scale = display::win::internal::GetScalingFactorFromDPI(dpi);
-  return include_accessibility
-             ? (scale * UwpTextScaleFactor::Instance()->GetTextScaleFactor())
-             : scale;
+float GetScaleFactorForDPI(int dpi) {
+  return display::win::internal::GetScalingFactorFromDPI(dpi);
 }
 
 // Gets the raw monitor scale factor.
 //
 // Respects the forced device scale factor, and will fall back to the global
 // scale factor if per-monitor DPI is not supported.
-float GetMonitorScaleFactor(HMONITOR monitor,
-                            bool include_accessibility = true) {
+float GetMonitorScaleFactor(HMONITOR monitor) {
   DCHECK(monitor);
   const auto dpi = GetPerMonitorDPI(monitor);
-  return dpi ? GetScaleFactorForDPI(dpi.value(), include_accessibility)
-             : GetDPIScale();
+  return dpi ? GetScaleFactorForDPI(dpi.value()) : GetDPIScale();
 }
 
 std::vector<DISPLAYCONFIG_PATH_INFO> GetPathInfos() {
@@ -306,7 +298,7 @@ Display CreateDisplayFromDisplayInfo(
     display.set_color_depth(Display::kHDR10BitsPerPixel);
     display.set_depth_per_component(Display::kHDR10BitsPerComponent);
   }
-  display.set_color_spaces(color_spaces);
+  display.SetColorSpaces(color_spaces);
   return display;
 }
 
@@ -600,17 +592,9 @@ int ScreenWin::GetSystemMetricsForMonitor(HMONITOR monitor, int metric) {
     monitor = MonitorFromWindow(nullptr, MONITOR_DEFAULTTOPRIMARY);
   }
 
-  // We don't include fudge factors stemming from accessiblility features when
-  // dealing with system metrics associated with window elements drawn by the
-  // operating system, since we will not be doing scaling of those metrics
-  // ourselves.
-  const bool include_accessibility = (metric != SM_CXSIZEFRAME) &&
-                                     (metric != SM_CYSIZEFRAME) &&
-                                     (metric != SM_CXPADDEDBORDER);
-
   // We'll then pull up the system metrics scaled by the appropriate amount.
   return g_instance->GetSystemMetricsForScaleFactor(
-      GetMonitorScaleFactor(monitor, include_accessibility), metric);
+      GetMonitorScaleFactor(monitor), metric);
 }
 
 // static
@@ -644,7 +628,7 @@ int ScreenWin::GetDPIForHWND(HWND hwnd) {
 
 // static
 float ScreenWin::GetScaleFactorForDPI(int dpi) {
-  return display::win::GetScaleFactorForDPI(dpi, true);
+  return display::win::GetScaleFactorForDPI(dpi);
 }
 
 // static
@@ -809,7 +793,7 @@ void ScreenWin::Initialize() {
   // We want to remember that we've observed a screen metrics object so that we
   // can remove ourselves as an observer at some later point (either when the
   // metrics object notifies us it's going away or when we are destructed).
-  scale_factor_observation_.Observe(UwpTextScaleFactor::Instance());
+  // scale_factor_observation_.Observe(UwpTextScaleFactor::Instance());
 }
 
 MONITORINFOEX ScreenWin::MonitorInfoFromScreenPoint(
@@ -863,7 +847,7 @@ void ScreenWin::OnColorProfilesChanged() {
   // cases.
   if (std::any_of(
           displays_.cbegin(), displays_.cend(), [this](const auto& display) {
-            return display.color_spaces().GetRasterColorSpace() !=
+            return display.GetColorSpaces().GetRasterColorSpace() !=
                    color_profile_reader_->GetDisplayColorSpace(display.id());
           })) {
     UpdateAllDisplaysAndNotify();
@@ -950,7 +934,7 @@ ScreenWinDisplay ScreenWin::GetScreenWinDisplayVia(Getter getter,
 
 int ScreenWin::GetSystemMetricsForScaleFactor(float scale_factor,
                                               int metric) const {
-  if (base::win::IsProcessPerMonitorDpiAware()) {
+  if (lynxtron::IsProcessPerMonitorDpiAware()) {
     static const auto get_system_metrics_for_dpi =
         reinterpret_cast<decltype(&::GetSystemMetricsForDpi)>(
             base::win::GetUser32FunctionPointer("GetSystemMetricsForDpi"));
@@ -974,7 +958,7 @@ void ScreenWin::RecordDisplayScaleFactors() const {
     // Multiply the reported value by 100 to display it as a percentage. Clamp
     // it so that if it's wildly out-of-band we won't send it to the backend.
     const int reported_scale =
-        base::clamp(base::checked_cast<int>(scale_factor * 100), 0, 1000);
+        std::clamp(base::checked_cast<int>(scale_factor * 100), 0, 1000);
     if (!base::Contains(unique_scale_factors, reported_scale)) {
       unique_scale_factors.push_back(reported_scale);
       base::UmaHistogramSparse("UI.DeviceScale", reported_scale);
@@ -982,13 +966,17 @@ void ScreenWin::RecordDisplayScaleFactors() const {
   }
 }
 
-void ScreenWin::OnUwpTextScaleFactorChanged() {
-  UpdateAllDisplaysAndNotify();
-}
+// void ScreenWin::OnUwpTextScaleFactorChanged() {
+//   UpdateAllDisplaysAndNotify();
+// }
 
-void ScreenWin::OnUwpTextScaleFactorCleanup(UwpTextScaleFactor* source) {
-  scale_factor_observation_.Reset();
-  UwpTextScaleFactor::Observer::OnUwpTextScaleFactorCleanup(source);
+// void ScreenWin::OnUwpTextScaleFactorCleanup(UwpTextScaleFactor* source) {
+//   scale_factor_observation_.Reset();
+//   UwpTextScaleFactor::Observer::OnUwpTextScaleFactorCleanup(source);
+// }
+
+ScreenWin* GetScreenWin() {
+  return g_instance;
 }
 
 }  // namespace win

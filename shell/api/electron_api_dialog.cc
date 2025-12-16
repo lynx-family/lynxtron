@@ -5,16 +5,14 @@
 #include <utility>
 #include <vector>
 
-#include "shell/app/javascript_environment.h"
-// #include "shell/browser/ui/certificate_trust.h"
 #include "shell/api/ui/file_dialog.h"
 #include "shell/api/ui/message_box.h"
+#include "shell/app/javascript_environment.h"
 #include "shell/common/gin_converters/callback_converter.h"
 #include "shell/common/gin_converters/file_dialog_converter.h"
 #include "shell/common/gin_converters/file_path_converter.h"
 #include "shell/common/gin_converters/message_box_converter.h"
 #include "shell/common/gin_converters/native_window_converter.h"
-// #include "shell/common/gin_converters/net_converter.h"
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/gin_helper/promise.h"
 #include "shell/common/node_includes.h"
@@ -102,10 +100,6 @@ void Initialize(v8::Local<v8::Object> exports,
   dict.SetMethod("showOpenDialog", &ShowOpenDialog);
   dict.SetMethod("showSaveDialogSync", &ShowSaveDialogSync);
   dict.SetMethod("showSaveDialog", &ShowSaveDialog);
-  // #if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN)
-  //   dict.SetMethod("showCertificateTrustDialog",
-  //                  &certificate_trust::ShowCertificateTrust);
-  // #endif
 }
 
 }  // namespace

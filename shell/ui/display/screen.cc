@@ -111,10 +111,10 @@ std::string Screen::GetCurrentWorkspace() {
   return {};
 }
 
-std::optional<float> Screen::GetPreferredScaleFactorForView(
-    gfx::NativeView view) const {
-  return GetPreferredScaleFactorForWindow(GetWindowForView(view));
-}
+// std::optional<float> Screen::GetPreferredScaleFactorForView(
+//     gfx::NativeView view) const {
+//   return GetPreferredScaleFactorForWindow(GetWindowForView(view));
+// }
 
 bool Screen::IsHeadless() const {
   return false;

@@ -5,7 +5,7 @@
 #include "ui/display/display_observer.h"
 
 #include "ui/display/screen.h"
-#include "ui/display/tablet_state.h"
+// #include "ui/display/tablet_state.h"
 
 namespace display {
 

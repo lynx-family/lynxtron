@@ -19,8 +19,8 @@
 #include "base/strings/string_util.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/win/registry.h"
-#include "shell/app/native_window_win.h"
-#include "shell/browser/ui/win/dialog_thread.h"
+#include "shell/api/native_window_win.h"
+#include "shell/api/ui/win/dialog_thread.h"
 #include "shell/common/gin_converters/file_path_converter.h"
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/gin_helper/promise.h"
@@ -94,8 +94,8 @@ static HRESULT ShowFileDialog(IFileDialog* dialog,
                               const DialogSettings& settings) {
   HWND parent_window =
       settings.parent_window
-          ? static_cast<electron::NativeWindowViews*>(settings.parent_window)
-                ->GetAcceleratedWidget()
+          ? static_cast<lynxtron::NativeWindow*>(settings.parent_window)
+                ->GetNativeWindowHandle()
           : nullptr;
 
   return dialog->Show(parent_window);

@@ -17,7 +17,7 @@
 
 namespace display {
 class Display;
-enum class TabletState;
+// enum class TabletState;
 
 using Displays = std::vector<Display>;
 
@@ -63,7 +63,7 @@ class DISPLAY_EXPORT DisplayObserver : public base::CheckedObserver {
   virtual void OnCurrentWorkspaceChanged(const std::string& new_workspace) {}
 
   // Called when display changes between conventional and tablet mode.
-  virtual void OnDisplayTabletStateChanged(TabletState state) {}
+  // virtual void OnDisplayTabletStateChanged(TabletState state) {}
 
 #if BUILDFLAG(IS_MAC)
   // Called when the primary display that contains the (0,0) origin changed.

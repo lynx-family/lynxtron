@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#include "shell/browser/ui/message_box.h"
+#include "shell/api/ui/message_box.h"
 
 #include <windows.h>  // windows.h must be included first
 
@@ -16,13 +16,14 @@
 #include "base/strings/utf_string_conversions.h"
 #include "base/synchronization/lock.h"
 #include "base/win/scoped_gdi_object.h"
-#include "shell/browser/browser.h"
-#include "shell/browser/native_window_views.h"
-#include "shell/browser/ui/win/dialog_thread.h"
+#include "shell/api/ui/win/dialog_thread.h"
+#include "shell/app/application.h"
+#include "shell/app/native_window.h"
 #include "ui/gfx/icon_util.h"
 #include "ui/gfx/image/image_skia.h"
+#include "ui/gfx/native_ui_types.h"
 
-namespace electron {
+namespace lynxtron {
 
 MessageBoxSettings::MessageBoxSettings() = default;
 MessageBoxSettings::MessageBoxSettings(const MessageBoxSettings&) = default;
@@ -172,7 +173,7 @@ DialogResult ShowTaskDialogWstr(gfx::AcceleratedWidget parent,
   // will show "electron.exe" in title.
   std::wstring app_name;
   if (title.empty()) {
-    app_name = base::UTF8ToWide(Browser::Get()->GetName());
+    app_name = base::UTF8ToWide(Application::Get()->GetName());
     config.pszWindowTitle = app_name.c_str();
   } else {
     config.pszWindowTitle = base::as_wcstr(title);
@@ -283,8 +284,8 @@ DialogResult ShowTaskDialogUTF8(const MessageBoxSettings& settings,
 int ShowMessageBoxSync(const MessageBoxSettings& settings) {
   gfx::AcceleratedWidget parent_widget =
       settings.parent_window
-          ? static_cast<electron::NativeWindowViews*>(settings.parent_window)
-                ->GetAcceleratedWidget()
+          ? static_cast<lynxtron::NativeWindow*>(settings.parent_window)
+                ->GetNativeWindowHandle()
           : nullptr;
   DialogResult result = ShowTaskDialogUTF8(settings, parent_widget, nullptr);
   return result.button_id;
@@ -306,8 +307,8 @@ void ShowMessageBox(const MessageBoxSettings& settings,
 
   gfx::AcceleratedWidget parent_widget =
       settings.parent_window
-          ? static_cast<electron::NativeWindowViews*>(settings.parent_window)
-                ->GetAcceleratedWidget()
+          ? static_cast<lynxtron::NativeWindow*>(settings.parent_window)
+                ->GetNativeWindowHandle()
           : nullptr;
   dialog_thread::Run(base::BindOnce(&ShowTaskDialogUTF8, settings,
                                     parent_widget, base::Unretained(hwnd)),
@@ -349,4 +350,4 @@ void ShowErrorBox(const std::u16string& title, const std::u16string& content) {
                      nullptr);
 }
 
-}  // namespace electron
+}  // namespace lynxtron

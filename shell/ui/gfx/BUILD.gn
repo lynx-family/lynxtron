@@ -17,22 +17,22 @@ config("gfx_config") {
   ]
 }
 
-component("gfx_skia") {
-  sources = [
-    "gfx_skia_export.h",
-    # "skia_span_util.cc",
-    # "skia_span_util.h",
-    # "skia_util.cc",
-    # "skia_util.h",
-  ]
-  configs += [ "//build/config/compiler:wexit_time_destructors" ]
-  public_deps = [
-    "../skia:skia_ext",
-    "//base",
-  ]
-  include_dirs = [ "../../../" ]
-  defines = [ "GFX_SKIA_IMPLEMENTATION" ]
-}
+# component("gfx_skia") {
+#   sources = [
+#     "gfx_skia_export.h",
+#     # "skia_span_util.cc",
+#     # "skia_span_util.h",
+#     # "skia_util.cc",
+#     # "skia_util.h",
+#   ]
+#   configs += [ "//build/config/compiler:wexit_time_destructors" ]
+#   public_deps = [
+#     "../skia:skia_ext",
+#     "//base",
+#   ]
+#   include_dirs = [ "../../../" ]
+#   defines = [ "GFX_SKIA_IMPLEMENTATION" ]
+# }
 
 if (is_win) {
   config("gfx_win_linker_flags") {
@@ -114,7 +114,6 @@ component("gfx") {
     "image/image_generic.cc",
     "image/image_internal.h",
     "image/image_platform.h",
-    "image/image_platform.h",
     "image/image_png_rep.cc",
     "image/image_png_rep.h",
     "image/image_skia.cc",
@@ -174,6 +173,8 @@ component("gfx") {
     # "video_types.h",
     # "vsync_provider.cc",
     # "vsync_provider.h",
+    "display_color_spaces.cc",
+    "display_color_spaces.h",
   ]
 
   if (is_mac) {
@@ -228,8 +229,18 @@ component("gfx") {
       # "win/rendering_window_manager.cc",
       # "win/rendering_window_manager.h",
       # "win/scoped_set_map_mode.h",
+
+      "icon_util.cc",
+      "icon_util.h",
+      "shadow_value.cc",
+      "shadow_value.h",
       "win/singleton_hwnd.cc",
       "win/singleton_hwnd.h",
+      "win/singleton_hwnd_observer.cc",
+      "win/singleton_hwnd_observer.h",
+
+      # "color_space_win.h",
+      # "color_space_win.cc",
 
       # "win/singleton_hwnd_hot_key_observer.cc",
       # "win/singleton_hwnd_hot_key_observer.h``",
@@ -339,8 +350,8 @@ component("gfx") {
 component("color_space") {
   configs += [ ":gfx_config" ]
   sources = [
-    #"color_space.cc",
-    #"color_space.h",
+    "color_space.cc",
+    "color_space.h",
     "color_space_export.h",
 
     # "color_transform.cc",
@@ -362,8 +373,12 @@ component("color_space") {
   ]
   if (is_win) {
     sources += [
+      # "color_space.cc",
+      # "color_space.h",
       "color_space_win.cc",
       "color_space_win.h",
+      "skia_color_space_util.cc",
+      "skia_color_space_util.h",
     ]
   }
 
