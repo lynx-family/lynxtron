@@ -55,20 +55,20 @@
 // #include "shell/common/crash_keys.h"
 // #endif
 #define ELECTRON_BROWSER_BINDINGS(V) \
-  V(electron_browser_app)            \
-  V(electron_common_v8_util)         \
-  V(electron_common_asar)            \
-  V(electron_common_command_line)    \
-  V(electron_common_environment)     \
-  V(electron_common_shell)           \
-  V(electron_browser_event_emitter)  \
+  V(lynxtron_binding_app)            \
+  V(lynxtron_binding_v8_util)        \
+  V(lynxtron_binding_asar)           \
+  V(lynxtron_binding_command_line)   \
+  V(lynxtron_binding_environment)    \
+  V(lynxtron_binding_shell)          \
+  V(lynxtron_binding_event_emitter)  \
   V(electron_base_window)            \
   V(electron_lynx_window)            \
-  V(electron_common_native_image)    \
-  V(electron_browser_screen)         \
-  V(electron_browser_dialog)
+  V(lynxtron_binding_native_image)   \
+  V(lynxtron_binding_screen)         \
+  V(lynxtron_binding_dialog)
 
-#define ELECTRON_TESTING_BINDINGS(V) V(electron_common_testing)
+#define ELECTRON_TESTING_BINDINGS(V) V(lynxtron_binding_testing)
 
 // This is used to load built-in bindings. Instead of using
 // __attribute__((constructor)), we call the _register_<modname>

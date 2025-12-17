@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 
-const { createScreen } = process._linkedBinding('electron_browser_screen');
+const { createScreen } = process._linkedBinding('lynxtron_binding_screen');
 
 let _screen: Lynxtron.Screen;
 

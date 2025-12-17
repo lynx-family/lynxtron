@@ -55,7 +55,7 @@ describe('LynxWindow module', () => {
   });
 
   describe('garbage collection', () => {
-    const v8Util = process._linkedBinding('electron_common_v8_util');
+    const v8Util = process._linkedBinding('lynxtron_binding_v8_util');
     afterEach(closeAllWindows);
 
     it('window does not get garbage collected when opened', async () => {

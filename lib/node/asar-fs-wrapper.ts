@@ -6,7 +6,7 @@ import * as util from 'util';
 import type * as Crypto from 'crypto';
 import type * as os from 'os';
 
-const asar = process._linkedBinding('electron_common_asar');
+const asar = process._linkedBinding('lynxtron_binding_asar');
 
 const Module = require('module') as NodeJS.ModuleInternal;
 

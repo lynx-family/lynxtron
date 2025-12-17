@@ -114,7 +114,7 @@ Module._resolveFilename = function (request, parent, isMain, options) {
 };
 
 process
-  ._linkedBinding('electron_browser_event_emitter')
+  ._linkedBinding('lynxtron_binding_event_emitter')
   .setEventEmitterPrototype(EventEmitter.prototype);
 
 // Emit 'exit' event on quit.
@@ -128,7 +128,7 @@ app.on('quit', (_event: Event, exitCode: number) => {
 process.exit = app.exit as () => never;
 
 // Now we try to load app's package.json.
-const v8Util = process._linkedBinding('electron_common_v8_util');
+const v8Util = process._linkedBinding('lynxtron_binding_v8_util');
 let packagePath = null;
 let packageJson = null;
 const searchPaths: string[] = v8Util.getHiddenValue(global, 'appSearchPaths');

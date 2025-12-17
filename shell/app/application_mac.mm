@@ -16,7 +16,7 @@
 #include "base/mac/mac_util.h"
 #include "base/mac/mac_util.mm"
 #include "base/strings/sys_string_conversions.h"
-#include "shell/api/electron_api_native_image.h"
+#include "shell/api/api_native_image.h"
 #include "shell/app/javascript_environment.h"
 #include "shell/app/mac/dict_util.h"
 #include "shell/app/mac/lynxtron_application.h"

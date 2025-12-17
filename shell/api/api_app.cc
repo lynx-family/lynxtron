@@ -1214,4 +1214,4 @@ void Initialize(v8::Local<v8::Object> exports,
 
 }  // namespace
 
-NODE_LINKED_BINDING_CONTEXT_AWARE(electron_browser_app, Initialize)
+NODE_LINKED_BINDING_CONTEXT_AWARE(lynxtron_binding_app, Initialize)

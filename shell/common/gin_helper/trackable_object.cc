@@ -8,7 +8,6 @@
 
 #include "base/functional/bind.h"
 #include "base/supports_user_data.h"
-// #include "shell/app/electron_browser_main_parts.h"
 
 namespace gin_helper {
 

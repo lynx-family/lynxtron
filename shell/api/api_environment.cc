@@ -38,4 +38,4 @@ void Initialize(v8::Local<v8::Object> exports,
 
 }  // namespace
 
-NODE_LINKED_BINDING_CONTEXT_AWARE(electron_common_environment, Initialize)
+NODE_LINKED_BINDING_CONTEXT_AWARE(lynxtron_binding_environment, Initialize)

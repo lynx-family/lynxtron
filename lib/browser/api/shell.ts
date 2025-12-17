@@ -1,3 +1,3 @@
-const shell = process._linkedBinding('electron_common_shell');
+const shell = process._linkedBinding('lynxtron_binding_shell');
 
 export default shell;

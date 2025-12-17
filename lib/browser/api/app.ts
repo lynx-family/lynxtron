@@ -2,8 +2,8 @@ import { Menu } from 'lynxtron/main';
 
 import * as fs from 'fs';
 
-const bindings = process._linkedBinding('electron_browser_app');
-const commandLine = process._linkedBinding('electron_common_command_line');
+const bindings = process._linkedBinding('lynxtron_binding_app');
+const commandLine = process._linkedBinding('lynxtron_binding_command_line');
 const { app } = bindings;
 
 // Only one app object permitted.
@@ -59,7 +59,7 @@ app.setAppUserModelId = app.setAppUserModelId || (() => {});
 // TODO(Guo Xi): recover
 if (process.platform === 'darwin') {
   const setDockMenu = app.dock!.setMenu;
-  app.dock!.setMenu = (menu) => {
+  app.dock!.setMenu = (menu: Lynxtron.Menu | null) => {
     dockMenu = menu;
     setDockMenu(menu);
   };

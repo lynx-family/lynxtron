@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#include "shell/api/electron_api_native_image.h"
+#include "shell/api/api_native_image.h"
 
 #include <memory>
 #include <string>
@@ -659,4 +659,4 @@ void Initialize(v8::Local<v8::Object> exports,
 
 }  // namespace
 
-NODE_LINKED_BINDING_CONTEXT_AWARE(electron_common_native_image, Initialize)
+NODE_LINKED_BINDING_CONTEXT_AWARE(lynxtron_binding_native_image, Initialize)
