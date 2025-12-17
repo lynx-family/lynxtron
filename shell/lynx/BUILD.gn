@@ -87,7 +87,7 @@ if (!is_build_with_lynx) {
     darwin_general_bundle("lynx_resources_bundle_for_lynxtron") {
       bundle_identifier = "com.lynx.LynxResources"
       info_plist =
-          "//lynx/oss/explorer/darwin/macos/lynx_explorer/Resource/Info.plist"
+          "//lynx/lynx/explorer/darwin/macos/lynx_explorer/Resource/Info.plist"
       deployment_target = mac_deployment_target
       output_name = "lynx_lynxtron/LynxResources"
       public_deps = [ ":lynx_core_js" ]
