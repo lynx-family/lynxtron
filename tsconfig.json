@@ -20,6 +20,9 @@
       "@node/*": ["../third_party/node/*", "../../third_party/node/*"]
     }
   },
+  "include": [
+    "front/apis/*"
+  ],
   "exclude": [
     "lynxtron.d.ts"
   ],

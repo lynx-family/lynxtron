@@ -1,0 +1,15 @@
+{
+  "name": "lynxtron",
+  "version": "0.0.0",
+  "description": "lynxtron front",
+  "main": "index.js",
+  "types": "./api/lynxtron.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "keywords": [
+    "lynxtron"
+  ]
+}
