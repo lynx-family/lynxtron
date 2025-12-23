@@ -9,6 +9,8 @@ source_set("lynx_holder") {
     "lynx_view.h",
     "lynx_view_extension_register.cc",
     "lynx_view_extension_register.h",
+    "lynx_view_node_module.cc",
+    "lynx_view_node_module.h",
   ]
 
   if (is_build_with_lynx) {
@@ -21,6 +23,7 @@ source_set("lynx_holder") {
   include_dirs = [
     "../..",
     "..",
+    "//third_party/node/deps/uv/include",
   ]
 
   configs -= [ "//build/config/compiler:chromium_code" ]
@@ -30,5 +33,6 @@ source_set("lynx_holder") {
   deps = [
     "../lynx:lynx_lib",
     "//base",
+    "//v8",
   ]
 }

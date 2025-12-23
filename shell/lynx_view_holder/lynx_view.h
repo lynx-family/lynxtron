@@ -23,7 +23,11 @@ class LynxView {
 
   static void SetNodePlatformEnv(void* platform);
 
-  void Init(double width, double height, float dpi, void* parent);
+  void Init(double width,
+            double height,
+            float dpi,
+            void* parent,
+            bool node_integration);
   void LoadTemplate(std::string_view template_url, base::span<uint8_t> content);
   void SetClient(base::WeakPtr<LynxViewClient> client);
   void SetBounds(const gfx::Rect& bounds);

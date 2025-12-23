@@ -174,6 +174,15 @@ LynxWindow::LynxWindow(gin::Arguments* args,
   //  Init window after everything has been setup.
   window()->InitFromOptions(options);
 
+  // node integration
+  if (options.ValueOrDefault(options::kNodeIntegration, false)) {
+    std::cout << "node integration is enabled" << std::endl;
+    node_integration_ = true;
+  } else {
+    std::cout << "node integration is disabled" << std::endl;
+    node_integration_ = false;
+  }
+
   // transparent
   bool transparent = false;
   options.Get(options::kTransparent, &transparent);
@@ -399,7 +408,7 @@ void LynxWindow::CreateLynxView(const std::string& local_url,
   lynx_view_ = LynxView::Create();
   auto source = LoadFileData(local_url);
   lynx_view_->Init(GetBounds().width(), GetBounds().height(), 1.0,
-                   window_->GetNativeWindowHandle());
+                   window_->GetNativeWindowHandle(), node_integration_);
   lynx_view_->LoadTemplate(local_url, source);
   lynx_view_->SetClient(weak_factory_.GetWeakPtr());
 }

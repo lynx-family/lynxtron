@@ -35,6 +35,8 @@
 #endif
 #endif
 
+#include "shell/lynx_view_holder/lynx_view_node_module.h"
+
 namespace lynxtron {
 
 class LynxViewImpl : public lynx::pub::LynxViewClient,
@@ -43,11 +45,19 @@ class LynxViewImpl : public lynx::pub::LynxViewClient,
   LynxViewImpl() = default;
   ~LynxViewImpl() = default;
 
-  void Init(double width, double height, float dpi, void* parent) {
+  void Init(double width,
+            double height,
+            float dpi,
+            void* parent,
+            bool node_integration) {
     lynx::pub::LynxView::Builder builder;
     builder.SetScreenSize(width, height, dpi)
         .SetFrame(0, 0, width, height)
         .SetParent(parent);
+    if (node_integration) {
+      RegisterLynxNodeModuleToLynxView(builder.Impl());
+    }
+
     lynx_view_ = builder.Build();
     lynx_view_->AddClient(shared_from_this());
   }
@@ -178,10 +188,15 @@ std::unique_ptr<LynxView> LynxView::Create() {
 // static
 void LynxView::SetNodePlatformEnv(void* platform) {
   lynx_env_set_node_platform(platform);
+  SetNodePlatformEnvToLynxNodeModule(platform);
 }
 
-void LynxView::Init(double width, double height, float dpi, void* parent) {
-  impl_->Init(width, height, dpi, parent);
+void LynxView::Init(double width,
+                    double height,
+                    float dpi,
+                    void* parent,
+                    bool node_integration) {
+  impl_->Init(width, height, dpi, parent, node_integration);
 }
 
 void LynxView::LoadTemplate(std::string_view template_url,
