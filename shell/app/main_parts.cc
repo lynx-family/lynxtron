@@ -225,9 +225,6 @@ void MainParts::PostCreateMainMessageLoop() {
 #endif
 
 void MainParts::Shutdown() {
-  // #if defined(OS_WIN)
-  //   MssdkWrapper::GetInstance()->Shutdown();
-  // #endif
   // content::BrowserTaskExecutor::Shutdown();
   base::ThreadPoolInstance::Get()->Shutdown();
 }

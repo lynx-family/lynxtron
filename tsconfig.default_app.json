@@ -6,7 +6,8 @@
     "moduleResolution": "node"
   },
   "include": [
-    "default_app",
+    "default_app/main.ts",
+    "default_app/default_app.ts",
     "typings"
   ]
 }

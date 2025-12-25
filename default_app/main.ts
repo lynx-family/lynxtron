@@ -22,7 +22,7 @@ const argv = process.argv.slice(1);
 
 const option: DefaultAppOptions = {
   file: null,
-  noHelp: Boolean(process.env.ELECTRON_NO_HELP),
+  noHelp: Boolean(process.env.LYNXTRON_NO_HELP),
   version: false,
   webdriver: false,
   interactive: false,
@@ -72,6 +72,11 @@ if (option.modules.length > 0) {
   (Module as any)._preloadModules(option.modules);
 }
 
+async function loadApplicationByFile (appPath: string) {
+  const { loadFile } = await import('./default_app.js');
+  loadFile(appPath);
+}
+
 async function loadApplicationPackage (packagePath: string) {
   // Add a flag indicating app is started from default app.
   Object.defineProperty(process, 'defaultApp', {
@@ -117,7 +122,7 @@ async function loadApplicationPackage (packagePath: string) {
       filePath = (Module as any)._resolveFilename(packagePath, null, true);
       app.setAppPath(appPath || path.dirname(filePath));
     } catch (e) {
-      showErrorMessage(`Unable to find Electron app at ${packagePath}\n\n${(e as Error).message}`);
+      showErrorMessage(`Unable to find Lynxtron app at ${packagePath}\n\n${(e as Error).message}`);
       return;
     }
 
@@ -138,7 +143,7 @@ function showErrorMessage (message: string) {
 
 async function startRepl () {
   if (process.platform === 'win32') {
-    console.error('Electron REPL not currently supported on Windows');
+    console.error('Lynxtron REPL not currently supported on Windows');
     process.exit(1);
   }
 
@@ -147,14 +152,14 @@ async function startRepl () {
 
   const GREEN = '32';
   const colorize = (color: string, s: string) => `\x1b[${color}m${s}\x1b[0m`;
-  const electronVersion = colorize(GREEN, `v${process.versions.electron}`);
+  const lynxtronVersion = colorize(GREEN, `v${process.versions.lynxtron}`);
   const nodeVersion = colorize(GREEN, `v${process.versions.node}`);
 
   console.info(`
-    Welcome to the Electron.js REPL \\[._.]/
+    Welcome to the Lynxtron REPL \\[._.]/
 
-    You can access all Electron.js modules here as well as Node.js modules.
-    Using: Node.js ${nodeVersion} and Electron.js ${electronVersion}
+    You can access all Lynxtron modules here as well as Node.js modules.
+    Using: Node.js ${nodeVersion} and Lynxtron ${lynxtronVersion}
   `);
 
   const { start } = await import('node:repl');
@@ -209,7 +214,7 @@ async function startRepl () {
     'typeof', 'var', 'void', 'while', 'with', 'yield'
   ];
 
-  const electronBuiltins = [...Object.keys(lynxtron), 'original-fs', 'lynxtron'];
+  const lynxtronBuiltins = [...Object.keys(lynxtron), 'original-fs', 'lynxtron'];
 
   const defaultComplete: Function = repl.completer;
   (repl as any).completer = (line: string, callback: Function) => {
@@ -218,7 +223,7 @@ async function startRepl () {
 
     const filterFn = (c: string) => c.startsWith(currentSymbol);
     const ignores = commonWords.filter(filterFn);
-    const hits = electronBuiltins.filter(filterFn);
+    const hits = lynxtronBuiltins.filter(filterFn);
 
     if (!ignores.length && hits.length) {
       callback(null, [hits, currentSymbol]);
@@ -243,7 +248,7 @@ if (option.file) {
     await loadApplicationPackage(file);
   // }
 } else if (option.version) {
-  console.log('v' + process.versions.electron);
+  console.log('v' + process.versions.lynxtron);
   process.exit(0);
 } else if (option.abi) {
   console.log(process.versions.modules);
@@ -253,15 +258,14 @@ if (option.file) {
 } else {
   if (!option.noHelp) {
     const welcomeMessage = `
-Electron ${process.versions.electron} - Build cross platform desktop apps with JavaScript, HTML, and CSS
-Usage: electron [options] [path]
+Lynxtron ${process.versions.lynxtron} - Build cross platform desktop apps with Lynx
+Usage: lynxtron [options] [path]
 
-A path to an Electron app may be specified. It must be one of the following:
+A path to an Lynxtron app may be specified. It must be one of the following:
   - index.js file.
   - Folder containing a package.json file.
   - Folder containing an index.js file.
-  - .html/.htm file.
-  - http://, https://, or file:// URL.
+  - Lynx bundle file.
 
 Options:
   -i, --interactive     Open a REPL to the main process.
@@ -271,4 +275,8 @@ Options:
 
     console.log(welcomeMessage);
   }
+
+  const currentFilePath = url.fileURLToPath(import.meta.url);
+  const appPath = path.join(path.dirname(path.dirname(currentFilePath)), 'default_app.asar', 'default_app.bundle');
+  await loadApplicationByFile(appPath);
 }

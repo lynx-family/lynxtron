@@ -224,7 +224,6 @@ bool PathProvider(int key, base::FilePath* result) {
       return false;
   }
 
-  // TODO(bauerb): http://crbug.com/259796
   ScopedAllowBlockingForLynxtron allow_blocking;
   if (create_dir && !base::PathExists(cur) && !base::CreateDirectory(cur)) {
     return false;

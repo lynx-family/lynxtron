@@ -147,13 +147,6 @@ class App : public gin_helper::DeprecatedWrappable<App>,
   // Set or remove a custom Jump List for the application.
   JumpListResult SetJumpList(v8::Local<v8::Value> val, gin::Arguments* args);
 
-  v8::Local<v8::Promise> closeStartupWindow();
-  bool isStartupWindowShowing();
-  std::string getMACAddress();
-  std::string getBaseboardUUID();
-  std::string getDiskSerialNumber();
-  std::string getDiskSerialNumberLegacy();
-  std::string getDeviceModalName();
   void RunElevatedInThread(const std::string& path,
                            const std::vector<std::string>& cmd_args,
                            bool fallback,

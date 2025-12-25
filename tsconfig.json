@@ -10,6 +10,7 @@
     "sourceMap": true,
     "experimentalDecorators": true,
     "strict": true,
+    "allowSyntheticDefaultImports": true,
     "baseUrl": ".",
     "allowJs": true,
     "noUnusedLocals": true,

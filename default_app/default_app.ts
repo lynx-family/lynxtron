@@ -1,0 +1,23 @@
+// @ts-nocheck
+
+import { app, LynxWindow } from 'lynxtron';
+import * as path from 'node:path';
+import * as url from 'node:url';
+
+let mainWindow: LynxWindow | null = null;
+
+async function createWindow() {
+  await app.whenReady();
+  const mainWindow = new LynxWindow({
+    width: 1200,
+    height: 800,
+  });
+
+  return mainWindow;
+}
+
+export const loadFile = async (appPath: string) => {
+  mainWindow = await createWindow();
+  mainWindow.show();
+  mainWindow.loadFile(appPath);
+};

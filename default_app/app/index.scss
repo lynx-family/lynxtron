@@ -1,0 +1,131 @@
+* {
+  box-sizing: border-box;
+}
+
+.outlineFrame {
+  display: flex;
+  height:max-content;
+  flex-direction: column;
+  align-items: flex-start;
+  background: #060606;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.autoWrapper {
+  display: flex;
+  position: relative;
+  height: 100%;
+  overflow: visible;
+  justify-content: center;
+  align-items: center;
+}
+.lynxtron {
+  flex-shrink: 0;
+  min-width: 69px;
+  overflow: visible;
+  line-height: 26px;
+  white-space: nowrap;
+  color: #ffffff;
+  font-family: "TikTok Sans";
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.innerFrame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80px 160px;
+  width: 100%;
+  max-width: 1440px;
+  overflow: visible;
+  grid-row-gap: 80px;
+}
+.introduction {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  align-items: center;
+  overflow: visible;
+  grid-row-gap: 32px;
+}
+
+.lynxtronTitle {
+  flex-shrink: 0;
+  align-self: stretch;
+  overflow: visible;
+  text-align: center;
+  line-height: 72px;
+  color: #ffffff;
+  font-family: Inter;
+  font-size: 72px;
+  font-weight: 700;
+}
+.contextWrapper {
+  flex-shrink: 0;
+  width: 640px;
+  overflow: visible;
+  text-align: center;
+  line-height: 24px;
+  color: #000000;
+  font-family: Inter;
+  font-size: 16px;
+}
+.contextBold {
+  overflow: visible;
+  line-height: 24px;
+  color: #ffffffe5;
+  font-family: Inter;
+  font-size: 16px;
+  font-weight: 600;
+}
+.contextLight {
+  overflow: visible;
+  line-height: 24px;
+  color: #ffffffa6;
+  font-family: Inter;
+  font-size: 16px;
+}
+.quickStartWrapper {
+  display: flex;
+  position: relative;
+  flex-shrink: 0;
+  width: 141px;
+  height: 40px;
+  overflow: visible;
+}
+.quickStartBackground {
+  display: flex;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 100px;
+  background: #4ff09f;
+  width: 141px;
+  height: 40px;
+  overflow: visible;
+}
+.maskGroup {
+  display: flex;
+  position: absolute;
+  top: 0;
+  left: 0;
+  align-items: center;
+  padding: 12px 33px 11px;
+  height: 40px;
+  overflow: visible;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+.quickStart {
+  min-width: 76px;
+  overflow: visible;
+  line-height: 17px;
+  white-space: nowrap;
+  color: #000000;
+  font-family: Inter;
+  font-size: 14px;
+  font-weight: 500;
+}

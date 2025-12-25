@@ -6,4 +6,5 @@ declare_args() {
   lynxtron_framework_extra_deps = []
   lynxtron_app_extra_configs = []
   lynxtron_app_extra_deps = []
+  lynxtron_asar_extra_deps = []
 }

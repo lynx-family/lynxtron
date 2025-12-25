@@ -2,8 +2,10 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_COMMON_GIN_CONVERTERS_FILE_PATH_CONVERTER_H_
-#define ELECTRON_SHELL_COMMON_GIN_CONVERTERS_FILE_PATH_CONVERTER_H_
+#ifndef LYNXTRON_SHELL_COMMON_GIN_CONVERTERS_FILE_PATH_CONVERTER_H_
+#define LYNXTRON_SHELL_COMMON_GIN_CONVERTERS_FILE_PATH_CONVERTER_H_
+
+#include <string>
 
 #include "base/files/file_path.h"
 #include "gin/converter.h"
@@ -41,4 +43,4 @@ struct Converter<base::FilePath> {
 
 }  // namespace gin
 
-#endif  // ELECTRON_SHELL_COMMON_GIN_CONVERTERS_FILE_PATH_CONVERTER_H_
+#endif  // LYNXTRON_SHELL_COMMON_GIN_CONVERTERS_FILE_PATH_CONVERTER_H_

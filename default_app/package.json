@@ -1,6 +1,6 @@
 {
-  "name": "electron",
-  "productName": "Electron",
+  "name": "lynxtron",
+  "productName": "Lynxtron",
   "main": "main.js",
   "type": "module"
 }

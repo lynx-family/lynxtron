@@ -8,17 +8,12 @@
 #include <utility>
 #include <vector>
 
-// #include "base/containers/contains.h"
 #include "base/task/single_thread_task_runner.h"
-// #include "base/threading/thread_task_runner_handle.h"
-// #include "electron/buildflags/buildflags.h"
 #include "gin/dictionary.h"
 #include "shell/app/javascript_environment.h"
-// #include "shell/common/gin_converters/file_path_converter.h"
-#include "shell/common/gin_converters/gfx_converter.h"
-// #include "shell/common/gin_converters/image_converter.h"
 #include "shell/common/gin_converters/callback_converter.h"
 #include "shell/common/gin_converters/file_path_converter.h"
+#include "shell/common/gin_converters/gfx_converter.h"
 #include "shell/common/gin_converters/value_converter.h"
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/gin_helper/handle.h"
@@ -26,11 +21,6 @@
 #include "shell/common/gin_helper/persistent_dictionary.h"
 #include "shell/common/node_includes.h"
 #include "shell/common/node_util.h"
-// #include "shell/common/options_switches.h"
-
-#if BUILDFLAG(IS_WIN)
-// #include "shell/lynx/lynx_native_window_views.h"
-#endif
 
 namespace lynxtron::api {
 
@@ -277,12 +267,6 @@ void BaseWindow::OnWindowMessage(UINT message, WPARAM w_param, LPARAM l_param) {
   }
 }
 #endif
-
-// void BaseWindow::SetContentView(gin::Handle<View> view) {
-//  // ResetBrowserViews();
-//  content_view_.Reset(isolate(), view.ToV8());
-//  window_->SetContentView(view->view());
-//}
 
 void BaseWindow::CloseImmediately() {
   if (!window_->IsClosed()) {

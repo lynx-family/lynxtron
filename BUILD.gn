@@ -178,7 +178,10 @@ target_gen_default_app_js = "$root_gen_dir/lynxtron/js/default_app"
 typescript_build("default_app_js") {
   # deps = [ ":build_lynxtron_definitions" ]
 
-  sources = [ "default_app/main.ts" ]
+  sources = [
+    "default_app/default_app.ts",
+    "default_app/main.ts",
+  ]
 
   output_gen_dir = "${target_gen_default_app_js}"
   output_dir_name = "default_app"
@@ -186,7 +189,9 @@ typescript_build("default_app_js") {
 }
 
 copy("default_app_static") {
+  exec_script("default_app/app/build.py")
   sources = [
+    "default_app/app/dist/default_app.bundle",
     "default_app/icon.png",
     "default_app/package.json",
   ]
@@ -205,6 +210,7 @@ asar("default_app_asar") {
     ":default_app_js",
     ":default_app_static",
   ]
+  deps += lynxtron_asar_extra_deps
 
   root = "$target_gen_default_app_js/lynxtron/default_app"
   sources = get_target_outputs(":default_app_js") +

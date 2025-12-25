@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 #include "shell/api/api_app.h"
-// #include "electron/buildflags/buildflags.h"
 
 #include <memory>
 #include <string>
@@ -15,25 +14,21 @@
 #include "base/environment.h"
 #include "base/files/file_path.h"
 #include "base/files/file_util.h"
+#include "base/functional/callback_forward.h"
 #include "base/logging.h"
 #include "base/no_destructor.h"
 #include "base/path_service.h"
+#include "base/process/launch.h"
 #include "base/process/process_metrics.h"
 #include "base/strings/string_util.h"
 #include "base/system/sys_info.h"
 #include "base/task/single_thread_task_runner.h"
+#include "base/task/thread_pool.h"
 #include "gin/arguments.h"
 #include "shell/app/javascript_environment.h"
 #include "shell/app/main_parts.h"
-// #include "shell/common/application_info.h"
-// #include "shell/common/lynxtron_paths.h"
-// #include "shell/common/gin_converters/base_converter.h"
-#include "shell/common/global_thread.h"
-#include "shell/common/lynxtron_command_line.h"
-// #include "shell/common/gin_converters/blink_converter.h"
-// #include "shell/common/gin_converters/callback_converter.h"
+#include "shell/app/relauncher.h"
 #include "shell/common/gin_converters/file_path_converter.h"
-// #include "shell/common/gin_converters/image_converter.h"
 #include "shell/common/gin_converters/login_item_settings_converter.h"
 #include "shell/common/gin_converters/value_converter.h"
 #include "shell/common/gin_helper/constructible.h"
@@ -42,6 +37,9 @@
 #include "shell/common/gin_helper/handle.h"
 #include "shell/common/gin_helper/object_template_builder.h"
 #include "shell/common/gin_helper/pinnable.h"
+#include "shell/common/global_thread.h"
+#include "shell/common/lynxtron_command_line.h"
+#include "shell/common/lynxtron_paths.h"
 #include "shell/common/node_includes.h"
 #include "shell/common/options_switches.h"
 #include "shell/common/platform_util.h"
@@ -58,11 +56,6 @@
 
 #include "shell/ui/cocoa/electron_bundle_mover.h"
 #endif
-#include "base/functional/callback_forward.h"
-#include "base/process/launch.h"
-#include "base/task/thread_pool.h"
-#include "shell/app/relauncher.h"
-#include "shell/common/lynxtron_paths.h"
 
 using lynxtron::Application;
 
@@ -1172,18 +1165,6 @@ gin::ObjectTemplateBuilder App::GetObjectTemplateBuilder(v8::Isolate* isolate) {
       .SetMethod("setJumpList", &App::SetJumpList)
       .SetMethod("setUserTasks",
                  base::BindRepeating(&Application::SetUserTasks, application))
-  // .SetMethod("closeStartupWindow", &App::closeStartupWindow)
-  // .SetMethod("isStartupWindowShowing", &App::isStartupWindowShowing)
-  // .SetMethod("getMACAddress", &App::getMACAddress)
-  // .SetMethod("getBaseboardUUID", &App::getBaseboardUUID)
-  // .SetMethod("getDiskSerialNumber", &App::getDiskSerialNumber)
-  // .SetMethod("getDiskSerialNumberLegacy", &App::getDiskSerialNumberLegacy)
-  // .SetMethod("getDeviceModalName", &App::getDeviceModalName)
-  // .SetMethod("getLauncherProcessCreationTime",
-  //            &App::GetLauncherProcessCreationTime)
-  // .SetMethod("getLynxProcessCreationTime",
-  // &App::GetLynxProcessCreationTime)
-  // .SetMethod("getMainProcessCreationTime", &App::GetMainProcessCreationTime)
 #endif
 
 #if BUILDFLAG(IS_MAC)
