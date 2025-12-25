@@ -5,7 +5,8 @@
 #include "shell/app/library_main.h"
 
 int main(int argc, char* argv[]) {
-  partition_alloc::EarlyMallocZoneRegistration();
+  // TODO(Guo Xi): review EarlyMallocZoneRegistration
+  // partition_alloc::EarlyMallocZoneRegistration();
   return LynxtronMain(argc, argv);
 
   // TODO(Guo Xi): relauncher
