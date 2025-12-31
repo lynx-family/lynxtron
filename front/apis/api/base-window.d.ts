@@ -1,6 +1,7 @@
 import { Point } from '../structures/point';
 
-import { Rectangle, Size } from './native-image';
+import { Size } from '../structures/size';
+import { Rectangle } from '../structures/rectangle';
 
 export interface WillResizeDetails {
   /**
@@ -1569,6 +1570,123 @@ export declare class BaseWindow {
    * Unmaximizes the window.
    */
   unmaximize(): void;
+  /**
+   * A `string` property that defines an alternative title provided only to
+   * accessibility tools such as screen readers. This string is not directly visible
+   * to users.
+   */
+  accessibleTitle: string;
+  /**
+   * A `boolean` property that determines whether the window menu bar should hide
+   * itself automatically. Once set, the menu bar will only show when users press the
+   * single `Alt` key.
+   *
+   * If the menu bar is already visible, setting this property to `true` won't hide
+   * it immediately.
+   *
+   * @platform linux,win32
+   */
+  autoHideMenuBar: boolean;
+  /**
+   * A `boolean` property that determines whether the window can be manually closed
+   * by user.
+   *
+   * On Linux the setter is a no-op, although the getter returns `true`.
+   *
+   * @platform darwin,win32
+   */
+  closable: boolean;
+  /**
+   * A `boolean` property that specifies whether the window’s document has been
+   * edited.
+   *
+   * The icon in title bar will become gray when set to `true`.
+   *
+   * @platform darwin
+   */
+  documentEdited: boolean;
+  /**
+   * A `boolean` property that determines whether the window is focusable.
+   *
+   * @platform win32,darwin
+   */
+  focusable: boolean;
+  /**
+   * A `boolean` property that determines whether the window is in fullscreen mode.
+   */
+  fullScreen: boolean;
+  /**
+   * A `boolean` property that determines whether the maximize/zoom window button
+   * toggles fullscreen mode or maximizes the window.
+   */
+  fullScreenable: boolean;
+  /**
+   * A `boolean` property that determines whether the window is in kiosk mode.
+   */
+  kiosk: boolean;
+  /**
+   * A `boolean` property that determines whether the window can be manually
+   * maximized by user.
+   *
+   * On Linux the setter is a no-op, although the getter returns `true`.
+   *
+   * @platform darwin,win32
+   */
+  maximizable: boolean;
+  /**
+   * A `boolean` property that determines whether the window can be manually
+   * minimized by user.
+   *
+   * On Linux the setter is a no-op, although the getter returns `true`.
+   *
+   * @platform darwin,win32
+   */
+  minimizable: boolean;
+  /**
+   * A `boolean` property that determines Whether the window can be moved by user.
+   *
+   * On Linux the setter is a no-op, although the getter returns `true`.
+   *
+   * @platform darwin,win32
+   */
+  movable: boolean;
+  /**
+   * A `string` property that determines the pathname of the file the window
+   * represents, and the icon of the file will show in window's title bar.
+   *
+   * @platform darwin
+   */
+  representedFilename: string;
+  /**
+   * A `boolean` property that determines whether the window can be manually resized
+   * by user.
+   */
+  resizable: boolean;
+  /**
+   * A `boolean` property that determines whether the window has a shadow.
+   */
+  shadow: boolean;
+  /**
+   * A `boolean` property that determines whether the window is in simple (pre-Lion)
+   * fullscreen mode.
+   */
+  simpleFullScreen: boolean;
+  /**
+   * A `string` property that determines the title of the native window.
+   *
+   * > [!NOTE] The title of the web page can be different from the title of the
+   * native window.
+   */
+  title: string;
+  /**
+   * A `boolean` property that determines whether the window is visible on all
+   * workspaces.
+   *
+   * > [!NOTE] Always returns false on Windows.
+   *
+   * @platform darwin,linux
+   */
+  visibleOnAllWorkspaces: boolean;
   /**
    * A `boolean` property that determines whether the window is excluded from the
    * application’s Windows menu. `false` by default.

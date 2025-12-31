@@ -1,3 +1,6 @@
+import { Size } from '../structures/size';
+import { Rectangle } from '../structures/rectangle';
+
 export interface CreateFromBitmapOptions {
   width: number;
   height: number;
@@ -22,11 +25,6 @@ export interface CreateFromBufferOptions {
   scaleFactor?: number;
 }
 
-export interface Size {
-  height: number;
-  width: number;
-}
-
 export interface AddRepresentationOptions {
   /**
    * The scale factor to add the image representation for.
@@ -48,25 +46,6 @@ export interface AddRepresentationOptions {
    * The data URL containing either a base 64 encoded PNG or JPEG image.
    */
   dataURL?: string;
-}
-
-export interface Rectangle {
-  /**
-   * The height of the rectangle (must be an integer).
-   */
-  height: number;
-  /**
-   * The width of the rectangle (must be an integer).
-   */
-  width: number;
-  /**
-   * The x coordinate of the origin of the rectangle (must be an integer).
-   */
-  x: number;
-  /**
-   * The y coordinate of the origin of the rectangle (must be an integer).
-   */
-  y: number;
 }
 
 export interface BitmapOptions {

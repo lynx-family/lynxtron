@@ -11,5 +11,8 @@
   "license": "ISC",
   "keywords": [
     "lynxtron"
-  ]
+  ],
+  "devDependencies": {
+    "@types/node": "^25.0.3"
+  }
 }

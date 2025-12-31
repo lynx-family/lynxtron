@@ -270,7 +270,6 @@ export declare class LynxWindow extends BaseWindow {
    * LynxWindow
    */
   constructor(options?: LynxWindowConstructorOptions);
-
   /**
    * The window with the given `id`.
    */
