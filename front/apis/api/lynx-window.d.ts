@@ -1,11 +1,6 @@
 import { NativeImage } from './native-image';
-
-export interface Point {
-  // Docs: https://electronjs.org/docs/api/structures/point
-
-  x: number;
-  y: number;
-}
+import { BaseWindow } from './base-window';
+import { Point } from '../structures/point';
 
 export interface LynxWindowConstructorOptions {
   /**
@@ -270,7 +265,7 @@ export interface LynxWindowConstructorOptions {
   title?: string;
 }
 
-export declare class LynxWindow {
+export declare class LynxWindow extends BaseWindow {
   /**
    * LynxWindow
    */
