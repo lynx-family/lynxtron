@@ -410,6 +410,10 @@ gfx::Rect NativeWindowWin::GetBounds() const {
   return bounds;
 }
 
+gfx::Size NativeWindowWin::GetSize() const {
+  return DIPToScreenSize(GetSize());
+}
+
 // TODO(Guo Xi): support content bounds/content size
 // gfx::Rect NativeWindowViews::GetContentBounds() const {
 //   return content_view() ? content_view()->GetBoundsInScreen() : gfx::Rect();

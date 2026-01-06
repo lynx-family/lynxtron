@@ -261,8 +261,17 @@ void LynxWindow::OnWindowResize() {
   //            TRUE);
 #endif
 
+  // Update LynxView layout and screen parameters
   if (lynx_view_) {
-    lynx_view_->SetBounds(window_->GetBounds());
+    lynx_view_->SetBounds(window_->GetBounds());  // Set view bounds
+    const float width = window_->GetSize().width();
+    const float height = window_->GetSize().height();
+    lynx_view_->UpdateScreenMetrics(
+        width, height,
+        window_->GetDevicePixelRatio());  // Update screen size and device pixel
+                                          // ratio
+    lynx_view_->SetFrame(
+        0, 0, width, height);  // Set view position and size in parent container
   }
   BaseWindow::OnWindowResize();
 }
