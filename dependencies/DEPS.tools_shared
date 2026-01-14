@@ -1,5 +1,6 @@
 import os
 import platform
+import shutil
 
 system = platform.system().lower()
 machine = platform.machine().lower()
@@ -9,12 +10,44 @@ python_path = "python3"
 if system == "windows":
     python_path = "python"
 
+def symlink_tools_shared():
+    sub_dirs = [
+        "gn_tools",
+    ]
+    for dir in sub_dirs:
+        src = os.path.join(os.getcwd(), f"tools_shared/{dir}")
+        dest = os.path.join(os.getcwd(), f"../tools_shared/{dir}")
+        symlink_dir(src, dest)
+
+def symlink_dir(src, dest):
+    if os.path.exists(dest) or os.path.islink(dest):
+        if os.path.islink(dest):
+            os.unlink(dest)
+        elif os.path.isdir(dest):
+            shutil.rmtree(dest)
+        else:
+            os.remove(dest)
+    dest_parent = os.path.dirname(dest)
+    if dest_parent and not os.path.exists(dest_parent):
+        os.makedirs(dest_parent, exist_ok=True)
+    try:
+        os.symlink(src, dest)
+    except OSError as e:
+        raise
+
 deps = {
-    "./tools_shared": {
+    "tools_shared": {
         "type": "solution",
         "url": "https://github.com/lynx-family/tools-shared.git",
-        "commit": "f13686a7f3ea237475af97b106c894652b2c0ef2",
+        "commit": "99c58ed78f15f0d29fae10b4ee74dfc71f1001a1",
         'deps_file': 'dependencies/DEPS',
         "ignore_in_git": True,
     },
+    "symlink_tools_shared": {
+        'type': 'action',
+        "cwd": root_dir,
+        "function": symlink_tools_shared,
+        "ignore_in_git": True,
+        "require": ['tools_shared'],
+    }
 }
