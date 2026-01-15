@@ -14,7 +14,8 @@ lynxtron_envsetup() {
   local SCRIPT_REAL_PATH=$(posix_realpath $1)
   local TOOLS_REAL_PATH=$(dirname $SCRIPT_REAL_PATH)
   export LYNXTRON_ROOT_DIR="$(dirname $TOOLS_REAL_PATH)"
-  export BUILDTOOLS_DIR="${LYNXTRON_ROOT_DIR}/buildtools"
+  export PROJECT_ROOT_DIR="$(dirname $LYNXTRON_ROOT_DIR)"
+  export BUILDTOOLS_DIR="${PROJECT_ROOT_DIR}/buildtools"
   export TOOLSSHARED_DIR="${LYNXTRON_ROOT_DIR}/tools_shared"
   export CLANGFORMAT_DIR="${LYNXTRON_ROOT_DIR}/tools_shared/buildtools/clang-format"
   export PATH=${CLANGFORMAT_DIR}:${TOOLSSHARED_DIR}:${BUILDTOOLS_DIR}/llvm/bin:${BUILDTOOLS_DIR}/gn:${BUILDTOOLS_DIR}/ninja:$PATH

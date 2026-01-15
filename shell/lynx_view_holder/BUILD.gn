@@ -31,8 +31,8 @@ source_set("lynx_holder") {
   configs -= [ "//build/config/clang:find_bad_constructs" ]
 
   deps = [
-    "../lynx:lynx_lib",
     "//base",
+    "//lynxtron/shell/lynx:lynx_lib",
     "//v8",
   ]
 }

@@ -1,0 +1,55 @@
+From f4e3ce3615c07d60fd0ce014b8f11db17b9c3584 Mon Sep 17 00:00:00 2001
+From: tangyongjie <80395553+yongjieTang@users.noreply.github.com>
+Date: Sun, 4 Jan 2026 14:55:00 +0800
+Subject: [PATCH] [PATCH] adapt v8 of verison 14
+
+---
+ src/napi/js_native_api_types.h    | 3 ++-
+ src/napi/v8/js_native_api_v8.cc   | 2 +-
+ src/napi/v8/js_native_api_v8.cc.h | 3 +--
+ 3 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/src/napi/js_native_api_types.h b/src/napi/js_native_api_types.h
+index ef78d9a..c33d730 100644
+--- a/src/napi/js_native_api_types.h
++++ b/src/napi/js_native_api_types.h
+@@ -101,7 +101,8 @@ typedef enum {
+ } napi_valuetype;
+ 
+ typedef enum {
+-  napi_int8_array,
++  unknown_type = -1,
++  napi_int8_array = 0,
+   napi_uint8_array,
+   napi_uint8_clamped_array,
+   napi_int16_array,
+diff --git a/src/napi/v8/js_native_api_v8.cc b/src/napi/v8/js_native_api_v8.cc
+index f3e40cd..c55b3c7 100644
+--- a/src/napi/v8/js_native_api_v8.cc
++++ b/src/napi/v8/js_native_api_v8.cc
+@@ -27,7 +27,7 @@ static napi_status napi_run_script(napi_env env, const char* script,
+   if (filename) {
+     v8::Local<v8::Value> origin_string;
+     CHECK_NEW_FROM_UTF8(env, origin_string, filename);
+-    v8::ScriptOrigin so(env->ctx->isolate, origin_string);
++    v8::ScriptOrigin so(origin_string);
+     maybe_script = v8::Script::Compile(context, v8_script, &so);
+   } else {
+     maybe_script = v8::Script::Compile(context, v8_script);
+diff --git a/src/napi/v8/js_native_api_v8.cc.h b/src/napi/v8/js_native_api_v8.cc.h
+index 2841d75..1b1217c 100644
+--- a/src/napi/v8/js_native_api_v8.cc.h
++++ b/src/napi/v8/js_native_api_v8.cc.h
+@@ -1031,8 +1031,7 @@ napi_status napi_define_class(napi_env env, const char* utf8name, size_t length,
+       }
+ 
+       tpl->PrototypeTemplate()->SetAccessorProperty(property_name, getter_tpl,
+-                                                    setter_tpl, attributes,
+-                                                    v8::AccessControl::DEFAULT);
++                                                    setter_tpl, attributes);
+     } else if (p->method != nullptr) {
+       v8::Local<v8::Value> cbdata =
+           v8impl::CreateFunctionCallbackData(env, p->method, p->data);
+-- 
+2.49.0
+

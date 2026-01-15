@@ -70,10 +70,10 @@ if (!is_build_with_lynx) {
 } else {
   if (is_mac) {
     import("//build/apple/templates/darwin_general_bundle.gni")
-    import("//lynx/lynx/oliver/oliver.gni")
+    import("//lynx/oliver/oliver.gni")
 
     build_kernel_js("lynx_core") {
-      script = "//lynx/tools/oliver/lynx-kernel/build.py"
+      script = "//lynx/tools/js_tools/build.py"
       platform = "ios"
       output_path = "$root_build_dir/lynx_lynxtron"
     }
@@ -87,7 +87,7 @@ if (!is_build_with_lynx) {
     darwin_general_bundle("lynx_resources_bundle_for_lynxtron") {
       bundle_identifier = "com.lynx.LynxResources"
       info_plist =
-          "//lynx/lynx/explorer/darwin/macos/lynx_explorer/Resource/Info.plist"
+          "//lynx/explorer/darwin/macos/lynx_explorer/Resource/Info.plist"
       deployment_target = mac_deployment_target
       output_name = "lynx_lynxtron/LynxResources"
       public_deps = [ ":lynx_core_js" ]
@@ -106,7 +106,7 @@ if (!is_build_with_lynx) {
     if (is_mac) {
       deps += [ "//lynx/platform/darwin/macos:lynx_common_deps" ]
     } else if (is_win) {
-      deps += [ "//lynx/core/platform/windows:lynx_windows_group" ]
+      deps += [ "//lynx/platform/windows:lynx_windows_group" ]
     }
   }
 }

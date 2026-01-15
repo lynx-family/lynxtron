@@ -22,7 +22,7 @@ Subject: [PATCH] adapt lynx compile
  config/BUILD.gn                               |   4 +
  config/BUILDCONFIG.gn                         |  30 ++
  config/clang/BUILD.gn                         |  28 +-
- config/compiler/BUILD.gn                      | 132 +++++++
+ config/compiler/BUILD.gn                      | 133 +++++++
  config/ios/bundle_identifier_prefix.gni       |   8 +
  config/mac/BUILD.gn                           |  20 ++
  config/mac/script/sdk_info.py                 | 130 +++++++
@@ -1569,7 +1569,7 @@ diff --git a/config/compiler/BUILD.gn b/config/compiler/BUILD.gn
 index 32c9abd..8469fc0 100644
 --- a/config/compiler/BUILD.gn
 +++ b/config/compiler/BUILD.gn
-@@ -284,9 +284,126 @@ config("default_include_dirs") {
+@@ -284,9 +284,127 @@ config("default_include_dirs") {
    include_dirs = [
      "//",
      root_gen_dir,
@@ -1579,6 +1579,7 @@ index 32c9abd..8469fc0 100644
 +    "//lynx/",
 +    "//$root_gen_dir/lynx/oss/",
 +    "//lynx/lynx/third_party/jsoncpp/include",
++    "//lynx/third_party/jsoncpp/include",
    ]
  }
  
@@ -1696,7 +1697,7 @@ index 32c9abd..8469fc0 100644
  # Compiler instrumentation can introduce dependencies in DSOs to symbols in
  # the executable they are loaded into, so they are unresolved at link-time.
  config("no_unresolved_symbols") {
-@@ -306,6 +423,19 @@ config("no_unresolved_symbols") {
+@@ -306,6 +424,19 @@ config("no_unresolved_symbols") {
  # See also "runtime_library" below for related stuff and a discussion about
  # where stuff should go. Put warning related stuff in the "warnings" config.
  
@@ -1716,7 +1717,7 @@ index 32c9abd..8469fc0 100644
  config("compiler") {
    asmflags = []
    cflags = []
-@@ -2281,6 +2411,7 @@ config("prevent_unsafe_narrowing") {
+@@ -2281,6 +2412,7 @@ config("prevent_unsafe_narrowing") {
  # part of Chromium.
  
  config("chromium_code") {
@@ -1724,7 +1725,7 @@ index 32c9abd..8469fc0 100644
    if (is_win) {
      if (is_clang) {
        cflags = [ "/W4" ]  # Warning level 4.
-@@ -2382,6 +2513,7 @@ config("chromium_code") {
+@@ -2382,6 +2514,7 @@ config("chromium_code") {
    if (treat_warnings_as_errors) {
      configs += [ ":treat_warnings_as_errors" ]
    }

@@ -1,0 +1,56 @@
+From df3027323b38b6182285e301c05b535fd1440a35 Mon Sep 17 00:00:00 2001
+From: tangyongjie <80395553+yongjieTang@users.noreply.github.com>
+Date: Tue, 13 Jan 2026 15:53:18 +0800
+Subject: [PATCH 1/5] Adapt lynxtron compile
+
+---
+ clay/shell/platform/windows/flutter_windows_engine.cc | 3 ++-
+ third_party/napi/include/js_native_api_types.h        | 3 ++-
+ third_party/napi/include/napi.h                       | 3 +--
+ 3 files changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/clay/shell/platform/windows/flutter_windows_engine.cc b/clay/shell/platform/windows/flutter_windows_engine.cc
+index dccd3ba6..019a9515 100644
+--- a/clay/shell/platform/windows/flutter_windows_engine.cc
++++ b/clay/shell/platform/windows/flutter_windows_engine.cc
+@@ -105,7 +105,8 @@ bool FlutterWindowsEngine::Run(std::string_view entrypoint) {
+     FML_LOG(ERROR) << "Missing or unresolvable paths to assets.";
+     return false;
+   }
+-  std::string icu_path_string = project_->icu_path().u8string();
++  auto u8str = project_->icu_path().u8string();
++  std::string icu_path_string(u8str.begin(), u8str.end());
+ 
+   // FlutterProjectArgs is expecting a full argv, so when processing it for
+   // flags the first item is treated as the executable and ignored. Add a dummy
+diff --git a/third_party/napi/include/js_native_api_types.h b/third_party/napi/include/js_native_api_types.h
+index 4601e449..9ed1c567 100644
+--- a/third_party/napi/include/js_native_api_types.h
++++ b/third_party/napi/include/js_native_api_types.h
+@@ -101,7 +101,8 @@ typedef enum {
+ } napi_valuetype;
+ 
+ typedef enum {
+-  napi_int8_array,
++  unknown_type = -1,
++  napi_int8_array = 0,
+   napi_uint8_array,
+   napi_uint8_clamped_array,
+   napi_int16_array,
+diff --git a/third_party/napi/include/napi.h b/third_party/napi/include/napi.h
+index bc45b6c0..e7cfa372 100644
+--- a/third_party/napi/include/napi.h
++++ b/third_party/napi/include/napi.h
+@@ -931,8 +931,7 @@ class NAPI_EXTERN TypedArray : public Object {
+                          napi_typedarray_type type, size_t length)
+       : Object(env, value), _type(type), _length(length) {}
+ 
+-  static const napi_typedarray_type unknown_array_type =
+-      static_cast<napi_typedarray_type>(-1);
++  static const napi_typedarray_type unknown_array_type = napi_typedarray_type::unknown_type;
+ };
+ 
+ #define NAPI_FOR_EACH_TYPED_ARRAY(V)                      \
+-- 
+2.50.1 (Apple Git-155)
+

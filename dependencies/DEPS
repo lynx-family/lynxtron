@@ -38,7 +38,7 @@ deps = {
     '..': {
         'type': 'git',
         'url': 'git@github.com:lynx-family/lynxtron-buildroot.git',
-        'commit': 'd5e48b79b1b623097f50b03a90a1f8a50e8befe5',
+        'commit': 'dfd303f169f49da8c18b734f1ff17df6a7922a5b',
         "ignore_in_git": True,
     },
     '../url': {

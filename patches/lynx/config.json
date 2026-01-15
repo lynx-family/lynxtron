@@ -1,3 +1,4 @@
 [
-  { "patch_dir": "lynxtron/patches/lynx", "repo": "lynx" }
+  { "patch_dir": "lynxtron/patches/lynx", "repo": "lynx" },
+  { "patch_dir": "lynxtron/patches/lynx/quickjs", "repo": "lynx/third_party/quickjs/src" }
 ]
