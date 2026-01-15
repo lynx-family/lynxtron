@@ -61,11 +61,8 @@ class NativeWindowWin : public NativeWindow,
   bool IsFullscreen() const override;
   void SetBounds(const gfx::Rect& bounds, bool animate) override;
   gfx::Rect GetBounds() const override;
-  gfx::Size GetSize() const override;
+  // gfx::Size GetSize() const override;
   gfx::Rect GetNormalBounds() const override;
-  void SetContentSizeConstraints(
-      const SizeConstraints& size_constraints) override;
-  SizeConstraints GetContentSizeConstraints() const override;
   void SetResizable(bool resizable) override;
   void MoveTop() override;
   bool IsResizable() const override;
@@ -96,7 +93,6 @@ class NativeWindowWin : public NativeWindow,
   bool IsSimpleFullScreen() override;
   void SetKiosk(bool kiosk) override;
   bool IsKiosk() const override;
-  bool IsTabletMode() const override;
   // void SetBackgroundColor(SkColor color) override;
   void SetHasShadow(bool has_shadow) override;
   bool HasShadow() override;
@@ -143,10 +139,10 @@ class NativeWindowWin : public NativeWindow,
   ui::WindowShowState GetRestoredState();
 
   // Overridden from HWNDMessageHandlerDelegate:
-  bool HasNonClientView() const override;
+  // bool HasNonClientView() const override;
   ui::FrameMode GetFrameMode() const override;
   bool HasFrame() const override;
-  void SchedulePaint() override;
+  // void SchedulePaint() override;
   bool ShouldPaintAsActive() const override;
   bool CanResize() const override;
   bool CanMaximize() const override;
@@ -194,11 +190,11 @@ class NativeWindowWin : public NativeWindow,
   // bool HandleGestureEvent(ui::GestureEvent* event) override;
   // bool HandleMouseEventForCaption(UINT message) const override;
 
-  void HandleInputLanguageChange(DWORD character_set,
-                                 HKL input_language_id) override;
-  bool HandleTooltipNotify(int w_param,
-                           NMHDR* l_param,
-                           LRESULT* l_result) override;
+  // void HandleInputLanguageChange(DWORD character_set,
+  //                                HKL input_language_id) override;
+  // bool HandleTooltipNotify(int w_param,
+  //                          NMHDR* l_param,
+  //                          LRESULT* l_result) override;
   void HandleMenuLoop(bool in_menu_loop) override;
   bool PreHandleMSG(UINT message,
                     WPARAM w_param,

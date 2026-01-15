@@ -115,13 +115,14 @@ using FullScreenTransitionState =
 
   if (aspectRatio > 0.0) {
     gfx::Size windowSize = shell_->GetSize();
-    gfx::Size contentSize = shell_->GetContentSize();
+    // TODO(Guo Xi): support content size.
+    // gfx::Size contentSize = shell_->GetContentSize();
     gfx::Size extraSize = shell_->GetAspectRatioExtraSize();
 
     double extraWidthPlusFrame =
-        windowSize.width() - contentSize.width() + extraSize.width();
+        windowSize.width() /*- contentSize.width() */ + extraSize.width();
     double extraHeightPlusFrame =
-        windowSize.height() - contentSize.height() + extraSize.height();
+        windowSize.height() /*- contentSize.height() */ + extraSize.height();
 
     newSize.width =
         roundf((frameSize.height - extraHeightPlusFrame) * aspectRatio +

@@ -8,8 +8,14 @@ config("ui_config") {
 
 source_set("ui") {
   public_configs = [ ":ui_config" ]
-  include_dirs = [ "../.." ]
-  deps = [ "//base" ]
+  include_dirs = [
+    "../..",
+    ".",
+  ]
+  deps = [
+    "./skia:skia_ext",
+    "//base",
+  ]
   sources = []
   if (is_win) {
     sources += [

@@ -66,7 +66,7 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   ~HWNDMessageHandler() override;
 
   void Init(HWND parent, const gfx::Rect& bounds);
-  void InitModalType(ui::ModalType modal_type);
+  // void InitModalType(ui::ModalType modal_type);
 
   void Close();
   void CloseNow();
@@ -114,9 +114,6 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   bool IsFullscreen() const;
   bool IsAlwaysOnTop() const;
 
-  bool RunMoveLoop(const gfx::Vector2d& drag_offset, bool hide_on_escape);
-  void EndMoveLoop();
-
   // Tells the HWND its client area has changed.
   void SendFrameChanged();
 
@@ -124,13 +121,13 @@ class HWNDMessageHandler : public gfx::WindowImpl {
 
   void ClearNativeFocus();
 
-  void SetCapture();
-  void ReleaseCapture();
-  bool HasCapture() const;
+  // void SetCapture();
+  // void ReleaseCapture();
+  // bool HasCapture() const;
 
   FullscreenHandler* fullscreen_handler() { return fullscreen_handler_.get(); }
 
-  void SetVisibilityChangedAnimationsEnabled(bool enabled);
+  // void SetVisibilityChangedAnimationsEnabled(bool enabled);
 
   // Returns true if the title changed.
   bool SetTitle(const std::u16string& title);
@@ -141,10 +138,6 @@ class HWNDMessageHandler : public gfx::WindowImpl {
 
   // void SetWindowIcons(const gfx::ImageSkia& window_icon,
   //                     const gfx::ImageSkia& app_icon);
-
-  void set_use_system_default_icon(bool use_system_default_icon) {
-    use_system_default_icon_ = use_system_default_icon;
-  }
 
   void SetFullscreen(bool fullscreen);
 
@@ -165,10 +158,6 @@ class HWNDMessageHandler : public gfx::WindowImpl {
 
   // std::unique_ptr<aura::ScopedEnableUnadjustedMouseEvents>
   // RegisterUnadjustedMouseEvent();
-  void set_using_wm_input(bool using_wm_input) {
-    using_wm_input_ = using_wm_input;
-  }
-  bool using_wm_input() { return using_wm_input_; }
 
  private:
   // friend class ::views::test::DesktopWindowTreeHostWinTestApi;
@@ -269,7 +258,6 @@ class HWNDMessageHandler : public gfx::WindowImpl {
 
   // Start tracking all mouse events so that this window gets sent mouse leave
   // messages too.
-  void TrackMouseEvents(DWORD mouse_tracking_flags);
 
   // Responds to the client area changing size, either at window creation time
   // or subsequently.
@@ -287,7 +275,7 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   // Resets the window region for the current widget bounds if necessary.
   // If |force| is true, the window region is reset to NULL even for native
   // frame windows.
-  void ResetWindowRegion(bool force, bool redraw);
+  // void ResetWindowRegion(bool force, bool redraw);
 
   // Enables or disables rendering of the non-client (glass) area by DWM,
   // under Vista and above, depending on whether the caller has requested a
@@ -342,33 +330,33 @@ class HWNDMessageHandler : public gfx::WindowImpl {
     // CR_MESSAGE_HANDLER_EX(WM_GETOBJECT, OnGetObject)
 
     // Mouse events.
-    CR_MESSAGE_HANDLER_EX(WM_MOUSEACTIVATE, OnMouseActivate)
+    // CR_MESSAGE_HANDLER_EX(WM_MOUSEACTIVATE, OnMouseActivate)
     // CR_MESSAGE_HANDLER_EX(WM_MOUSELEAVE, OnMouseRange)
     // CR_MESSAGE_HANDLER_EX(WM_NCMOUSELEAVE, OnMouseRange)
-    CR_MESSAGE_HANDLER_EX(WM_SETCURSOR, OnSetCursor);
+    // CR_MESSAGE_HANDLER_EX(WM_SETCURSOR, OnSetCursor);
 
     // Pointer events.
-    CR_MESSAGE_HANDLER_EX(WM_POINTERACTIVATE, OnPointerActivate)
-    CR_MESSAGE_HANDLER_EX(WM_POINTERDOWN, OnPointerEvent)
-    CR_MESSAGE_HANDLER_EX(WM_POINTERUP, OnPointerEvent)
-    CR_MESSAGE_HANDLER_EX(WM_POINTERUPDATE, OnPointerEvent)
-    CR_MESSAGE_HANDLER_EX(WM_POINTERENTER, OnPointerEvent)
-    CR_MESSAGE_HANDLER_EX(WM_POINTERLEAVE, OnPointerEvent)
-    CR_MESSAGE_HANDLER_EX(WM_NCPOINTERDOWN, OnPointerEvent)
-    CR_MESSAGE_HANDLER_EX(WM_NCPOINTERUP, OnPointerEvent)
-    CR_MESSAGE_HANDLER_EX(WM_NCPOINTERUPDATE, OnPointerEvent)
+    // CR_MESSAGE_HANDLER_EX(WM_POINTERACTIVATE, OnPointerActivate)
+    // CR_MESSAGE_HANDLER_EX(WM_POINTERDOWN, OnPointerEvent)
+    // CR_MESSAGE_HANDLER_EX(WM_POINTERUP, OnPointerEvent)
+    // CR_MESSAGE_HANDLER_EX(WM_POINTERUPDATE, OnPointerEvent)
+    // CR_MESSAGE_HANDLER_EX(WM_POINTERENTER, OnPointerEvent)
+    // CR_MESSAGE_HANDLER_EX(WM_POINTERLEAVE, OnPointerEvent)
+    // CR_MESSAGE_HANDLER_EX(WM_NCPOINTERDOWN, OnPointerEvent)
+    // CR_MESSAGE_HANDLER_EX(WM_NCPOINTERUP, OnPointerEvent)
+    // CR_MESSAGE_HANDLER_EX(WM_NCPOINTERUPDATE, OnPointerEvent)
 
     // Key events.
-    CR_MESSAGE_HANDLER_EX(WM_KEYDOWN, OnKeyEvent)
-    CR_MESSAGE_HANDLER_EX(WM_KEYUP, OnKeyEvent)
-    CR_MESSAGE_HANDLER_EX(WM_SYSKEYDOWN, OnKeyEvent)
-    CR_MESSAGE_HANDLER_EX(WM_SYSKEYUP, OnKeyEvent)
+    // CR_MESSAGE_HANDLER_EX(WM_KEYDOWN, OnKeyEvent)
+    // CR_MESSAGE_HANDLER_EX(WM_KEYUP, OnKeyEvent)
+    // CR_MESSAGE_HANDLER_EX(WM_SYSKEYDOWN, OnKeyEvent)
+    // CR_MESSAGE_HANDLER_EX(WM_SYSKEYUP, OnKeyEvent)
 
     CR_MESSAGE_HANDLER_EX(WM_INPUT, OnInputEvent)
 
     // Scroll events
-    CR_MESSAGE_HANDLER_EX(WM_VSCROLL, OnScrollMessage)
-    CR_MESSAGE_HANDLER_EX(WM_HSCROLL, OnScrollMessage)
+    // CR_MESSAGE_HANDLER_EX(WM_VSCROLL, OnScrollMessage)
+    // CR_MESSAGE_HANDLER_EX(WM_HSCROLL, OnScrollMessage)
 
     // Touch Events.
     // CR_MESSAGE_HANDLER_EX(WM_TOUCH, OnTouchEvent)
@@ -397,15 +385,15 @@ class HWNDMessageHandler : public gfx::WindowImpl {
     CR_MSG_WM_EXITSIZEMOVE(OnExitSizeMove)
     CR_MSG_WM_GETMINMAXINFO(OnGetMinMaxInfo)
     CR_MSG_WM_INITMENU(OnInitMenu)
-    CR_MSG_WM_INPUTLANGCHANGE(OnInputLangChange)
+    // CR_MSG_WM_INPUTLANGCHANGE(OnInputLangChange)
     CR_MSG_WM_KILLFOCUS(OnKillFocus)
     CR_MSG_WM_MOVE(OnMove)
     CR_MSG_WM_MOVING(OnMoving)
     CR_MSG_WM_NCCALCSIZE(OnNCCalcSize)
     CR_MSG_WM_NCCREATE(OnNCCreate)
     CR_MSG_WM_NCHITTEST(OnNCHitTest)
-    CR_MSG_WM_NCPAINT(OnNCPaint)
-    CR_MSG_WM_NOTIFY(OnNotify)
+    // CR_MSG_WM_NCPAINT(OnNCPaint)
+    // CR_MSG_WM_NOTIFY(OnNotify)
     CR_MSG_WM_PAINT(OnPaint)
     CR_MSG_WM_SETFOCUS(OnSetFocus)
     CR_MSG_WM_SETICON(OnSetIcon)
@@ -447,8 +435,8 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   LRESULT OnImeMessages(UINT message, WPARAM w_param, LPARAM l_param);
   void OnInitMenu(HMENU menu);
   LRESULT OnInputEvent(UINT message, WPARAM w_param, LPARAM l_param);
-  void OnInputLangChange(DWORD character_set, HKL input_language_id);
-  LRESULT OnKeyEvent(UINT message, WPARAM w_param, LPARAM l_param);
+  // void OnInputLangChange(DWORD character_set, HKL input_language_id);
+  // LRESULT OnKeyEvent(UINT message, WPARAM w_param, LPARAM l_param);
   void OnKillFocus(HWND focused_window);
   LRESULT OnMouseActivate(UINT message, WPARAM w_param, LPARAM l_param);
   // LRESULT OnMouseRange(UINT message, WPARAM w_param, LPARAM l_param);
@@ -460,14 +448,14 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   LRESULT OnNCCalcSize(BOOL mode, LPARAM l_param);
   LRESULT OnNCCreate(LPCREATESTRUCT lpCreateStruct);
   LRESULT OnNCHitTest(const gfx::Point& point);
-  void OnNCPaint(HRGN rgn);
+  // void OnNCPaint(HRGN rgn);
   LRESULT OnNCUAHDrawCaption(UINT message, WPARAM w_param, LPARAM l_param);
   LRESULT OnNCUAHDrawFrame(UINT message, WPARAM w_param, LPARAM l_param);
-  LRESULT OnNotify(int w_param, NMHDR* l_param);
+  // LRESULT OnNotify(int w_param, NMHDR* l_param);
   void OnPaint(HDC dc);
-  LRESULT OnReflectedMessage(UINT message, WPARAM w_param, LPARAM l_param);
-  LRESULT OnScrollMessage(UINT message, WPARAM w_param, LPARAM l_param);
-  LRESULT OnSetCursor(UINT message, WPARAM w_param, LPARAM l_param);
+  // LRESULT OnReflectedMessage(UINT message, WPARAM w_param, LPARAM l_param);
+  // LRESULT OnScrollMessage(UINT message, WPARAM w_param, LPARAM l_param);
+  // LRESULT OnSetCursor(UINT message, WPARAM w_param, LPARAM l_param);
   void OnSetFocus(HWND last_focused_window);
   LRESULT OnSetIcon(UINT size_type, HICON new_icon);
   LRESULT OnSetText(const wchar_t* text);
@@ -493,7 +481,7 @@ class HWNDMessageHandler : public gfx::WindowImpl {
 
   // Resets the flag which indicates that we are in the context of a touch down
   // event.
-  void ResetTouchDownContext();
+  // void ResetTouchDownContext();
 
   // Helper to handle mouse events.
   // The |message|, |w_param|, |l_param| parameters identify the Windows mouse
@@ -504,26 +492,10 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   //                                  LPARAM l_param,
   //                                  bool track_mouse);
 
-  // We handle 2 kinds of WM_POINTER events: PT_TOUCH and PT_PEN. This helper
-  // handles client area events of PT_TOUCH, and non-client area events of both
-  // kinds.
-  LRESULT HandlePointerEventTypeTouchOrNonClient(UINT message,
-                                                 WPARAM w_param,
-                                                 LPARAM l_param);
-
-  // Helper to handle client area events of PT_PEN.
-  LRESULT HandlePointerEventTypePenClient(UINT message,
-                                          WPARAM w_param,
-                                          LPARAM l_param);
+  // We handle 2 kinds of WM_POINTER events: PT_TOUCH and PT_PEN.
 
   // Returns true if the mouse message passed in is an OS synthesized mouse
   // message.
-  // |message| identifies the mouse message.
-  // |message_time| is the time when the message occurred.
-  // |l_param| indicates the location of the mouse message.
-  bool IsSynthesizedMouseMessage(unsigned int message,
-                                 int message_time,
-                                 LPARAM l_param);
 
   // Provides functionality to transition a frame to DWM.
   void PerformDwmTransition();
@@ -542,10 +514,6 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   //                        TouchEvents* touch_events);
 
   // Handles WM_NCLBUTTONDOWN and WM_NCMOUSEMOVE messages on the caption.
-  // Returns true if the message was handled.
-  bool HandleMouseInputForCaption(unsigned int message,
-                                  WPARAM w_param,
-                                  LPARAM l_param);
 
   // Helper function for setting the bounds of the HWND. For more information
   // please refer to the SetBounds() function.
@@ -565,14 +533,13 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   // Deletes the system caret used for accessibility. This will result in any
   // clients that are still holding onto its |IAccessible| to get a failure code
   // if they request its location.
-  void DestroyAXSystemCaret();
+  // void DestroyAXSystemCaret();
 
   // Updates |rect| to adhere to the |aspect_ratio| of the window. |param|
   // refers to the edge of the window being sized.
   void SizeWindowToAspectRatio(UINT param, gfx::Rect* rect);
 
   // Get the cursor position, which may be mocked if running a test
-  POINT GetCursorPos() const;
 
   base::raw_ptr<HWNDMessageHandlerDelegate> delegate_;
 
@@ -580,8 +547,6 @@ class HWNDMessageHandler : public gfx::WindowImpl {
 
   // Set to true in Close() and false is CloseNow().
   bool waiting_for_close_now_;
-
-  bool use_system_default_icon_;
 
   // Whether all ancestors have been enabled. This is only used if is_modal_ is
   // true.
@@ -619,14 +584,11 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   // The flags currently being used with TrackMouseEvent to track mouse
   // messages. 0 if there is no active tracking. The value of this member is
   // used when tracking is canceled.
-  DWORD active_mouse_tracking_flags_;
 
   // Set to true when the user presses the right mouse button on the caption
   // area. We need this so we can correctly show the context menu on mouse-up.
-  bool is_right_mouse_pressed_on_caption_;
 
   // The set of touch devices currently down.
-  TouchIDs touch_ids_;
 
   // ScopedRedrawLock ----------------------------------------------------------
 
@@ -653,7 +615,7 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   bool is_first_nccalc_;
 
   // Copy of custom window region specified via SetRegion(), if any.
-  base::win::ScopedGDIObject<HRGN> custom_window_region_;
+  // base::win::ScopedGDIObject<HRGN> custom_window_region_;
 
   // If > 0 indicates a menu is running (we're showing a native menu).
   int menu_depth_;
@@ -672,13 +634,9 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   // We need this to ignore WM_MOUSEACTIVATE messages generated in response to
   // touch input. This is fine because activation still works correctly via
   // native SetFocus calls invoked in the views code.
-  int touch_down_contexts_;
+  // int touch_down_contexts_;
 
-  // Time the last touch or pen message was received. Used to flag mouse
-  // messages synthesized by Windows for touch which are not flagged by the OS
-  // as synthesized mouse messages. For more information please refer to the
-  // IsMouseEventFromTouch function.
-  static LONG last_touch_or_pen_message_time_;
+  // Time the last touch or pen message was received.
 
   // On Windows Vista and beyond, if we are transitioning from custom frame
   // to Aero(glass) we delay setting the DWM related properties in full
@@ -716,16 +674,7 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   // cause re-entrancy during teardown. https://crbug.com/1087553
   bool did_return_uia_object_;
 
-  // The location where the user clicked on the caption. We cache this when we
-  // receive the WM_NCLBUTTONDOWN message. We use this in the subsequent
-  // WM_NCMOUSEMOVE message to see if the mouse actually moved.
-  // Please refer to the HandleMouseEventInternal function for details on why
-  // this is needed.
-  gfx::Point caption_left_button_click_pos_;
-
-  // Set to true if the left mouse button has been pressed on the caption.
-  // Defaults to false.
-  bool left_button_down_on_caption_;
+  // The location where the user clicked on the caption.
 
   // Set to true if the window is a background fullscreen window, i.e a
   // fullscreen window which lost activation. Defaults to false.
@@ -737,7 +686,7 @@ class HWNDMessageHandler : public gfx::WindowImpl {
 
   // True if the window should process WM_POINTER for touch events and
   // not WM_TOUCH events.
-  bool pointer_events_for_touch_;
+  bool pointer_events_for_touch_ = false;
 
   // True if DWM frame should be cleared on next WM_ERASEBKGND message.  This is
   // necessary to avoid white flashing in the titlebar area around the
@@ -747,7 +696,6 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   bool needs_dwm_frame_clear_ = true;
 
   // True if is handling mouse WM_INPUT messages.
-  bool using_wm_input_ = false;
 
   // True if we're displaying the system menu on the title bar. If we are,
   // then we want to ignore right mouse clicks instead of bringing up a

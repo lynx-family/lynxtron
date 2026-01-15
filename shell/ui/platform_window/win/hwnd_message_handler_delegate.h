@@ -29,9 +29,8 @@ class Size;
 namespace ui {
 
 enum class FrameMode {
-  SYSTEM_DRAWN,              // "glass" frame
-  SYSTEM_DRAWN_NO_CONTROLS,  // "glass" frame but with custom window controls
-  CUSTOM_DRAWN               // "opaque" frame
+  SYSTEM_DRAWN,  // "glass" frame
+  CUSTOM_DRAWN   // "opaque" frame
 };
 
 // Implemented by the object that uses the HWNDMessageHandler to handle
@@ -42,7 +41,7 @@ class HWNDMessageHandlerDelegate {
   // virtual ui::InputMethod* GetHWNDMessageDelegateInputMethod() = 0;
 
   // True if the widget associated with this window has a non-client view.
-  virtual bool HasNonClientView() const = 0;
+  // virtual bool HasNonClientView() const = 0;
 
   // virtual bool HasNativeFrame() const;
 
@@ -61,7 +60,7 @@ class HWNDMessageHandlerDelegate {
   // system focus).
   virtual bool ShouldPaintAsActive() const = 0;
 
-  virtual void SchedulePaint() = 0;
+  // virtual void SchedulePaint() = 0;
 
   virtual bool CanResize() const = 0;
   virtual bool CanMaximize() const = 0;
@@ -203,16 +202,16 @@ class HWNDMessageHandlerDelegate {
   // virtual void HandleTouchEvent(ui::TouchEvent* event) = 0;
 
   // Called when the system input language changes.
-  virtual void HandleInputLanguageChange(DWORD character_set,
-                                         HKL input_language_id) = 0;
+  // virtual void HandleInputLanguageChange(DWORD character_set,
+  //                                        HKL input_language_id) = 0;
 
   // Called to compel the delegate to paint |invalid_rect| accelerated.
   // virtual void HandlePaintAccelerated(const gfx::Rect& invalid_rect) = 0;
 
   // Called to forward a WM_NOTIFY message to the tooltip manager.
-  virtual bool HandleTooltipNotify(int w_param,
-                                   NMHDR* l_param,
-                                   LRESULT* l_result) = 0;
+  // virtual bool HandleTooltipNotify(int w_param,
+  //                                  NMHDR* l_param,
+  //                                  LRESULT* l_result) = 0;
 
   // Invoked on entering/exiting a menu loop.
   virtual void HandleMenuLoop(bool in_menu_loop) = 0;

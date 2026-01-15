@@ -61,9 +61,6 @@ inline constexpr std::string_view kAlwaysOnTop = "alwaysOnTop";
 // Enable the NSView to accept first mouse event.
 inline constexpr std::string_view kAcceptFirstMouse = "acceptFirstMouse";
 
-// Whether window size should include window frame.
-inline constexpr std::string_view kUseContentSize = "useContentSize";
-
 // Whether window zoom should be to page width.
 inline constexpr std::string_view kZoomToPageWidth = "zoomToPageWidth";
 
@@ -75,10 +72,6 @@ inline constexpr std::string_view kTabbingIdentifier = "tabbingIdentifier";
 
 // The menu bar is hidden unless "Alt" is pressed.
 inline constexpr std::string_view kAutoHideMenuBar = "autoHideMenuBar";
-
-// Enable window to be resized larger than screen.
-inline constexpr std::string_view kEnableLargerThanScreen =
-    "enableLargerThanScreen";
 
 // Forces to use dark theme on Linux.
 inline constexpr std::string_view kDarkTheme = "darkTheme";

@@ -3,6 +3,7 @@
 // LICENSE file in the root directory of this source tree.
 #include "shell/api/native_window_win.h"
 
+#include <base/logging.h>
 #include <wrl/client.h>
 
 #include <memory>
@@ -88,15 +89,6 @@ NativeWindowWin::NativeWindowWin(const gin_helper::Dictionary& options,
   options.Get(options::kMaximizable, &maximizable_);
   options.Get(options::kFocusable, &can_activate_);
 
-  if (enable_larger_than_screen()) {
-    // We need to set a default maximum window size here otherwise Windows
-    // will not allow us to resize the window larger than scree.
-    // Setting directly to INT_MAX somehow doesn't work, so we just divide
-    // by 10, which should still be large enough.
-    SetContentSizeConstraints(
-        SizeConstraints(gfx::Size(), gfx::Size(INT_MAX / 10, INT_MAX / 10)));
-  }
-
   // Transparent window must not have thick frame.
   options.Get("thickFrame", &thick_frame_);
   if (transparent()) {
@@ -125,7 +117,7 @@ NativeWindowWin::NativeWindowWin(const gin_helper::Dictionary& options,
   bounds = DIPToScreenRect(GetNativeWindowHandle(), bounds);
 
   DWORD frame_style =
-      WS_CAPTION | WS_OVERLAPPED | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
+      WS_CAPTION | WS_OVERLAPPED | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU;
   if (resizable_) {
     frame_style |= WS_THICKFRAME;
   }
@@ -410,9 +402,9 @@ gfx::Rect NativeWindowWin::GetBounds() const {
   return bounds;
 }
 
-gfx::Size NativeWindowWin::GetSize() const {
-  return DIPToScreenSize(GetSize());
-}
+// gfx::Size NativeWindowWin::GetSize() const {
+//   return DIPToScreenSize(GetSize());
+// }
 
 // TODO(Guo Xi): support content bounds/content size
 // gfx::Rect NativeWindowViews::GetContentBounds() const {
@@ -434,47 +426,16 @@ gfx::Rect NativeWindowWin::GetNormalBounds() const {
   }
   return window_->GetRestoredBounds();
 }
-void NativeWindowWin::SetContentSizeConstraints(
-    const SizeConstraints& size_constraints) {
-  NativeWindow::SetContentSizeConstraints(size_constraints);
-  // Changing size constraints would force adding the WS_THICKFRAME style, so
-  // do nothing if thickFrame is false.
-  if (!thick_frame_) {
-    return;
-  }
-  if (resizable_) {
-    old_size_constraints_ = size_constraints;
-  }
-}
-
-SizeConstraints NativeWindowWin::GetContentSizeConstraints() const {
-  if (content_size_constraints_) {
-    return *content_size_constraints_;
-  }
-  if (!size_constraints_) {
-    return SizeConstraints();
-  }
-  SizeConstraints constraints;
-  if (size_constraints_->HasMaximumSize()) {
-    constraints.set_maximum_size(WindowSizeToContentSizeBuggy(
-        GetNativeWindowHandle(), size_constraints_->GetMaximumSize()));
-  }
-  if (size_constraints_->HasMinimumSize()) {
-    constraints.set_minimum_size(WindowSizeToContentSizeBuggy(
-        GetNativeWindowHandle(), size_constraints_->GetMinimumSize()));
-  }
-  return constraints;
-}
 
 void NativeWindowWin::SetResizable(bool resizable) {
   if (resizable != resizable_) {
     resizable_ = resizable;
     if (resizable) {
-      SetContentSizeConstraints(old_size_constraints_);
+      // SetContentSizeConstraints(old_size_constraints_);
     } else {
-      old_size_constraints_ = GetContentSizeConstraints();
-      gfx::Size content_size = GetContentSize();
-      SetContentSizeConstraints(SizeConstraints(content_size, content_size));
+      // old_size_constraints_ = GetContentSizeConstraints();
+      // gfx::Size content_size = GetContentSize();
+      // SetContentSizeConstraints(SizeConstraints(content_size, content_size));
     }
   }
 }
@@ -653,17 +614,6 @@ void NativeWindowWin::SetKiosk(bool kiosk) {
 
 bool NativeWindowWin::IsKiosk() const {
   return IsFullscreen();
-}
-
-bool NativeWindowWin::IsTabletMode() const {
-  // TODO(Guo Xi): IsWindows10OrGreaterTabletMode is not implemented yet.
-  // #if defined(OS_WIN)
-  //   return
-  //   base::win::IsWindows10OrGreaterTabletMode(GetNativeWindowHandle());
-  // #else
-  //   return false;
-  // #endif
-  return false;
 }
 
 // TODO(Guo Xi): continue reviewing the code from here.
@@ -857,7 +807,7 @@ NativeWindowHandle NativeWindowWin::GetNativeWindowHandle() const {
   return nullptr;
 #endif
 }
-#if BUILDFLAG(IS_WIN)
+
 void NativeWindowWin::SetIcon(HICON window_icon, HICON app_icon) {
   // We are responsible for storing the images.
   window_icon_ = base::win::ScopedGDIObject<HICON>(CopyIcon(window_icon));
@@ -869,13 +819,6 @@ void NativeWindowWin::SetIcon(HICON window_icon, HICON app_icon) {
   SendMessage(hwnd, WM_SETICON, ICON_BIG,
               reinterpret_cast<LPARAM>(app_icon_.get()));
 }
-#elif defined(OS_LINUX)
-void NativeWindowWin::SetIcon(const gfx::ImageSkia& icon) {
-  auto* tree_host = views::DesktopWindowTreeHostLinux::GetHostForWidget(
-      GetNativeWindowHandle());
-  tree_host->SetWindowIcons(icon, {});
-}
-#endif
 
 void NativeWindowWin::MoveBehindTaskBarIfNeeded() {
 #if defined(OS_WIN)
@@ -951,19 +894,18 @@ gfx::Rect NativeWindowWin::WindowBoundsToContentBounds(
 ////////////////////////////////////////////////////////////////////////////////
 // HWNDMessageHandlerDelegate implementation:
 
-bool NativeWindowWin::HasNonClientView() const {
-  return !thick_frame_;
-}
+// bool NativeWindowWin::HasNonClientView() const {
+//   return !thick_frame_;
+// }
 
+// TODO(Guo Xi): frame mode
 ui::FrameMode NativeWindowWin::GetFrameMode() const {
-  return ui::FrameMode::CUSTOM_DRAWN;
+  return ui::FrameMode::SYSTEM_DRAWN;
 }
 
 bool NativeWindowWin::HasFrame() const {
   return NativeWindow::has_frame();
 }
-
-void NativeWindowWin::SchedulePaint() {}
 
 bool NativeWindowWin::ShouldPaintAsActive() const {
   return false;
@@ -1004,6 +946,7 @@ int NativeWindowWin::GetInitialShowState() const {
 
 bool NativeWindowWin::GetClientAreaInsets(gfx::Insets* insets,
                                           HMONITOR monitor) const {
+  LOG(INFO) << " GetClientAreaInsets";
   return false;
 }
 
@@ -1059,6 +1002,30 @@ void NativeWindowWin::HandleCreate() {}
 
 void NativeWindowWin::HandleDestroying() {}
 
+void NativeWindowWin::HandleDisplayChange() {}
+
+void NativeWindowWin::HandleBeginWMSizeMove() {}
+
+void NativeWindowWin::HandleEndWMSizeMove() {}
+
+void NativeWindowWin::HandleWorkAreaChanged() {}
+
+void NativeWindowWin::HandleVisibilityChanged(bool visible) {}
+
+void NativeWindowWin::HandleWindowMinimizedOrRestored(bool restored) {}
+
+void NativeWindowWin::HandleFrameChanged() {}
+
+void NativeWindowWin::HandleNativeFocus(HWND last_focused_window) {}
+
+void NativeWindowWin::HandleNativeBlur(HWND focused_window) {}
+
+void NativeWindowWin::HandleMenuLoop(bool in_menu_loop) {}
+
+void NativeWindowWin::HandleWindowSizeChanging() {}
+
+void NativeWindowWin::HandleWindowSizeUnchanged() {}
+
 void NativeWindowWin::HandleDestroyed() {
   if (is_modal() && NativeWindow::parent()) {
     static_cast<NativeWindowWin*>(parent())->DecrementChildModals();
@@ -1072,12 +1039,6 @@ bool NativeWindowWin::HandleInitialFocus(ui::WindowShowState show_state) {
   // message
   return can_activate_;
 }
-
-void NativeWindowWin::HandleDisplayChange() {}
-
-void NativeWindowWin::HandleBeginWMSizeMove() {}
-
-void NativeWindowWin::HandleEndWMSizeMove() {}
 
 void NativeWindowWin::HandleMove() {
   NotifyWindowMove();
@@ -1102,142 +1063,18 @@ bool NativeWindowWin::HandleMoving(RECT* rect) {
   // return true;
 }
 
-void NativeWindowWin::HandleWorkAreaChanged() {}
-
-void NativeWindowWin::HandleVisibilityChanged(bool visible) {}
-
-void NativeWindowWin::HandleWindowMinimizedOrRestored(bool restored) {}
-
 void NativeWindowWin::HandleClientSizeChanged(const gfx::Size& new_size) {
   NotifyWindowResize();
 }
 
-void NativeWindowWin::HandleFrameChanged() {}
+// void NativeWindowWin::HandleInputLanguageChange(DWORD character_set,
+//                                                 HKL input_language_id) {}
 
-void NativeWindowWin::HandleNativeFocus(HWND last_focused_window) {}
-
-void NativeWindowWin::HandleNativeBlur(HWND focused_window) {}
-
-void NativeWindowWin::HandleInputLanguageChange(DWORD character_set,
-                                                HKL input_language_id) {}
-
-bool NativeWindowWin::HandleTooltipNotify(int w_param,
-                                          NMHDR* l_param,
-                                          LRESULT* l_result) {
-  return false;
-}
-
-void NativeWindowWin::HandleMenuLoop(bool in_menu_loop) {}
-
-// Convert Win32 WM_APPCOMMANDS to strings.
-const char* AppCommandToString(int command_id) {
-  switch (command_id) {
-    case APPCOMMAND_BROWSER_REFRESH:
-      return "browser-refresh";
-    case APPCOMMAND_BROWSER_STOP:
-      return "browser-stop";
-    case APPCOMMAND_BROWSER_SEARCH:
-      return "browser-search";
-    case APPCOMMAND_BROWSER_FAVORITES:
-      return "browser-favorites";
-    case APPCOMMAND_BROWSER_HOME:
-      return "browser-home";
-    case APPCOMMAND_VOLUME_MUTE:
-      return "volume-mute";
-    case APPCOMMAND_VOLUME_DOWN:
-      return "volume-down";
-    case APPCOMMAND_VOLUME_UP:
-      return "volume-up";
-    case APPCOMMAND_MEDIA_NEXTTRACK:
-      return "media-nexttrack";
-    case APPCOMMAND_MEDIA_PREVIOUSTRACK:
-      return "media-previoustrack";
-    case APPCOMMAND_MEDIA_STOP:
-      return "media-stop";
-    case APPCOMMAND_MEDIA_PLAY_PAUSE:
-      return "media-play-pause";
-    case APPCOMMAND_LAUNCH_MAIL:
-      return "launch-mail";
-    case APPCOMMAND_LAUNCH_MEDIA_SELECT:
-      return "launch-media-select";
-    case APPCOMMAND_LAUNCH_APP1:
-      return "launch-app1";
-    case APPCOMMAND_LAUNCH_APP2:
-      return "launch-app2";
-    case APPCOMMAND_BASS_DOWN:
-      return "bass-down";
-    case APPCOMMAND_BASS_BOOST:
-      return "bass-boost";
-    case APPCOMMAND_BASS_UP:
-      return "bass-up";
-    case APPCOMMAND_TREBLE_DOWN:
-      return "treble-down";
-    case APPCOMMAND_TREBLE_UP:
-      return "treble-up";
-    case APPCOMMAND_MICROPHONE_VOLUME_MUTE:
-      return "microphone-volume-mute";
-    case APPCOMMAND_MICROPHONE_VOLUME_DOWN:
-      return "microphone-volume-down";
-    case APPCOMMAND_MICROPHONE_VOLUME_UP:
-      return "microphone-volume-up";
-    case APPCOMMAND_HELP:
-      return "help";
-    case APPCOMMAND_FIND:
-      return "find";
-    case APPCOMMAND_NEW:
-      return "new";
-    case APPCOMMAND_OPEN:
-      return "open";
-    case APPCOMMAND_CLOSE:
-      return "close";
-    case APPCOMMAND_SAVE:
-      return "save";
-    case APPCOMMAND_PRINT:
-      return "print";
-    case APPCOMMAND_UNDO:
-      return "undo";
-    case APPCOMMAND_REDO:
-      return "redo";
-    case APPCOMMAND_COPY:
-      return "copy";
-    case APPCOMMAND_CUT:
-      return "cut";
-    case APPCOMMAND_PASTE:
-      return "paste";
-    case APPCOMMAND_REPLY_TO_MAIL:
-      return "reply-to-mail";
-    case APPCOMMAND_FORWARD_MAIL:
-      return "forward-mail";
-    case APPCOMMAND_SEND_MAIL:
-      return "send-mail";
-    case APPCOMMAND_SPELL_CHECK:
-      return "spell-check";
-    case APPCOMMAND_MIC_ON_OFF_TOGGLE:
-      return "mic-on-off-toggle";
-    case APPCOMMAND_CORRECTION_LIST:
-      return "correction-list";
-    case APPCOMMAND_MEDIA_PLAY:
-      return "media-play";
-    case APPCOMMAND_MEDIA_PAUSE:
-      return "media-pause";
-    case APPCOMMAND_MEDIA_RECORD:
-      return "media-record";
-    case APPCOMMAND_MEDIA_FAST_FORWARD:
-      return "media-fast-forward";
-    case APPCOMMAND_MEDIA_REWIND:
-      return "media-rewind";
-    case APPCOMMAND_MEDIA_CHANNEL_UP:
-      return "media-channel-up";
-    case APPCOMMAND_MEDIA_CHANNEL_DOWN:
-      return "media-channel-down";
-    case APPCOMMAND_DELETE:
-      return "delete";
-    case APPCOMMAND_DICTATE_OR_COMMAND_CONTROL_TOGGLE:
-      return "dictate-or-command-control-toggle";
-    default:
-      return "unknown";
-  }
-}
+// bool NativeWindowWin::HandleTooltipNotify(int w_param,
+//                                           NMHDR* l_param,
+//                                           LRESULT* l_result) {
+//   return false;
+// }
 
 // Copied from ui/views/win/hwnd_message_handler.cc
 gfx::ResizeEdge GetWindowResizeEdge(WPARAM param) {
@@ -1261,13 +1098,6 @@ gfx::ResizeEdge GetWindowResizeEdge(WPARAM param) {
     default:
       return gfx::ResizeEdge::kBottomRight;
   }
-}
-
-bool IsScreenReaderActive() {
-  // UINT screenReader = 0;
-  // SystemParametersInfo(SPI_GETSCREENREADER, 0, &screenReader, 0);
-  // return screenReader && UiaClientsAreListening();
-  return false;
 }
 
 // std::set<NativeWindowWin*> NativeWindowWin::forwarding_windows_;
@@ -1524,12 +1354,6 @@ void NativeWindowWin::PostHandleMSG(UINT message,
                                     WPARAM w_param,
                                     LPARAM l_param) {}
 
-void NativeWindowWin::HandleWindowSizeChanging() {}
-
-void NativeWindowWin::HandleWindowSizeUnchanged() {}
-// bool NativeWindowWin::HandleMouseEventForCaption(UINT message) const {
-//   return true;
-// }
 void NativeWindowWin::HandleWindowScaleFactorChanged(
     float window_scale_factor) {}
 

@@ -76,7 +76,6 @@ NativeWindow::NativeWindow(const gin_helper::Dictionary& options,
 
   options.Get(options::kFrame, &has_frame_);
   options.Get(options::kTransparent, &transparent_);
-  options.Get(options::kEnableLargerThanScreen, &enable_larger_than_screen_);
   options.Get(options::kTitleBarStyle, &title_bar_style_);
 
   if (parent) {
@@ -106,12 +105,8 @@ void NativeWindow::InitFromOptions(const gin_helper::Dictionary& options) {
     Center();
   }
 
-  const bool use_content_size =
-      options.ValueOrDefault(options::kUseContentSize, false);
-
   // On Linux and Window we may already have maximum size defined.
-  SizeConstraints size_constraints(
-      use_content_size ? GetContentSizeConstraints() : GetSizeConstraints());
+  SizeConstraints size_constraints(GetSizeConstraints());
 
   const int min_width = options.ValueOrDefault(
       options::kMinWidth, size_constraints.GetMinimumSize().width());
@@ -138,11 +133,7 @@ void NativeWindow::InitFromOptions(const gin_helper::Dictionary& options) {
     size_constraints.set_maximum_size(gfx::Size(max_width, max_height));
   }
 
-  if (use_content_size) {
-    SetContentSizeConstraints(size_constraints);
-  } else {
-    SetSizeConstraints(size_constraints);
-  }
+  SetSizeConstraints(size_constraints);
 
 #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_LINUX)
   if (bool val; options.Get(options::kClosable, &val)) {
@@ -254,21 +245,21 @@ gfx::Point NativeWindow::GetPosition() const {
   return GetBounds().origin();
 }
 
-void NativeWindow::SetContentSize(const gfx::Size& size, bool animate) {
-  SetSize(ContentBoundsToWindowBounds(gfx::Rect(size)).size(), animate);
-}
+// void NativeWindow::SetContentSize(const gfx::Size& size, bool animate) {
+//   SetSize(ContentBoundsToWindowBounds(gfx::Rect(size)).size(), animate);
+// }
 
-gfx::Size NativeWindow::GetContentSize() const {
-  return GetContentBounds().size();
-}
+// gfx::Size NativeWindow::GetContentSize() const {
+//   return GetContentBounds().size();
+// }
 
-void NativeWindow::SetContentBounds(const gfx::Rect& bounds, bool animate) {
-  SetBounds(ContentBoundsToWindowBounds(bounds), animate);
-}
+// void NativeWindow::SetContentBounds(const gfx::Rect& bounds, bool animate) {
+//   SetBounds(ContentBoundsToWindowBounds(bounds), animate);
+// }
 
-gfx::Rect NativeWindow::GetContentBounds() const {
-  return WindowBoundsToContentBounds(GetBounds());
-}
+// gfx::Rect NativeWindow::GetContentBounds() const {
+//   return WindowBoundsToContentBounds(GetBounds());
+// }
 
 bool NativeWindow::IsNormal() const {
   return !IsMinimized() && !IsMaximized() && !IsFullscreen();
@@ -277,60 +268,14 @@ bool NativeWindow::IsNormal() const {
 void NativeWindow::SetSizeConstraints(
     const SizeConstraints& window_constraints) {
   size_constraints_ = window_constraints;
-  content_size_constraints_.reset();
+  // content_size_constraints_.reset();
 }
 
 SizeConstraints NativeWindow::GetSizeConstraints() const {
   if (size_constraints_) {
     return *size_constraints_;
   }
-  if (!content_size_constraints_) {
-    return {};
-  }
-  // Convert content size constraints to window size constraints.
-  SizeConstraints constraints;
-  if (content_size_constraints_->HasMaximumSize()) {
-    gfx::Rect max_bounds = ContentBoundsToWindowBounds(
-        gfx::Rect(content_size_constraints_->GetMaximumSize()));
-    constraints.set_maximum_size(max_bounds.size());
-  }
-  if (content_size_constraints_->HasMinimumSize()) {
-    gfx::Rect min_bounds = ContentBoundsToWindowBounds(
-        gfx::Rect(content_size_constraints_->GetMinimumSize()));
-    constraints.set_minimum_size(min_bounds.size());
-  }
-  return constraints;
-}
-
-void NativeWindow::SetContentSizeConstraints(
-    const SizeConstraints& size_constraints) {
-  content_size_constraints_ = size_constraints;
-  size_constraints_.reset();
-}
-
-SizeConstraints NativeWindow::GetContentSizeConstraints() const {
-  if (content_size_constraints_) {
-    return *content_size_constraints_;
-  }
-  if (!size_constraints_) {
-    return {};
-  }
-  // Convert window size constraints to content size constraints.
-  // Note that we are not caching the results, because Chromium reccalculates
-  // window frame size everytime when min/max sizes are passed, and we must
-  // do the same otherwise the resulting size with frame included will be wrong.
-  SizeConstraints constraints;
-  if (size_constraints_->HasMaximumSize()) {
-    gfx::Rect max_bounds = WindowBoundsToContentBounds(
-        gfx::Rect(size_constraints_->GetMaximumSize()));
-    constraints.set_maximum_size(max_bounds.size());
-  }
-  if (size_constraints_->HasMinimumSize()) {
-    gfx::Rect min_bounds = WindowBoundsToContentBounds(
-        gfx::Rect(size_constraints_->GetMinimumSize()));
-    constraints.set_minimum_size(min_bounds.size());
-  }
-  return constraints;
+  return SizeConstraints();
 }
 
 void NativeWindow::SetMinimumSize(const gfx::Size& size) {
@@ -354,20 +299,24 @@ gfx::Size NativeWindow::GetMaximumSize() const {
 }
 
 gfx::Size NativeWindow::GetContentMinimumSize() const {
-  return GetContentSizeConstraints().GetMinimumSize();
+  // return GetContentSizeConstraints().GetMinimumSize();
+  return {};
 }
 
 gfx::Size NativeWindow::GetContentMaximumSize() const {
-  const auto size_constraints = GetContentSizeConstraints();
-  gfx::Size maximum_size = size_constraints.GetMaximumSize();
+  // const auto size_constraints = GetContentSizeConstraints();
+  // gfx::Size maximum_size = size_constraints.GetMaximumSize();
+  // return {};
 
-#if BUILDFLAG(IS_WIN)
-  if (size_constraints.HasMaximumSize()) {
-    maximum_size = GetExpandedWindowSize(this, transparent(), maximum_size);
-  }
-#endif
+  // #if BUILDFLAG(IS_WIN)
+  //   if (size_constraints.HasMaximumSize()) {
+  //     maximum_size = GetExpandedWindowSize(this, transparent(),
+  //     maximum_size);
+  //   }
+  // #endif
 
-  return maximum_size;
+  //   return maximum_size;
+  return {};
 }
 
 // TODO(Guo Xi): 在 macOS 上review sheet 相关的逻辑
@@ -382,10 +331,6 @@ double NativeWindow::GetSheetOffsetX() {
 
 double NativeWindow::GetSheetOffsetY() {
   return sheet_offset_y_;
-}
-
-bool NativeWindow::IsTabletMode() const {
-  return false;
 }
 
 void NativeWindow::SetRepresentedFilename(const std::string& filename) {}

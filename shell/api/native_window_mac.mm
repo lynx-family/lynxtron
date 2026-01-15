@@ -438,32 +438,6 @@ gfx::Rect NativeWindowMac::GetNormalBounds() const {
   return bounds;
 }
 
-void NativeWindowMac::SetContentSizeConstraints(
-    const SizeConstraints& size_constraints) {
-  auto convertSize = [this](const gfx::Size& size) {
-    // Our frameless window still has titlebar attached, so setting contentSize
-    // will result in actual content size being larger.
-    if (!has_frame()) {
-      NSRect frame = NSMakeRect(0, 0, size.width(), size.height());
-      NSRect content = [window_ originalContentRectForFrameRect:frame];
-      return content.size;
-    } else {
-      return NSMakeSize(size.width(), size.height());
-    }
-  };
-
-  NSView* content = [window_ contentView];
-  if (size_constraints.HasMinimumSize()) {
-    NSSize min_size = convertSize(size_constraints.GetMinimumSize());
-    [window_ setContentMinSize:[content convertSize:min_size toView:nil]];
-  }
-  if (size_constraints.HasMaximumSize()) {
-    NSSize max_size = convertSize(size_constraints.GetMaximumSize());
-    [window_ setContentMaxSize:[content convertSize:max_size toView:nil]];
-  }
-  NativeWindow::SetContentSizeConstraints(size_constraints);
-}
-
 void NativeWindowMac::SetResizable(bool resizable) {
   // ScopedDisableResize disable_resize;
   SetStyleMask(resizable, NSWindowStyleMaskResizable);

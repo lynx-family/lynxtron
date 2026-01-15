@@ -62,7 +62,7 @@ class NativeWindow : public base::SupportsUserData {
   NativeWindow(const NativeWindow&) = delete;
   NativeWindow& operator=(const NativeWindow&) = delete;
 
-  // Create window with existing WebContents, the caller is responsible for
+  // Create window, the caller is responsible for
   // managing the window's live.
   static NativeWindow* Create(const gin_helper::Dictionary& options,
                               NativeWindow* parent = nullptr);
@@ -99,17 +99,14 @@ class NativeWindow : public base::SupportsUserData {
   virtual float GetDevicePixelRatio() const;
   virtual void SetPosition(const gfx::Point& position, bool animate);
   virtual gfx::Point GetPosition() const;
-  virtual void SetContentSize(const gfx::Size& size, bool animate);
-  virtual gfx::Size GetContentSize() const;
-  virtual void SetContentBounds(const gfx::Rect& bounds, bool animate);
-  virtual gfx::Rect GetContentBounds() const;
+  // virtual void SetContentSize(const gfx::Size& size, bool animate);
+  // virtual gfx::Size GetContentSize() const;
+  // virtual void SetContentBounds(const gfx::Rect& bounds, bool animate);
+  // virtual gfx::Rect GetContentBounds() const;
   virtual bool IsNormal() const;
   virtual gfx::Rect GetNormalBounds() const = 0;
   virtual void SetSizeConstraints(const SizeConstraints& window_constraints);
   virtual SizeConstraints GetSizeConstraints() const;
-  virtual void SetContentSizeConstraints(
-      const SizeConstraints& size_constraints);
-  virtual SizeConstraints GetContentSizeConstraints() const;
 
   void SetMinimumSize(const gfx::Size& size);
   [[nodiscard]] gfx::Size GetMinimumSize() const;
@@ -161,7 +158,6 @@ class NativeWindow : public base::SupportsUserData {
   virtual bool IsSimpleFullScreen() = 0;
   virtual void SetKiosk(bool kiosk) = 0;
   virtual bool IsKiosk() const = 0;
-  virtual bool IsTabletMode() const;
   virtual void SetHasShadow(bool has_shadow) = 0;
   virtual bool HasShadow() = 0;
   virtual void SetOpacity(const double opacity) = 0;
@@ -299,7 +295,6 @@ class NativeWindow : public base::SupportsUserData {
   bool has_frame() const { return has_frame_; }
   void set_has_frame(bool has_frame) { has_frame_ = has_frame; }
   bool transparent() const { return transparent_; }
-  bool enable_larger_than_screen() const { return enable_larger_than_screen_; }
 
   NativeWindow* parent() const { return parent_; }
   bool is_modal() const { return is_modal_; }
@@ -322,10 +317,6 @@ class NativeWindow : public base::SupportsUserData {
 
   // Minimum and maximum size.
   std::optional<SizeConstraints> size_constraints_;
-  // Same as above but stored as content size, we are storing 2 types of size
-  // constraints because converting between them will cause rounding errors
-  // on HiDPI displays on some environments.
-  std::optional<SizeConstraints> content_size_constraints_;
 
  private:
   static int32_t next_id_;
@@ -335,9 +326,6 @@ class NativeWindow : public base::SupportsUserData {
 
   // Whether window is transparent.
   bool transparent_ = false;
-
-  // Whether window can be resized larger than screen.
-  bool enable_larger_than_screen_ = false;
 
   // The windows has been closed.
   bool is_closed_ = false;

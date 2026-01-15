@@ -52,8 +52,6 @@ class NativeWindowMac : public NativeWindow {
   float GetDevicePixelRatio() const override;
   gfx::Rect GetNormalBounds() const override;
   // SkColor GetBackgroundColor() override;
-  void SetContentSizeConstraints(
-      const SizeConstraints& size_constraints) override;
 
   void SetResizable(bool resizable) override;
   void MoveTop() override;

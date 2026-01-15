@@ -10,6 +10,7 @@ import("//testing/test.gni")
 
 config("gfx_config") {
   include_dirs = [
+    "..",
     "../..",
     "../../..",
 
