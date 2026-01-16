@@ -176,10 +176,10 @@ LynxWindow::LynxWindow(gin::Arguments* args,
 
   // node integration
   if (options.ValueOrDefault(options::kNodeIntegration, false)) {
-    std::cout << "node integration is enabled" << std::endl;
+    // std::cout << "node integration is enabled" << std::endl;
     node_integration_ = true;
   } else {
-    std::cout << "node integration is disabled" << std::endl;
+    // std::cout << "node integration is disabled" << std::endl;
     node_integration_ = false;
   }
 

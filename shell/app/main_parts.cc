@@ -66,6 +66,9 @@ void MainParts::Initialize() {
   base::ThreadPoolInstance::CreateAndStartWithDefaultParams("lynxtron");
 #if BUILDFLAG(IS_MAC)
   RegisterAtomCrApp();
+  // Initialize native screen for macOS to ensure display::Screen::Get() returns
+  // valid screen
+  scoped_native_screen_ = std::make_unique<display::ScopedNativeScreen>();
 #endif
   // TODO(Guo Xi): path service
   base::PathService::RegisterProvider(PathProvider, PATH_START, PATH_END);

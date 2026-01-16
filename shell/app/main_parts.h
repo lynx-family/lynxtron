@@ -9,6 +9,7 @@
 #include "base/functional/callback.h"
 #include "base/run_loop.h"
 #include "shell/app/application.h"
+#include "ui/display/screen.h"
 
 namespace node {
 class Environment;
@@ -70,6 +71,10 @@ class MainParts {
   std::unique_ptr<LynxtronBindings> lynxtron_bindings_;
   // TODO(Guo Xi): implement IconManager
   // std::unique_ptr<IconManager> icon_manager_;
+
+#if BUILDFLAG(IS_MAC)
+  std::unique_ptr<display::ScopedNativeScreen> scoped_native_screen_;
+#endif
 
   static MainParts* self_;
 
