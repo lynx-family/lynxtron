@@ -1,0 +1,22 @@
+{
+  "name": "@lynx-js/lynxtron-builder",
+  "version": "0.0.0-alpha",
+  "main": "cli.js",
+  "files": [
+    "patches/",
+    "index.js",
+    "patch.js",
+    "package.json"
+  ],
+  "bin": "./cli.js",
+  "scripts": {
+    "postinstall": "node patch.js"
+  },
+  "dependencies": {
+    "@electron/universal": "^1.3.0",
+    "app-builder-lib": "26.0.12",
+    "electron-builder": "26.0.12",
+    "js-yaml": "^4.1.0",
+    "patch-package": "^6.4.7"
+  }
+}

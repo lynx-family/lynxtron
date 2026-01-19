@@ -22,15 +22,20 @@ if (hasDownloadLynxtron() && !process.env.npm_config_force_download) {
   process.exit(0);
 }
 
-const base_url = process.env.npm_config_lynxtron_binary_mirror || BASE_URL;
+const base_url = BASE_URL;
 
 let downloadUrl = ''
 if (process.env.npm_config_custom_lynxtron_binary_url) {
   console.log(`using custom lynxtron url: ${process.env.npm_config_custom_lynxtron_binary_url}`);
   downloadUrl = process.env.npm_config_custom_lynxtron_binary_url;
 } else {
+  if (!base_url) {
+    console.log("lynxtron base url is empty");
+    process.exit(0);
+  }
   downloadUrl = `${base_url}/v${VERSION}/lynxtron-v${VERSION}-${PLATFORM}-${ARCH}.zip`
 }
+
 
 console.log(`downloading lynxtron from ${downloadUrl}`);
 

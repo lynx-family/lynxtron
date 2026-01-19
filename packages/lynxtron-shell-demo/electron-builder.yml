@@ -1,0 +1,58 @@
+productName: Lynxtron shell demo
+appId: com.lynxtron.shelldemo
+directories:
+  buildResources: resources
+  output: dist
+  app: dist/assets
+files:
+  - index.js
+  - "**/*.lynx.bundle"
+  - "**/*.js"
+  - "**/*.css"
+  - "**/*.html"
+  - "**/*.json"
+  - "**/*.jsn"
+  - "**/*.png"
+  - "**/*.exe"
+asar: true
+asarUnpack:
+  - statics/
+npmRebuild: false
+extraResources:
+  - from: src/assets
+    to: assets
+icon: lynxtron.png
+electronBranding:
+  projectName: lynxtron
+  productName: Lynxtron
+mac:
+  artifactName: LynxtronShellDemo-v${version}-darwin-${arch}.${ext}
+  extendInfo:
+    CFBundleURLSchemes:
+      - LynxtronShellDemo
+  identity: null
+# win:
+#   target:
+#     - target: nsis
+#       arch: ia32
+#   artifactName: LynxtronShellDemo-v${version}-win-ia32.${ext}
+#   signDlls: true
+#   signingHashAlgorithms:
+#     - sha1
+#   timeStampServer: http://timestamp.digicert.com
+# nsis:
+#   artifactName: LynxtronShellDemo-v${version}-win-ia32-Setup.${ext}
+#   createDesktopShortcut: true
+#   createStartMenuShortcut: true
+#   menuCategory: true
+#   guid: LynxtronShellDemo
+#   perMachine: false
+#   allowElevation: false
+#   uninstallDisplayName: ${productName}
+#   runAfterFinish: true
+#   oneClick: true
+#   allowToChangeInstallationDirectory: false
+#   deleteAppDataOnUninstall: true
+#   packElevateHelper: false
+#   script: ./installer/appzero_installer.nsi
+#   warningsAsErrors: false

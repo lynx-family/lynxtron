@@ -1,13 +1,11 @@
 {
-  "name": "lynxtron",
+  "name": "@lynx-js/lynxtron",
   "version": "0.0.2-alpha.13",
   "description": "lynxtron npm package test",
   "main": "lynxtron_bin.js",
   "type": "module",
   "types": "./apis/lynxtron.d.ts",
-  "bin": {
-    "lynxtron": "cli.js"
-  },
+  "bin": "cli.js",
   "scripts": {
     "postinstall": "node install.js",
     "test": "echo \"Error: no test specified\" && exit 1"

@@ -1,13 +1,17 @@
 {
-  "name": "lynxtron",
+  "name": "lynxtron-workspace",
   "version": "0.0.0-development",
   "repository": "https://github.com/lynx-family/lynxtron",
   "description": "Build cross platform desktop apps with JavaScript, HTML, and CSS",
+  "private": true,
   "devDependencies": {
+    "@changesets/cli": "^2.27.7",
     "@electron/asar": "^3.2.13",
-    "@types/node": "^22.7.7",
     "@types/estree": "^1.0.5",
+    "@types/node": "^22.7.7",
     "@types/semver": "^7.5.8",
+    "dugite": "^2.7.1",
+    "folder-hash": "^2.1.1",
     "pre-flight": "^2.0.0",
     "process": "^0.11.10",
     "semver": "^7.6.3",
@@ -16,12 +20,12 @@
     "typescript": "^5.6.2",
     "webpack": "^5.95.0",
     "webpack-cli": "^5.1.4",
-    "wrapper-webpack-plugin": "^2.2.0",
-    "folder-hash": "^2.1.1",
-    "dugite": "^2.7.1"
+    "wrapper-webpack-plugin": "^2.2.0"
   },
-  "private": true,
   "scripts": {
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "changeset publish",
     "generate-version-json": "node script/generate-version-json.js",
     "pre-flight": "pre-flight",
     "tsc": "tsc",
@@ -34,8 +38,14 @@
     "lynxtron"
   ],
   "workspaces": [
-    "default_app/app"
+    "packages/default_app/app",
+    "packages/lynxtron",
+    "packages/lynxtron-builder",
+    "packages/lynxtron-shell-demo",
+    "packages/dev-ready-rsbuild-plugin",
+    "packages/create-lynxtron"
   ],
+  "packageManager": "yarn@4.0.0",
   "resolutions": {
     "nan": "nodejs/nan#e14bdcd1f72d62bca1d541b66da43130384ec213"
   }
