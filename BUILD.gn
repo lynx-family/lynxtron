@@ -328,7 +328,7 @@ source_set("lynxtron_lib") {
     "shell/api/api_native_image.cc",
     "shell/api/api_native_image.h",
     "shell/api/api_screen.cc",
-    "shell/api/api_screen.h", 
+    "shell/api/api_screen.h",
     "shell/api/api_shell.cc",
     "shell/api/api_v8_util.cc",
     "shell/api/api_v8_util.h",
@@ -637,7 +637,7 @@ if (is_mac) {
       "shell/app/resources/mac/lynxtron.icns",
     ]
 
-    public_deps += [ "shell/lynx:lynx_resources" ]
+    public_deps += [ "//lynxtron/shell/lynx:lynx_resources" ]
     outputs = [ "{{bundle_resources_dir}}/{{source_file_part}}" ]
   }
 

@@ -14,7 +14,7 @@ COLORED_PRINT_END = '\033[0m'
 def main():
     system = platform.system().lower()
     if system == "windows":
-        hab = os.path.join(os.path.dirname(__file__), "hab.bat")
+        hab = os.path.join(os.path.dirname(__file__), "hab.ps1")
         envsetup = os.path.join(os.path.dirname(__file__), "envsetup.ps1")
         python3 = "python"
     else:
@@ -50,6 +50,17 @@ def main():
     if return_code != 0:
         print(f"{COLORED_YELLOW_MSG}install lynxtron npm dependencies failed, exit{COLORED_PRINT_END}")
         return return_code
+
+    # apply lynx all patches
+    original_dir = os.getcwd()
+    try:
+        os.chdir("..")
+        return_code = os.system(f"{python3} lynxtron/script/apply_all_patches.py lynxtron/patches/lynx/config.json")
+        if return_code != 0:
+            print(f"{COLORED_RED_MSG}apply_all_patches.py failed, exit{COLORED_PRINT_END}")
+            return return_code
+    finally:
+        os.chdir(original_dir)
    
     print(f"{COLORED_RED_MSG}Warning: One final step remains for the build environment, please run the following command manually:{COLORED_PRINT_END}")
     print(f"{COLORED_GREEN_MSG}{envsetup}{COLORED_PRINT_END}")
