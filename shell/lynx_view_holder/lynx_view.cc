@@ -100,6 +100,16 @@ class LynxViewImpl : public lynx::pub::LynxViewClient,
     lynx_view_->UpdateData(meta_data);
   }
 
+  void UpdateScreenMetrics(float width,
+                           float height,
+                           float device_pixel_ratio) {
+    lynx_view_->UpdateScreenMetrics(width, height, device_pixel_ratio);
+  }
+
+  void SetFrame(float x, float y, float width, float height) {
+    lynx_view_->SetFrame(x, y, width, height);
+  }
+
   void Show() {}
 
   void Hide() {}
@@ -237,6 +247,16 @@ void LynxView::UpdateData(const std::string& data,
 void LynxView::ReloadTemplate(const std::string& data,
                               const std::string& global_props) {
   impl_->ReloadTemplate(data, global_props);
+}
+
+void LynxView::UpdateScreenMetrics(float width,
+                                   float height,
+                                   float device_pixel_ratio) {
+  impl_->UpdateScreenMetrics(width, height, device_pixel_ratio);
+}
+
+void LynxView::SetFrame(float x, float y, float width, float height) {
+  impl_->SetFrame(x, y, width, height);
 }
 
 }  // namespace lynxtron

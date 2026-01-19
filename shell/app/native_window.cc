@@ -242,6 +242,10 @@ gfx::Size NativeWindow::GetSize() const {
   return GetBounds().size();
 }
 
+float NativeWindow::GetDevicePixelRatio() const {
+  return 1.0f;
+}
+
 void NativeWindow::SetPosition(const gfx::Point& position, bool animate) {
   SetBounds(gfx::Rect(position, GetSize()), animate);
 }

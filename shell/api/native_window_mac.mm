@@ -413,6 +413,20 @@ gfx::Rect NativeWindowMac::GetBounds() const {
   return bounds;
 }
 
+gfx::Size NativeWindowMac::GetSize() const {
+  NSView* content_view = [window_ contentView];
+  if (content_view) {
+    NSSize client_size = [content_view bounds].size;
+    return gfx::Size(static_cast<int>(client_size.width),
+                     static_cast<int>(client_size.height));
+  }
+  return gfx::Size();
+}
+
+float NativeWindowMac::GetDevicePixelRatio() const {
+  return [[NSScreen mainScreen] backingScaleFactor];
+}
+
 gfx::Rect NativeWindowMac::GetNormalBounds() const {
   if (IsNormal()) {
     return GetBounds();

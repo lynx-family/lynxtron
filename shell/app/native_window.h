@@ -96,6 +96,7 @@ class NativeWindow : public base::SupportsUserData {
   void SetShape(const std::vector<gfx::Rect>& rects);
   virtual void SetSize(const gfx::Size& size, bool animate);
   virtual gfx::Size GetSize() const;
+  virtual float GetDevicePixelRatio() const;
   virtual void SetPosition(const gfx::Point& position, bool animate);
   virtual gfx::Point GetPosition() const;
   virtual void SetContentSize(const gfx::Size& size, bool animate);
