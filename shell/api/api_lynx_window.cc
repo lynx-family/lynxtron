@@ -263,7 +263,6 @@ void LynxWindow::OnWindowResize() {
 
   // Update LynxView layout and screen parameters
   if (lynx_view_) {
-    lynx_view_->SetBounds(window_->GetBounds());  // Set view bounds
     const float width = window_->GetSize().width();
     const float height = window_->GetSize().height();
     lynx_view_->UpdateScreenMetrics(
@@ -416,7 +415,7 @@ void LynxWindow::CreateLynxView(const std::string& local_url,
   }
   lynx_view_ = LynxView::Create();
   auto source = LoadFileData(local_url);
-  lynx_view_->Init(GetBounds().width(), GetBounds().height(), 1.0,
+  lynx_view_->Init(window_->GetSize().width(), window_->GetSize().height(), 1.0,
                    window_->GetNativeWindowHandle(), node_integration_);
   lynx_view_->LoadTemplate(local_url, source);
   lynx_view_->SetClient(weak_factory_.GetWeakPtr());
