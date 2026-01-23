@@ -104,6 +104,7 @@ templated_file("lynxtron_version_file") {
 browser_bundle_deps = [
   "lib/browser/api/app.ts",
   "lib/browser/api/base-window.ts",
+  "lib/browser/api/dialog.ts",
   "lib/browser/api/exports/lynxtron.ts",
   "lib/browser/api/lynx-window.ts",
   "lib/browser/api/module-list.ts",
