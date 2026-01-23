@@ -1,0 +1,23 @@
+{
+  "name": "x-webview-cef",
+  "author": "Lynxtron Authors",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "a x-webview element based on cef",
+  "main": "index.cjs",
+  "scripts": {
+    "postinstall": "node scripts/rename-helpers.js"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.1",
+    "plist": "^3.1.0"
+  },
+  "devDependencies": {
+    "node-addon-api": "^7.0.0",
+    "cmake-js": "^7.4.0",
+    "lynxtron": "^0.0.2-alpha.16"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
