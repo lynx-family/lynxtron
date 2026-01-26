@@ -1,1 +1,3 @@
 tools_shared/
+spec/.hash
+default_app/app/dist
