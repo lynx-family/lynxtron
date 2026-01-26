@@ -30,10 +30,6 @@ enum {
   DIR_RECENT,  // Directory where recent files live
 #endif
 
-#if BUILDFLAG(IS_LINUX)
-  DIR_APP_DATA,  // Application Data directory under the user profile.
-#endif
-
   DIR_CRASH_DUMPS,  // c.f. chrome::DIR_CRASH_DUMPS
 
   DIR_USER_DOCUMENTS,          // Directory for a user's "My Documents".

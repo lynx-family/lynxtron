@@ -199,7 +199,7 @@ bool PathProvider(int key, base::FilePath* result) {
       break;
 #endif
     case DIR_DEFAULT_DOWNLOADS_SAFE:
-#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
+#if BUILDFLAG(IS_WIN)
       if (!GetUserDownloadsDirectorySafe(&cur)) {
         return false;
       }

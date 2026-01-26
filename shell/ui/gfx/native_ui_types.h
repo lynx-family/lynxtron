@@ -101,13 +101,6 @@ class ViewAndroid;
 }  // namespace ui
 #endif
 
-#if BUILDFLAG(IS_LINUX)
-extern "C" {
-struct _AtkObject;
-using AtkObject = struct _AtkObject;
-}
-#endif
-
 namespace gfx {
 
 #if defined(USE_AURA)
@@ -190,9 +183,6 @@ using NativeViewAccessible = IAccessible*;
 using NativeViewAccessible = base::apple::OwnedNSObject;
 #elif BUILDFLAG(IS_MAC)
 using NativeViewAccessible = base::apple::OwnedNSAccessibility;
-#elif BUILDFLAG(IS_LINUX)
-// Linux doesn't have a native accessibility type.
-using NativeViewAccessible = AtkObject*;
 #else
 // Android, Chrome OS, etc.
 using UnimplementedNativeViewAccessible =

@@ -23,8 +23,6 @@ namespace lynxtron {
 NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
                                  NativeWindow* parent)
     : NativeWindow(options, parent) {
-  // auto x = options.ValueOrDefault(options::kX, 0);
-  // auto y = options.ValueOrDefault(options::kY, 0);
   auto width = options.ValueOrDefault(options::kWidth, 800);
   auto height = options.ValueOrDefault(options::kHeight, 600);
 
@@ -77,16 +75,8 @@ NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
   }
 #pragma clang diagnostic pop
 
-  // window_.reset([[LynxNSWindow alloc] initWithShell:this
-  // styleMask:styleMask]);
   window_ = [[LynxNSWindow alloc] initWithShell:this styleMask:styleMask];
   window_.releasedWhenClosed = NO;
-  // NSLog(
-  //     @"[NativeWindowMac] window_ address: %p, this address:
-  //     %p", window_, this);
-  // [window_ setFrame:NSMakeRect(bounds.x(), bounds.y(), width,
-  // height)
-  //           display:true];
   [window_ setFrame:NSMakeRect(bounds.x(), bounds.y(), width, height)
             display:true];
 
@@ -107,8 +97,6 @@ NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
     // Don't show title bar.
     [window_ setTitlebarAppearsTransparent:YES];
     [window_ setTitleVisibility:NSWindowTitleHidden];
-    // Remove non-transparent corners, see
-    // https://github.com/electron/electron/issues/517.
     [window_ setOpaque:NO];
     SetStyleMask(true, NSWindowStyleMaskFullSizeContentView);
     // Show window buttons if titleBarStyle is not "normal".
@@ -125,16 +113,7 @@ NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
   original_level_ = [window_ level];
 }
 
-NativeWindowMac::~NativeWindowMac() {
-  // [window_ setShell:nil];
-  // [window_ release];
-  // window_ = nullptr;
-  // NSLog(@"[NativeWindowMac] ~NativeWindowMac, window_ address:
-  // "
-  //       @"%p, this "
-  //       @"address: %p",
-  //       window_, this);
-}
+NativeWindowMac::~NativeWindowMac() = default;
 
 void NativeWindowMac::Close() {
   if (!IsClosable()) {
@@ -439,9 +418,7 @@ gfx::Rect NativeWindowMac::GetNormalBounds() const {
 }
 
 void NativeWindowMac::SetResizable(bool resizable) {
-  // ScopedDisableResize disable_resize;
   SetStyleMask(resizable, NSWindowStyleMaskResizable);
-  // SetCanResize(resizable);
 }
 
 void NativeWindowMac::MoveTop() {
@@ -524,8 +501,6 @@ void NativeWindowMac::Center() {
 
 void NativeWindowMac::SetTitle(const std::string& title) {
   [window_ setTitle:base::SysUTF8ToNSString(title)];
-  // if (buttons_proxy_)
-  //   [buttons_proxy_ redraw];
 }
 
 std::string NativeWindowMac::GetTitle() const {
@@ -679,16 +654,6 @@ void NativeWindowMac::SetOpacity(const double opacity) {
 double NativeWindowMac::GetOpacity() {
   return [window_ alphaValue];
 }
-
-// void NativeWindowMac::SetIgnoreMouseEvents(bool ignore, bool forward) {
-//   [window_ setIgnoresMouseEvents:ignore];
-
-//   if (!ignore) {
-//     SetForwardMouseMessages(NO);
-//   } else {
-//     SetForwardMouseMessages(forward);
-//   }
-// }
 
 void NativeWindowMac::SetContentProtection(bool enable) {
   [window_
@@ -849,10 +814,6 @@ void NativeWindowMac::InternalSetWindowButtonVisibility(bool visible) {
   [[window_ standardWindowButton:NSWindowZoomButton] setHidden:!visible];
 }
 
-void NativeWindowMac::SetForwardMouseMessages(bool forward) {
-  //[window_ setAcceptsMouseMovedEvents:forward];
-}
-
 std::string NativeWindowMac::GetAlwaysOnTopLevel() {
   std::string level_name = "normal";
 
@@ -940,6 +901,7 @@ bool NativeWindowMac::GetWindowButtonVisibility() const {
          ![window_ standardWindowButton:NSWindowCloseButton].hidden;
 }
 
+// TODO(Guo Xi) : support traffic light position.
 void NativeWindowMac::SetTrafficLightPosition(
     std::optional<gfx::Point> position) {
   // traffic_light_position_ = std::move(position);

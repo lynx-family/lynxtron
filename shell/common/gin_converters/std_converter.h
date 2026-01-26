@@ -59,7 +59,6 @@ struct Converter<std::array<T, N>> {
   }
 };
 
-#if !BUILDFLAG(IS_LINUX)
 template <>
 struct Converter<unsigned long> {  // NOLINT(runtime/int)
   static v8::Local<v8::Value> ToV8(v8::Isolate* isolate,
@@ -77,7 +76,6 @@ struct Converter<unsigned long> {  // NOLINT(runtime/int)
     return true;
   }
 };
-#endif
 
 template <>
 struct Converter<std::nullptr_t> {

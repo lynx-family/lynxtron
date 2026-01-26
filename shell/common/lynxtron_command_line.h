@@ -27,12 +27,6 @@ class LynxtronCommandLine {
 
   static void Init(int argc, base::CommandLine::CharType const* const* argv);
 
-#if BUILDFLAG(IS_LINUX)
-  // On Linux the command line has to be read from base::CommandLine since
-  // it is using zygote.
-  static void InitializeFromCommandLine();
-#endif
-
  private:
   static base::CommandLine::StringVector argv_;
 };

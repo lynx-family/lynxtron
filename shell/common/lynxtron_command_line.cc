@@ -38,11 +38,4 @@ std::vector<std::string> LynxtronCommandLine::AsUtf8() {
 #endif
 }
 
-#if BUILDFLAG(IS_LINUX)
-// static
-void LynxtronCommandLine::InitializeFromCommandLine() {
-  argv_ = base::CommandLine::ForCurrentProcess()->argv();
-}
-#endif
-
 }  // namespace lynxtron

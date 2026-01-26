@@ -82,12 +82,10 @@ class NativeImage final : public gin_helper::DeprecatedWrappable<NativeImage> {
   static gin_helper::Handle<NativeImage> CreateFromNamedImage(
       gin::Arguments* args,
       std::string name);
-#if !BUILDFLAG(IS_LINUX)
   static v8::Local<v8::Promise> CreateThumbnailFromPath(
       v8::Isolate* isolate,
       const base::FilePath& path,
       const gfx::Size& size);
-#endif
 
   enum class OnConvertError { kThrow, kWarn };
 

@@ -135,7 +135,7 @@ void NativeWindow::InitFromOptions(const gin_helper::Dictionary& options) {
 
   SetSizeConstraints(size_constraints);
 
-#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_LINUX)
+#if BUILDFLAG(IS_WIN)
   if (bool val; options.Get(options::kClosable, &val)) {
     SetClosable(val);
   }

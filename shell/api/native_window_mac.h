@@ -167,7 +167,6 @@ class NativeWindowMac : public NativeWindow {
 
  private:
   void InternalSetParentWindow(NativeWindow* parent, bool attach);
-  void SetForwardMouseMessages(bool forward);
   void InternalSetWindowButtonVisibility(bool visible);
 
   LynxNSWindow* __strong window_;
