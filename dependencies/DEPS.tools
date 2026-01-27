@@ -43,6 +43,16 @@ deps = {
         "condition": system in ['linux', 'darwin', 'windows'],
         "require": ["../buildtools"]
     },
+    "../buildtools/node": {
+        "type": "http",
+        "url": {
+            "darwin-x86_64": "https://nodejs.org/dist/v22.18.0/node-v22.18.0-darwin-x64.tar.gz",
+            "darwin-arm64": "https://nodejs.org/dist/v22.18.0/node-v22.18.0-darwin-arm64.tar.gz",
+        }.get(f"{system}-{machine}", None),
+        "ignore_in_git": True,
+        "condition": system in ['darwin'],
+         "require": ["../buildtools"]
+    },
     'change_executable_permission': {
         "type": "action",
         "cwd": root_dir,
