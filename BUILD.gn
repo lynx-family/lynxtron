@@ -691,8 +691,11 @@ if (is_mac) {
     outputs = [ "$root_out_dir/.copied_to_package_$target_cpu" ]
     args = [
       rebase_path("$root_out_dir/lynxtron.app", root_build_dir),
-      rebase_path("//lynxtron/lynxtron/packages/lynxtron/dist/darwin/$target_cpu", root_build_dir),
-      rebase_path("$root_out_dir/.copied_to_package_$target_cpu", root_build_dir),
+      rebase_path(
+          "//lynxtron/lynxtron/packages/lynxtron/dist/darwin/$target_cpu",
+          root_build_dir),
+      rebase_path("$root_out_dir/.copied_to_package_$target_cpu",
+                  root_build_dir),
     ]
   }
 }
@@ -743,7 +746,10 @@ if (is_win) {
   shared_library("lynxtron_shared") {
     deps = [ ":lynxtron_lib" ]
 
-    configs += [ "//build/config/win:delayloads" ]
+    configs += [
+      "//build/config/win:delayloads",
+      "//lynx/core/platform/windows:win_libs_config",
+    ]
     libs = [
       "Comctl32.lib",
       "Wintrust.lib",
