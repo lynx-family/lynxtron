@@ -1,0 +1,30 @@
+{
+  "name": "@lynx-js/extension-builder",
+  "author": "Lynxtron Authors",
+  "version": "0.0.7",
+  "type": "module",
+  "description": "Lynx extension builder utils",
+  "scripts": {
+    "postinstall": "node scripts/prepare.js"
+  },
+  "keywords": [
+    "lynx",
+    "extension",
+    "builder"
+  ],
+  "files": [
+    "include/**/*",
+    "module/**/*",
+    "bindings/**/*",
+    "index.cjs",
+    "CMakeLists.txt",
+    "README.md",
+    "scripts/**/*"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "node-addon-api": "^7.0.0"
+  }
+}
