@@ -259,16 +259,40 @@ void LynxWindow::OnWindowResize() {
   // MoveWindow(CurrentLynxViewHolder()->GetHwnd(), win_rect.left, win_rect.top,
   //            win_rect.right - win_rect.left, win_rect.bottom - win_rect.top,
   //            TRUE);
+
+  // Update LynxView native window size to match client area
+  RECT win_rect{};
+  ::GetClientRect(window_->GetNativeWindowHandle(), &win_rect);
+  if (lynx_view_) {
+    HWND lynx_hwnd = reinterpret_cast<HWND>(lynx_view_->GetNativeWindow());
+    if (lynx_hwnd) {
+      MoveWindow(lynx_hwnd, win_rect.left, win_rect.top,
+                 win_rect.right - win_rect.left, win_rect.bottom - win_rect.top,
+                 TRUE);
+    }
+  }
 #endif
 
   // Update LynxView layout and screen parameters
   if (lynx_view_) {
-    const float width = window_->GetSize().width();
-    const float height = window_->GetSize().height();
+    float width = window_->GetSize().width();
+    float height = window_->GetSize().height();
+    const float device_pixel_ratio = window_->GetDevicePixelRatio();
+#if BUILDFLAG(IS_WIN)
+    // Use client area size instead of window size to avoid being covered by
+    // window borders
+    RECT win_rect{};
+    ::GetClientRect(window_->GetNativeWindowHandle(), &win_rect);
+    width =
+        static_cast<float>(win_rect.right - win_rect.left) / device_pixel_ratio;
+    height =
+        static_cast<float>(win_rect.bottom - win_rect.top) / device_pixel_ratio;
+#endif
+
     lynx_view_->UpdateScreenMetrics(
         width, height,
-        window_->GetDevicePixelRatio());  // Update screen size and device pixel
-                                          // ratio
+        device_pixel_ratio);  // Update screen size and device pixel
+                              // ratio
     lynx_view_->SetFrame(
         0, 0, width, height);  // Set view position and size in parent container
   }
@@ -415,7 +439,19 @@ void LynxWindow::CreateLynxView(const std::string& local_url,
   }
   lynx_view_ = LynxView::Create();
   auto source = LoadFileData(local_url);
-  lynx_view_->Init(window_->GetSize().width(), window_->GetSize().height(), 1.0,
+  float width = window_->GetSize().width();
+  float height = window_->GetSize().height();
+  float device_pixel_ratio = window_->GetDevicePixelRatio();
+#if BUILDFLAG(IS_WIN)
+  RECT win_rect{};
+  ::GetClientRect(window_->GetNativeWindowHandle(), &win_rect);
+  width =
+      static_cast<float>(win_rect.right - win_rect.left) / device_pixel_ratio;
+  height =
+      static_cast<float>(win_rect.bottom - win_rect.top) / device_pixel_ratio;
+#endif
+
+  lynx_view_->Init(width, height, device_pixel_ratio,
                    window_->GetNativeWindowHandle(), node_integration_);
   lynx_view_->LoadTemplate(local_url, source);
   lynx_view_->SetClient(weak_factory_.GetWeakPtr());

@@ -27,6 +27,7 @@
 namespace lynxtron {
 namespace {
 const LPCWSTR kUniqueTaskBarClassName = L"Shell_TrayWnd";
+const float kDefaultDPI = 96.f;
 
 void FlipWindowStyle(HWND handle, bool on, DWORD flag) {
   DWORD style = ::GetWindowLong(handle, GWL_STYLE);
@@ -400,6 +401,10 @@ gfx::Rect NativeWindowWin::GetBounds() const {
   gfx::Rect bounds = window_->GetWindowBoundsInScreen();
   // auto new_bounds = ScreenToDIPRect(GetNativeWindowHandle(), bounds);
   return bounds;
+}
+
+float NativeWindowWin::GetDevicePixelRatio() const {
+  return GetDPIForHWND(GetNativeWindowHandle()) / kDefaultDPI;
 }
 
 // gfx::Size NativeWindowWin::GetSize() const {

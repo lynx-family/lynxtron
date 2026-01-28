@@ -62,6 +62,7 @@ class NativeWindowWin : public NativeWindow,
   void SetBounds(const gfx::Rect& bounds, bool animate) override;
   gfx::Rect GetBounds() const override;
   // gfx::Size GetSize() const override;
+  float GetDevicePixelRatio() const override;
   gfx::Rect GetNormalBounds() const override;
   void SetResizable(bool resizable) override;
   void MoveTop() override;

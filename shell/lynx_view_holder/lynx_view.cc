@@ -110,6 +110,10 @@ class LynxViewImpl : public lynx::pub::LynxViewClient,
     lynx_view_->SetFrame(x, y, width, height);
   }
 
+  void* GetNativeWindow() {
+    return lynx_view_ ? lynx_view_->GetNativeWindow() : nullptr;
+  }
+
   void Show() {}
 
   void Hide() {}
@@ -257,6 +261,10 @@ void LynxView::UpdateScreenMetrics(float width,
 
 void LynxView::SetFrame(float x, float y, float width, float height) {
   impl_->SetFrame(x, y, width, height);
+}
+
+void* LynxView::GetNativeWindow() {
+  return impl_->GetNativeWindow();
 }
 
 }  // namespace lynxtron
