@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+
+    // Rspeedy uses Node.js's module resolution
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "erasableSyntaxOnly": true,
+
+    // Node.js 18+
+    "lib": ["es2023"],
+    "target": "es2022",
+
+    "noEmit": true,
+  },
+  "include": [
+    "./rspack.config.ts",
+    "./lynx.config.ts",
+    "./vitest.config.ts",
+    "./src/main"
+  ],
+}

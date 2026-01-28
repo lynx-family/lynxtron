@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "module": "ESNext",
+    "moduleResolution": "node"
+  },
+  "include": [
+    "main.ts",
+    "default_app.ts",
+    "../../typings"
+  ]
+}

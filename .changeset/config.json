@@ -1,0 +1,8 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@2.3.1/schema.json",
+  "changelog": "@changesets/cli",
+  "commit": false,
+  "access": "public",
+  "baseBranch": "main",
+  "ignore": ["lynxtron-shell-demo", "lynxtron-default-app"]
+}

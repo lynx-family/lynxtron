@@ -1,0 +1,225 @@
+diff --git a/node_modules/app-builder-lib/.DS_Store b/node_modules/app-builder-lib/.DS_Store
+new file mode 100644
+index 0000000..e69de29
+diff --git a/node_modules/app-builder-lib/out/electron/ElectronFramework.js b/node_modules/app-builder-lib/out/electron/ElectronFramework.js
+index 5a4b454..8720a08 100644
+--- a/node_modules/app-builder-lib/out/electron/ElectronFramework.js
++++ b/node_modules/app-builder-lib/out/electron/ElectronFramework.js
+@@ -17,8 +17,8 @@ const injectFFMPEG_1 = require("./injectFFMPEG");
+ function createBrandingOpts(opts) {
+     var _a, _b;
+     return {
+-        projectName: ((_a = opts.electronBranding) === null || _a === void 0 ? void 0 : _a.projectName) || "electron",
+-        productName: ((_b = opts.electronBranding) === null || _b === void 0 ? void 0 : _b.productName) || "Electron",
++        projectName: ((_a = opts.electronBranding) === null || _a === void 0 ? void 0 : _a.projectName) || "Lynxtron",
++        productName: ((_b = opts.electronBranding) === null || _b === void 0 ? void 0 : _b.productName) || "Lynxtron",
+     };
+ }
+ function createDownloadOpts(opts, platform, arch, electronVersion) {
+@@ -85,7 +85,7 @@ class ElectronFramework {
+         // noinspection JSUnusedGlobalSymbols
+         this.macOsDefaultTargets = ["zip", "dmg"];
+         // noinspection JSUnusedGlobalSymbols
+-        this.defaultAppIdPrefix = "com.electron.";
++        this.defaultAppIdPrefix = "com.lynxtron.";
+         // noinspection JSUnusedGlobalSymbols
+         this.isCopyElevateHelper = true;
+         // noinspection JSUnusedGlobalSymbols
+diff --git a/node_modules/app-builder-lib/out/electron/electronMac.js b/node_modules/app-builder-lib/out/electron/electronMac.js
+index e5551f8..e66cd7c 100644
+--- a/node_modules/app-builder-lib/out/electron/electronMac.js
++++ b/node_modules/app-builder-lib/out/electron/electronMac.js
+@@ -12,31 +12,6 @@ const ElectronFramework_1 = require("./ElectronFramework");
+ function doRename(basePath, oldName, newName) {
+     return (0, promises_1.rename)(path.join(basePath, oldName), path.join(basePath, newName));
+ }
+-function moveHelpers(helperSuffixes, frameworksPath, appName, prefix) {
+-    return Promise.all(helperSuffixes.map(suffix => {
+-        const executableBasePath = path.join(frameworksPath, `${prefix}${suffix}.app`, "Contents", "MacOS");
+-        return doRename(executableBasePath, `${prefix}${suffix}`, appName + suffix).then(() => doRename(frameworksPath, `${prefix}${suffix}.app`, `${appName}${suffix}.app`));
+-    }));
+-}
+-function getAvailableHelperSuffixes(helperEHPlist, helperNPPlist, helperRendererPlist, helperPluginPlist, helperGPUPlist) {
+-    const result = [" Helper"];
+-    if (helperEHPlist != null) {
+-        result.push(" Helper EH");
+-    }
+-    if (helperNPPlist != null) {
+-        result.push(" Helper NP");
+-    }
+-    if (helperRendererPlist != null) {
+-        result.push(" Helper (Renderer)");
+-    }
+-    if (helperPluginPlist != null) {
+-        result.push(" Helper (Plugin)");
+-    }
+-    if (helperGPUPlist != null) {
+-        result.push(" Helper (GPU)");
+-    }
+-    return result;
+-}
+ /** @internal */
+ async function createMacApp(packager, appOutDir, asarIntegrity, isMas) {
+     var _a, _b;
+@@ -48,15 +23,7 @@ async function createMacApp(packager, appOutDir, asarIntegrity, isMas) {
+     const electronBranding = (0, ElectronFramework_1.createBrandingOpts)(packager.config);
+     const contentsPath = path.join(appOutDir, packager.info.framework.distMacOsAppName, "Contents");
+     const frameworksPath = path.join(contentsPath, "Frameworks");
+-    const loginItemPath = path.join(contentsPath, "Library", "LoginItems");
+     const appPlistFilename = path.join(contentsPath, "Info.plist");
+-    const helperPlistFilename = path.join(frameworksPath, `${electronBranding.productName} Helper.app`, "Contents", "Info.plist");
+-    const helperEHPlistFilename = path.join(frameworksPath, `${electronBranding.productName} Helper EH.app`, "Contents", "Info.plist");
+-    const helperNPPlistFilename = path.join(frameworksPath, `${electronBranding.productName} Helper NP.app`, "Contents", "Info.plist");
+-    const helperRendererPlistFilename = path.join(frameworksPath, `${electronBranding.productName} Helper (Renderer).app`, "Contents", "Info.plist");
+-    const helperPluginPlistFilename = path.join(frameworksPath, `${electronBranding.productName} Helper (Plugin).app`, "Contents", "Info.plist");
+-    const helperGPUPlistFilename = path.join(frameworksPath, `${electronBranding.productName} Helper (GPU).app`, "Contents", "Info.plist");
+-    const helperLoginPlistFilename = path.join(loginItemPath, `${electronBranding.productName} Login Helper.app`, "Contents", "Info.plist");
+     const safeParsePlistFile = async (filePath) => {
+         if (!fs.existsSync(filePath)) {
+             return null;
+@@ -67,14 +34,6 @@ async function createMacApp(packager, appOutDir, asarIntegrity, isMas) {
+     if (appPlist == null) {
+         throw new Error("corrupted Electron dist");
+     }
+-    // Replace the multiple parsePlistFile calls with:
+-    const helperPlist = await safeParsePlistFile(helperPlistFilename);
+-    const helperEHPlist = await safeParsePlistFile(helperEHPlistFilename);
+-    const helperNPPlist = await safeParsePlistFile(helperNPPlistFilename);
+-    const helperRendererPlist = await safeParsePlistFile(helperRendererPlistFilename);
+-    const helperPluginPlist = await safeParsePlistFile(helperPluginPlistFilename);
+-    const helperGPUPlist = await safeParsePlistFile(helperGPUPlistFilename);
+-    const helperLoginPlist = await safeParsePlistFile(helperLoginPlistFilename);
+     const buildMetadata = packager.config;
+     /**
+      * Configure bundleIdentifier for the generic Electron Helper process
+@@ -96,50 +55,6 @@ async function createMacApp(packager, appOutDir, asarIntegrity, isMas) {
+     if (!isMas) {
+         configureLocalhostAts(appPlist);
+     }
+-    if (helperPlist != null) {
+-        helperPlist.CFBundleExecutable = `${appFilename} Helper`;
+-        helperPlist.CFBundleDisplayName = `${appInfo.productName} Helper`;
+-        helperPlist.CFBundleIdentifier = helperBundleIdentifier;
+-        helperPlist.CFBundleVersion = appPlist.CFBundleVersion;
+-    }
+-    /**
+-     * Configure bundleIdentifier for Electron 5+ Helper processes
+-     *
+-     * In Electron 6, parts of the generic Electron Helper process were split into
+-     * individual helper processes. Allow users to configure the bundleIdentifiers
+-     * for continuity, specifically because macOS keychain access relies on
+-     * bundleIdentifiers not changing (i.e. across versions of Electron).
+-     */
+-    function configureHelper(helper, postfix, userProvidedBundleIdentifier) {
+-        helper.CFBundleExecutable = `${appFilename} Helper ${postfix}`;
+-        helper.CFBundleDisplayName = `${appInfo.productName} Helper ${postfix}`;
+-        helper.CFBundleIdentifier = userProvidedBundleIdentifier
+-            ? (0, appInfo_1.filterCFBundleIdentifier)(userProvidedBundleIdentifier)
+-            : (0, appInfo_1.filterCFBundleIdentifier)(`${helperBundleIdentifier}.${postfix}`);
+-        helper.CFBundleVersion = appPlist.CFBundleVersion;
+-    }
+-    if (helperRendererPlist != null) {
+-        configureHelper(helperRendererPlist, "(Renderer)", packager.platformSpecificBuildOptions.helperRendererBundleId);
+-    }
+-    if (helperPluginPlist != null) {
+-        configureHelper(helperPluginPlist, "(Plugin)", packager.platformSpecificBuildOptions.helperPluginBundleId);
+-    }
+-    if (helperGPUPlist != null) {
+-        configureHelper(helperGPUPlist, "(GPU)", packager.platformSpecificBuildOptions.helperGPUBundleId);
+-    }
+-    if (helperEHPlist != null) {
+-        configureHelper(helperEHPlist, "EH", packager.platformSpecificBuildOptions.helperEHBundleId);
+-    }
+-    if (helperNPPlist != null) {
+-        configureHelper(helperNPPlist, "NP", packager.platformSpecificBuildOptions.helperNPBundleId);
+-    }
+-    if (helperLoginPlist != null) {
+-        helperLoginPlist.CFBundleExecutable = `${appFilename} Login Helper`;
+-        helperLoginPlist.CFBundleDisplayName = `${appInfo.productName} Login Helper`;
+-        // noinspection SpellCheckingInspection
+-        helperLoginPlist.CFBundleIdentifier = `${cfBundleIdentifier}.loginhelper`;
+-        helperLoginPlist.CFBundleVersion = appPlist.CFBundleVersion;
+-    }
+     const protocols = (0, builder_util_1.asArray)(buildMetadata.protocols).concat((0, builder_util_1.asArray)(packager.platformSpecificBuildOptions.protocols));
+     if (protocols.length > 0) {
+         appPlist.CFBundleURLTypes = protocols.map(protocol => {
+@@ -192,40 +107,12 @@ async function createMacApp(packager, appOutDir, asarIntegrity, isMas) {
+     if (asarIntegrity != null) {
+         appPlist.ElectronAsarIntegrity = toPlistObject(asarIntegrity);
+     }
+-    if (helperEHPlist != null) {
+-        await (0, plist_1.savePlistFile)(helperEHPlistFilename, helperEHPlist);
+-    }
+-    if (helperNPPlist != null) {
+-        await (0, plist_1.savePlistFile)(helperNPPlistFilename, helperNPPlist);
+-    }
+-    if (helperRendererPlist != null) {
+-        await (0, plist_1.savePlistFile)(helperRendererPlistFilename, helperRendererPlist);
+-    }
+-    if (helperPluginPlist != null) {
+-        await (0, plist_1.savePlistFile)(helperPluginPlistFilename, helperPluginPlist);
+-    }
+-    if (helperGPUPlist != null) {
+-        await (0, plist_1.savePlistFile)(helperGPUPlistFilename, helperGPUPlist);
+-    }
+-    if (helperLoginPlist != null) {
+-        await (0, plist_1.savePlistFile)(helperLoginPlistFilename, helperLoginPlist);
+-    }
+     await (0, plist_1.savePlistFile)(appPlistFilename, appPlist);
+-    if (helperPlist != null) {
+-        await (0, plist_1.savePlistFile)(helperPlistFilename, helperPlist);
+-    }
+     await Promise.all([
+         doRename(path.join(contentsPath, "MacOS"), electronBranding.productName, appPlist.CFBundleExecutable),
+         (0, builder_util_1.unlinkIfExists)(path.join(appOutDir, "LICENSE")),
+         (0, builder_util_1.unlinkIfExists)(path.join(appOutDir, "LICENSES.chromium.html")),
+     ]);
+-    await moveHelpers(getAvailableHelperSuffixes(helperEHPlist, helperNPPlist, helperRendererPlist, helperPluginPlist, helperGPUPlist), frameworksPath, appFilename, electronBranding.productName);
+-    if (helperLoginPlist != null) {
+-        const prefix = electronBranding.productName;
+-        const suffix = " Login Helper";
+-        const executableBasePath = path.join(loginItemPath, `${prefix}${suffix}.app`, "Contents", "MacOS");
+-        await doRename(executableBasePath, `${prefix}${suffix}`, appFilename + suffix).then(() => doRename(loginItemPath, `${prefix}${suffix}.app`, `${appFilename}${suffix}.app`));
+-    }
+     const appPath = path.join(appOutDir, `${appInfo.productFilename}.app`);
+     await (0, promises_1.rename)(path.dirname(contentsPath), appPath);
+     // https://github.com/electron-userland/electron-builder/issues/840
+diff --git a/node_modules/app-builder-lib/out/electron/electronVersion.js b/node_modules/app-builder-lib/out/electron/electronVersion.js
+index 9db837a..ea9a0ff 100644
+--- a/node_modules/app-builder-lib/out/electron/electronVersion.js
++++ b/node_modules/app-builder-lib/out/electron/electronVersion.js
+@@ -12,7 +12,7 @@ const path = require("path");
+ const semver = require("semver");
+ const config_1 = require("../util/config/config");
+ const load_1 = require("../util/config/load");
+-const electronPackages = ["electron", "electron-prebuilt", "electron-prebuilt-compile", "electron-nightly"];
++const electronPackages = ["lynxtron"];
+ async function getElectronVersion(projectDir, config) {
+     if (config == null) {
+         config = await (0, config_1.getConfig)(projectDir, null, null);
+diff --git a/node_modules/app-builder-lib/out/targets/nsis/NsisTarget.js b/node_modules/app-builder-lib/out/targets/nsis/NsisTarget.js
+index 8336c60..3eda216 100644
+--- a/node_modules/app-builder-lib/out/targets/nsis/NsisTarget.js
++++ b/node_modules/app-builder-lib/out/targets/nsis/NsisTarget.js
+@@ -324,12 +324,6 @@ class NsisTarget extends core_1.Target {
+     }
+     async computeScriptAndSignUninstaller(defines, commands, installerPath, sharedHeader, archs) {
+         const packager = this.packager;
+-        const customScriptPath = await packager.getResource(this.options.script, "installer.nsi");
+-        const script = await (0, fs_extra_1.readFile)(customScriptPath || path.join(nsisUtil_1.nsisTemplatesDir, "installer.nsi"), "utf8");
+-        if (customScriptPath != null) {
+-            builder_util_1.log.info({ reason: "custom NSIS script is used" }, "uninstaller is not signed by electron-builder");
+-            return script;
+-        }
+         // https://github.com/electron-userland/electron-builder/issues/2103
+         // it is more safe and reliable to write uninstaller to our out dir
+         const uninstallerPath = path.join(this.outDir, `__uninstaller-${this.name}-${this.packager.appInfo.sanitizedName}.exe`);
+@@ -495,7 +489,7 @@ class NsisTarget extends core_1.Target {
+     }
+     async executeMakensis(defines, commands, script) {
+         const args = this.options.warningsAsErrors === false ? [] : ["-WX"];
+-        args.push("-INPUTCHARSET", "UTF8");
++        args.push("-INPUTCHARSET", "UTF8", "-OUTPUTCHARSET", "UTF8");
+         for (const name of Object.keys(defines)) {
+             const value = defines[name];
+             if (value == null) {

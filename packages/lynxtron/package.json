@@ -1,0 +1,37 @@
+{
+  "name": "@lynx-js/lynxtron",
+  "version": "0.0.2-alpha.13",
+  "description": "lynxtron npm package test",
+  "main": "lynxtron_bin.js",
+  "type": "module",
+  "types": "./apis/lynxtron.d.ts",
+  "bin": "cli.js",
+  "scripts": {
+    "postinstall": "node install.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "extract-zip": "2.0.1",
+    "node-fetch": "3.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.3"
+  },
+  "author": "",
+  "license": "ISC",
+  "keywords": [
+    "lynxtron"
+  ],
+  "files": [
+    "apis",
+    "utils",
+    "cli.js",
+    "install.js",
+    "lynxtron_bin.js",
+    "README.md",
+    "package.json"
+  ],
+  "engines": {
+    "node": ">=16"
+  }
+}

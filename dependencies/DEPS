@@ -5,7 +5,7 @@ machine = platform.machine().lower()
 machine = "x86_64" if machine == "amd64" else machine
 system = platform.system().lower()
 
-yarn_version = '1.22.22'
+yarn_version = '4.0.0'
 chromium_git = 'https://chromium.googlesource.com'
 boringssl_git = 'https://github.com/google/boringssl.git'
 nodejs_git = 'https://github.com/nodejs'
@@ -38,7 +38,7 @@ deps = {
     '..': {
         'type': 'git',
         'url': 'git@github.com:lynx-family/lynxtron-buildroot.git',
-        'commit': 'dfd303f169f49da8c18b734f1ff17df6a7922a5b',
+        'commit': 'd31ca864f456845fd67c4916eec14495182b463f',
         "ignore_in_git": True,
     },
     '../url': {

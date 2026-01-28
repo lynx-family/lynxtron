@@ -1,0 +1,7 @@
+{
+  "name": "@lynx-js/lynxtron-default-app",
+  "productName": "Lynxtron",
+  "main": "main.js",
+  "type": "module",
+  "private": true
+}

@@ -179,21 +179,21 @@ typescript_build("default_app_js") {
   # deps = [ ":build_lynxtron_definitions" ]
 
   sources = [
-    "default_app/default_app.ts",
-    "default_app/main.ts",
+    "packages/default_app/default_app.ts",
+    "packages/default_app/main.ts",
   ]
 
   output_gen_dir = "${target_gen_default_app_js}"
   output_dir_name = "default_app"
-  tsconfig = "tsconfig.default_app.json"
+  tsconfig = "packages/default_app/tsconfig.json"
 }
 
 copy("default_app_static") {
-  exec_script("default_app/app/build.py")
+  exec_script("packages/default_app/app/build.py")
   sources = [
-    "default_app/app/dist/default_app.bundle",
-    "default_app/icon.png",
-    "default_app/package.json",
+    "packages/default_app/app/dist/default_app.bundle",
+    "packages/default_app/icon.png",
+    "packages/default_app/package.json",
   ]
 
   outputs =
@@ -681,6 +681,18 @@ if (is_mac) {
     extra_substitutions = [
       "LYNXTRON_BUNDLE_ID=$lynxtron_mac_bundle_id",
       "LYNXTRON_VERSION=$lynxtron_version",
+    ]
+  }
+
+  action("copy_app_to_package") {
+    deps = [ ":lynxtron_app" ]
+    script = "tools/copy_to_package.py"
+    inputs = [ "$root_out_dir/lynxtron.app" ]
+    outputs = [ "$root_out_dir/.copied_to_package_$target_cpu" ]
+    args = [
+      rebase_path("$root_out_dir/lynxtron.app", root_build_dir),
+      rebase_path("//lynxtron/lynxtron/packages/lynxtron/dist/darwin/$target_cpu", root_build_dir),
+      rebase_path("$root_out_dir/.copied_to_package_$target_cpu", root_build_dir),
     ]
   }
 }
