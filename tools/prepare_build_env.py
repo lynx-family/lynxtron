@@ -27,26 +27,26 @@ def main():
     print(f"{COLORED_YELLOW_MSG}hab: {hab}{COLORED_PRINT_END}")
     print(f"{COLORED_YELLOW_MSG}envsetup: {envsetup}{COLORED_PRINT_END}")
     print(f"{COLORED_YELLOW_MSG}sync lynxtron dependencies............{COLORED_PRINT_END}")
-    return_code = os.system(f"{hab} sync . -f --no-history --target lynxtron")
+    return_code = os.system(f"powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File \"{hab}\" sync . -f --no-history --target lynxtron")
     if return_code != 0:
         print(f"{COLORED_YELLOW_MSG}sync lynxtron dependencies failed, exit{COLORED_PRINT_END}")
         return return_code
     print(f"{COLORED_YELLOW_MSG}sync tools dependencies............{COLORED_PRINT_END}")
-    return_code = os.system(f"{hab} sync . -f --no-history --target tools --target-only")
+    return_code = os.system(f"powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File \"{hab}\" sync . -f --no-history --target tools --target-only")
     if return_code != 0:
         print(f"{COLORED_YELLOW_MSG}sync tools dependencies failed, exit{COLORED_PRINT_END}")
         return return_code
-    return_code = os.system(f"{hab} sync . -f --no-history --target tools_shared --target-only")
+    return_code = os.system(f"powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File \"{hab}\" sync . -f --no-history --target tools_shared --target-only")
     if return_code != 0:
         print(f"{COLORED_YELLOW_MSG}sync tools_shared dependencies failed, exit{COLORED_PRINT_END}")
         return return_code
     print(f"{COLORED_YELLOW_MSG}sync lynx dependencies............{COLORED_PRINT_END}")
-    return_code = os.system(f"{hab} sync . -f --no-history --target lynx --target-only")
+    return_code = os.system(f"powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File \"{hab}\" sync . -f --no-history --target lynx --target-only")
     if return_code != 0:
         print(f"{COLORED_YELLOW_MSG}sync lynx dependencies failed, exit{COLORED_PRINT_END}")
         return return_code
     print(f"{COLORED_YELLOW_MSG}install lynxtron npm dependencies............{COLORED_PRINT_END}")
-    return_code = os.system(f'{python3} script/lib/npx.py yarn install --immutable')
+    return_code = os.system(f'{python3} script/lib/npx.py yarn@1.22.22 install --frozen-lockfile')
     if return_code != 0:
         print(f"{COLORED_YELLOW_MSG}install lynxtron npm dependencies failed, exit{COLORED_PRINT_END}")
         return return_code

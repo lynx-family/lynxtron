@@ -108,8 +108,8 @@ class LynxNodeModule : public lynx::pub::LynxExtensionModule {
       std::unique_ptr<lynx::pub::VSyncObserver> vsync_observer) override;
 
  private:
-  node::Environment* env_ = nullptr;
-  node::IsolateData* isolate_data_ = nullptr;
+  // node::Environment* env_ = nullptr;
+  // node::IsolateData* isolate_data_ = nullptr;
 };
 
 napi_value LynxNodeModuleMethodsBinder(napi_env env,
