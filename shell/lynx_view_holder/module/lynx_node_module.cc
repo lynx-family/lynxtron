@@ -2,21 +2,20 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#include "shell/lynx_view_holder/lynx_view_node_module.h"
+#include "shell/lynx_view_holder/module/lynx_node_module.h"
 
 #include <memory>
 
 #include "base/include/fml/message_loop.h"
 #include "base/include/fml/platform/node/message_loop_node.h"
 #include "lynx/platform/embedder/public/capi/lynx_env_capi.h"
-#include "lynx_view_extension_register.h"
 #include "platform/embedder/public/lynx_extension_module.h"
 #include "third_party/napi/include/napi_env_v8.h"
 #include "third_party/node/src/node.h"
 
-// clang-format off
+#ifdef USE_PRIMJS_NAPI
 #include "third_party/napi/include/primjs_napi_defines.h"
-// clang-format on
+#endif
 
 namespace lynxtron {
 namespace {

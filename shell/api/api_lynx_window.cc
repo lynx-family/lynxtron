@@ -437,7 +437,7 @@ void LynxWindow::CreateLynxView(const std::string& local_url,
   if (lynx_view_) {
     return;
   }
-  lynx_view_ = LynxView::Create();
+  lynx_view_ = LynxView::Create(GetWeakPtr());
   auto source = LoadFileData(local_url);
   float width = window_->GetSize().width();
   float height = window_->GetSize().height();

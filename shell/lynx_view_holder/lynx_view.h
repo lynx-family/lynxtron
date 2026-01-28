@@ -14,11 +14,16 @@
 #include "shell/ui/gfx/geometry/rect.h"
 
 namespace lynxtron {
+namespace api {
+class LynxWindow;
+}
+
 class LynxViewImpl;
 
 class LynxView {
  public:
-  static std::unique_ptr<LynxView> Create();
+  static std::unique_ptr<LynxView> Create(
+      base::WeakPtr<api::LynxWindow> lynx_window);
   ~LynxView();
 
   static void SetNodePlatformEnv(void* platform);
@@ -42,8 +47,9 @@ class LynxView {
   void* GetNativeWindow();
 
  private:
-  LynxView();
+  LynxView(base::WeakPtr<api::LynxWindow> lynx_window);
 
+  base::WeakPtr<api::LynxWindow> lynx_window_;
   std::shared_ptr<LynxViewImpl> impl_;
 };
 

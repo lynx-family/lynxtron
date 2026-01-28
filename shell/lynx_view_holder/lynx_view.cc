@@ -35,7 +35,8 @@
 #endif
 #endif
 
-#include "shell/lynx_view_holder/lynx_view_node_module.h"
+#include "shell/lynx_view_holder/module/lynx_bridge_module.h"
+#include "shell/lynx_view_holder/module/lynx_node_module.h"
 
 namespace lynxtron {
 
@@ -49,14 +50,17 @@ class LynxViewImpl : public lynx::pub::LynxViewClient,
             double height,
             float dpi,
             void* parent,
-            bool node_integration) {
+            bool node_integration,
+            base::WeakPtr<api::LynxWindow> lynx_window) {
     lynx::pub::LynxView::Builder builder;
     builder.SetScreenSize(width, height, dpi)
         .SetFrame(0, 0, width, height)
         .SetParent(parent);
+
     if (node_integration) {
       RegisterLynxNodeModuleToLynxView(builder.Impl());
     }
+    RegisterLynxBridgeModuleToLynxView(builder.Impl(), lynx_window);
 
     lynx_view_ = builder.Build();
     lynx_view_->AddClient(shared_from_this());
@@ -191,12 +195,14 @@ class LynxViewImpl : public lynx::pub::LynxViewClient,
   base::WeakPtr<lynxtron::LynxViewClient> lynx_view_client_;
 };
 
-LynxView::LynxView() : impl_(std::make_shared<LynxViewImpl>()) {}
+LynxView::LynxView(base::WeakPtr<api::LynxWindow> lynx_window)
+    : lynx_window_(lynx_window), impl_(std::make_shared<LynxViewImpl>()) {}
 
 LynxView::~LynxView() = default;
 
-std::unique_ptr<LynxView> LynxView::Create() {
-  return base::WrapUnique(new LynxView());
+std::unique_ptr<LynxView> LynxView::Create(
+    base::WeakPtr<api::LynxWindow> lynx_window) {
+  return base::WrapUnique(new LynxView(lynx_window));
 }
 
 // static
@@ -210,7 +216,7 @@ void LynxView::Init(double width,
                     float dpi,
                     void* parent,
                     bool node_integration) {
-  impl_->Init(width, height, dpi, parent, node_integration);
+  impl_->Init(width, height, dpi, parent, node_integration, lynx_window_);
 }
 
 void LynxView::LoadTemplate(std::string_view template_url,

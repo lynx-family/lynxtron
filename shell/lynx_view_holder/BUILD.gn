@@ -9,8 +9,16 @@ source_set("lynx_holder") {
     "lynx_view.h",
     "lynx_view_extension_register.cc",
     "lynx_view_extension_register.h",
-    "lynx_view_node_module.cc",
-    "lynx_view_node_module.h",
+    "module/lynx_bridge_module.cc",
+    "module/lynx_bridge_module.h",
+    "module/lynx_emit_event.cc",
+    "module/lynx_emit_event.h",
+    "module/lynx_module_utils.cc",
+    "module/lynx_module_utils.h",
+    "module/lynx_native_module.cc",
+    "module/lynx_native_module.h",
+    "module/lynx_node_module.cc",
+    "module/lynx_node_module.h",
   ]
 
   if (is_build_with_lynx) {
