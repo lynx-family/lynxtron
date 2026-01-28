@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_COMMON_GIN_HELPER_HANDLE_H_
-#define ELECTRON_SHELL_COMMON_GIN_HELPER_HANDLE_H_
+#ifndef LYNXTRON_SHELL_COMMON_GIN_HELPER_HANDLE_H_
+#define LYNXTRON_SHELL_COMMON_GIN_HELPER_HANDLE_H_
 
 #include "base/memory/raw_ptr.h"
 #include "gin/converter.h"
@@ -75,4 +75,4 @@ struct Converter<gin_helper::Handle<T>> {
 
 }  // namespace gin
 
-#endif  // ELECTRON_SHELL_COMMON_GIN_HELPER_HANDLE_H_
+#endif  // LYNXTRON_SHELL_COMMON_GIN_HELPER_HANDLE_H_

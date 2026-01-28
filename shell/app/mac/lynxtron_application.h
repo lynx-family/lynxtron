@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_BROWSER_MAC_ELECTRON_APPLICATION_H_
-#define ELECTRON_SHELL_BROWSER_MAC_ELECTRON_APPLICATION_H_
+#ifndef LYNXTRON_SHELL_APP_MAC_LYNXTRON_APPLICATION_H_
+#define LYNXTRON_SHELL_APP_MAC_LYNXTRON_APPLICATION_H_
 
 #import <AVFoundation/AVFoundation.h>
 #import <LocalAuthentication/LocalAuthentication.h>
@@ -48,4 +48,4 @@
 
 @end
 
-#endif  // ELECTRON_SHELL_BROWSER_MAC_ELECTRON_APPLICATION_H_
+#endif  // LYNXTRON_SHELL_APP_MAC_LYNXTRON_APPLICATION_H_

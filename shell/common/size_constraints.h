@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SHELL_COMMON_SIZE_CONSTRAINTS_H_
-#define SHELL_COMMON_SIZE_CONSTRAINTS_H_
+#ifndef LYNXTRON_SHELL_COMMON_SIZE_CONSTRAINTS_H_
+#define LYNXTRON_SHELL_COMMON_SIZE_CONSTRAINTS_H_
 
 #include "shell/ui/gfx/geometry/size.h"
 
@@ -54,4 +54,4 @@ class SizeConstraints {
 
 }  // namespace lynxtron
 
-#endif  // SHELL_COMMON_SIZE_CONSTRAINTS_H_
+#endif  // LYNXTRON_SHELL_COMMON_SIZE_CONSTRAINTS_H_

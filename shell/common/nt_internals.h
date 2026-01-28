@@ -4,8 +4,8 @@
 
 // This file holds definitions related to the ntdll API.
 
-#ifndef SHELL_COMMON_NT_INTERNALS_H__
-#define SHELL_COMMON_NT_INTERNALS_H__
+#ifndef LYNXTRON_SHELL_COMMON_NT_INTERNALS_H_
+#define LYNXTRON_SHELL_COMMON_NT_INTERNALS_H_
 
 #include <windows.h>
 
@@ -772,4 +772,4 @@ typedef NTSTATUS(WINAPI* RtlDeriveCapabilitySidsFromNameFunction)(
     PSID CapabilityGroupSid,
     PSID CapabilitySid);
 
-#endif  // SHELL_COMMON_NT_INTERNALS_H__
+#endif  // LYNXTRON_SHELL_COMMON_NT_INTERNALS_H_

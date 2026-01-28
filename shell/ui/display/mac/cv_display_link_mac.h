@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_DISPLAY_MAC_CV_DISPLAY_LINK_MAC_H_
-#define UI_DISPLAY_MAC_CV_DISPLAY_LINK_MAC_H_
+#ifndef LYNXTRON_SHELL_UI_DISPLAY_MAC_CV_DISPLAY_LINK_MAC_H_
+#define LYNXTRON_SHELL_UI_DISPLAY_MAC_CV_DISPLAY_LINK_MAC_H_
 
 #import <CoreGraphics/CGDirectDisplay.h>
 #import <QuartzCore/CVDisplayLink.h>
@@ -110,4 +110,4 @@ class CVDisplayLinkMac : public DisplayLinkMac {
 
 }  // namespace ui
 
-#endif  // UI_DISPLAY_MAC_CV_DISPLAY_LINK_MAC_H_
+#endif  // LYNXTRON_SHELL_UI_DISPLAY_MAC_CV_DISPLAY_LINK_MAC_H_

@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_COMMON_GIN_HELPER_PINNABLE_H_
-#define ELECTRON_SHELL_COMMON_GIN_HELPER_PINNABLE_H_
+#ifndef LYNXTRON_SHELL_COMMON_GIN_HELPER_PINNABLE_H_
+#define LYNXTRON_SHELL_COMMON_GIN_HELPER_PINNABLE_H_
 
 #include "v8/include/v8-isolate.h"
 #include "v8/include/v8-local-handle.h"
@@ -33,4 +33,4 @@ class Pinnable {
 
 }  // namespace gin_helper
 
-#endif  // ELECTRON_SHELL_COMMON_GIN_HELPER_PINNABLE_H_
+#endif  // LYNXTRON_SHELL_COMMON_GIN_HELPER_PINNABLE_H_

@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_COMMON_GIN_CONVERTERS_STD_CONVERTER_H_
-#define ELECTRON_SHELL_COMMON_GIN_CONVERTERS_STD_CONVERTER_H_
+#ifndef LYNXTRON_SHELL_COMMON_GIN_CONVERTERS_STD_CONVERTER_H_
+#define LYNXTRON_SHELL_COMMON_GIN_CONVERTERS_STD_CONVERTER_H_
 
 #include <array>
 #include <cstddef>
@@ -297,4 +297,4 @@ bool FromV8WithLowerLookup(v8::Isolate* isolate,
 
 }  // namespace gin
 
-#endif  // ELECTRON_SHELL_COMMON_GIN_CONVERTERS_STD_CONVERTER_H_
+#endif  // LYNXTRON_SHELL_COMMON_GIN_CONVERTERS_STD_CONVERTER_H_

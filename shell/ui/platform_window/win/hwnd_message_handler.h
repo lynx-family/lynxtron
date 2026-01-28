@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_VIEWS_WIN_HWND_MESSAGE_HANDLER_H_
-#define UI_VIEWS_WIN_HWND_MESSAGE_HANDLER_H_
+#ifndef LYNXTRON_SHELL_UI_PLATFORM_WINDOW_WIN_HWND_MESSAGE_HANDLER_H_
+#define LYNXTRON_SHELL_UI_PLATFORM_WINDOW_WIN_HWND_MESSAGE_HANDLER_H_
 
 #include <windows.h>
 
@@ -736,4 +736,4 @@ class HWNDMessageHandler : public gfx::WindowImpl {
 
 }  // namespace ui
 
-#endif  // UI_VIEWS_WIN_HWND_MESSAGE_HANDLER_H_
+#endif  // LYNXTRON_SHELL_UI_PLATFORM_WINDOW_WIN_HWND_MESSAGE_HANDLER_H_

@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SHELL_UI_DISPLAY_DISPLAY_EXPORT_H_
-#define SHELL_UI_DISPLAY_DISPLAY_EXPORT_H_
+#ifndef LYNXTRON_SHELL_UI_DISPLAY_DISPLAY_EXPORT_H_
+#define LYNXTRON_SHELL_UI_DISPLAY_DISPLAY_EXPORT_H_
 
 // Defines DISPLAY_EXPORT so that functionality implemented by the UI module
 // can be exported to consumers.
@@ -34,4 +34,4 @@
 
 #endif
 
-#endif  // SHELL_UI_DISPLAY_DISPLAY_EXPORT_H_
+#endif  // LYNXTRON_SHELL_UI_DISPLAY_DISPLAY_EXPORT_H_

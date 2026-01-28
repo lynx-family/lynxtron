@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SKIA_EXT_RGBA_TO_YUVA_H_
-#define SKIA_EXT_RGBA_TO_YUVA_H_
+#ifndef LYNXTRON_SHELL_UI_SKIA_EXT_RGBA_TO_YUVA_H_
+#define LYNXTRON_SHELL_UI_SKIA_EXT_RGBA_TO_YUVA_H_
 
 #include "third_party/skia/include/core/SkImage.h"
 #include "third_party/skia/include/core/SkRect.h"
@@ -27,4 +27,4 @@ SK_API void BlitRGBAToYUVA(SkImage* src_image,
 
 }  // namespace skia
 
-#endif  // SKIA_EXT_RGBA_TO_YUVA_H_
+#endif  // LYNXTRON_SHELL_UI_SKIA_EXT_RGBA_TO_YUVA_H_

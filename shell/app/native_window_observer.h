@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef LYNXTRON_SHELL_BROWSER_NATIVE_WINDOW_OBSERVER_H_
-#define LYNXTRON_SHELL_BROWSER_NATIVE_WINDOW_OBSERVER_H_
+#ifndef LYNXTRON_SHELL_APP_NATIVE_WINDOW_OBSERVER_H_
+#define LYNXTRON_SHELL_APP_NATIVE_WINDOW_OBSERVER_H_
 
 #include <string>
 
@@ -101,4 +101,4 @@ class NativeWindowObserver : public base::CheckedObserver {
 
 }  // namespace lynxtron
 
-#endif  // ELECTRON_SHELL_BROWSER_NATIVE_WINDOW_OBSERVER_H_
+#endif  // LYNXTRON_SHELL_APP_NATIVE_WINDOW_OBSERVER_H_

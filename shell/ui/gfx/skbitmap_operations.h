@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_GFX_SKBITMAP_OPERATIONS_H_
-#define UI_GFX_SKBITMAP_OPERATIONS_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_SKBITMAP_OPERATIONS_H_
+#define LYNXTRON_SHELL_UI_GFX_SKBITMAP_OPERATIONS_H_
 
 #include "ui/gfx/color_utils.h"
 #include "ui/gfx/shadow_value.h"
@@ -117,4 +117,4 @@ class SkBitmapOperations {
   // FRIEND_TEST_ALL_PREFIXES(SkBitmapOperationsTest, DownsampleByTwoSmall);
 };
 
-#endif  // UI_GFX_SKBITMAP_OPERATIONS_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_SKBITMAP_OPERATIONS_H_

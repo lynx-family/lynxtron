@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SKIA_EXT_SKIA_TRACE_MEMORY_DUMP_IMPL_H_
-#define SKIA_EXT_SKIA_TRACE_MEMORY_DUMP_IMPL_H_
+#ifndef LYNXTRON_SHELL_UI_SKIA_EXT_SKIA_TRACE_MEMORY_DUMP_IMPL_H_
+#define LYNXTRON_SHELL_UI_SKIA_EXT_SKIA_TRACE_MEMORY_DUMP_IMPL_H_
 
 #include <stdint.h>
 
@@ -74,4 +74,4 @@ class SK_API SkiaTraceMemoryDumpImpl : public SkTraceMemoryDump {
 
 }  // namespace skia
 
-#endif  // SKIA_EXT_SKIA_TRACE_MEMORY_DUMP_IMPL_H_
+#endif  // LYNXTRON_SHELL_UI_SKIA_EXT_SKIA_TRACE_MEMORY_DUMP_IMPL_H_

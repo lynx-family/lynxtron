@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_MAC_UTIL_H_
-#define ELECTRON_SHELL_MAC_UTIL_H_
+#ifndef LYNXTRON_SHELL_COMMON_MAC_UTIL_H_
+#define LYNXTRON_SHELL_COMMON_MAC_UTIL_H_
 
 #include "base/containers/span.h"
 
@@ -15,4 +15,4 @@ base::span<const uint8_t> as_byte_span(NSData* data);
 
 }  // namespace lynxtron::util
 
-#endif  // ELECTRON_SHELL_MAC_UTIL_H_
+#endif  // LYNXTRON_SHELL_COMMON_MAC_UTIL_H_

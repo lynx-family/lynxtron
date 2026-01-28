@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SHELL_UI_GFX_WIN_MSG_UTIL_H_
-#define SHELL_UI_GFX_WIN_MSG_UTIL_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_WIN_MSG_UTIL_H_
+#define LYNXTRON_SHELL_UI_GFX_WIN_MSG_UTIL_H_
 
 #include "base/memory/weak_ptr.h"
 #include "base/notreached.h"
@@ -2260,4 +2260,4 @@
 #define CR_POINT_INITIALIZER_FROM_LPARAM(lparam) \
   { LOWORD(lparam), HIWORD(lparam) }
 
-#endif  // SHELL_UI_GFX_WIN_MSG_UTIL_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_WIN_MSG_UTIL_H_

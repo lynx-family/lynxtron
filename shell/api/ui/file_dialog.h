@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_BROWSER_UI_FILE_DIALOG_H_
-#define ELECTRON_SHELL_BROWSER_UI_FILE_DIALOG_H_
+#ifndef LYNXTRON_SHELL_API_UI_FILE_DIALOG_H_
+#define LYNXTRON_SHELL_API_UI_FILE_DIALOG_H_
 
 #include <optional>
 #include <string>
@@ -81,4 +81,4 @@ void ShowSaveDialog(const DialogSettings& settings,
 
 }  // namespace file_dialog
 
-#endif  // ELECTRON_SHELL_BROWSER_UI_FILE_DIALOG_H_
+#endif  // LYNXTRON_SHELL_API_UI_FILE_DIALOG_H_

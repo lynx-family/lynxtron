@@ -1,8 +1,8 @@
 // Copyright 2025 The Lynxtron Authors. All rights reserved.
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
-#ifndef SHELL_BROWSER_LYNX_NATIVE_WINDOW_VIEWS_H_
-#define SHELL_BROWSER_LYNX_NATIVE_WINDOW_VIEWS_H_
+#ifndef LYNXTRON_SHELL_API_NATIVE_WINDOW_WIN_H_
+#define LYNXTRON_SHELL_API_NATIVE_WINDOW_WIN_H_
 
 #include <memory>
 #include <set>
@@ -307,4 +307,4 @@ class NativeWindowWin : public NativeWindow,
 
 }  // namespace lynxtron
 
-#endif  // SHELL_BROWSER_LYNX_NATIVE_WINDOW_VIEWS_H_
+#endif  // LYNXTRON_SHELL_API_NATIVE_WINDOW_WIN_H_

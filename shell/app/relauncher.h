@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_BROWSER_RELAUNCHER_H_
-#define ELECTRON_SHELL_BROWSER_RELAUNCHER_H_
+#ifndef LYNXTRON_SHELL_APP_RELAUNCHER_H_
+#define LYNXTRON_SHELL_APP_RELAUNCHER_H_
 
 // relauncher implements main browser application relaunches across platforms.
 // When a browser wants to relaunch itself, it can't simply fork off a new
@@ -99,4 +99,4 @@ int LaunchProgram(const StringVector& relauncher_args,
 
 }  // namespace relauncher
 
-#endif  // ELECTRON_SHELL_BROWSER_RELAUNCHER_H_
+#endif  // LYNXTRON_SHELL_APP_RELAUNCHER_H_

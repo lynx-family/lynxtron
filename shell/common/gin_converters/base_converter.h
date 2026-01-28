@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_COMMON_GIN_CONVERTERS_BASE_CONVERTER_H_
-#define ELECTRON_SHELL_COMMON_GIN_CONVERTERS_BASE_CONVERTER_H_
+#ifndef LYNXTRON_SHELL_COMMON_GIN_CONVERTERS_BASE_CONVERTER_H_
+#define LYNXTRON_SHELL_COMMON_GIN_CONVERTERS_BASE_CONVERTER_H_
 
 #include "base/containers/flat_set.h"
 #include "base/process/kill.h"
@@ -52,4 +52,4 @@ struct Converter<base::flat_set<T>> {
 
 }  // namespace gin
 
-#endif  // ELECTRON_SHELL_COMMON_GIN_CONVERTERS_BASE_CONVERTER_H_
+#endif  // LYNXTRON_SHELL_COMMON_GIN_CONVERTERS_BASE_CONVERTER_H_

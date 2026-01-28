@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SHELL_UI_BASE_UI_BASE_TYPES_H_
-#define SHELL_UI_BASE_UI_BASE_TYPES_H_
+#ifndef LYNXTRON_SHELL_UI_BASE_UI_BASE_TYPES_H_
+#define LYNXTRON_SHELL_UI_BASE_UI_BASE_TYPES_H_
 
 #include "base/component_export.h"
 
@@ -112,4 +112,4 @@ enum class MenuType {
 
 }  // namespace ui
 
-#endif  // SHELL_UI_BASE_UI_BASE_TYPES_H_
+#endif  // LYNXTRON_SHELL_UI_BASE_UI_BASE_TYPES_H_

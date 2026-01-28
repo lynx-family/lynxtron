@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_GFX_IMAGE_IMAGE_SKIA_UTIL_MAC_H_
-#define UI_GFX_IMAGE_IMAGE_SKIA_UTIL_MAC_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_IMAGE_IMAGE_SKIA_UTIL_MAC_H_
+#define LYNXTRON_SHELL_UI_GFX_IMAGE_IMAGE_SKIA_UTIL_MAC_H_
 
 #include <ApplicationServices/ApplicationServices.h>
 
@@ -41,4 +41,4 @@ NSImage* NSImageFromImageSkiaWithColorSpace(const gfx::ImageSkia& image_skia,
                                             CGColorSpaceRef color_space);
 }  // namespace gfx
 
-#endif  // UI_GFX_IMAGE_IMAGE_SKIA_UTIL_MAC_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_IMAGE_IMAGE_SKIA_UTIL_MAC_H_

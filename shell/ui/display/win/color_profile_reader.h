@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SHELL_UI_DISPLAY_WIN_COLOR_PROFILE_READER_H_
-#define SHELL_UI_DISPLAY_WIN_COLOR_PROFILE_READER_H_
+#ifndef LYNXTRON_SHELL_UI_DISPLAY_WIN_COLOR_PROFILE_READER_H_
+#define LYNXTRON_SHELL_UI_DISPLAY_WIN_COLOR_PROFILE_READER_H_
 
 #include <map>
 #include <string>
@@ -70,4 +70,4 @@ class DISPLAY_EXPORT ColorProfileReader {
 }  // namespace win
 }  // namespace display
 
-#endif  // SHELL_UI_DISPLAY_WIN_COLOR_PROFILE_READER_H_
+#endif  // LYNXTRON_SHELL_UI_DISPLAY_WIN_COLOR_PROFILE_READER_H_

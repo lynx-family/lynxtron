@@ -8,8 +8,8 @@
 // The functions are implemented in image_generic.cc (all platforms other than
 // iOS), image_ios.mm and image_mac.mm.
 
-#ifndef UI_GFX_IMAGE_IMAGE_PLATFORM_H_
-#define UI_GFX_IMAGE_IMAGE_PLATFORM_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_IMAGE_IMAGE_PLATFORM_H_
+#define LYNXTRON_SHELL_UI_GFX_IMAGE_IMAGE_PLATFORM_H_
 
 #include <memory>
 #include <vector>
@@ -65,4 +65,4 @@ scoped_refptr<base::RefCountedMemory> Get1xPNGBytesFromImageSkia(
 
 }  // namespace gfx::internal
 
-#endif  // UI_GFX_IMAGE_IMAGE_PLATFORM_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_IMAGE_IMAGE_PLATFORM_H_

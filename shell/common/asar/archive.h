@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_COMMON_ASAR_ARCHIVE_H_
-#define ELECTRON_SHELL_COMMON_ASAR_ARCHIVE_H_
+#ifndef LYNXTRON_SHELL_COMMON_ASAR_ARCHIVE_H_
+#define LYNXTRON_SHELL_COMMON_ASAR_ARCHIVE_H_
 
 #include <uv.h>
 
@@ -117,4 +117,4 @@ class Archive {
 
 }  // namespace asar
 
-#endif  // ELECTRON_SHELL_COMMON_ASAR_ARCHIVE_H_
+#endif  // LYNXTRON_SHELL_COMMON_ASAR_ARCHIVE_H_

@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SKIA_EXT_SKDISCARDABLEMEMORY_CHROME_H_
-#define SKIA_EXT_SKDISCARDABLEMEMORY_CHROME_H_
+#ifndef LYNXTRON_SHELL_UI_SKIA_EXT_SKDISCARDABLEMEMORY_CHROME_H_
+#define LYNXTRON_SHELL_UI_SKIA_EXT_SKDISCARDABLEMEMORY_CHROME_H_
 
 #include <memory>
 
@@ -42,4 +42,4 @@ class SK_API SkDiscardableMemoryChrome : public SkDiscardableMemory {
   std::unique_ptr<base::DiscardableMemory> discardable_;
 };
 
-#endif  // SKIA_EXT_SKDISCARDABLEMEMORY_CHROME_H_
+#endif  // LYNXTRON_SHELL_UI_SKIA_EXT_SKDISCARDABLEMEMORY_CHROME_H_

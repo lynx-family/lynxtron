@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_GFX_ICC_PROFILE_H_
-#define UI_GFX_ICC_PROFILE_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_ICC_PROFILE_H_
+#define LYNXTRON_SHELL_UI_GFX_ICC_PROFILE_H_
 
 #include <stdint.h>
 
@@ -104,4 +104,4 @@ class COLOR_SPACE_EXPORT ICCProfile {
 
 }  // namespace gfx
 
-#endif  // UI_GFX_ICC_PROFILE_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_ICC_PROFILE_H_

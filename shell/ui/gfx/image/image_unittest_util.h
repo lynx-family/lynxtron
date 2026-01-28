@@ -5,8 +5,8 @@
 // Because the unit tests for gfx::Image are spread across multiple
 // implementation files, this header contains the reusable components.
 
-#ifndef UI_GFX_IMAGE_IMAGE_UNITTEST_UTIL_H_
-#define UI_GFX_IMAGE_IMAGE_UNITTEST_UTIL_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_IMAGE_IMAGE_UNITTEST_UTIL_H_
+#define LYNXTRON_SHELL_UI_GFX_IMAGE_IMAGE_UNITTEST_UTIL_H_
 
 #include <stdint.h>
 
@@ -121,4 +121,4 @@ bool PlatformImagesEqual(PlatformImage image1, PlatformImage image2);
 }  // namespace test
 }  // namespace gfx
 
-#endif  // UI_GFX_IMAGE_IMAGE_UNITTEST_UTIL_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_IMAGE_IMAGE_UNITTEST_UTIL_H_

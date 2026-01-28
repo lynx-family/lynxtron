@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHROME_BROWSER_PROCESS_SINGLETON_H_
-#define CHROME_BROWSER_PROCESS_SINGLETON_H_
+#ifndef LYNXTRON_SHELL_COMMON_PROCESS_SINGLETON_PROCESS_SINGLETON_H_
+#define LYNXTRON_SHELL_COMMON_PROCESS_SINGLETON_PROCESS_SINGLETON_H_
 
 #include <string>
 #include <vector>
@@ -261,4 +261,4 @@ class ProcessSingleton {
   SEQUENCE_CHECKER(sequence_checker_);
 };
 
-#endif  // CHROME_BROWSER_PROCESS_SINGLETON_H_
+#endif  // LYNXTRON_SHELL_COMMON_PROCESS_SINGLETON_PROCESS_SINGLETON_H_

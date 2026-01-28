@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_GFX_MAC_NSWINDOW_FRAME_CONTROLS_H_
-#define UI_GFX_MAC_NSWINDOW_FRAME_CONTROLS_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_MAC_NSWINDOW_FRAME_CONTROLS_H_
+#define LYNXTRON_SHELL_UI_GFX_MAC_NSWINDOW_FRAME_CONTROLS_H_
 
 #include "shell/ui/gfx/gfx_export.h"
 
@@ -32,4 +32,4 @@ GFX_EXPORT void ApplyNSWindowSizeConstraints(NSWindow* window,
 
 }  // namespace gfx
 
-#endif  // UI_GFX_MAC_NSWINDOW_FRAME_CONTROLS_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_MAC_NSWINDOW_FRAME_CONTROLS_H_

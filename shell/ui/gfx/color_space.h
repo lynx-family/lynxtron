@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_GFX_COLOR_SPACE_H_
-#define UI_GFX_COLOR_SPACE_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_COLOR_SPACE_H_
+#define LYNXTRON_SHELL_UI_GFX_COLOR_SPACE_H_
 
 #include <stdint.h>
 
@@ -439,4 +439,4 @@ COLOR_SPACE_EXPORT std::ostream& operator<<(std::ostream& out,
 
 }  // namespace gfx
 
-#endif  // UI_GFX_COLOR_SPACE_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_COLOR_SPACE_H_

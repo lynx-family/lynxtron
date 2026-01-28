@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE-CHROMIUM file.
 
-#ifndef ELECTRON_SHELL_BROWSER_WIN_SCOPED_HSTRING_H_
-#define ELECTRON_SHELL_BROWSER_WIN_SCOPED_HSTRING_H_
+#ifndef LYNXTRON_SHELL_APP_WIN_SCOPED_HSTRING_H_
+#define LYNXTRON_SHELL_APP_WIN_SCOPED_HSTRING_H_
 
 #include <windows.h>
 
@@ -43,4 +43,4 @@ class ScopedHString {
 
 }  // namespace lynxtron
 
-#endif  // ELECTRON_SHELL_BROWSER_WIN_SCOPED_HSTRING_H_
+#endif  // LYNXTRON_SHELL_APP_WIN_SCOPED_HSTRING_H_

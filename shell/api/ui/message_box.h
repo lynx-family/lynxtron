@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_BROWSER_UI_MESSAGE_BOX_H_
-#define ELECTRON_SHELL_BROWSER_UI_MESSAGE_BOX_H_
+#ifndef LYNXTRON_SHELL_API_UI_MESSAGE_BOX_H_
+#define LYNXTRON_SHELL_API_UI_MESSAGE_BOX_H_
 
 #include <optional>
 #include <string>
@@ -62,4 +62,4 @@ void ShowErrorBox(const std::u16string& title, const std::u16string& content);
 
 }  // namespace lynxtron
 
-#endif  // ELECTRON_SHELL_BROWSER_UI_MESSAGE_BOX_H_
+#endif  // LYNXTRON_SHELL_API_UI_MESSAGE_BOX_H_

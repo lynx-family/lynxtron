@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_BASE_RESOURCE_RESOURCE_SCALE_FACTOR_H_
-#define UI_BASE_RESOURCE_RESOURCE_SCALE_FACTOR_H_
+#ifndef LYNXTRON_SHELL_UI_BASE_RESOURCE_RESOURCE_SCALE_FACTOR_H_
+#define LYNXTRON_SHELL_UI_BASE_RESOURCE_RESOURCE_SCALE_FACTOR_H_
 
 #include <vector>
 
@@ -31,4 +31,4 @@ std::vector<ui::ResourceScaleFactor> GetSupportedResourceScaleFactors();
 ui::ResourceScaleFactor GetSupportedResourceScaleFactorForRescale(float scale);
 }  // namespace ui
 
-#endif  // UI_BASE_RESOURCE_RESOURCE_SCALE_FACTOR_H_
+#endif  // LYNXTRON_SHELL_UI_BASE_RESOURCE_RESOURCE_SCALE_FACTOR_H_

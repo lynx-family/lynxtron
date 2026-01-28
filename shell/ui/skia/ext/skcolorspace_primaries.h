@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SKIA_EXT_SKCOLORSPACE_PRIMARIES_H_
-#define SKIA_EXT_SKCOLORSPACE_PRIMARIES_H_
+#ifndef LYNXTRON_SHELL_UI_SKIA_EXT_SKCOLORSPACE_PRIMARIES_H_
+#define LYNXTRON_SHELL_UI_SKIA_EXT_SKCOLORSPACE_PRIMARIES_H_
 
 #include <string>
 
@@ -126,4 +126,4 @@ static constexpr SkColorSpacePrimaries kWideGamutColorSpin = {
 
 }  // namespace SkNamedPrimariesExt
 
-#endif  // SKIA_EXT_SKCOLORSPACE_PRIMARIES_H_
+#endif  // LYNXTRON_SHELL_UI_SKIA_EXT_SKCOLORSPACE_PRIMARIES_H_

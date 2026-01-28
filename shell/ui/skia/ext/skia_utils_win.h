@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SKIA_EXT_SKIA_UTILS_WIN_H_
-#define SKIA_EXT_SKIA_UTILS_WIN_H_
+#ifndef LYNXTRON_SHELL_UI_SKIA_EXT_SKIA_UTILS_WIN_H_
+#define LYNXTRON_SHELL_UI_SKIA_EXT_SKIA_UTILS_WIN_H_
 
 #include <windows.h>
 
@@ -128,4 +128,4 @@ SK_API base::win::ScopedGDIObject<HBITMAP> CreateHBitmapXRGB8888(
 
 }  // namespace skia
 
-#endif  // SKIA_EXT_SKIA_UTILS_WIN_H_
+#endif  // LYNXTRON_SHELL_UI_SKIA_EXT_SKIA_UTILS_WIN_H_

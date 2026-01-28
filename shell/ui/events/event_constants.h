@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SHELL_UI_EVENTS_EVENT_CONSTANTS_H_
-#define SHELL_UI_EVENTS_EVENT_CONSTANTS_H_
+#ifndef LYNXTRON_SHELL_UI_EVENTS_EVENT_CONSTANTS_H_
+#define LYNXTRON_SHELL_UI_EVENTS_EVENT_CONSTANTS_H_
 
 #include "build/build_config.h"
 
@@ -192,4 +192,4 @@ enum class GestureDeviceType : int {
 
 }  // namespace ui
 
-#endif  // SHELL_UI_EVENTS_EVENT_CONSTANTS_H_
+#endif  // LYNXTRON_SHELL_UI_EVENTS_EVENT_CONSTANTS_H_

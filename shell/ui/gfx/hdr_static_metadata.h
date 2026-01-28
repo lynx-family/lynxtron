@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_GFX_HDR_STATIC_METADATA_H_
-#define UI_GFX_HDR_STATIC_METADATA_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_HDR_STATIC_METADATA_H_
+#define LYNXTRON_SHELL_UI_GFX_HDR_STATIC_METADATA_H_
 
 #include "ui/gfx/color_space_export.h"
 
@@ -37,4 +37,4 @@ struct COLOR_SPACE_EXPORT HDRStaticMetadata {
 
 }  // namespace gfx
 
-#endif  // UI_GFX_HDR_STATIC_METADATA_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_HDR_STATIC_METADATA_H_

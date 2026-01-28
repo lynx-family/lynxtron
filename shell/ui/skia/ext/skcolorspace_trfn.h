@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SKIA_EXT_SKCOLORSPACE_TRFN_H_
-#define SKIA_EXT_SKCOLORSPACE_TRFN_H_
+#ifndef LYNXTRON_SHELL_UI_SKIA_EXT_SKCOLORSPACE_TRFN_H_
+#define LYNXTRON_SHELL_UI_SKIA_EXT_SKCOLORSPACE_TRFN_H_
 
 #include "third_party/skia/include/core/SkColorSpace.h"
 
@@ -99,4 +99,4 @@ static constexpr skcms_TransferFunction kSRGBExtended1023Over510 = {
 
 }  // namespace SkNamedTransferFnExt
 
-#endif  // SKIA_EXT_SKCOLORSPACE_TRFN_H_
+#endif  // LYNXTRON_SHELL_UI_SKIA_EXT_SKCOLORSPACE_TRFN_H_

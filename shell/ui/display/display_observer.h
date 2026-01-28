@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_DISPLAY_DISPLAY_OBSERVER_H_
-#define UI_DISPLAY_DISPLAY_OBSERVER_H_
+#ifndef LYNXTRON_SHELL_UI_DISPLAY_DISPLAY_OBSERVER_H_
+#define LYNXTRON_SHELL_UI_DISPLAY_DISPLAY_OBSERVER_H_
 
 #include <stdint.h>
 
@@ -97,4 +97,4 @@ class DISPLAY_EXPORT ScopedDisplayObserver
 
 }  // namespace display
 
-#endif  // UI_DISPLAY_DISPLAY_OBSERVER_H_
+#endif  // LYNXTRON_SHELL_UI_DISPLAY_DISPLAY_OBSERVER_H_

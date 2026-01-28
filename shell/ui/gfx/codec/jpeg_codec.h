@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_GFX_CODEC_JPEG_CODEC_H_
-#define UI_GFX_CODEC_JPEG_CODEC_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_CODEC_JPEG_CODEC_H_
+#define LYNXTRON_SHELL_UI_GFX_CODEC_JPEG_CODEC_H_
 
 #include <stddef.h>
 
@@ -91,4 +91,4 @@ class CODEC_EXPORT JPEGCodec {
 
 }  // namespace gfx
 
-#endif  // UI_GFX_CODEC_JPEG_CODEC_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_CODEC_JPEG_CODEC_H_

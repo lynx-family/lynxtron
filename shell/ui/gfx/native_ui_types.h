@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_GFX_NATIVE_UI_TYPES_H_
-#define UI_GFX_NATIVE_UI_TYPES_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_NATIVE_UI_TYPES_H_
+#define LYNXTRON_SHELL_UI_GFX_NATIVE_UI_TYPES_H_
 
 #include <stdint.h>
 
@@ -224,4 +224,4 @@ inline constexpr AcceleratedWidget kNullAcceleratedWidget = 0;
 
 }  // namespace gfx
 
-#endif  // UI_GFX_NATIVE_UI_TYPES_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_NATIVE_UI_TYPES_H_

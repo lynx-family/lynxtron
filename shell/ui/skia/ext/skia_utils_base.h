@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SKIA_EXT_SKIA_UTILS_BASE_H_
-#define SKIA_EXT_SKIA_UTILS_BASE_H_
+#ifndef LYNXTRON_SHELL_UI_SKIA_EXT_SKIA_UTILS_BASE_H_
+#define LYNXTRON_SHELL_UI_SKIA_EXT_SKIA_UTILS_BASE_H_
 
 #include <string>
 
@@ -63,4 +63,4 @@ SK_API std::string SkColorToHexString(SkColor color);
 
 }  // namespace skia
 
-#endif  // SKIA_EXT_SKIA_UTILS_BASE_H_
+#endif  // LYNXTRON_SHELL_UI_SKIA_EXT_SKIA_UTILS_BASE_H_

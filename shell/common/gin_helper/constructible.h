@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_COMMON_GIN_HELPER_CONSTRUCTIBLE_H_
-#define ELECTRON_SHELL_COMMON_GIN_HELPER_CONSTRUCTIBLE_H_
+#ifndef LYNXTRON_SHELL_COMMON_GIN_HELPER_CONSTRUCTIBLE_H_
+#define LYNXTRON_SHELL_COMMON_GIN_HELPER_CONSTRUCTIBLE_H_
 
 #include "gin/per_isolate_data.h"
 #include "shell/common/gin_helper/event_emitter_template.h"
@@ -67,4 +67,4 @@ class Constructible {
 
 }  // namespace gin_helper
 
-#endif  // ELECTRON_SHELL_COMMON_GIN_HELPER_CONSTRUCTIBLE_H_
+#endif  // LYNXTRON_SHELL_COMMON_GIN_HELPER_CONSTRUCTIBLE_H_

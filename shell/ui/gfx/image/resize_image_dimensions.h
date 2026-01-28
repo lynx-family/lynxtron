@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_GFX_IMAGE_RESIZE_IMAGE_DIMENSIONS_H_
-#define UI_GFX_IMAGE_RESIZE_IMAGE_DIMENSIONS_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_IMAGE_RESIZE_IMAGE_DIMENSIONS_H_
+#define LYNXTRON_SHELL_UI_GFX_IMAGE_RESIZE_IMAGE_DIMENSIONS_H_
 
 namespace gfx {
 
@@ -14,4 +14,4 @@ const int kSearchByImageMaxImageHeight = 400;
 
 }  // namespace gfx
 
-#endif  // UI_GFX_IMAGE_RESIZE_IMAGE_DIMENSIONS_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_IMAGE_RESIZE_IMAGE_DIMENSIONS_H_

@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SHELL_UI_GFX_WIN_SINGLETON_HWND_H_
-#define SHELL_UI_GFX_WIN_SINGLETON_HWND_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_WIN_SINGLETON_HWND_H_
+#define LYNXTRON_SHELL_UI_GFX_WIN_SINGLETON_HWND_H_
 
 #include <windows.h>
 
@@ -50,4 +50,4 @@ class SingletonHwnd : public WindowImpl {
 
 }  // namespace gfx
 
-#endif  // SHELL_UI_GFX_WIN_SINGLETON_HWND_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_WIN_SINGLETON_HWND_H_

@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_COMMON_GIN_HELPER_PROMISE_H_
-#define ELECTRON_SHELL_COMMON_GIN_HELPER_PROMISE_H_
+#ifndef LYNXTRON_SHELL_COMMON_GIN_HELPER_PROMISE_H_
+#define LYNXTRON_SHELL_COMMON_GIN_HELPER_PROMISE_H_
 
 #include <string>
 #include <string_view>
@@ -165,4 +165,4 @@ struct Converter<gin_helper::Promise<T>> {
 
 }  // namespace gin
 
-#endif  // ELECTRON_SHELL_COMMON_GIN_HELPER_PROMISE_H_
+#endif  // LYNXTRON_SHELL_COMMON_GIN_HELPER_PROMISE_H_

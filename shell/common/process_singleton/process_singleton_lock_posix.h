@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHROME_COMMON_PROCESS_SINGLETON_LOCK_POSIX_H_
-#define CHROME_COMMON_PROCESS_SINGLETON_LOCK_POSIX_H_
+#ifndef LYNXTRON_SHELL_COMMON_PROCESS_SINGLETON_PROCESS_SINGLETON_LOCK_POSIX_H_
+#define LYNXTRON_SHELL_COMMON_PROCESS_SINGLETON_PROCESS_SINGLETON_LOCK_POSIX_H_
 
 #include <string>
 
@@ -17,4 +17,4 @@ bool ParseProcessSingletonLock(const base::FilePath& path,
 
 extern const char kProcessSingletonLockDelimiter;
 
-#endif  // CHROME_COMMON_PROCESS_SINGLETON_LOCK_POSIX_H_
+#endif  // LYNXTRON_SHELL_COMMON_PROCESS_SINGLETON_PROCESS_SINGLETON_LOCK_POSIX_H_

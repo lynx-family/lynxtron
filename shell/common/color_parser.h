@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CONTENT_PUBLIC_COMMON_COLOR_PARSER_H_
-#define CONTENT_PUBLIC_COMMON_COLOR_PARSER_H_
+#ifndef LYNXTRON_SHELL_COMMON_COLOR_PARSER_H_
+#define LYNXTRON_SHELL_COMMON_COLOR_PARSER_H_
 
 #include <string>
 
@@ -24,4 +24,4 @@ bool ParseRgbColorString(const std::string& color_string, SkColor* result);
 
 }  // namespace content
 
-#endif  // CONTENT_PUBLIC_COMMON_COLOR_PARSER_H_
+#endif  // LYNXTRON_SHELL_COMMON_COLOR_PARSER_H_

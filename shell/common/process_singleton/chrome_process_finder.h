@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHROME_BROWSER_WIN_CHROME_PROCESS_FINDER_H_
-#define CHROME_BROWSER_WIN_CHROME_PROCESS_FINDER_H_
+#ifndef LYNXTRON_SHELL_COMMON_PROCESS_SINGLETON_CHROME_PROCESS_FINDER_H_
+#define LYNXTRON_SHELL_COMMON_PROCESS_SINGLETON_CHROME_PROCESS_FINDER_H_
 
 #include <windows.h>
 
@@ -30,4 +30,4 @@ NotifyChromeResult AttemptToNotifyRunningChrome(HWND remote_window);
 // Changes the notification timeout to |new_timeout|, returns the old timeout.
 base::TimeDelta SetNotificationTimeoutForTesting(base::TimeDelta new_timeout);
 
-#endif  // CHROME_BROWSER_WIN_CHROME_PROCESS_FINDER_H_
+#endif  // LYNXTRON_SHELL_COMMON_PROCESS_SINGLETON_CHROME_PROCESS_FINDER_H_

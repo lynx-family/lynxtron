@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_VIEWS_WIDGET_DESKTOP_AURA_DESKTOP_SCREEN_WIN_H_
-#define UI_VIEWS_WIDGET_DESKTOP_AURA_DESKTOP_SCREEN_WIN_H_
+#ifndef LYNXTRON_SHELL_UI_DISPLAY_WIN_DESKTOP_SCREEN_WIN_H_
+#define LYNXTRON_SHELL_UI_DISPLAY_WIN_DESKTOP_SCREEN_WIN_H_
 
 #include "shell/ui/display/win/screen_win.h"
 
@@ -19,4 +19,4 @@ class DesktopScreenWin : public display::win::ScreenWin {
 
 }  // namespace views
 
-#endif  // UI_VIEWS_WIDGET_DESKTOP_AURA_DESKTOP_SCREEN_WIN_H_
+#endif  // LYNXTRON_SHELL_UI_DISPLAY_WIN_DESKTOP_SCREEN_WIN_H_

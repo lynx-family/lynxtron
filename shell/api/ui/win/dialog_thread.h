@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_BROWSER_UI_WIN_DIALOG_THREAD_H_
-#define ELECTRON_SHELL_BROWSER_UI_WIN_DIALOG_THREAD_H_
+#ifndef LYNXTRON_SHELL_API_UI_WIN_DIALOG_THREAD_H_
+#define LYNXTRON_SHELL_API_UI_WIN_DIALOG_THREAD_H_
 
 #include <utility>
 
@@ -78,4 +78,4 @@ void Run(base::OnceCallback<bool(R*)> execute,
 
 }  // namespace dialog_thread
 
-#endif  // ELECTRON_SHELL_BROWSER_UI_WIN_DIALOG_THREAD_H_
+#endif  // LYNXTRON_SHELL_API_UI_WIN_DIALOG_THREAD_H_

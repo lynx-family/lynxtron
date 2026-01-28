@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_COMMON_ELECTRON_PATHS_H_
-#define ELECTRON_SHELL_COMMON_ELECTRON_PATHS_H_
+#ifndef LYNXTRON_SHELL_COMMON_LYNXTRON_PATHS_H_
+#define LYNXTRON_SHELL_COMMON_LYNXTRON_PATHS_H_
 
 #include "base/base_paths.h"
 
@@ -59,4 +59,4 @@ static_assert(PATH_START < PATH_END, "invalid PATH boundaries");
 
 }  // namespace lynxtron
 
-#endif  // ELECTRON_SHELL_COMMON_ELECTRON_PATHS_H_
+#endif  // LYNXTRON_SHELL_COMMON_LYNXTRON_PATHS_H_

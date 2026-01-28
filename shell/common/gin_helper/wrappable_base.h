@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE.chromium file.
 
-#ifndef ELECTRON_SHELL_COMMON_GIN_HELPER_WRAPPABLE_BASE_H_
-#define ELECTRON_SHELL_COMMON_GIN_HELPER_WRAPPABLE_BASE_H_
+#ifndef LYNXTRON_SHELL_COMMON_GIN_HELPER_WRAPPABLE_BASE_H_
+#define LYNXTRON_SHELL_COMMON_GIN_HELPER_WRAPPABLE_BASE_H_
 
 #include "base/memory/raw_ptr.h"
 #include "v8/include/v8-forward.h"
@@ -106,4 +106,4 @@ class DeprecatedWrappableBase {
 
 }  // namespace gin_helper
 
-#endif  // ELECTRON_SHELL_COMMON_GIN_HELPER_WRAPPABLE_BASE_H_
+#endif  // LYNXTRON_SHELL_COMMON_GIN_HELPER_WRAPPABLE_BASE_H_

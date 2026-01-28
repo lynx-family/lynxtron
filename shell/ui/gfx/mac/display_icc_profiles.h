@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_GFX_MAC_DISPLAY_ICC_PROFILES_H_
-#define UI_GFX_MAC_DISPLAY_ICC_PROFILES_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_MAC_DISPLAY_ICC_PROFILES_H_
+#define LYNXTRON_SHELL_UI_GFX_MAC_DISPLAY_ICC_PROFILES_H_
 
 #include <CoreGraphics/CoreGraphics.h>
 
@@ -53,4 +53,4 @@ class DisplayICCProfiles {
 
 }  // namespace gfx
 
-#endif  // UI_GFX_MAC_DISPLAY_ICC_PROFILES_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_MAC_DISPLAY_ICC_PROFILES_H_

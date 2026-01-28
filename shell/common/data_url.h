@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef NET_BASE_DATA_URL_H_
-#define NET_BASE_DATA_URL_H_
+#ifndef LYNXTRON_SHELL_COMMON_DATA_URL_H_
+#define LYNXTRON_SHELL_COMMON_DATA_URL_H_
 
 #include <string>
 #include <string_view>
@@ -89,4 +89,4 @@ class DataURL {
 
 }  // namespace net
 
-#endif  // NET_BASE_DATA_URL_H_
+#endif  // LYNXTRON_SHELL_COMMON_DATA_URL_H_

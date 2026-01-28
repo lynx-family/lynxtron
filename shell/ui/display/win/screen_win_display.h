@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SHELL_UI_DISPLAY_WIN_SCREEN_WIN_DISPLAY_H_
-#define SHELL_UI_DISPLAY_WIN_SCREEN_WIN_DISPLAY_H_
+#ifndef LYNXTRON_SHELL_UI_DISPLAY_WIN_SCREEN_WIN_DISPLAY_H_
+#define LYNXTRON_SHELL_UI_DISPLAY_WIN_SCREEN_WIN_DISPLAY_H_
 
 #include <windows.h>
 
@@ -36,4 +36,4 @@ class ScreenWinDisplay final {
 }  // namespace win
 }  // namespace display
 
-#endif  // SHELL_UI_DISPLAY_WIN_SCREEN_WIN_DISPLAY_H_
+#endif  // LYNXTRON_SHELL_UI_DISPLAY_WIN_SCREEN_WIN_DISPLAY_H_

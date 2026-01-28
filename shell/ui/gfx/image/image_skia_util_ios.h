@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_GFX_IMAGE_IMAGE_SKIA_UTIL_IOS_H_
-#define UI_GFX_IMAGE_IMAGE_SKIA_UTIL_IOS_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_IMAGE_IMAGE_SKIA_UTIL_IOS_H_
+#define LYNXTRON_SHELL_UI_GFX_IMAGE_IMAGE_SKIA_UTIL_IOS_H_
 
 #include "base/component_export.h"
 
@@ -38,4 +38,4 @@ UIImage* UIImageFromImageSkiaRep(const gfx::ImageSkiaRep& image_skia_rep);
 
 }  // namespace gfx
 
-#endif  // UI_GFX_IMAGE_IMAGE_SKIA_UTIL_IOS_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_IMAGE_IMAGE_SKIA_UTIL_IOS_H_

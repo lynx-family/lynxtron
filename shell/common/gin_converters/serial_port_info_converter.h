@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_COMMON_GIN_CONVERTERS_SERIAL_PORT_INFO_CONVERTER_H_
-#define ELECTRON_SHELL_COMMON_GIN_CONVERTERS_SERIAL_PORT_INFO_CONVERTER_H_
+#ifndef LYNXTRON_SHELL_COMMON_GIN_CONVERTERS_SERIAL_PORT_INFO_CONVERTER_H_
+#define LYNXTRON_SHELL_COMMON_GIN_CONVERTERS_SERIAL_PORT_INFO_CONVERTER_H_
 
 #include "base/strings/string_number_conversions.h"
 #include "gin/converter.h"
@@ -47,4 +47,4 @@ struct Converter<device::mojom::SerialPortInfoPtr> {
 
 }  // namespace gin
 
-#endif  // ELECTRON_SHELL_COMMON_GIN_CONVERTERS_SERIAL_PORT_INFO_CONVERTER_H_
+#endif  // LYNXTRON_SHELL_COMMON_GIN_CONVERTERS_SERIAL_PORT_INFO_CONVERTER_H_

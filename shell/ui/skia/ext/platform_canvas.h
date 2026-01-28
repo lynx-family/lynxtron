@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SKIA_EXT_PLATFORM_CANVAS_H_
-#define SKIA_EXT_PLATFORM_CANVAS_H_
+#ifndef LYNXTRON_SHELL_UI_SKIA_EXT_PLATFORM_CANVAS_H_
+#define LYNXTRON_SHELL_UI_SKIA_EXT_PLATFORM_CANVAS_H_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -110,4 +110,4 @@ SK_API bool GetWritablePixels(SkCanvas* canvas, SkPixmap* pixmap);
 
 }  // namespace skia
 
-#endif  // SKIA_EXT_PLATFORM_CANVAS_H_
+#endif  // LYNXTRON_SHELL_UI_SKIA_EXT_PLATFORM_CANVAS_H_

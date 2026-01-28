@@ -16,8 +16,8 @@
 // Images can be empty, in which case they have no backing representation.
 // Attempting to use an empty Image will result in a crash.
 
-#ifndef UI_GFX_IMAGE_IMAGE_H_
-#define UI_GFX_IMAGE_IMAGE_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_IMAGE_IMAGE_H_
+#define LYNXTRON_SHELL_UI_GFX_IMAGE_IMAGE_H_
 
 #include <stddef.h>
 
@@ -185,4 +185,4 @@ class COMPONENT_EXPORT(GFX) Image {
 
 }  // namespace gfx
 
-#endif  // UI_GFX_IMAGE_IMAGE_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_IMAGE_IMAGE_H_

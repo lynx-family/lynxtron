@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SHELL_UI_DISPLAY_DISPLAY_LAYOUT_BUILDER_H_
-#define SHELL_UI_DISPLAY_DISPLAY_LAYOUT_BUILDER_H_
+#ifndef LYNXTRON_SHELL_UI_DISPLAY_DISPLAY_LAYOUT_BUILDER_H_
+#define LYNXTRON_SHELL_UI_DISPLAY_DISPLAY_LAYOUT_BUILDER_H_
 
 #include <memory>
 
@@ -55,4 +55,4 @@ class DISPLAY_EXPORT DisplayLayoutBuilder final {
 
 }  // namespace display
 
-#endif  // SHELL_UI_DISPLAY_DISPLAY_LAYOUT_BUILDER_H_
+#endif  // LYNXTRON_SHELL_UI_DISPLAY_DISPLAY_LAYOUT_BUILDER_H_

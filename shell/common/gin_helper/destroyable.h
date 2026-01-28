@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_COMMON_GIN_HELPER_DESTROYABLE_H_
-#define ELECTRON_SHELL_COMMON_GIN_HELPER_DESTROYABLE_H_
+#ifndef LYNXTRON_SHELL_COMMON_GIN_HELPER_DESTROYABLE_H_
+#define LYNXTRON_SHELL_COMMON_GIN_HELPER_DESTROYABLE_H_
 
 #include "v8/include/v8-forward.h"
 
@@ -21,4 +21,4 @@ struct Destroyable {
 
 }  // namespace gin_helper
 
-#endif  // ELECTRON_SHELL_COMMON_GIN_HELPER_DESTROYABLE_H_
+#endif  // LYNXTRON_SHELL_COMMON_GIN_HELPER_DESTROYABLE_H_

@@ -9,8 +9,8 @@
 // rectangles with negative width and/or height), but there will be assertions
 // in the operations (such as Contains()) to complain in this case.
 
-#ifndef UI_GFX_GEOMETRY_RECT_H_
-#define UI_GFX_GEOMETRY_RECT_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_GEOMETRY_RECT_H_
+#define LYNXTRON_SHELL_UI_GFX_GEOMETRY_RECT_H_
 
 #include <cmath>
 #include <iosfwd>
@@ -386,4 +386,4 @@ void PrintTo(const Rect& rect, ::std::ostream* os);
 
 }  // namespace gfx
 
-#endif  // UI_GFX_GEOMETRY_RECT_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_GEOMETRY_RECT_H_

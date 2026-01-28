@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SHELL_UI_DISPLAY_TABLET_STATE_H_
-#define SHELL_UI_DISPLAY_TABLET_STATE_H_
+#ifndef LYNXTRON_SHELL_UI_DISPLAY_TABLET_STATE_H_
+#define LYNXTRON_SHELL_UI_DISPLAY_TABLET_STATE_H_
 
 namespace display {
 
@@ -17,4 +17,4 @@ enum class TabletState {
 
 }  // namespace display
 
-#endif  // SHELL_UI_DISPLAY_TABLET_STATE_H_
+#endif  // LYNXTRON_SHELL_UI_DISPLAY_TABLET_STATE_H_

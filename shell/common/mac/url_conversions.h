@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef NET_BASE_APPLE_URL_CONVERSIONS_H_
-#define NET_BASE_APPLE_URL_CONVERSIONS_H_
+#ifndef LYNXTRON_SHELL_COMMON_MAC_URL_CONVERSIONS_H_
+#define LYNXTRON_SHELL_COMMON_MAC_URL_CONVERSIONS_H_
 
 class GURL;
 @class NSURL;
@@ -22,4 +22,4 @@ GURL GURLWithNSURL(NSURL* url);
 
 }  // namespace net
 
-#endif  // NET_BASE_APPLE_URL_CONVERSIONS_H_
+#endif  // LYNXTRON_SHELL_COMMON_MAC_URL_CONVERSIONS_H_

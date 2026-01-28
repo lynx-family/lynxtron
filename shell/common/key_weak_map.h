@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_COMMON_KEY_WEAK_MAP_H_
-#define ELECTRON_SHELL_COMMON_KEY_WEAK_MAP_H_
+#ifndef LYNXTRON_SHELL_COMMON_KEY_WEAK_MAP_H_
+#define LYNXTRON_SHELL_COMMON_KEY_WEAK_MAP_H_
 
 #include <unordered_map>
 #include <vector>
@@ -78,4 +78,4 @@ class KeyWeakMap {
 
 }  // namespace lynxtron
 
-#endif  // ELECTRON_SHELL_COMMON_KEY_WEAK_MAP_H_
+#endif  // LYNXTRON_SHELL_COMMON_KEY_WEAK_MAP_H_

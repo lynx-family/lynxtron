@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_GFX_DISPLAY_COLOR_SPACES_H_
-#define UI_GFX_DISPLAY_COLOR_SPACES_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_DISPLAY_COLOR_SPACES_H_
+#define LYNXTRON_SHELL_UI_GFX_DISPLAY_COLOR_SPACES_H_
 
 #include <string>
 #include <vector>
@@ -154,4 +154,4 @@ class COLOR_SPACE_EXPORT DisplayColorSpacesRef
 
 }  // namespace gfx
 
-#endif  // UI_GFX_DISPLAY_COLOR_SPACES_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_DISPLAY_COLOR_SPACES_H_

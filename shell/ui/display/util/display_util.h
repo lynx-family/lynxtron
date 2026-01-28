@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_DISPLAY_UTIL_DISPLAY_UTIL_H_
-#define UI_DISPLAY_UTIL_DISPLAY_UTIL_H_
+#ifndef LYNXTRON_SHELL_UI_DISPLAY_UTIL_DISPLAY_UTIL_H_
+#define LYNXTRON_SHELL_UI_DISPLAY_UTIL_DISPLAY_UTIL_H_
 
 #include <stdint.h>
 
@@ -79,4 +79,4 @@ void SetInternalDisplayIds(base::flat_set<int64_t> display_ids);
 
 }  // namespace display
 
-#endif  // UI_DISPLAY_UTIL_DISPLAY_UTIL_H_
+#endif  // LYNXTRON_SHELL_UI_DISPLAY_UTIL_DISPLAY_UTIL_H_

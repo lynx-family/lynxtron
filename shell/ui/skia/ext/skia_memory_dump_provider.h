@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SKIA_EXT_SKIA_MEMORY_DUMP_PROVIDER_H_
-#define SKIA_EXT_SKIA_MEMORY_DUMP_PROVIDER_H_
+#ifndef LYNXTRON_SHELL_UI_SKIA_EXT_SKIA_MEMORY_DUMP_PROVIDER_H_
+#define LYNXTRON_SHELL_UI_SKIA_EXT_SKIA_MEMORY_DUMP_PROVIDER_H_
 
 #include "base/memory/singleton.h"
 #include "base/trace_event/memory_dump_provider.h"
@@ -33,4 +33,4 @@ class SK_API SkiaMemoryDumpProvider
 
 }  // namespace skia
 
-#endif  // SKIA_EXT_SKIA_MEMORY_DUMP_PROVIDER_H_
+#endif  // LYNXTRON_SHELL_UI_SKIA_EXT_SKIA_MEMORY_DUMP_PROVIDER_H_

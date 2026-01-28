@@ -7,8 +7,8 @@
 #pragma allow_unsafe_buffers
 #endif
 
-#ifndef UI_GFX_GEOMETRY_DOUBLE4_H_
-#define UI_GFX_GEOMETRY_DOUBLE4_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_GEOMETRY_DOUBLE4_H_
+#define LYNXTRON_SHELL_UI_GFX_GEOMETRY_DOUBLE4_H_
 
 #include <type_traits>
 
@@ -94,4 +94,4 @@ ALWAYS_INLINE int32_t AllTrue(FloatBoolean4 b4) {
 
 }  // namespace gfx
 
-#endif  // UI_GFX_GEOMETRY_DOUBLE4_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_GEOMETRY_DOUBLE4_H_

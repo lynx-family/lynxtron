@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_VIEWS_WIN_HWND_MESSAGE_HANDLER_DELEGATE_H_
-#define UI_VIEWS_WIN_HWND_MESSAGE_HANDLER_DELEGATE_H_
+#ifndef LYNXTRON_SHELL_UI_PLATFORM_WINDOW_WIN_HWND_MESSAGE_HANDLER_DELEGATE_H_
+#define LYNXTRON_SHELL_UI_PLATFORM_WINDOW_WIN_HWND_MESSAGE_HANDLER_DELEGATE_H_
 
 #include "base/win/windows_types.h"
 #include "shell/ui/base/ui_base_types.h"
@@ -255,4 +255,4 @@ class HWNDMessageHandlerDelegate {
 
 }  // namespace ui
 
-#endif  // UI_VIEWS_WIN_HWND_MESSAGE_HANDLER_DELEGATE_H_
+#endif  // LYNXTRON_SHELL_UI_PLATFORM_WINDOW_WIN_HWND_MESSAGE_HANDLER_DELEGATE_H_

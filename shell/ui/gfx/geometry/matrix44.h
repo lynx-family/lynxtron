@@ -7,8 +7,8 @@
 #pragma allow_unsafe_buffers
 #endif
 
-#ifndef UI_GFX_GEOMETRY_MATRIX44_H_
-#define UI_GFX_GEOMETRY_MATRIX44_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_GEOMETRY_MATRIX44_H_
+#define LYNXTRON_SHELL_UI_GFX_GEOMETRY_MATRIX44_H_
 
 #include <optional>
 
@@ -205,4 +205,4 @@ class COMPONENT_EXPORT(GEOMETRY_SKIA) Matrix44 {
 
 }  // namespace gfx
 
-#endif  // UI_GFX_GEOMETRY_MATRIX44_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_GEOMETRY_MATRIX44_H_

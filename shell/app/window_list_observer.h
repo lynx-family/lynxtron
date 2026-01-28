@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_BROWSER_WINDOW_LIST_OBSERVER_H_
-#define ELECTRON_SHELL_BROWSER_WINDOW_LIST_OBSERVER_H_
+#ifndef LYNXTRON_SHELL_APP_WINDOW_LIST_OBSERVER_H_
+#define LYNXTRON_SHELL_APP_WINDOW_LIST_OBSERVER_H_
 
 #include "base/observer_list_types.h"
 
@@ -25,4 +25,4 @@ class WindowListObserver : public base::CheckedObserver {
 
 }  // namespace lynxtron
 
-#endif  // ELECTRON_SHELL_BROWSER_WINDOW_LIST_OBSERVER_H_
+#endif  // LYNXTRON_SHELL_APP_WINDOW_LIST_OBSERVER_H_

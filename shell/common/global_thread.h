@@ -1,8 +1,8 @@
 // Copyright 2025 The Lynxtron Authors. All rights reserved.
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
-#ifndef SHELL_COMMON_THREADS_GLOBAL_H_
-#define SHELL_COMMON_THREADS_GLOBAL_H_
+#ifndef LYNXTRON_SHELL_COMMON_GLOBAL_THREAD_H_
+#define LYNXTRON_SHELL_COMMON_GLOBAL_THREAD_H_
 
 #include <memory>
 
@@ -235,4 +235,4 @@ class SCOPED_LOCKABLE ScopedValidateBrowserThreadDebugChecker {
 
 }  // namespace lynxtron
 
-#endif  // SHELL_COMMON_THREADS_GLOBAL_H_
+#endif  // LYNXTRON_SHELL_COMMON_GLOBAL_THREAD_H_

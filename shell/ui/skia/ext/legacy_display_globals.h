@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SKIA_EXT_LEGACY_DISPLAY_GLOBALS_H_
-#define SKIA_EXT_LEGACY_DISPLAY_GLOBALS_H_
+#ifndef LYNXTRON_SHELL_UI_SKIA_EXT_LEGACY_DISPLAY_GLOBALS_H_
+#define LYNXTRON_SHELL_UI_SKIA_EXT_LEGACY_DISPLAY_GLOBALS_H_
 
 #include "third_party/skia/include/core/SkSurfaceProps.h"
 
@@ -24,4 +24,4 @@ class SK_API LegacyDisplayGlobals {
 
 }  // namespace skia
 
-#endif  // SKIA_EXT_LEGACY_DISPLAY_GLOBALS_H_
+#endif  // LYNXTRON_SHELL_UI_SKIA_EXT_LEGACY_DISPLAY_GLOBALS_H_

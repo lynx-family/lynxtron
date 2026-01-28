@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SKIA_EXT_IMAGE_OPERATIONS_H_
-#define SKIA_EXT_IMAGE_OPERATIONS_H_
+#ifndef LYNXTRON_SHELL_UI_SKIA_EXT_IMAGE_OPERATIONS_H_
+#define LYNXTRON_SHELL_UI_SKIA_EXT_IMAGE_OPERATIONS_H_
 
 #include "third_party/skia/include/core/SkBitmap.h"
 #include "third_party/skia/include/core/SkPixmap.h"
@@ -121,4 +121,4 @@ class SK_API ImageOperations {
 
 }  // namespace skia
 
-#endif  // SKIA_EXT_IMAGE_OPERATIONS_H_
+#endif  // LYNXTRON_SHELL_UI_SKIA_EXT_IMAGE_OPERATIONS_H_

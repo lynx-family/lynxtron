@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_COMMON_API_ELECTRON_API_NATIVE_IMAGE_H_
-#define ELECTRON_SHELL_COMMON_API_ELECTRON_API_NATIVE_IMAGE_H_
+#ifndef LYNXTRON_SHELL_API_API_NATIVE_IMAGE_H_
+#define LYNXTRON_SHELL_API_API_NATIVE_IMAGE_H_
 
 #include <string>
 #include <vector>
@@ -146,4 +146,4 @@ class NativeImage final : public gin_helper::DeprecatedWrappable<NativeImage> {
 
 }  // namespace lynxtron::api
 
-#endif  // ELECTRON_SHELL_COMMON_API_ELECTRON_API_NATIVE_IMAGE_H_
+#endif  // LYNXTRON_SHELL_API_API_NATIVE_IMAGE_H_

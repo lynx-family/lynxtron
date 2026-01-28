@@ -7,8 +7,8 @@
 // produce a vector, and adding a vector to a point produces the point at the
 // vector's distance from the original point.
 
-#ifndef UI_GFX_GEOMETRY_VECTOR2D_F_H_
-#define UI_GFX_GEOMETRY_VECTOR2D_F_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_GEOMETRY_VECTOR2D_F_H_
+#define LYNXTRON_SHELL_UI_GFX_GEOMETRY_VECTOR2D_F_H_
 
 #include <algorithm>
 #include <iosfwd>
@@ -150,4 +150,4 @@ void PrintTo(const Vector2dF& vector, ::std::ostream* os);
 
 }  // namespace gfx
 
-#endif  // UI_GFX_GEOMETRY_VECTOR2D_F_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_GEOMETRY_VECTOR2D_F_H_

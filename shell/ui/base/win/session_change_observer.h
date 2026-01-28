@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_BASE_WIN_SESSION_CHANGE_OBSERVER_H_
-#define UI_BASE_WIN_SESSION_CHANGE_OBSERVER_H_
+#ifndef LYNXTRON_SHELL_UI_BASE_WIN_SESSION_CHANGE_OBSERVER_H_
+#define LYNXTRON_SHELL_UI_BASE_WIN_SESSION_CHANGE_OBSERVER_H_
 
 #include <windows.h>
 
@@ -41,4 +41,4 @@ class COMPONENT_EXPORT(UI_BASE) SessionChangeObserver {
 
 }  // namespace ui
 
-#endif  // UI_BASE_WIN_SESSION_CHANGE_OBSERVER_H_
+#endif  // LYNXTRON_SHELL_UI_BASE_WIN_SESSION_CHANGE_OBSERVER_H_

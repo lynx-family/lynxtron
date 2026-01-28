@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef LYNXTRON_SHELL_BROWSER_MICROTASKS_RUNNER_H_
-#define LYNXTRON_SHELL_BROWSER_MICROTASKS_RUNNER_H_
+#ifndef LYNXTRON_SHELL_APP_MICROTASKS_RUNNER_H_
+#define LYNXTRON_SHELL_APP_MICROTASKS_RUNNER_H_
 
 #include "base/memory/raw_ptr.h"
 #include "base/task/task_observer.h"
@@ -35,4 +35,4 @@ class MicrotasksRunner : public base::TaskObserver {
 
 }  // namespace lynxtron
 
-#endif  // LYNXTRON_SHELL_BROWSER_MICROTASKS_RUNNER_H_
+#endif  // LYNXTRON_SHELL_APP_MICROTASKS_RUNNER_H_

@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_GFX_BUFFER_TYPES_H_
-#define UI_GFX_BUFFER_TYPES_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_BUFFER_TYPES_H_
+#define LYNXTRON_SHELL_UI_GFX_BUFFER_TYPES_H_
 
 #include <stdint.h>
 
@@ -104,4 +104,4 @@ enum class BufferPlane {
 
 }  // namespace gfx
 
-#endif  // UI_GFX_BUFFER_TYPES_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_BUFFER_TYPES_H_

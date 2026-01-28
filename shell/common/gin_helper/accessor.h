@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_COMMON_GIN_HELPER_ACCESSOR_H_
-#define ELECTRON_SHELL_COMMON_GIN_HELPER_ACCESSOR_H_
+#ifndef LYNXTRON_SHELL_COMMON_GIN_HELPER_ACCESSOR_H_
+#define LYNXTRON_SHELL_COMMON_GIN_HELPER_ACCESSOR_H_
 
 #include "base/memory/raw_ptr_exclusion.h"
 
@@ -26,4 +26,4 @@ struct AccessorValue<const T*> {
 
 }  // namespace gin_helper
 
-#endif  // ELECTRON_SHELL_COMMON_GIN_HELPER_ACCESSOR_H_
+#endif  // LYNXTRON_SHELL_COMMON_GIN_HELPER_ACCESSOR_H_

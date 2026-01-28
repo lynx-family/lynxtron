@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_GFX_GEOMETRY_RECT_F_H_
-#define UI_GFX_GEOMETRY_RECT_F_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_GEOMETRY_RECT_F_H_
+#define LYNXTRON_SHELL_UI_GFX_GEOMETRY_RECT_F_H_
 
 #include <iosfwd>
 #include <string>
@@ -315,4 +315,4 @@ void PrintTo(const RectF& rect, ::std::ostream* os);
 
 }  // namespace gfx
 
-#endif  // UI_GFX_GEOMETRY_RECT_F_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_GEOMETRY_RECT_F_H_

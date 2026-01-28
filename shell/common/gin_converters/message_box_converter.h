@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_COMMON_GIN_CONVERTERS_MESSAGE_BOX_CONVERTER_H_
-#define ELECTRON_SHELL_COMMON_GIN_CONVERTERS_MESSAGE_BOX_CONVERTER_H_
+#ifndef LYNXTRON_SHELL_COMMON_GIN_CONVERTERS_MESSAGE_BOX_CONVERTER_H_
+#define LYNXTRON_SHELL_COMMON_GIN_CONVERTERS_MESSAGE_BOX_CONVERTER_H_
 
 #include "gin/converter.h"
 #include "shell/api/ui/message_box.h"
@@ -19,4 +19,4 @@ struct Converter<lynxtron::MessageBoxSettings> {
 
 }  // namespace gin
 
-#endif  // ELECTRON_SHELL_COMMON_GIN_CONVERTERS_MESSAGE_BOX_CONVERTER_H_
+#endif  // LYNXTRON_SHELL_COMMON_GIN_CONVERTERS_MESSAGE_BOX_CONVERTER_H_

@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_GFX_IMAGE_IMAGE_FAMILY_H_
-#define UI_GFX_IMAGE_IMAGE_FAMILY_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_IMAGE_IMAGE_FAMILY_H_
+#define LYNXTRON_SHELL_UI_GFX_IMAGE_IMAGE_FAMILY_H_
 
 #include <iterator>
 #include <map>
@@ -176,4 +176,4 @@ class COMPONENT_EXPORT(GFX) ImageFamily {
 
 }  // namespace gfx
 
-#endif  // UI_GFX_IMAGE_IMAGE_FAMILY_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_IMAGE_IMAGE_FAMILY_H_

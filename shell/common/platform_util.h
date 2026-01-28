@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_COMMON_PLATFORM_UTIL_H_
-#define ELECTRON_SHELL_COMMON_PLATFORM_UTIL_H_
+#ifndef LYNXTRON_SHELL_COMMON_PLATFORM_UTIL_H_
+#define LYNXTRON_SHELL_COMMON_PLATFORM_UTIL_H_
 
 #include <string>
 
@@ -57,4 +57,4 @@ bool SetLoginItemEnabled(const std::string& type,
 #endif
 }  // namespace platform_util
 
-#endif  // ELECTRON_SHELL_COMMON_PLATFORM_UTIL_H_
+#endif  // LYNXTRON_SHELL_COMMON_PLATFORM_UTIL_H_

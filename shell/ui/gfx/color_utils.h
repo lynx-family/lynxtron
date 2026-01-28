@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_GFX_COLOR_UTILS_H_
-#define UI_GFX_COLOR_UTILS_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_COLOR_UTILS_H_
+#define LYNXTRON_SHELL_UI_GFX_COLOR_UTILS_H_
 
 #include <optional>
 #include <string>
@@ -232,4 +232,4 @@ std::tuple<float, float, float> GetLuminancesForTesting();
 
 }  // namespace color_utils
 
-#endif  // UI_GFX_COLOR_UTILS_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_COLOR_UTILS_H_

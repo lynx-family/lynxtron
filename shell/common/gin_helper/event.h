@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_COMMON_GIN_HELPER_EVENT_H_
-#define ELECTRON_SHELL_COMMON_GIN_HELPER_EVENT_H_
+#ifndef LYNXTRON_SHELL_COMMON_GIN_HELPER_EVENT_H_
+#define LYNXTRON_SHELL_COMMON_GIN_HELPER_EVENT_H_
 
 #include "shell/common/gin_helper/constructible.h"
 #include "shell/common/gin_helper/wrappable.h"
@@ -51,4 +51,4 @@ class Event final : public gin_helper::DeprecatedWrappable<Event>,
 
 }  // namespace gin_helper::internal
 
-#endif  // ELECTRON_SHELL_COMMON_GIN_HELPER_EVENT_H_
+#endif  // LYNXTRON_SHELL_COMMON_GIN_HELPER_EVENT_H_

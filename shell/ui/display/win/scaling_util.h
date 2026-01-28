@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SHELL_UI_DISPLAY_WIN_SCALING_UTIL_H_
-#define SHELL_UI_DISPLAY_WIN_SCALING_UTIL_H_
+#ifndef LYNXTRON_SHELL_UI_DISPLAY_WIN_SCALING_UTIL_H_
+#define LYNXTRON_SHELL_UI_DISPLAY_WIN_SCALING_UTIL_H_
 
 #include <stdint.h>
 
@@ -146,4 +146,4 @@ DISPLAY_EXPORT int64_t SquaredDistanceBetweenRects(const gfx::Rect& ref,
 }  // namespace win
 }  // namespace display
 
-#endif  // SHELL_UI_DISPLAY_WIN_SCALING_UTIL_H_
+#endif  // LYNXTRON_SHELL_UI_DISPLAY_WIN_SCALING_UTIL_H_

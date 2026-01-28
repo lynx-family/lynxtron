@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_GFX_GEOMETRY_INSETS_F_H_
-#define UI_GFX_GEOMETRY_INSETS_F_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_GEOMETRY_INSETS_F_H_
+#define LYNXTRON_SHELL_UI_GFX_GEOMETRY_INSETS_F_H_
 
 #include "base/component_export.h"
 #include "ui/gfx/geometry/insets_outsets_f_base.h"
@@ -47,4 +47,4 @@ void PrintTo(const InsetsF&, ::std::ostream* os);
 
 }  // namespace gfx
 
-#endif  // UI_GFX_GEOMETRY_INSETS_F_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_GEOMETRY_INSETS_F_H_

@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SKIA_EXT_CONVOLVER_SSE2_H_
-#define SKIA_EXT_CONVOLVER_SSE2_H_
+#ifndef LYNXTRON_SHELL_UI_SKIA_EXT_CONVOLVER_SSE2_H_
+#define LYNXTRON_SHELL_UI_SKIA_EXT_CONVOLVER_SSE2_H_
 
 #include "skia/ext/convolver.h"
 
@@ -24,4 +24,4 @@ void ConvolveHorizontally_SSE2(const unsigned char* src_data,
                                bool has_alpha);
 }  // namespace skia
 
-#endif  // SKIA_EXT_CONVOLVER_SSE2_H_
+#endif  // LYNXTRON_SHELL_UI_SKIA_EXT_CONVOLVER_SSE2_H_

@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_COMMON_COLOR_UTIL_H_
-#define ELECTRON_SHELL_COMMON_COLOR_UTIL_H_
+#ifndef LYNXTRON_SHELL_COMMON_COLOR_UTIL_H_
+#define LYNXTRON_SHELL_COMMON_COLOR_UTIL_H_
 
 #include <optional>
 #include <string>
@@ -43,4 +43,4 @@ std::optional<DWORD> GetSystemAccentColor();
 
 }  // namespace lynxtron
 
-#endif  // ELECTRON_SHELL_COMMON_COLOR_UTIL_H_
+#endif  // LYNXTRON_SHELL_COMMON_COLOR_UTIL_H_

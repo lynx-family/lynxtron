@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SKIA_EXT_SKIA_HISTOGRAM_H_
-#define SKIA_EXT_SKIA_HISTOGRAM_H_
+#ifndef LYNXTRON_SHELL_UI_SKIA_EXT_SKIA_HISTOGRAM_H_
+#define LYNXTRON_SHELL_UI_SKIA_EXT_SKIA_HISTOGRAM_H_
 
 #include <stdint.h>
 
@@ -46,4 +46,4 @@ void HistogramMemoryKB(std::atomic_uintptr_t* atomic_histogram_pointer,
 
 }  // namespace skia
 
-#endif  // SKIA_EXT_SKIA_HISTOGRAM_H_
+#endif  // LYNXTRON_SHELL_UI_SKIA_EXT_SKIA_HISTOGRAM_H_

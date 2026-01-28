@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SKIA_EXT_TEST_FONTS_FUCHSIA_H_
-#define SKIA_EXT_TEST_FONTS_FUCHSIA_H_
+#ifndef LYNXTRON_SHELL_UI_SKIA_EXT_TEST_FONTS_FUCHSIA_H_
+#define LYNXTRON_SHELL_UI_SKIA_EXT_TEST_FONTS_FUCHSIA_H_
 
 #include <fuchsia/fonts/cpp/fidl.h>
 
@@ -15,4 +15,4 @@ fuchsia::fonts::ProviderHandle GetTestFontsProvider();
 
 }  // namespace skia
 
-#endif  // SKIA_EXT_TEST_FONTS_FUCHSIA_H_
+#endif  // LYNXTRON_SHELL_UI_SKIA_EXT_TEST_FONTS_FUCHSIA_H_

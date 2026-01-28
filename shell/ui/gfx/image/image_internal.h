@@ -5,8 +5,8 @@
 // This holds internal declarations for the machinery of gfx::Image. These are
 // only for the internal use of gfx::Image; do not use them elsewhere.
 
-#ifndef UI_GFX_IMAGE_IMAGE_INTERNAL_H_
-#define UI_GFX_IMAGE_IMAGE_INTERNAL_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_IMAGE_IMAGE_INTERNAL_H_
+#define LYNXTRON_SHELL_UI_GFX_IMAGE_IMAGE_INTERNAL_H_
 
 #include <map>
 #include <memory>
@@ -112,4 +112,4 @@ class ImageStorage : public base::RefCounted<ImageStorage> {
 
 }  // namespace gfx::internal
 
-#endif  // UI_GFX_IMAGE_IMAGE_INTERNAL_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_IMAGE_IMAGE_INTERNAL_H_

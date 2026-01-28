@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SKIA_EXT_CICP_H_
-#define SKIA_EXT_CICP_H_
+#ifndef LYNXTRON_SHELL_UI_SKIA_EXT_CICP_H_
+#define LYNXTRON_SHELL_UI_SKIA_EXT_CICP_H_
 
 #include <stdint.h>
 
@@ -49,4 +49,4 @@ SK_API bool CICPGetSkYUVColorSpace(uint8_t matrix_coefficients,
 
 }  // namespace skia
 
-#endif  // SKIA_EXT_CICP_H_
+#endif  // LYNXTRON_SHELL_UI_SKIA_EXT_CICP_H_

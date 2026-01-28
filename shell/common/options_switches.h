@@ -307,4 +307,4 @@ inline constexpr base::cstring_view kJavaScriptFlags = "js-flags";
 
 }  // namespace lynxtron
 
-#endif  // ELECTRON_SHELL_COMMON_OPTIONS_SWITCHES_H_
+#endif  // LYNXTRON_SHELL_COMMON_OPTIONS_SWITCHES_H_

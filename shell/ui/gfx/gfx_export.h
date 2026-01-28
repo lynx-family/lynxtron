@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SHELL_UI_GFX_GFX_EXPORT_H_
-#define SHELL_UI_GFX_GFX_EXPORT_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_GFX_EXPORT_H_
+#define LYNXTRON_SHELL_UI_GFX_GFX_EXPORT_H_
 
 #if defined(COMPONENT_BUILD)
 #if defined(WIN32)
@@ -26,4 +26,4 @@
 #define GFX_EXPORT
 #endif
 
-#endif  // SHELL_UI_GFX_GFX_EXPORT_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_GFX_EXPORT_H_

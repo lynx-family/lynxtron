@@ -7,8 +7,8 @@
 #pragma allow_unsafe_buffers
 #endif
 
-#ifndef UI_GFX_GEOMETRY_TRANSFORM_H_
-#define UI_GFX_GEOMETRY_TRANSFORM_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_GEOMETRY_TRANSFORM_H_
+#define LYNXTRON_SHELL_UI_GFX_GEOMETRY_TRANSFORM_H_
 
 #include <iosfwd>
 #include <memory>
@@ -645,4 +645,4 @@ void PrintTo(const Transform& transform, ::std::ostream* os);
 
 }  // namespace gfx
 
-#endif  // UI_GFX_GEOMETRY_TRANSFORM_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_GEOMETRY_TRANSFORM_H_

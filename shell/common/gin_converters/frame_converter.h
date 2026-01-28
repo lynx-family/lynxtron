@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_COMMON_GIN_CONVERTERS_FRAME_CONVERTER_H_
-#define ELECTRON_SHELL_COMMON_GIN_CONVERTERS_FRAME_CONVERTER_H_
+#ifndef LYNXTRON_SHELL_COMMON_GIN_CONVERTERS_FRAME_CONVERTER_H_
+#define LYNXTRON_SHELL_COMMON_GIN_CONVERTERS_FRAME_CONVERTER_H_
 
 #include "content/public/browser/frame_tree_node_id.h"
 #include "gin/converter.h"
@@ -43,4 +43,4 @@ struct Converter<gin_helper::AccessorValue<content::RenderFrameHost*>> {
 
 }  // namespace gin
 
-#endif  // ELECTRON_SHELL_COMMON_GIN_CONVERTERS_FRAME_CONVERTER_H_
+#endif  // LYNXTRON_SHELL_COMMON_GIN_CONVERTERS_FRAME_CONVERTER_H_

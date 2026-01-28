@@ -1,8 +1,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef LYNXTRON_SHELL_BROWSER_UI_WIN_JUMP_LIST_H_
-#define LYNXTRON_SHELL_BROWSER_UI_WIN_JUMP_LIST_H_
+#ifndef LYNXTRON_SHELL_API_UI_WIN_JUMP_LIST_H_
+#define LYNXTRON_SHELL_API_UI_WIN_JUMP_LIST_H_
 
 #include <atlbase.h>
 #include <shobjidl.h>
@@ -120,4 +120,4 @@ class JumpList {
 
 }  // namespace lynxtron
 
-#endif  // LYNXTRON_SHELL_BROWSER_UI_WIN_JUMP_LIST_H_
+#endif  // LYNXTRON_SHELL_API_UI_WIN_JUMP_LIST_H_

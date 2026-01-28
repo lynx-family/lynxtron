@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ELECTRON_SHELL_COMMON_GIN_HELPER_REPLY_CHANNEL_H_
-#define ELECTRON_SHELL_COMMON_GIN_HELPER_REPLY_CHANNEL_H_
+#ifndef LYNXTRON_SHELL_COMMON_GIN_HELPER_REPLY_CHANNEL_H_
+#define LYNXTRON_SHELL_COMMON_GIN_HELPER_REPLY_CHANNEL_H_
 
 #include <string>
 
@@ -53,4 +53,4 @@ class ReplyChannel : public gin_helper::DeprecatedWrappable<ReplyChannel> {
 
 }  // namespace gin_helper::internal
 
-#endif  // ELECTRON_SHELL_COMMON_GIN_HELPER_REPLY_CHANNEL_H_
+#endif  // LYNXTRON_SHELL_COMMON_GIN_HELPER_REPLY_CHANNEL_H_

@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SHELL_UI_DISPLAY_TYPES_DISPLAY_CONSTANTS_H_
-#define SHELL_UI_DISPLAY_TYPES_DISPLAY_CONSTANTS_H_
+#ifndef LYNXTRON_SHELL_UI_DISPLAY_TYPES_DISPLAY_CONSTANTS_H_
+#define LYNXTRON_SHELL_UI_DISPLAY_TYPES_DISPLAY_CONSTANTS_H_
 
 #include <stdint.h>
 
@@ -265,4 +265,4 @@ constexpr struct Data {
 
 }  // namespace display
 
-#endif  // SHELL_UI_DISPLAY_TYPES_DISPLAY_CONSTANTS_H_
+#endif  // LYNXTRON_SHELL_UI_DISPLAY_TYPES_DISPLAY_CONSTANTS_H_

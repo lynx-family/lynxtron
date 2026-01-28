@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SHELL_UI_GFX_SKIA_COLOR_SPACE_UTIL_H_
-#define SHELL_UI_GFX_SKIA_COLOR_SPACE_UTIL_H_
+#ifndef LYNXTRON_SHELL_UI_GFX_SKIA_COLOR_SPACE_UTIL_H_
+#define LYNXTRON_SHELL_UI_GFX_SKIA_COLOR_SPACE_UTIL_H_
 
 #include "third_party/skia/include/core/SkColorSpace.h"
 #include "third_party/skia/include/core/SkICC.h"
@@ -35,4 +35,4 @@ SkM44 SkM44FromRowMajor3x3(const float* scale);
 
 }  // namespace gfx
 
-#endif  // SHELL_UI_GFX_SKIA_COLOR_SPACE_UTIL_H_
+#endif  // LYNXTRON_SHELL_UI_GFX_SKIA_COLOR_SPACE_UTIL_H_

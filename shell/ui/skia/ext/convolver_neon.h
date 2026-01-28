@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SKIA_EXT_CONVOLVER_NEON_H_
-#define SKIA_EXT_CONVOLVER_NEON_H_
+#ifndef LYNXTRON_SHELL_UI_SKIA_EXT_CONVOLVER_NEON_H_
+#define LYNXTRON_SHELL_UI_SKIA_EXT_CONVOLVER_NEON_H_
 
 #include "skia/ext/convolver.h"
 
@@ -27,4 +27,4 @@ void ConvolveVertically_Neon(const ConvolutionFilter1D::Fixed* filter_values,
 
 }  // namespace skia
 
-#endif  // SKIA_EXT_CONVOLVER_NEON_H_
+#endif  // LYNXTRON_SHELL_UI_SKIA_EXT_CONVOLVER_NEON_H_
