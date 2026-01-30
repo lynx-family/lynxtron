@@ -17,7 +17,7 @@
 namespace gin_helper::internal {
 
 // static
-using InvokeCallback = electron::mojom::ElectronApiIPC::InvokeCallback;
+using InvokeCallback = lynxtron::mojom::ElectronApiIPC::InvokeCallback;
 gin_helper::Handle<ReplyChannel> ReplyChannel::Create(v8::Isolate* isolate,
                                                       InvokeCallback callback) {
   return gin_helper::CreateHandle(isolate,
@@ -45,7 +45,7 @@ ReplyChannel::~ReplyChannel() {
 }
 
 void ReplyChannel::SendError(const std::string& msg) {
-  v8::Isolate* isolate = electron::JavascriptEnvironment::GetIsolate();
+  v8::Isolate* isolate = lynxtron::JavascriptEnvironment::GetIsolate();
   // If there's no current context, it means we're shutting down, so we
   // don't need to send an event.
   v8::HandleScope scope(isolate);

@@ -34,7 +34,7 @@ bool IsHexFormatWithAlpha(const std::string& str) {
 
 }  // namespace
 
-namespace electron {
+namespace lynxtron {
 
 std::optional<SkColor> ParseCSSColor(const std::string& color_string) {
   // ParseCssColorString expects RGBA and we historically use ARGB
@@ -88,4 +88,4 @@ std::optional<DWORD> GetSystemAccentColor() {
 }
 #endif
 
-}  // namespace electron
+}  // namespace lynxtron

@@ -18,10 +18,10 @@ struct Converter<device::mojom::HidDeviceInfoPtr> {
   static v8::Local<v8::Value> ToV8(
       v8::Isolate* isolate,
       const device::mojom::HidDeviceInfoPtr& device) {
-    base::Value value = electron::HidChooserContext::DeviceInfoToValue(*device);
+    base::Value value = lynxtron::HidChooserContext::DeviceInfoToValue(*device);
     base::Value::Dict& dict = value.GetDict();
     dict.Set("deviceId",
-             electron::HidChooserController::PhysicalDeviceIdFromDeviceInfo(
+             lynxtron::HidChooserController::PhysicalDeviceIdFromDeviceInfo(
                  *device));
     return gin::Converter<base::Value::Dict>::ToV8(isolate, dict);
   }

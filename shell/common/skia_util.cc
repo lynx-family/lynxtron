@@ -28,7 +28,7 @@
 #include "ui/gfx/icon_util.h"
 #endif
 
-namespace electron::util {
+namespace lynxtron::util {
 
 namespace {
 
@@ -171,4 +171,4 @@ bool ReadImageSkiaFromICO(gfx::ImageSkia* image, HICON icon) {
 }
 #endif
 
-}  // namespace electron::util
+}  // namespace lynxtron::util

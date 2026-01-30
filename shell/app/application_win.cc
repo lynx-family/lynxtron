@@ -849,7 +849,7 @@ bool Application::IsEmojiPanelSupported() {
 
 //   if ((str = dict.FindStringKey("iconPath"))) {
 //     base::FilePath path = base::FilePath::FromUTF8Unsafe(*str);
-//     electron::util::PopulateImageSkiaRepsFromPath(&image, path);
+//     lynxtron::util::PopulateImageSkiaRepsFromPath(&image, path);
 //   }
 
 //   electron::MessageBoxSettings settings = {};

@@ -17,7 +17,7 @@ struct Converter<device::mojom::UsbDeviceInfoPtr> {
   static v8::Local<v8::Value> ToV8(
       v8::Isolate* isolate,
       const device::mojom::UsbDeviceInfoPtr& device) {
-    base::Value value = electron::UsbChooserContext::DeviceInfoToValue(*device);
+    base::Value value = lynxtron::UsbChooserContext::DeviceInfoToValue(*device);
     return gin::ConvertToV8(isolate, value);
   }
 };

@@ -25,7 +25,7 @@ struct WrappedSkColor {
   operator SkColor() const { return value; }
 };
 
-namespace electron {
+namespace lynxtron {
 
 // Parses a CSS-style color string from hex, rgb(), rgba(),
 // hsl(), hsla(), or color name formats.
@@ -41,6 +41,6 @@ std::string ToRGBAHex(SkColor color, bool include_hash = true);
 std::optional<DWORD> GetSystemAccentColor();
 #endif
 
-}  // namespace electron
+}  // namespace lynxtron
 
 #endif  // ELECTRON_SHELL_COMMON_COLOR_UTIL_H_

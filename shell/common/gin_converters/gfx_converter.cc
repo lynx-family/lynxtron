@@ -243,7 +243,7 @@ bool Converter<WrappedSkColor>::FromV8(v8::Isolate* isolate,
   if (!gin::ConvertFromV8(isolate, val, &str)) {
     return false;
   }
-  *out = electron::ParseCSSColor(str).value_or(SK_ColorWHITE);
+  *out = lynxtron::ParseCSSColor(str).value_or(SK_ColorWHITE);
   return true;
 }
 

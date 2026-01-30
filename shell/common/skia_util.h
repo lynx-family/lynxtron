@@ -21,7 +21,7 @@ namespace gfx {
 class ImageSkia;
 }
 
-namespace electron::util {
+namespace lynxtron::util {
 
 bool PopulateImageSkiaRepsFromPath(gfx::ImageSkia* image,
                                    const base::FilePath& path);
@@ -44,6 +44,6 @@ bool AddImageSkiaRepFromPNG(gfx::ImageSkia* image,
 bool ReadImageSkiaFromICO(gfx::ImageSkia* image, HICON icon);
 #endif
 
-}  // namespace electron::util
+}  // namespace lynxtron::util
 
 #endif  // ELECTRON_SHELL_COMMON_SKIA_UTIL_H_

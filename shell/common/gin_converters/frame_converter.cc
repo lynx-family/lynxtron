@@ -32,7 +32,7 @@ v8::Local<v8::Value> Converter<content::RenderFrameHost*>::ToV8(
   if (!val) {
     return v8::Null(isolate);
   }
-  return electron::api::WebFrameMain::From(isolate, val).ToV8();
+  return lynxtron::api::WebFrameMain::From(isolate, val).ToV8();
 }
 
 // static
@@ -40,7 +40,7 @@ bool Converter<content::RenderFrameHost*>::FromV8(
     v8::Isolate* isolate,
     v8::Local<v8::Value> val,
     content::RenderFrameHost** out) {
-  electron::api::WebFrameMain* web_frame_main = nullptr;
+  lynxtron::api::WebFrameMain* web_frame_main = nullptr;
   if (!ConvertFromV8(isolate, val, &web_frame_main)) {
     return false;
   }
@@ -113,7 +113,7 @@ bool Converter<gin_helper::AccessorValue<content::RenderFrameHost*>>::FromV8(
     // Lazily evaluated property accessed after RFH has been destroyed.
     // Continue to return nullptr, but emit warning to inform developers
     // what occurred.
-    electron::util::EmitWarning(
+    lynxtron::util::EmitWarning(
         isolate,
         "Frame property was accessed after it navigated or was destroyed. "
         "Avoid asynchronous tasks prior to indexing.",

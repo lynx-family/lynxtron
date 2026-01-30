@@ -144,7 +144,7 @@ NativeImage::NativeImage(v8::Isolate* isolate, const base::FilePath& hicon_path)
 
   // Use the 256x256 icon as fallback icon.
   gfx::ImageSkia image_skia;
-  electron::util::ReadImageSkiaFromICO(&image_skia, GetHICON(256));
+  lynxtron::util::ReadImageSkiaFromICO(&image_skia, GetHICON(256));
   image_ = gfx::Image(image_skia);
 
   UpdateExternalAllocatedMemoryUsage();
@@ -405,17 +405,17 @@ void NativeImage::AddRepresentation(const gin_helper::Dictionary& options) {
   v8::Local<v8::Value> buffer;
   GURL url;
   if (options.Get("buffer", &buffer) && node::Buffer::HasInstance(buffer)) {
-    skia_rep_added = electron::util::AddImageSkiaRepFromBuffer(
+    skia_rep_added = lynxtron::util::AddImageSkiaRepFromBuffer(
         &image_skia, lynxtron::Buffer::as_byte_span(buffer), width, height,
         scale_factor);
   } else if (options.Get("dataURL", &url)) {
     std::string mime_type, charset, data;
     if (net::DataURL::Parse(url, &mime_type, &charset, &data)) {
       if (mime_type == "image/png") {
-        skia_rep_added = electron::util::AddImageSkiaRepFromPNG(
+        skia_rep_added = lynxtron::util::AddImageSkiaRepFromPNG(
             &image_skia, base::as_byte_span(data), scale_factor);
       } else if (mime_type == "image/jpeg") {
-        skia_rep_added = electron::util::AddImageSkiaRepFromJPEG(
+        skia_rep_added = lynxtron::util::AddImageSkiaRepFromJPEG(
             &image_skia, base::as_byte_span(data), scale_factor);
       }
     }
@@ -452,7 +452,7 @@ gin_helper::Handle<NativeImage> NativeImage::CreateFromPNG(
     v8::Isolate* isolate,
     const base::span<const uint8_t> data) {
   gfx::ImageSkia image_skia;
-  electron::util::AddImageSkiaRepFromPNG(&image_skia, data, 1.0);
+  lynxtron::util::AddImageSkiaRepFromPNG(&image_skia, data, 1.0);
   return Create(isolate, gfx::Image(image_skia));
 }
 
@@ -461,7 +461,7 @@ gin_helper::Handle<NativeImage> NativeImage::CreateFromJPEG(
     v8::Isolate* isolate,
     const base::span<const uint8_t> buffer) {
   gfx::ImageSkia image_skia;
-  electron::util::AddImageSkiaRepFromJPEG(&image_skia, buffer, 1.0);
+  lynxtron::util::AddImageSkiaRepFromJPEG(&image_skia, buffer, 1.0);
   return Create(isolate, gfx::Image(image_skia));
 }
 
@@ -477,7 +477,7 @@ gin_helper::Handle<NativeImage> NativeImage::CreateFromPath(
   }
 #endif
   gfx::ImageSkia image_skia;
-  electron::util::PopulateImageSkiaRepsFromPath(&image_skia, image_path);
+  lynxtron::util::PopulateImageSkiaRepsFromPath(&image_skia, image_path);
   gfx::Image image(image_skia);
   gin_helper::Handle<NativeImage> handle = Create(isolate, image);
 #if BUILDFLAG(IS_MAC)
@@ -557,7 +557,7 @@ gin_helper::Handle<NativeImage> NativeImage::CreateFromBuffer(
   }
 
   gfx::ImageSkia image_skia;
-  electron::util::AddImageSkiaRepFromBuffer(
+  lynxtron::util::AddImageSkiaRepFromBuffer(
       &image_skia, lynxtron::Buffer::as_byte_span(buffer), width, height,
       scale_factor);
   return Create(args->isolate(), gfx::Image(image_skia));

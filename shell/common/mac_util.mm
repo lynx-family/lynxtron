@@ -6,7 +6,7 @@
 
 #include "base/containers/span.h"
 
-namespace electron::util {
+namespace lynxtron::util {
 
 base::span<const uint8_t> as_byte_span(NSData* data) {
   // SAFETY: There is no NSData API that passes the UNSAFE_BUFFER_USAGE
@@ -17,4 +17,4 @@ base::span<const uint8_t> as_byte_span(NSData* data) {
       reinterpret_cast<const uint8_t*>([data bytes]), [data length]});
 }
 
-}  // namespace electron::util
+}  // namespace lynxtron::util

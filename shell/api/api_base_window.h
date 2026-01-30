@@ -253,6 +253,6 @@ class BaseWindow : public gin_helper::TrackableObject<BaseWindow>,
 
 }  // namespace lynxtron::api
 
-// namespace electron
+// namespace lynxtron
 
 #endif  // LYNXTRON_SHELL_API_API_BASE_WINDOW_H_
