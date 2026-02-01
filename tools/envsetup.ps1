@@ -5,12 +5,13 @@
 
 $tools_path = Split-Path -Parent $MyInvocation.MyCommand.Path
 $lynxtron_dir_path = Split-Path -Parent $tools_path
+$root_dir_path = Split-Path -Parent $lynxtron_dir_path
 
 function Lynxtron-Env-Setup {
-    $buildtoolsDir = Join-Path $lynxtron_dir_path 'buildtools'
+    $buildtoolsDir = Join-Path $root_dir_path 'buildtools'
+    $env:PATH += ';'
     $env:PATH += Join-Path $buildtoolsDir 'gn;'
     $env:PATH += Join-Path $buildtoolsDir 'ninja;'
 }
 
 Lynxtron-Env-Setup
-

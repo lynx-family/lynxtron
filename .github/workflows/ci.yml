@@ -32,12 +32,13 @@ jobs:
       - name: Install Common Dependencies
         uses: ./src/lynxtron/.github/actions/common-deps
         with:
-          target: 'tools'
+          target: 'tools_shared'
           target_only: 'true'
       - name: Run file type check
         run: |
           cd ${{ github.workspace }}/src/lynxtron
           source tools/envsetup.sh
+          python3 -m pip install requests
           python3 tools_shared/git_lynx.py check --checkers file-type
       - name: Run cpplint check
         run: |

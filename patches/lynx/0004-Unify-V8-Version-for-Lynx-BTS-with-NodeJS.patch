@@ -1,32 +1,34 @@
-From 71796f527897735445234580ecdaaabb24364480 Mon Sep 17 00:00:00 2001
+From 9dfe6291146c3b6825a3f68915e7bc473aa9867e Mon Sep 17 00:00:00 2001
 From: tangyongjie <80395553+yongjieTang@users.noreply.github.com>
 Date: Mon, 8 Dec 2025 15:59:11 +0800
-Subject: [PATCH 4/5] Unify V8 Version for Lynx BTS with NodeJS.
+Subject: [PATCH] Unify V8 Version for Lynx BTS with NodeJS.
 
 Standardize the V8 version and instance used by Lynxtron and Lynx BTS (Background Thread Script).
 This ensures better performance for Lynx BTS and prevents potential symbol conflicts caused by mismatched V8 versions.
 
 issue: m-6796469046
+Patch-Dir: lynxtron/patches/lynx
+Patch-Filename: 0004-Unify-V8-Version-for-Lynx-BTS-with-NodeJS.patch
 ---
  .../js/bytecode/v8/v8_cache_generator.cc      |  4 +-
  core/runtime/js/jsi/v8/v8.gni                 |  6 +-
- .../js/jsi/v8/v8_isolate_wrapper_node_impl.cc | 97 +++++++++++++++++++
- .../js/jsi/v8/v8_isolate_wrapper_node_impl.h  | 32 ++++++
- core/runtime/js/jsi/v8/v8_platform_data.cc    | 17 ++++
- core/runtime/js/jsi/v8/v8_platform_data.h     | 23 +++++
+ .../js/jsi/v8/v8_isolate_wrapper_node_impl.cc | 99 +++++++++++++++++++
+ .../js/jsi/v8/v8_isolate_wrapper_node_impl.h  | 34 +++++++
+ core/runtime/js/jsi/v8/v8_platform_data.cc    | 19 ++++
+ core/runtime/js/jsi/v8/v8_platform_data.h     | 24 +++++
  core/runtime/js/jsi/v8/v8_runtime.cc          |  4 +-
  devtool/lynx_devtool/js_debug/BUILD.gn        |  3 +
  platform/embedder/lynx_env.cc                 |  5 +
  platform/embedder/public/capi/lynx_env_capi.h |  2 +
  third_party/napi/BUILD.gn                     |  1 +
- 11 files changed, 188 insertions(+), 6 deletions(-)
+ 11 files changed, 195 insertions(+), 6 deletions(-)
  create mode 100644 core/runtime/js/jsi/v8/v8_isolate_wrapper_node_impl.cc
  create mode 100644 core/runtime/js/jsi/v8/v8_isolate_wrapper_node_impl.h
  create mode 100644 core/runtime/js/jsi/v8/v8_platform_data.cc
  create mode 100644 core/runtime/js/jsi/v8/v8_platform_data.h
 
 diff --git a/core/runtime/js/bytecode/v8/v8_cache_generator.cc b/core/runtime/js/bytecode/v8/v8_cache_generator.cc
-index c0ed0dd..016407e 100644
+index 62ef7b1e..a4bc220c 100644
 --- a/core/runtime/js/bytecode/v8/v8_cache_generator.cc
 +++ b/core/runtime/js/bytecode/v8/v8_cache_generator.cc
 @@ -11,7 +11,7 @@
@@ -38,7 +40,7 @@ index c0ed0dd..016407e 100644
  #include "v8.h"
  
  namespace lynx {
-@@ -33,7 +33,7 @@ std::shared_ptr<Buffer> V8CacheGenerator::GenerateCache() {
+@@ -34,7 +34,7 @@ std::shared_ptr<Buffer> V8CacheGenerator::GenerateCache() {
  bool V8CacheGenerator::GenerateCacheImpl(
      const std::string &origin_url, const std::shared_ptr<const Buffer> &buffer,
      std::string &contents) {
@@ -48,7 +50,7 @@ index c0ed0dd..016407e 100644
    auto isolate = isolate_wrapper->Isolate();
    V8ContextWrapperImpl context_wrapper(isolate_wrapper);
 diff --git a/core/runtime/js/jsi/v8/v8.gni b/core/runtime/js/jsi/v8/v8.gni
-index e7225a5..b590ca1 100644
+index e7225a57..b590ca13 100644
 --- a/core/runtime/js/jsi/v8/v8.gni
 +++ b/core/runtime/js/jsi/v8/v8.gni
 @@ -6,8 +6,8 @@ js_v8_bridge_shared_sources =
@@ -71,10 +73,10 @@ index e7225a5..b590ca1 100644
          ])
 diff --git a/core/runtime/js/jsi/v8/v8_isolate_wrapper_node_impl.cc b/core/runtime/js/jsi/v8/v8_isolate_wrapper_node_impl.cc
 new file mode 100644
-index 0000000..fc47adb
+index 00000000..842ae263
 --- /dev/null
 +++ b/core/runtime/js/jsi/v8/v8_isolate_wrapper_node_impl.cc
-@@ -0,0 +1,97 @@
+@@ -0,0 +1,99 @@
 +// Copyright 2023 The Lynx Authors. All rights reserved.
 +// Licensed under the Apache License Version 2.0 that can be found in the
 +// LICENSE file in the root directory of this source tree.
@@ -96,7 +98,8 @@ index 0000000..fc47adb
 +#include "v8-cppgc.h"
 +
 +namespace lynx {
-+namespace piper {
++namespace runtime {
++namespace js {
 +
 +namespace {
 +
@@ -170,14 +173,15 @@ index 0000000..fc47adb
 +
 +v8::Isolate* V8IsolateInstanceNodeImpl::Isolate() const { return isolate_; }
 +
-+}  // namespace piper
++}  // namespace js
++}  // namespace runtime
 +}  // namespace lynx
 diff --git a/core/runtime/js/jsi/v8/v8_isolate_wrapper_node_impl.h b/core/runtime/js/jsi/v8/v8_isolate_wrapper_node_impl.h
 new file mode 100644
-index 0000000..43b79bb
+index 00000000..b3e2b6c7
 --- /dev/null
 +++ b/core/runtime/js/jsi/v8/v8_isolate_wrapper_node_impl.h
-@@ -0,0 +1,32 @@
+@@ -0,0 +1,34 @@
 +// Copyright 2023 The Lynx Authors. All rights reserved.
 +// Licensed under the Apache License Version 2.0 that can be found in the
 +// LICENSE file in the root directory of this source tree.
@@ -188,7 +192,8 @@ index 0000000..43b79bb
 +#include "core/runtime/js/jsi/v8/v8_platform_data.h"
 +
 +namespace lynx {
-+namespace piper {
++namespace runtime {
++namespace js {
 +
 +class V8IsolateInstanceNodeImpl : public V8IsolateInstance {
 + public:
@@ -207,15 +212,16 @@ index 0000000..43b79bb
 +  friend class V8ContextWrapper;
 +};
 +
-+}  // namespace piper
++}  // namespace js
++}  // namespace runtime
 +}  // namespace lynx
 +#endif  // CORE_RUNTIME_JSI_V8_V8_ISOLATE_WRAPPER_NODE_IMPL_H_
 diff --git a/core/runtime/js/jsi/v8/v8_platform_data.cc b/core/runtime/js/jsi/v8/v8_platform_data.cc
 new file mode 100644
-index 0000000..3be675d
+index 00000000..e0a9fe0f
 --- /dev/null
 +++ b/core/runtime/js/jsi/v8/v8_platform_data.cc
-@@ -0,0 +1,17 @@
+@@ -0,0 +1,19 @@
 +// Copyright 2025 The Lynx Authors. All rights reserved.
 +// Licensed under the Apache License Version 2.0 that can be found in the
 +// LICENSE file in the root directory of this source tree.
@@ -223,7 +229,8 @@ index 0000000..3be675d
 +#include "core/runtime/js/jsi/v8/v8_platform_data.h"
 +
 +namespace lynx {
-+namespace piper {
++namespace runtime {
++namespace js {
 +
 +static void* v8_platform_ = nullptr;
 +
@@ -231,14 +238,15 @@ index 0000000..3be675d
 +
 +void* V8PlatformData::GetV8Platform() { return v8_platform_; }
 +
-+}  // namespace piper
++}  // namespace js
++}  // namespace runtime
 +}  // namespace lynx
 diff --git a/core/runtime/js/jsi/v8/v8_platform_data.h b/core/runtime/js/jsi/v8/v8_platform_data.h
 new file mode 100644
-index 0000000..d5c682a
+index 00000000..779bd8ed
 --- /dev/null
 +++ b/core/runtime/js/jsi/v8/v8_platform_data.h
-@@ -0,0 +1,23 @@
+@@ -0,0 +1,24 @@
 +// Copyright 2025 The Lynx Authors. All rights reserved.
 +// Licensed under the Apache License Version 2.0 that can be found in the
 +// LICENSE file in the root directory of this source tree.
@@ -247,7 +255,8 @@ index 0000000..d5c682a
 +#define CORE_RUNTIME_JSI_V8_V8_PLATFORM_DATA_H_
 +
 +namespace lynx {
-+namespace piper {
++namespace runtime {
++namespace js {
 +
 +class V8PlatformData {
 + public:
@@ -259,11 +268,11 @@ index 0000000..d5c682a
 +};
 +
 +}  // namespace piper
-+}  // namespace lynx
-+
++}  // namespace runtime
++}  // namespace js
 +#endif  // CORE_RUNTIME_JSI_V8_V8_PLATFORM_DATA_H_
 diff --git a/core/runtime/js/jsi/v8/v8_runtime.cc b/core/runtime/js/jsi/v8/v8_runtime.cc
-index 674bb9c..f854e91 100644
+index 9c2c1e53..62c11fcd 100644
 --- a/core/runtime/js/jsi/v8/v8_runtime.cc
 +++ b/core/runtime/js/jsi/v8/v8_runtime.cc
 @@ -18,7 +18,7 @@
@@ -275,7 +284,7 @@ index 674bb9c..f854e91 100644
  #include "core/runtime/profile/v8/v8_runtime_profiler_wrapper_impl.h"
  #include "core/runtime/trace/runtime_trace_event_def.h"
  #include "libplatform/libplatform.h"
-@@ -203,7 +203,7 @@ Object V8Runtime::global() {
+@@ -202,7 +202,7 @@ Object V8Runtime::global() {
  
  std::shared_ptr<V8IsolateInstance> V8Runtime::CreateVM_(
      const char* arg, bool useSnapshot) const {
@@ -285,7 +294,7 @@ index 674bb9c..f854e91 100644
    return isolate_wrapper;
  }
 diff --git a/devtool/lynx_devtool/js_debug/BUILD.gn b/devtool/lynx_devtool/js_debug/BUILD.gn
-index 50e273c..3bbbccc 100644
+index 90a73efc..aa6a95c9 100644
 --- a/devtool/lynx_devtool/js_debug/BUILD.gn
 +++ b/devtool/lynx_devtool/js_debug/BUILD.gn
 @@ -74,6 +74,9 @@ devtool_source_set("lynx_v8_bridge") {
@@ -299,7 +308,7 @@ index 50e273c..3bbbccc 100644
  
  devtool_source_set("devtool_v8_debug") {
 diff --git a/platform/embedder/lynx_env.cc b/platform/embedder/lynx_env.cc
-index 6090286..d72b0c5 100644
+index 60902867..78d9863b 100644
 --- a/platform/embedder/lynx_env.cc
 +++ b/platform/embedder/lynx_env.cc
 @@ -7,6 +7,7 @@
@@ -316,10 +325,10 @@ index 6090286..d72b0c5 100644
  }
 +
 +LYNX_CAPI_EXPORT void lynx_env_set_node_platform(void* platform) {
-+  lynx::piper::V8PlatformData::SetV8Platform(platform);
++  lynx::runtime::js::V8PlatformData::SetV8Platform(platform);
 +}
 diff --git a/platform/embedder/public/capi/lynx_env_capi.h b/platform/embedder/public/capi/lynx_env_capi.h
-index e70e503..7b14d4f 100644
+index e70e503e..7b14d4f2 100644
 --- a/platform/embedder/public/capi/lynx_env_capi.h
 +++ b/platform/embedder/public/capi/lynx_env_capi.h
 @@ -30,6 +30,8 @@ LYNX_CAPI_EXPORT void lynx_env_register_extension_module(
@@ -332,7 +341,7 @@ index e70e503..7b14d4f 100644
  
  #endif  // PLATFORM_EMBEDDER_PUBLIC_CAPI_LYNX_ENV_CAPI_H_
 diff --git a/third_party/napi/BUILD.gn b/third_party/napi/BUILD.gn
-index eb7b988..a7ad90b 100644
+index eb7b9884..a7ad90bc 100644
 --- a/third_party/napi/BUILD.gn
 +++ b/third_party/napi/BUILD.gn
 @@ -126,6 +126,7 @@ source_set("v8") {
@@ -344,5 +353,5 @@ index eb7b988..a7ad90b 100644
  }
  
 -- 
-2.39.3 (Apple Git-145)
+2.51.1.windows.1
 

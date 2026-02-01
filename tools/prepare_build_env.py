@@ -11,6 +11,13 @@ COLORED_GREEN_MSG = '\033[32m'
 
 COLORED_PRINT_END = '\033[0m'
 
+# Get the directory where the current script is located
+current_dir = os.path.dirname(os.path.realpath(__file__))
+# Get the root directory
+root_dir = os.path.abspath(os.path.join(current_dir, '..'))
+sys.path.append(root_dir)
+from script.abort_am_sessions import abort_am_sessions
+
 def main():
     system = platform.system().lower()
     if system == "windows":
@@ -26,6 +33,8 @@ def main():
     os.environ["GIT_LFS_SKIP_SMUDGE"] = "1"
     print(f"{COLORED_YELLOW_MSG}hab: {hab}{COLORED_PRINT_END}")
     print(f"{COLORED_YELLOW_MSG}envsetup: {envsetup}{COLORED_PRINT_END}")
+    print(f"{COLORED_GREEN_MSG}abort am sessions............{COLORED_PRINT_END}")
+    abort_am_sessions()
     print(f"{COLORED_YELLOW_MSG}sync lynxtron dependencies............{COLORED_PRINT_END}")
     return_code = os.system(f"powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File \"{hab}\" sync . -f --no-history --target lynxtron")
     if return_code != 0:
@@ -46,7 +55,7 @@ def main():
         print(f"{COLORED_YELLOW_MSG}sync lynx dependencies failed, exit{COLORED_PRINT_END}")
         return return_code
     print(f"{COLORED_YELLOW_MSG}install lynxtron npm dependencies............{COLORED_PRINT_END}")
-    return_code = os.system(f'{python3} script/lib/npx.py yarn@1.22.22 install --frozen-lockfile')
+    return_code = os.system(f'corepack enable && {python3} script/lib/npx.py yarn install --immutable')
     if return_code != 0:
         print(f"{COLORED_YELLOW_MSG}install lynxtron npm dependencies failed, exit{COLORED_PRINT_END}")
         return return_code

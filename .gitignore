@@ -1,6 +1,6 @@
 tools_shared/
 spec/.hash
-default_app/app/dist
+packages/default_app/app/dist
 .yarn/*
 !.yarn/releases
 !.yarn/plugins
