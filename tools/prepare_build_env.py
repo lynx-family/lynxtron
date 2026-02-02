@@ -36,21 +36,33 @@ def main():
     print(f"{COLORED_GREEN_MSG}abort am sessions............{COLORED_PRINT_END}")
     abort_am_sessions()
     print(f"{COLORED_YELLOW_MSG}sync lynxtron dependencies............{COLORED_PRINT_END}")
-    return_code = os.system(f"powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File \"{hab}\" sync . -f --no-history --target lynxtron")
+    if system == "windows":
+        return_code = os.system(f"powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File \"{hab}\" sync . -f --no-history --target lynxtron")
+    else:
+        return_code = os.system(f"\"{hab}\" sync . -f --no-history --target lynxtron")
     if return_code != 0:
         print(f"{COLORED_YELLOW_MSG}sync lynxtron dependencies failed, exit{COLORED_PRINT_END}")
         return return_code
     print(f"{COLORED_YELLOW_MSG}sync tools dependencies............{COLORED_PRINT_END}")
-    return_code = os.system(f"powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File \"{hab}\" sync . -f --no-history --target tools --target-only")
+    if system == "windows":
+        return_code = os.system(f"powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File \"{hab}\" sync . -f --no-history --target tools --target-only")
+    else:
+        return_code = os.system(f"\"{hab}\" sync . -f --no-history --target tools --target-only")
     if return_code != 0:
         print(f"{COLORED_YELLOW_MSG}sync tools dependencies failed, exit{COLORED_PRINT_END}")
         return return_code
-    return_code = os.system(f"powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File \"{hab}\" sync . -f --no-history --target tools_shared --target-only")
+    if system == "windows":
+        return_code = os.system(f"powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File \"{hab}\" sync . -f --no-history --target tools_shared --target-only")
+    else:
+        return_code = os.system(f"\"{hab}\" sync . -f --no-history --target tools_shared --target-only")
     if return_code != 0:
         print(f"{COLORED_YELLOW_MSG}sync tools_shared dependencies failed, exit{COLORED_PRINT_END}")
         return return_code
     print(f"{COLORED_YELLOW_MSG}sync lynx dependencies............{COLORED_PRINT_END}")
-    return_code = os.system(f"powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File \"{hab}\" sync . -f --no-history --target lynx --target-only")
+    if system == "windows":
+        return_code = os.system(f"powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File \"{hab}\" sync . -f --no-history --target lynx --target-only")
+    else:
+        return_code = os.system(f"\"{hab}\" sync . -f --no-history --target lynx --target-only")
     if return_code != 0:
         print(f"{COLORED_YELLOW_MSG}sync lynx dependencies failed, exit{COLORED_PRINT_END}")
         return return_code
