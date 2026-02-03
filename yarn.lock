@@ -43,18 +43,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/code-frame@npm:^7.27.1":
-  version: 7.28.6
-  resolution: "@babel/code-frame@npm:7.28.6"
-  dependencies:
-    "@babel/helper-validator-identifier": "npm:^7.28.5"
-    js-tokens: "npm:^4.0.0"
-    picocolors: "npm:^1.1.1"
-  checksum: ed5d57f99455e3b1c23e75ebb8430c6b9800b4ecd0121b4348b97cecb65406a47778d6db61f0d538a4958bb01b4b277e90348a68d39bd3beff1d7c940ed6dd66
-  languageName: node
-  linkType: hard
-
-"@babel/helper-validator-identifier@npm:^7.25.9, @babel/helper-validator-identifier@npm:^7.28.5":
+"@babel/helper-validator-identifier@npm:^7.25.9":
   version: 7.28.5
   resolution: "@babel/helper-validator-identifier@npm:7.28.5"
   checksum: 42aaebed91f739a41f3d80b72752d1f95fd7c72394e8e4bd7cdd88817e0774d80a432451bcba17c2c642c257c483bf1d409dd4548883429ea9493a3bc4ab0847
@@ -2179,23 +2168,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@rsbuild/plugin-type-check@npm:1.3.1":
-  version: 1.3.1
-  resolution: "@rsbuild/plugin-type-check@npm:1.3.1"
-  dependencies:
-    deepmerge: "npm:^4.3.1"
-    json5: "npm:^2.2.3"
-    reduce-configs: "npm:^1.1.1"
-    ts-checker-rspack-plugin: "npm:^1.2.0"
-  peerDependencies:
-    "@rsbuild/core": 1.x
-  peerDependenciesMeta:
-    "@rsbuild/core":
-      optional: true
-  checksum: 5cc2cb291307baef3e34a89e001b3e45fb6061199d7f097bac459fb8b8f933f57fa6f358377bf704fe2914abb3174ebe66e6d0a1c1a91e31b8b5a339fc55b7ac
-  languageName: node
-  linkType: hard
-
 "@rsdoctor/client@npm:1.2.3":
   version: 1.2.3
   resolution: "@rsdoctor/client@npm:1.2.3"
@@ -2743,7 +2715,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@rspack/lite-tapable@npm:1.1.0, @rspack/lite-tapable@npm:^1.1.0, @rspack/lite-tapable@npm:~1.1.0":
+"@rspack/lite-tapable@npm:1.1.0, @rspack/lite-tapable@npm:~1.1.0":
   version: 1.1.0
   resolution: "@rspack/lite-tapable@npm:1.1.0"
   checksum: 15059d1da73192b150339ceba3142a2d0073fa298dad9a497cc8c6037c597c3a982ed4c88dc50afa7b70d0757df1b47af7ae407cfe8acd31d333d524b84a7a4b
@@ -8374,7 +8346,6 @@ __metadata:
     "@lynx-js/react-rsbuild-plugin": "npm:^0.12.5"
     "@lynx-js/rspeedy": "npm:^0.13.0"
     "@lynx-js/types": "npm:3.6.0"
-    "@rsbuild/plugin-type-check": "npm:1.3.1"
     "@rspack/cli": "npm:^1.6.7"
     "@rspack/core": "npm:^1.6.7"
     "@testing-library/jest-dom": "npm:^6.9.0"
@@ -8505,7 +8476,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"memfs@npm:^4.43.1, memfs@npm:^4.51.1":
+"memfs@npm:^4.43.1":
   version: 4.56.2
   resolution: "memfs@npm:4.56.2"
   dependencies:
@@ -8717,7 +8688,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"minimatch@npm:^9.0.3, minimatch@npm:^9.0.4, minimatch@npm:^9.0.5":
+"minimatch@npm:^9.0.3, minimatch@npm:^9.0.4":
   version: 9.0.5
   resolution: "minimatch@npm:9.0.5"
   dependencies:
@@ -12004,27 +11975,6 @@ __metadata:
   dependencies:
     utf8-byte-length: "npm:^1.0.1"
   checksum: af2b431fc4314f119b551e5fccfad49d4c0ef82e13ba9ca61be6567801195b08e732ce9643542e8ad1b3df44f3df2d7345b3dd34f723954b6bb43a14584d6b3c
-  languageName: node
-  linkType: hard
-
-"ts-checker-rspack-plugin@npm:^1.2.0":
-  version: 1.2.6
-  resolution: "ts-checker-rspack-plugin@npm:1.2.6"
-  dependencies:
-    "@babel/code-frame": "npm:^7.27.1"
-    "@rspack/lite-tapable": "npm:^1.1.0"
-    chokidar: "npm:^3.6.0"
-    is-glob: "npm:^4.0.3"
-    memfs: "npm:^4.51.1"
-    minimatch: "npm:^9.0.5"
-    picocolors: "npm:^1.1.1"
-  peerDependencies:
-    "@rspack/core": ^1.0.0 || ^2.0.0-0
-    typescript: ">=3.8.0"
-  peerDependenciesMeta:
-    "@rspack/core":
-      optional: true
-  checksum: 501518ed8d461d3c7890f943db26c1ab8fd3cd4660d29c1a24344f737e9ce9fc20ae9c9fccd7a41b9298e146d9311c30b29e2a7899afe5efade35d8356e53e8b
   languageName: node
   linkType: hard
 

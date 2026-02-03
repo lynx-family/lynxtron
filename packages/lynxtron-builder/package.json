@@ -4,7 +4,7 @@
   "main": "cli.js",
   "files": [
     "patches/",
-    "index.js",
+    "cli.js",
     "patch.js",
     "package.json"
   ],

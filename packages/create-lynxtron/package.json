@@ -5,7 +5,7 @@
   "bin": "./cli.js",
   "scripts": {
     "start": "node ./cli.js",
-    "prepack": "node ./scripts/generate-template.js && node ./scripts/generate-versions.js"
+    "build": "node ./scripts/generate-template.js && node ./scripts/generate-versions.js"
   },
   "description": "Create a new Lynxtron app from the official template",
   "license": "MIT",
