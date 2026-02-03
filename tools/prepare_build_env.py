@@ -66,6 +66,7 @@ def main():
     if return_code != 0:
         print(f"{COLORED_YELLOW_MSG}sync lynx dependencies failed, exit{COLORED_PRINT_END}")
         return return_code
+    
     print(f"{COLORED_YELLOW_MSG}install lynxtron npm dependencies............{COLORED_PRINT_END}")
     return_code = os.system(f'corepack enable && {python3} script/lib/npx.py yarn install --immutable')
     if return_code != 0:
