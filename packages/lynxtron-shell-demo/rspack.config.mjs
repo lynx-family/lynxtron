@@ -9,7 +9,7 @@ const SOURCE = path.resolve(__dirname, "src");
 const isDev = process.env.NODE_ENV === "development";
 const devReadyRspack = await (async () => {
   try {
-    const mod = await import('@lynxtron/dev-ready-rsbuild-plugin/rspack')
+    const mod = await import('@lynx-js/dev-ready-rsbuild-plugin/rspack')
     return mod.rspackDevReadyPlugin
   } catch {
     const mod = await import('../dev-ready-rsbuild-plugin/dist/rspack.js')
