@@ -1,9 +1,12 @@
 
 const path = require('path')
 const { registerGlobalEnvModule } = process._linkedBinding("lynx_extension");
+const platform = process.platform;
+const arch = process.arch;
 const extension_module = require(path.join(__dirname,
-  'darwin',
-  'arm64',
+  'dist',
+  platform,
+  arch,
   'cef_extension.node'
 ));
 

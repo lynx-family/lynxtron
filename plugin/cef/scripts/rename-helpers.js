@@ -17,7 +17,7 @@ const __dirname = path.dirname(__filename);
 async function main() {
   try {
     // 1. Get project root directory
-    const projectRoot = path.resolve(__dirname, '../../..'); // The package.json is in the same directory as the scripts folder
+    const projectRoot = path.resolve(__dirname, '../../../..'); // The package.json is in the same directory as the scripts folder
     
     // 2. Try to find electron-builder config files first
     const electronBuilderConfigs = [
@@ -74,7 +74,8 @@ async function main() {
       try {
         await fs.access(packageJsonPath);
       } catch {
-        throw new Error('Could not find the project package.json file');
+        console.log(`Could not access package.json: ${packageJsonPath}`);
+        return;
       }
       
       const packageContent = await fs.readFile(packageJsonPath, 'utf8');
@@ -112,12 +113,13 @@ async function main() {
     // 4. Get cef-webview frameworks directory
     const currentPlatform = process.platform; // e.g., 'darwin', 'win32', 'linux'
     const currentArch = process.arch; // e.g., 'arm64', 'x64', 'ia32'
-    const frameworksPath = path.join(__dirname, `../${currentPlatform}/${currentArch}/frameworks`);
+    const frameworksPath = path.join(__dirname, 
+      `../dist/${currentPlatform}/${currentArch}/frameworks`);
     
     try {
       await fs.access(frameworksPath);
     } catch {
-      throw new Error('Could not find frameworks directory');
+      throw new Error(`Could not find frameworks directory: ${frameworksPath}`);
     }
     
     // 5. Get all Helper files
