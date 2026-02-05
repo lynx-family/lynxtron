@@ -147,6 +147,7 @@ class NativeWindowMac : public NativeWindow {
   FullScreenTransitionState fullscreen_transition_state() const {
     return fullscreen_transition_state_;
   }
+  void HandlePendingFullscreenTransitions();
 
   NSRect default_frame_for_zoom() const { return default_frame_for_zoom_; }
   void set_default_frame_for_zoom(NSRect frame) {

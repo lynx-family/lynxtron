@@ -224,7 +224,6 @@ bool NativeWindowMac::IsVisible() {
 
   // For a window to be visible, it must be visible to the user in the
   // foreground of the app, which means that it should not be minimized or
-  // occluded
   return [window_ isVisible] && !occluded && !IsMinimized();
 }
 
@@ -354,6 +353,17 @@ void NativeWindowMac::SetFullScreen(bool fullscreen) {
                                      : FullScreenTransitionState::EXITING;
 
   [window_ toggleFullScreenMode:nil];
+}
+
+void NativeWindowMac::HandlePendingFullscreenTransitions() {
+  if (pending_transitions_.empty()) {
+    set_fullscreen_transition_state(FullScreenTransitionState::NONE);
+    return;
+  }
+
+  bool next_transition = pending_transitions_.front();
+  pending_transitions_.pop();
+  SetFullScreen(next_transition);
 }
 
 bool NativeWindowMac::IsFullscreen() const {

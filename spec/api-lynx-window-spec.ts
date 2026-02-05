@@ -490,6 +490,138 @@ describe('LynxWindow module', () => {
         );
       });
 
+      ifdescribe(process.platform !== 'linux')('LynxWindow.fullscreen', () => {
+        let w: LynxWindow;
+        beforeEach(() => {
+          w = new LynxWindow({ show: false });
+        });
+        afterEach(async () => {
+          await closeWindow(w);
+          w = (null as unknown) as LynxWindow;
+        });
+
+        it('can be changed with the fullScreen property', async () => {
+          const shown = once(w, 'show');
+          w.show();
+          await shown;
+
+          const enterFullScreen = once(w, 'enter-full-screen');
+          w.fullScreen = true;
+          await enterFullScreen;
+          expect(w.fullScreen).to.equal(true);
+
+          const leaveFullScreen = once(w, 'leave-full-screen');
+          w.fullScreen = false;
+          await leaveFullScreen;
+          expect(w.fullScreen).to.equal(false);
+        });
+
+        it('can be changed with setFullScreen', async () => {
+          const shown = once(w, 'show');
+          w.show();
+          await shown;
+
+          const enterFullScreen = once(w, 'enter-full-screen');
+          w.setFullScreen(true);
+          await enterFullScreen;
+          expect(w.isFullScreen()).to.equal(true);
+
+          const leaveFullScreen = once(w, 'leave-full-screen');
+          w.setFullScreen(false);
+          await leaveFullScreen;
+          expect(w.isFullScreen()).to.equal(false);
+        });
+
+        //   it('correctly reports maximized state after maximizing then fullscreening', async () => {
+        //     const shown = once(w, 'show');
+        //     w.show();
+        //     await shown;
+
+        //     const maximize = once(w, 'maximize');
+        //     w.maximize();
+        //     if (process.platform !== 'darwin') {
+        //       await maximize;
+        //     } else {
+        //       await setTimeout(1000);
+        //     }
+
+        //     const enterFullScreen = once(w, 'enter-full-screen');
+        //     w.setFullScreen(true);
+        //     await enterFullScreen;
+        //     expect(w.isMaximized()).to.equal(true);
+        //   });
+      });
+
+      ifdescribe(process.platform === 'darwin')(
+        'LynxWindow.setWindowButtonVisibility()',
+        () => {
+          afterEach(closeAllWindows);
+
+          it('correctly updates when entering/exiting fullscreen for hidden style', async () => {
+            const w = new LynxWindow({
+              show: false,
+              frame: false,
+              titleBarStyle: 'hidden',
+            });
+            expect(w._getWindowButtonVisibility()).to.equal(true);
+            w.setWindowButtonVisibility(false);
+            expect(w._getWindowButtonVisibility()).to.equal(false);
+
+            const shown = once(w, 'show');
+            w.show();
+            await shown;
+
+            const enterFullScreen = once(w, 'enter-full-screen');
+            w.setFullScreen(true);
+            await enterFullScreen;
+
+            const leaveFullScreen = once(w, 'leave-full-screen');
+            w.setFullScreen(false);
+            await leaveFullScreen;
+
+            w.setWindowButtonVisibility(true);
+            expect(w._getWindowButtonVisibility()).to.equal(true);
+          });
+        }
+      );
+
+      ifdescribe(process.platform === 'darwin')(
+        'fullscreen state with resizable set',
+        () => {
+          afterEach(closeAllWindows);
+
+          it('resizable flag should be set to false and restored', async () => {
+            const w = new LynxWindow({ resizable: false });
+
+            const enterFullScreen = once(w, 'enter-full-screen');
+            w.setFullScreen(true);
+            await enterFullScreen;
+            expect(w.resizable).to.equal(false);
+
+            await setTimeout();
+            const leaveFullScreen = once(w, 'leave-full-screen');
+            w.setFullScreen(false);
+            await leaveFullScreen;
+            expect(w.resizable).to.equal(false);
+          });
+
+          it('default resizable flag should be restored after entering/exiting fullscreen', async () => {
+            const w = new LynxWindow();
+
+            const enterFullScreen = once(w, 'enter-full-screen');
+            w.setFullScreen(true);
+            await enterFullScreen;
+            expect(w.resizable).to.equal(false);
+
+            await setTimeout();
+            const leaveFullScreen = once(w, 'leave-full-screen');
+            w.setFullScreen(false);
+            await leaveFullScreen;
+            expect(w.resizable).to.equal(true);
+          });
+        }
+      );
+
       describe('LynxWindow.moveTop()', () => {
         afterEach(closeAllWindows);
 

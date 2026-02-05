@@ -234,14 +234,9 @@ using FullScreenTransitionState =
 }
 
 - (void)windowDidEnterFullScreen:(NSNotification*)notification {
-  // shell_->set_fullscreen_transition_state(FullScreenTransitionState::NONE);
-
+  shell_->set_fullscreen_transition_state(FullScreenTransitionState::NONE);
   shell_->NotifyWindowEnterFullScreen();
-
-  // if (shell_->HandleDeferredClose())
-  //  return;
-
-  // shell_->HandlePendingFullscreenTransitions();
+  shell_->HandlePendingFullscreenTransitions();
 }
 
 - (void)windowWillExitFullScreen:(NSNotification*)notification {
@@ -259,7 +254,7 @@ using FullScreenTransitionState =
   // if (shell_->HandleDeferredClose())
   //  return;
 
-  // shell_->HandlePendingFullscreenTransitions();
+  shell_->HandlePendingFullscreenTransitions();
 }
 
 - (void)windowWillClose:(NSNotification*)notification {
