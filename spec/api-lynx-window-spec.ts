@@ -43,6 +43,15 @@ describe('LynxWindow module', () => {
       }).not.to.throw();
     });
 
+    ifit(process.platform === 'darwin')('supports tabbingIdentifier', () => {
+      const w = new LynxWindow({
+        show: false,
+        tabbingIdentifier: 'tab-group',
+      });
+      expect(w.tabbingIdentifier).to.equal('tab-group');
+      w.destroy();
+    });
+
     // TODO(Guo Xi): support icon
     // it('does not crash or throw when passed an invalid icon', async () => {
     //   expect(() => {

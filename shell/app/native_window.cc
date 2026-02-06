@@ -355,6 +355,12 @@ void NativeWindow::SetVibrancy(const std::string& type, int duration) {
   vibrancy_ = type;
 }
 
+#if BUILDFLAG(IS_MAC)
+std::optional<std::string> NativeWindow::GetTabbingIdentifier() const {
+  return std::nullopt;
+}
+#endif
+
 void NativeWindow::SetTouchBar(
     std::vector<gin_helper::PersistentDictionary> items) {}
 

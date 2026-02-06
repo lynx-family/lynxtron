@@ -45,7 +45,7 @@ describe('shell module', () => {
       await closeAllWindows();
       if (server) {
         server.close();
-        server = null as unknown as http.Server;
+        server = (null as unknown) as http.Server;
       }
     });
 
@@ -70,7 +70,7 @@ describe('shell module', () => {
         });
         url = (await listen(server)).url;
         requestReceived = new Promise<void>((resolve) =>
-          server.on('connection', () => resolve()),
+          server.on('connection', () => resolve())
         );
       }
       return { url, requestReceived };
@@ -96,7 +96,7 @@ describe('shell module', () => {
         ]);
 
         expect(w.isFocused()).to.be.false();
-      },
+      }
     );
   });
 
@@ -105,7 +105,7 @@ describe('shell module', () => {
 
     it('moves an item to the trash', async () => {
       const dir = await fs.promises.mkdtemp(
-        path.resolve(app.getPath('temp'), 'electron-shell-spec-'),
+        path.resolve(app.getPath('temp'), 'electron-shell-spec-')
       );
       const filename = path.join(dir, 'temp-to-be-deleted');
       await fs.promises.writeFile(filename, 'dummy-contents');
@@ -141,11 +141,11 @@ describe('shell module', () => {
       const fixtures = path.resolve(__dirname, 'fixtures');
       it('reads all properties of a shortcut', () => {
         const shortcut = shell.readShortcutLink(
-          path.join(fixtures, 'assets', 'shortcut.lnk'),
+          path.join(fixtures, 'assets', 'shortcut.lnk')
         );
         expect(shortcut).to.deep.equal(shortcutOptions);
       });
-    },
+    }
   );
 
   ifdescribe(process.platform === 'win32')(
@@ -159,33 +159,33 @@ describe('shell module', () => {
 
       it('writes the shortcut', () => {
         expect(
-          shell.writeShortcutLink(tmpShortcut, { target: 'C:\\' }),
+          shell.writeShortcutLink(tmpShortcut, { target: 'C:\\' })
         ).to.be.true();
         expect(fs.existsSync(tmpShortcut)).to.be.true();
       });
 
       it('correctly sets the fields', () => {
         expect(
-          shell.writeShortcutLink(tmpShortcut, shortcutOptions),
+          shell.writeShortcutLink(tmpShortcut, shortcutOptions)
         ).to.be.true();
         expect(shell.readShortcutLink(tmpShortcut)).to.deep.equal(
-          shortcutOptions,
+          shortcutOptions
         );
       });
 
       it('updates the shortcut', () => {
         expect(
-          shell.writeShortcutLink(tmpShortcut, 'update', shortcutOptions),
+          shell.writeShortcutLink(tmpShortcut, 'update', shortcutOptions)
         ).to.be.false();
         expect(
-          shell.writeShortcutLink(tmpShortcut, 'create', shortcutOptions),
+          shell.writeShortcutLink(tmpShortcut, 'create', shortcutOptions)
         ).to.be.true();
         expect(shell.readShortcutLink(tmpShortcut)).to.deep.equal(
-          shortcutOptions,
+          shortcutOptions
         );
         const change = { target: 'D:\\' };
         expect(
-          shell.writeShortcutLink(tmpShortcut, 'update', change),
+          shell.writeShortcutLink(tmpShortcut, 'update', change)
         ).to.be.true();
         expect(shell.readShortcutLink(tmpShortcut)).to.deep.equal({
           ...shortcutOptions,
@@ -195,13 +195,13 @@ describe('shell module', () => {
 
       it('replaces the shortcut', () => {
         expect(
-          shell.writeShortcutLink(tmpShortcut, 'replace', shortcutOptions),
+          shell.writeShortcutLink(tmpShortcut, 'replace', shortcutOptions)
         ).to.be.false();
         expect(
-          shell.writeShortcutLink(tmpShortcut, 'create', shortcutOptions),
+          shell.writeShortcutLink(tmpShortcut, 'create', shortcutOptions)
         ).to.be.true();
         expect(shell.readShortcutLink(tmpShortcut)).to.deep.equal(
-          shortcutOptions,
+          shortcutOptions
         );
         const change = {
           target: 'D:\\',
@@ -214,10 +214,10 @@ describe('shell module', () => {
           toastActivatorClsid: '{C51A3996-CAD9-4934-848B-16285D4A1496}',
         };
         expect(
-          shell.writeShortcutLink(tmpShortcut, 'replace', change),
+          shell.writeShortcutLink(tmpShortcut, 'replace', change)
         ).to.be.true();
         expect(shell.readShortcutLink(tmpShortcut)).to.deep.equal(change);
       });
-    },
+    }
   );
 });

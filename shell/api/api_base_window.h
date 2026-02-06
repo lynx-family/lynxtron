@@ -180,6 +180,7 @@ class BaseWindow : public gin_helper::TrackableObject<BaseWindow>,
   bool GetWindowButtonVisibility() const;
   void SetTrafficLightPosition(const gfx::Point& position);
   gfx::Point GetTrafficLightPosition() const;
+  v8::Local<v8::Value> GetTabbingIdentifier() const;
 #endif
 
   void SetTouchBar(std::vector<gin_helper::PersistentDictionary> items);

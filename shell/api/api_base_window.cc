@@ -747,6 +747,14 @@ gfx::Point BaseWindow::GetTrafficLightPosition() const {
   // For backward compatibility we treat default value as (0, 0).
   return window_->GetTrafficLightPosition().value_or(gfx::Point());
 }
+
+v8::Local<v8::Value> BaseWindow::GetTabbingIdentifier() const {
+  auto tabbing_identifier = window_->GetTabbingIdentifier();
+  if (!tabbing_identifier.has_value()) {
+    return v8::Undefined(isolate());
+  }
+  return gin::StringToV8(isolate(), tabbing_identifier.value());
+}
 #endif
 
 void BaseWindow::SetTouchBar(
@@ -997,6 +1005,7 @@ void BaseWindow::BuildPrototype(v8::Isolate* isolate,
                  &BaseWindow::SetWindowButtonVisibility)
       .SetMethod("_getWindowButtonVisibility",
                  &BaseWindow::GetWindowButtonVisibility)
+      .SetProperty("tabbingIdentifier", &BaseWindow::GetTabbingIdentifier)
       .SetProperty("excludedFromShownWindowsMenu",
                    &BaseWindow::IsExcludedFromShownWindowsMenu,
                    &BaseWindow::SetExcludedFromShownWindowsMenu)

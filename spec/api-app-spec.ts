@@ -31,6 +31,35 @@ describe('app module', () => {
     });
   });
 
+  ifdescribe(process.platform === 'darwin')('app events', () => {
+    it('emits will-finish-launching before ready', async () => {
+      const { fired, order } = await runTestApp('will-finish-launching');
+      expect(fired).to.equal(true);
+      expect(order[0]).to.equal('will-finish-launching');
+      expect(order).to.include('ready');
+    });
+  });
+
+  describe('app events', () => {
+    it('emits before-quit', async () => {
+      const { fired, order } = await runTestApp('before-quit');
+      expect(fired).to.equal(true);
+      expect(order[0]).to.equal('before-quit');
+      expect(order).to.include('will-quit');
+    });
+
+    it('supports preventDefault in before-quit', async () => {
+      const { fired, order, prevented } = await runTestApp(
+        'before-quit',
+        '--prevent-default'
+      );
+      expect(fired).to.equal(true);
+      expect(prevented).to.equal(true);
+      expect(order[0]).to.equal('before-quit');
+      expect(order).to.not.include('will-quit');
+    });
+  });
+
   describe('app.setVersion(version)', () => {
     it('overrides the version', () => {
       expect(app.getVersion()).to.equal('0.1.0');
@@ -938,14 +967,6 @@ describe('default behavior', () => {
   //   after(() => {
   //     server.close();
   //   });
-
-  //   it('should emit a login event on app when a WebContents hits a 401', async () => {
-  //     const w = new BrowserWindow({ show: false });
-  //     w.loadURL(serverUrl);
-  //     const [, webContents] = await once(app, 'login') as [any, WebContents];
-  //     expect(webContents).to.equal(w.webContents);
-  //   });
-  // });
 
   describe('running under ARM64 translation', () => {
     it('does not throw an error', () => {

@@ -7,6 +7,7 @@ import { CommandLine } from './command-line';
 import { Menu } from './menu';
 import { Dock } from './dock';
 import { EventEmitter } from 'node:events';
+import { LynxWindow } from './lynx-window';
 
 export interface MoveToApplicationsFolderOptions {
   /**
@@ -415,10 +416,6 @@ export interface App extends EventEmitter {
    * `event.preventDefault()` will prevent the default behavior, which is terminating
    * the application.
    *
-   * [!NOTE] If application quit was initiated by `autoUpdater.quitAndInstall()`,
-   * then `before-quit` is emitted _after_ emitting `close` event on all windows and
-   * closing them.
-   *
    * [!NOTE] On Windows, this event will not be emitted if the app is closed due to
    * a shutdown/restart of the system or a user logout.
    */
@@ -427,6 +424,78 @@ export interface App extends EventEmitter {
   once(event: 'before-quit', listener: (event: Event) => void): this;
   addListener(event: 'before-quit', listener: (event: Event) => void): this;
   removeListener(event: 'before-quit', listener: (event: Event) => void): this;
+
+  /**
+   * Emitted when a LynxWindow gets blurred.
+   */
+  on(
+    event: 'lynx-window-blur',
+    listener: (event: Event, window: LynxWindow) => void
+  ): this;
+  off(
+    event: 'lynx-window-blur',
+    listener: (event: Event, window: LynxWindow) => void
+  ): this;
+  once(
+    event: 'lynx-window-blur',
+    listener: (event: Event, window: LynxWindow) => void
+  ): this;
+  addListener(
+    event: 'lynx-window-blur',
+    listener: (event: Event, window: LynxWindow) => void
+  ): this;
+  removeListener(
+    event: 'lynx-window-blur',
+    listener: (event: Event, window: LynxWindow) => void
+  ): this;
+
+  /**
+   * Emitted when a new LynxWindow is created.
+   */
+  on(
+    event: 'lynx-window-created',
+    listener: (event: Event, window: LynxWindow) => void
+  ): this;
+  off(
+    event: 'lynx-window-created',
+    listener: (event: Event, window: LynxWindow) => void
+  ): this;
+  once(
+    event: 'lynx-window-created',
+    listener: (event: Event, window: LynxWindow) => void
+  ): this;
+  addListener(
+    event: 'lynx-window-created',
+    listener: (event: Event, window: LynxWindow) => void
+  ): this;
+  removeListener(
+    event: 'lynx-window-created',
+    listener: (event: Event, window: LynxWindow) => void
+  ): this;
+
+  /**
+   * Emitted when a LynxWindow gets focused.
+   */
+  on(
+    event: 'lynx-window-focus',
+    listener: (event: Event, window: LynxWindow) => void
+  ): this;
+  off(
+    event: 'lynx-window-focus',
+    listener: (event: Event, window: LynxWindow) => void
+  ): this;
+  once(
+    event: 'lynx-window-focus',
+    listener: (event: Event, window: LynxWindow) => void
+  ): this;
+  addListener(
+    event: 'lynx-window-focus',
+    listener: (event: Event, window: LynxWindow) => void
+  ): this;
+  removeListener(
+    event: 'lynx-window-focus',
+    listener: (event: Event, window: LynxWindow) => void
+  ): this;
 
   /**
    * Emitted during Handoff when an activity from a different device wants to be
@@ -679,7 +748,7 @@ export interface App extends EventEmitter {
 
   /**
    * Emitted when the user clicks the native macOS new tab button. The new tab button
-   * is only visible if the current `BrowserWindow` has a `tabbingIdentifier`
+   * is only visible if the current `LynxWindow` has a `tabbingIdentifier`
    *
    * @platform darwin
    */
@@ -800,17 +869,12 @@ export interface App extends EventEmitter {
     listener: (event: Event, exitCode: number) => void
   ): this;
   /**
-   * Emitted once, when Electron has finished initializing. On macOS, `launchInfo`
+   * Emitted once, when Lynxtron has finished initializing. On macOS, `launchInfo`
    * holds the `userInfo` of the `NSUserNotification` or information from
    * `UNNotificationResponse` that was used to open the application, if it was
    * launched from Notification Center. You can also call `app.isReady()` to check if
    * this event has already fired and `app.whenReady()` to get a Promise that is
-   * fulfilled when Electron is initialized.
-   *
-   * [!NOTE] The `ready` event is only fired after the main process has finished
-   * running the first tick of the event loop. If an Electron API needs to be called
-   * before the `ready` event, ensure that it is called synchronously in the
-   * top-level context of the main process.
+   * fulfilled when Lynxtron is initialized.
    */
   on(
     event: 'ready',
@@ -881,9 +945,6 @@ export interface App extends EventEmitter {
    *
    * This event is guaranteed to be emitted after the `ready` event of `app` gets
    * emitted.
-   *
-   * [!NOTE] Extra command line arguments might be added by Chromium, such as
-   * `--original-process-start-time`.
    */
   on(
     event: 'second-instance',
@@ -1138,7 +1199,7 @@ export interface App extends EventEmitter {
     ) => void
   ): this;
   /**
-   * Emitted when the application has finished basic startup. On Windows and Linux,
+   * Emitted when the application has finished basic startup. On Windows,
    * the `will-finish-launching` event is the same as the `ready` event; on macOS,
    * this event represents the `applicationWillFinishLaunching` notification of
    * `NSApplication`.
@@ -1172,7 +1233,7 @@ export interface App extends EventEmitter {
    * If you do not subscribe to this event and all windows are closed, the default
    * behavior is to quit the app; however, if you subscribe, you control whether the
    * app quits or not. If the user pressed `Cmd + Q`, or the developer called
-   * `app.quit()`, Electron will first try to close all the windows and then emit the
+   * `app.quit()`, Lynxtron will first try to close all the windows and then emit the
    * `will-quit` event, and in this case the `window-all-closed` event would not be
    * emitted.
    */
@@ -1227,8 +1288,8 @@ export interface App extends EventEmitter {
   ): Promise<ApplicationInfoForProtocolReturnValue>;
   /**
    * Name of the application handling the protocol, or an empty string if there is no
-   * handler. For instance, if Electron is the default handler of the URL, this could
-   * be `Electron` on Windows and Mac. However, don't rely on the precise format
+   * handler. For instance, if Lynxtron is the default handler of the URL, this could
+   * be `Lynxtron` on Windows and Mac. However, don't rely on the precise format
    * which is not guaranteed to remain unchanged. Expect a different format on Linux,
    * possibly with a `.desktop` suffix.
    *
@@ -1322,7 +1383,7 @@ export interface App extends EventEmitter {
    * Usually the `name` field of `package.json` is a short lowercase name, according
    * to the npm modules spec. You should usually also specify a `productName` field,
    * which is your application's full capitalized name, and which will be preferred
-   * over `name` by Electron.
+   * over `name` by Lynxtron.
    */
   getName(): string;
   /**
@@ -1414,7 +1475,7 @@ export interface App extends EventEmitter {
    */
   isInApplicationsFolder(): boolean;
   /**
-   * `true` if Electron has finished initializing, `false` otherwise. See also
+   * `true` if Lynxtron has finished initializing, `false` otherwise. See also
    * `app.whenReady()`.
    */
   isReady(): boolean;
@@ -1540,7 +1601,7 @@ export interface App extends EventEmitter {
    *
    * > [!NOTE] On macOS, you can only register protocols that have been added to your
    * app's `info.plist`, which cannot be modified at runtime. However, you can change
-   * the file during build time via Electron Forge, Electron Packager, or by editing
+   * the file during build time via Lynxtron Forge, Lynxtron Packager, or by editing
    * `info.plist` with a text editor. Please refer to Apple's documentation for
    * details.
    *
@@ -1607,7 +1668,7 @@ export interface App extends EventEmitter {
   /**
    * Set the app's login item settings.
    *
-   * To work with Electron's `autoUpdater` on Windows, which uses Squirrel, you'll
+   * To work with Lynxtron's `autoUpdater` on Windows, which uses Squirrel, you'll
    * want to set the launch path to your executable's name but a directory up, which
    * is a stub application automatically generated by Squirrel which will
    * automatically launch the latest version.
@@ -1621,7 +1682,7 @@ export interface App extends EventEmitter {
   /**
    * Overrides the current application's name.
    *
-   * > [!NOTE] This function overrides the name used internally by Electron; it does
+   * > [!NOTE] This function overrides the name used internally by Lynxtron; it does
    * not affect the name that the OS uses.
    */
   setName(name: string): void;
@@ -1675,7 +1736,7 @@ export interface App extends EventEmitter {
    * resources will be leaked and your app will lose its ability to reach outside the
    * sandbox completely, until your app is restarted.
    *
-   * Start accessing a security scoped resource. With this method Electron
+   * Start accessing a security scoped resource. With this method Lynxtron
    * applications that are packaged for the Mac App Store may reach outside their
    * sandbox to access files chosen by the user. See Apple's documentation for a
    * description of how this system works.
@@ -1684,7 +1745,7 @@ export interface App extends EventEmitter {
    */
   startAccessingSecurityScopedResource(bookmarkData: string): Function;
   /**
-   * fulfilled when Electron is initialized. May be used as a convenient alternative
+   * fulfilled when Lynxtron is initialized. May be used as a convenient alternative
    * to checking `app.isReady()` and subscribing to the `ready` event if the app is
    * not ready yet.
    */
@@ -1738,7 +1799,7 @@ export interface App extends EventEmitter {
    * Usually the `name` field of `package.json` is a short lowercase name, according
    * to the npm modules spec. You should usually also specify a `productName` field,
    * which is your application's full capitalized name, and which will be preferred
-   * over `name` by Electron.
+   * over `name` by Lynxtron.
    */
   name: string;
   /**

@@ -121,6 +121,7 @@ class NativeWindowMac : public NativeWindow {
 
   void SetActive(bool is_key) override;
   bool IsActive() const override;
+  std::optional<std::string> GetTabbingIdentifier() const override;
 
   // content::DesktopMediaID GetDesktopMediaID() const override;
   // gfx::AcceleratedWidget GetAcceleratedWidget() const override;

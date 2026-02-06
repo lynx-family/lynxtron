@@ -509,12 +509,14 @@ void App::OnQuit() {
   }
 }
 
+// TODO(Guo Xi): Verify open-file event in packaged application
 void App::OnOpenFile(bool* prevent_default, const std::string& file_path) {
   if (Emit("open-file", file_path)) {
     *prevent_default = true;
   }
 }
 
+// TODO(Guo Xi): need verify open-url event in packaged application
 void App::OnOpenURL(const std::string& url) {
   Emit("open-url", url);
 }
@@ -539,6 +541,8 @@ void App::OnPreMainMessageLoopRun() {
 }
 
 #if BUILDFLAG(IS_MAC)
+// TODO(Guo Xi): Events related to continue-activity need to be verified and API
+// documentation updated
 void App::OnWillContinueUserActivity(bool* prevent_default,
                                      const std::string& type) {
   if (Emit("will-continue-activity", type)) {

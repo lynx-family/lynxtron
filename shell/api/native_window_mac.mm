@@ -105,6 +105,12 @@ NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
     }
   }
 
+  if (tabbingIdentifier.empty() || transparent() || !has_frame()) {
+    [window_ setTabbingMode:NSWindowTabbingModeDisallowed];
+  } else {
+    [window_ setTabbingIdentifier:base::SysUTF8ToNSString(tabbingIdentifier)];
+  }
+
   // Set maximizable state last to ensure zoom button does not get reset
   // by calls to other APIs.
   SetMaximizable(maximizable);
@@ -885,6 +891,13 @@ void NativeWindowMac::SetActive(bool is_key) {
 
 bool NativeWindowMac::IsActive() const {
   return is_active_;
+}
+
+std::optional<std::string> NativeWindowMac::GetTabbingIdentifier() const {
+  if ([window_ tabbingMode] == NSWindowTabbingModeDisallowed) {
+    return std::nullopt;
+  }
+  return base::SysNSStringToUTF8([window_ tabbingIdentifier]);
 }
 
 void NativeWindowMac::SetWindowButtonVisibility(bool visible) {

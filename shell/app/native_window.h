@@ -7,6 +7,7 @@
 
 #include <list>
 #include <memory>
+#include <optional>
 #include <queue>
 #include <string>
 #include <vector>
@@ -144,6 +145,7 @@ class NativeWindow : public base::SupportsUserData {
   virtual std::string GetAlwaysOnTopLevel() = 0;
   virtual void SetActive(bool is_key) = 0;
   virtual bool IsActive() const = 0;
+  virtual std::optional<std::string> GetTabbingIdentifier() const;
 #endif
 
   // Ability to augment the window title for the screen readers.
