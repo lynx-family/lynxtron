@@ -1,0 +1,49 @@
+// Copyright (c) 2013 GitHub, Inc.
+// Use of this source code is governed by the MIT license that can be
+// found in the LICENSE file.
+
+#ifndef LYNXTRON_SHELL_UI_COCOA_LYNXTRON_MENU_CONTROLLER_H_
+#define LYNXTRON_SHELL_UI_COCOA_LYNXTRON_MENU_CONTROLLER_H_
+
+#import <Cocoa/Cocoa.h>
+
+#include "base/functional/callback.h"
+#include "base/memory/weak_ptr.h"
+
+namespace lynxtron {
+class LynxtronMenuModel;
+}
+
+@interface LynxtronMenuController
+    : NSObject <NSMenuDelegate, NSSharingServiceDelegate> {
+ @protected
+  base::WeakPtr<lynxtron::LynxtronMenuModel> model_;
+  NSMenu* __strong menu_;
+  BOOL isMenuOpen_;
+  BOOL useDefaultAccelerator_;
+  base::OnceClosure popupCloseCallback;
+}
+
+- (id)initWithModel:(lynxtron::LynxtronMenuModel*)model
+    useDefaultAccelerator:(BOOL)use;
+
+- (void)setPopupCloseCallback:(base::OnceClosure)callback;
+- (void)populateWithModel:(lynxtron::LynxtronMenuModel*)model;
+- (void)cancel;
+
+- (lynxtron::LynxtronMenuModel*)model;
+- (void)setModel:(lynxtron::LynxtronMenuModel*)model;
+- (NSMenu*)menu;
+
+- (NSMenuItem*)makeMenuItemForIndex:(NSInteger)index
+                          fromModel:(lynxtron::LynxtronMenuModel*)model;
+
+- (BOOL)isMenuOpen;
+- (void)refreshMenuTree:(NSMenu*)menu;
+
+- (void)menuWillOpen:(NSMenu*)menu;
+- (void)menuDidClose:(NSMenu*)menu;
+
+@end
+
+#endif  // LYNXTRON_SHELL_UI_COCOA_LYNXTRON_MENU_CONTROLLER_H_

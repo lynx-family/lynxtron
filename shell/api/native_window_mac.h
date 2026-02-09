@@ -94,7 +94,7 @@ class NativeWindowMac : public NativeWindow {
   void SetFocusable(bool focusable) override;
   bool IsFocusable() const override;
   void SetVibrancy(const std::string& type, int duration) override;
-  // void SetMenu(ElectronMenuModel* menu_model) override;
+  // void SetMenu(LynxtronMenuModel* menu_model) override;
   // void AddBrowserView(NativeBrowserView* browser_view) override;
   // void RemoveBrowserView(NativeBrowserView* browser_view) override;
   // void SetTopBrowserView(NativeBrowserView* browser_view) override;

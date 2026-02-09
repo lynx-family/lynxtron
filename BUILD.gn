@@ -107,6 +107,10 @@ browser_bundle_deps = [
   "lib/browser/api/dialog.ts",
   "lib/browser/api/exports/lynxtron.ts",
   "lib/browser/api/lynx-window.ts",
+  "lib/browser/api/menu-item-roles.ts",
+  "lib/browser/api/menu-item.ts",
+  "lib/browser/api/menu-utils.ts",
+  "lib/browser/api/menu.ts",
   "lib/browser/api/module-list.ts",
   "lib/browser/api/native-image.ts",
   "lib/browser/api/screen.ts",
@@ -253,6 +257,8 @@ gin_helper_sources = [
 ]
 
 gin_converters_sources = [
+  "shell/common/gin_converters/accelerator_converter.cc",
+  "shell/common/gin_converters/accelerator_converter.h",
   "shell/common/gin_converters/file_dialog_converter.cc",
   "shell/common/gin_converters/file_dialog_converter.h",
   "shell/common/gin_converters/gfx_converter.cc",
@@ -334,6 +340,8 @@ source_set("lynxtron_lib") {
     "shell/api/api_lynx_extension_utils.cc",
     "shell/api/api_lynx_window.cc",
     "shell/api/api_lynx_window.h",
+    "shell/api/api_menu.cc",
+    "shell/api/api_menu.h",
     "shell/api/api_native_image.cc",
     "shell/api/api_native_image.h",
     "shell/api/api_screen.cc",
@@ -425,6 +433,12 @@ source_set("lynxtron_lib") {
     "shell/common/v8_value_converter.h",
     "shell/common/v8_value_converter_impl.cc",
     "shell/common/v8_value_converter_impl.h",
+    "shell/ui/accelerator.cc",
+    "shell/ui/accelerator.h",
+    "shell/ui/accelerator_util.cc",
+    "shell/ui/accelerator_util.h",
+    "shell/ui/lynxtron_menu_model.cc",
+    "shell/ui/lynxtron_menu_model.h",
   ]
 
   sources += gin_helper_sources
@@ -440,6 +454,8 @@ source_set("lynxtron_lib") {
     sources += ui_sources_macos
     sources += [
       "shell/api/api_app_mac.mm",
+      "shell/api/api_menu_mac.h",
+      "shell/api/api_menu_mac.mm",
       "shell/api/api_native_image_mac.mm",
       "shell/api/native_window_mac.h",
       "shell/api/native_window_mac.mm",
@@ -478,6 +494,8 @@ source_set("lynxtron_lib") {
       "shell/common/process_singleton/process_singleton_posix.cc",
       "shell/ui/cocoa/electron_bundle_mover.h",
       "shell/ui/cocoa/electron_bundle_mover.mm",
+      "shell/ui/cocoa/lynxtron_menu_controller.h",
+      "shell/ui/cocoa/lynxtron_menu_controller.mm",
       "shell/ui/cocoa/window_buttons_proxy.h",
       "shell/ui/cocoa/window_buttons_proxy.mm",
     ]
@@ -492,6 +510,7 @@ source_set("lynxtron_lib") {
       "IOKit.framework",
       "AppKit.framework",
       "UniformTypeIdentifiers.framework",
+      "WebKit.framework",
     ]
 
     weak_frameworks = [ "QuickLookThumbnailing.framework" ]
@@ -800,13 +819,16 @@ test("lynxtron_unittests") {
     "//testing/gtest",
     "//v8",
   ]
+  deps += lynxtron_framework_extra_deps
+  configs += lynxtron_framework_extra_configs
   configs += [ "//v8:external_startup_data" ]
 
   include_dirs = [ "." ]
-
+  ldflags = [
+    "-rpath",
+    "@executable_path",
+  ]
   sources = [
-    "shell/common/io_thread_unittest.cc",
-    "shell/common/v8_util_unittest.cc",
     "shell/common/v8_value_converter_impl_unittest.cc",
     "shell/test/lynxtron_test_suite.cc",
     "shell/test/lynxtron_test_suite.h",

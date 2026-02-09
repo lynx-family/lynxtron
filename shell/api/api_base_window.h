@@ -135,16 +135,12 @@ class BaseWindow : public gin_helper::TrackableObject<BaseWindow>,
   std::array<int, 2U> GetPosition() const;
   void SetTitle(const std::string& title);
   std::string GetTitle() const;
-  void SetAccessibleTitle(const std::string& title);
-  std::string GetAccessibleTitle() const;
   void FlashFrame(bool flash);
   void SetSkipTaskbar(bool skip);
   void SetExcludedFromShownWindowsMenu(bool excluded);
   bool IsExcludedFromShownWindowsMenu() const;
   void SetSimpleFullScreen(bool simple_fullscreen);
   bool IsSimpleFullScreen() const;
-  void SetKiosk(bool kiosk);
-  bool IsKiosk() const;
   bool IsTabletMode() const;
   virtual void SetBackgroundColor(const std::string& color_name);
   std::string GetBackgroundColor() const;
@@ -170,6 +166,9 @@ class BaseWindow : public gin_helper::TrackableObject<BaseWindow>,
   void SetVisibleOnAllWorkspaces(bool visible, gin_helper::Arguments* args);
   bool IsVisibleOnAllWorkspaces() const;
   void SetAutoHideCursor(bool auto_hide);
+  void SetAutoHideMenuBar(bool auto_hide);
+  bool IsMenuBarAutoHide() const;
+  bool IsMenuBarVisible() const;
   virtual void SetVibrancy(v8::Isolate* isolate,
                            v8::Local<v8::Value> value,
                            gin_helper::Arguments* args);

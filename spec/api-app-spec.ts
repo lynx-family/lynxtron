@@ -58,6 +58,26 @@ describe('app module', () => {
       expect(order[0]).to.equal('before-quit');
       expect(order).to.not.include('will-quit');
     });
+
+    it('supports preventDefault in will-quit', async () => {
+      const { fired, order, prevented, willQuitFired } = await runTestApp(
+        'before-quit',
+        '--will-quit-test',
+        '--prevent-will-quit'
+      );
+      expect(fired).to.equal(true);
+      expect(willQuitFired).to.equal(true);
+      expect(prevented).to.equal(true);
+      expect(order[0]).to.equal('before-quit');
+      expect(order).to.include('will-quit');
+    });
+  });
+
+  describe('quit event', () => {
+    it('includes exitCode', async () => {
+      const { exitCode } = await runTestApp('quit-exit-code');
+      expect(exitCode).to.equal(3);
+    });
   });
 
   describe('app.setVersion(version)', () => {

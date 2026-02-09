@@ -46,7 +46,7 @@ class PersistentDictionary;
 class NSView;
 #endif
 namespace lynxtron {
-class ElectronMenuModel;
+class LynxtronMenuModel;
 class NativeBrowserView;
 
 #if BUILDFLAG(IS_MAC)

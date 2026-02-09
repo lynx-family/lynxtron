@@ -576,11 +576,10 @@ v8::Local<v8::Promise> Application::DockShow(v8::Isolate* isolate) {
   return handle;
 }
 
-void Application::DockSetMenu(ElectronMenuModel* model) {
-  // TODO(Guo Xi): DockSetMenu
-  // LynxtronApplicationDelegate* delegate =
-  //     (LynxtronApplicationDelegate*)[NSApp delegate];
-  // [delegate setApplicationDockMenu:model];
+void Application::DockSetMenu(LynxtronMenuModel* model) {
+  LynxtronApplicationDelegate* delegate =
+      (LynxtronApplicationDelegate*)[NSApp delegate];
+  [delegate setApplicationDockMenu:model];
 }
 
 void Application::DockSetIcon(v8::Isolate* isolate, v8::Local<v8::Value> icon) {

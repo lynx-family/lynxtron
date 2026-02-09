@@ -28,7 +28,9 @@
 #include "shell/app/icon_manager.h"
 #include "shell/app/javascript_environment.h"
 #include "shell/app/main_parts.h"
+#include "shell/app/native_window.h"
 #include "shell/app/relauncher.h"
+#include "shell/app/window_list.h"
 #include "shell/common/gin_converters/file_path_converter.h"
 #include "shell/common/gin_converters/image_converter.h"
 #include "shell/common/gin_converters/login_item_settings_converter.h"
@@ -57,6 +59,7 @@
 #if BUILDFLAG(IS_MAC)
 #include <CoreFoundation/CoreFoundation.h>
 
+#include "shell/api/api_menu.h"
 #include "shell/ui/cocoa/electron_bundle_mover.h"
 #endif
 
@@ -1031,9 +1034,9 @@ int DockBounce(gin::Arguments* args) {
   return request_id;
 }
 
-// void DockSetMenu(electron::api::Menu* menu) {
-//   Application::Get()->DockSetMenu(menu->model());
-// }
+void DockSetMenu(lynxtron::api::Menu* menu) {
+  Application::Get()->DockSetMenu(menu ? menu->model() : nullptr);
+}
 
 v8::Local<v8::Value> App::GetDockAPI(v8::Isolate* isolate) {
   if (dock_.IsEmpty()) {
@@ -1061,7 +1064,7 @@ v8::Local<v8::Value> App::GetDockAPI(v8::Isolate* isolate) {
     dock_obj.SetMethod(
         "isVisible",
         base::BindRepeating(&Application::DockIsVisible, application));
-    // dock_obj.SetMethod("setMenu", &DockSetMenu);
+    dock_obj.SetMethod("setMenu", &DockSetMenu);
     // dock_obj.SetMethod("setIcon",
     //                    base::BindRepeating(&Application::DockSetIcon,
     //                    browser));

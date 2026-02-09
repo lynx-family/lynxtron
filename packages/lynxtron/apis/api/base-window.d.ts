@@ -130,10 +130,6 @@ export interface BaseWindowConstructorOptions {
    */
   icon?: any; // NativeImage | string
   /**
-   * Whether the window is in kiosk mode. Default is `false`.
-   */
-  kiosk?: boolean;
-  /**
    * Window's maximum height. Default is no limit.
    */
   maxHeight?: number;
@@ -928,6 +924,10 @@ export declare class BaseWindow extends EventEmitter {
    */
   static getAllWindows(): BaseWindow[];
   /**
+   * The window that is focused in this application, otherwise returns `null`.
+   */
+  static getFocusedWindow(): BaseWindow | null;
+  /**
    * Removes focus from the window.
    */
   blur(): void;
@@ -955,6 +955,10 @@ export declare class BaseWindow extends EventEmitter {
    * Focuses on the window.
    */
   focus(): void;
+  /**
+   * Whether the window is destroyed.
+   */
+  isDestroyed(): boolean;
   /**
    * Gets the background color of the window in Hex (`#RRGGBB`) format.
    *
@@ -1101,6 +1105,18 @@ export declare class BaseWindow extends EventEmitter {
    */
   isMaximized(): boolean;
   /**
+   * Whether menu bar automatically hides itself.
+   *
+   * @platform win32,linux
+   */
+  isMenuBarAutoHide(): boolean;
+  /**
+   * Whether the menu bar is visible.
+   *
+   * @platform win32,linux
+   */
+  isMenuBarVisible(): boolean;
+  /**
    * Whether the window can be manually minimized by the user.
    *
    * On Linux always returns `true`.
@@ -1172,12 +1188,6 @@ export declare class BaseWindow extends EventEmitter {
    */
   moveTop(): void;
   /**
-   * Remove the window's menu bar.
-   *
-   * @platform linux,win32
-   */
-  removeMenu(): void;
-  /**
    * Restores the window from minimized state to its previous state.
    */
   restore(): void;
@@ -1228,6 +1238,16 @@ export declare class BaseWindow extends EventEmitter {
    * @platform darwin
    */
   setAutoHideCursor(autoHide: boolean): void;
+  /**
+   * Sets whether the window menu bar should hide itself automatically. Once set the
+   * menu bar will only show when users press the single `Alt` key.
+   *
+   * If the menu bar is already visible, calling `setAutoHideMenuBar(true)` won't
+   * hide it immediately.
+   *
+   * @platform win32,linux
+   */
+  setAutoHideMenuBar(hide: boolean): void;
   /**
    * Examples of valid `backgroundColor` values:
    *
@@ -1313,12 +1333,6 @@ export declare class BaseWindow extends EventEmitter {
    */
   setHasShadow(hasShadow: boolean): void;
   /**
-   * Changes window icon.
-   *
-   * @platform win32,linux
-   */
-  setIcon(icon: any /* NativeImage | string */): void;
-  /**
    * Sets whether the window can be manually maximized by user. On Linux does
    * nothing.
    *
@@ -1329,13 +1343,6 @@ export declare class BaseWindow extends EventEmitter {
    * Sets the maximum size of window to `width` and `height`.
    */
   setMaximumSize(width: number, height: number): void;
-  /**
-   * Sets whether the menu bar should be visible. If the menu bar is auto-hide, users
-   * can still bring up the menu bar by pressing the single `Alt` key.
-   *
-   * @platform win32,linux
-   */
-  setMenuBarVisibility(visible: boolean): void;
   /**
    * Sets whether the window can be manually minimized by user. On Linux does
    * nothing.
@@ -1551,12 +1558,6 @@ export declare class BaseWindow extends EventEmitter {
    */
   unmaximize(): void;
   /**
-   * A `string` property that defines an alternative title provided only to
-   * accessibility tools such as screen readers. This string is not directly visible
-   * to users.
-   */
-  accessibleTitle: string;
-  /**
    * A `boolean` property that determines whether the window menu bar should hide
    * itself automatically. Once set, the menu bar will only show when users press the
    * single `Alt` key.
@@ -1577,15 +1578,6 @@ export declare class BaseWindow extends EventEmitter {
    */
   closable: boolean;
   /**
-   * A `boolean` property that specifies whether the window’s document has been
-   * edited.
-   *
-   * The icon in title bar will become gray when set to `true`.
-   *
-   * @platform darwin
-   */
-  documentEdited: boolean;
-  /**
    * A `boolean` property that determines whether the window is focusable.
    *
    * @platform win32,darwin
@@ -1600,10 +1592,6 @@ export declare class BaseWindow extends EventEmitter {
    * toggles fullscreen mode or maximizes the window.
    */
   fullScreenable: boolean;
-  /**
-   * A `boolean` property that determines whether the window is in kiosk mode.
-   */
-  kiosk: boolean;
   /**
    * A `boolean` property that determines whether the window can be manually
    * maximized by user.

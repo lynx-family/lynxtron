@@ -741,7 +741,7 @@ bool NativeWindowWin::IsFocusable() const {
 #endif
 }
 
-// void NativeWindowWin::SetMenu(ElectronMenuModel* menu_model) {
+// void NativeWindowWin::SetMenu(LynxtronMenuModel* menu_model) {
 // #if defined(USE_X11)
 //  // if (!features::IsUsingOzonePlatform()) {
 //  //   // Remove global menu bar.

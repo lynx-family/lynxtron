@@ -4,12 +4,17 @@ import { app as Lynxtron_app } from '../packages/lynxtron/apis/api/app';
 import { App as LynxtronApp } from '../packages/lynxtron/apis/api/app';
 import { BaseWindow as LynxtronBaseWindow } from '../packages/lynxtron/apis/api/base-window';
 import { LynxWindow as LynxtronLynxWindow } from '../packages/lynxtron/apis/api/lynx-window';
-import { Menu as LynxtronMenu } from '../packages/lynxtron/apis/api/menu';
+import {
+  Menu as LynxtronMenu,
+  MenuItemConstructorOptions as LynxtronMenuItemConstructorOptions,
+} from '../packages/lynxtron/apis/api/menu';
 import { Event as LynxtronEvent } from '../packages/lynxtron/apis/lynxtron';
 import { CommandLine as LynxtronCommandLine } from '../packages/lynxtron/apis/api/command-line';
 import { Screen as LynxtronScreen } from '../packages/lynxtron/apis/api/screen';
 import { NativeImage as LynxtronNativeImage } from '../packages/lynxtron/apis/api/native-image';
 import { Shell as LynxtronShell } from '../packages/lynxtron/apis/api/shell';
+import { MenuItem as LynxtronMenuItem } from '../packages/lynxtron/apis/api/menu';
+
 import {
   TouchBar as LynxtronTouchBar,
   TouchBarConstructorOptions as LynxtronTouchBarConstructorOptions,
@@ -94,6 +99,7 @@ declare module 'lynxtron' {
   export const BaseWindow: typeof BaseWindowInternal;
   export const LynxWindow: typeof LynxWindowInternal;
   export const Menu: typeof LynxtronMenu;
+  export const MenuItem: typeof LynxtronMenuItem;
   export const nativeImage: typeof LynxtronNativeImage;
   export const screen: LynxtronScreen;
   export const shell: LynxtronShell;
@@ -111,4 +117,6 @@ declare module 'lynxtron' {
   export type SaveDialogReturnValue = LynxtronSaveDialogReturnValue;
   export type CertificateTrustDialogOptions = LynxtronCertificateTrustDialogOptions;
   export type Event = LynxtronEvent;
+  export type MenuItemConstructorOptions = LynxtronMenuItemConstructorOptions;
+  export type MenuItem = LynxtronMenuItem;
 }

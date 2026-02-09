@@ -60,6 +60,7 @@
   V(lynxtron_binding_asar)           \
   V(lynxtron_binding_command_line)   \
   V(lynxtron_binding_environment)    \
+  V(lynxtron_binding_menu)           \
   V(lynxtron_binding_shell)          \
   V(lynxtron_binding_event_emitter)  \
   V(electron_base_window)            \

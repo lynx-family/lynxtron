@@ -519,14 +519,6 @@ std::string BaseWindow::GetTitle() const {
   return window_->GetTitle();
 }
 
-// void BaseWindow::SetAccessibleTitle(const std::string& title) {
-//   window_->SetAccessibleTitle(title);
-// }
-
-std::string BaseWindow::GetAccessibleTitle() const {
-  return window_->GetAccessibleTitle();
-}
-
 void BaseWindow::FlashFrame(bool flash) {
   window_->FlashFrame(flash);
 }
@@ -550,14 +542,6 @@ void BaseWindow::SetSimpleFullScreen(bool simple_fullscreen) {
 bool BaseWindow::IsSimpleFullScreen() const {
   return window_->IsSimpleFullScreen();
 }
-
-// void BaseWindow::SetKiosk(bool kiosk) {
-//   window_->SetKiosk(kiosk);
-// }
-
-// bool BaseWindow::IsKiosk() const {
-//   return window_->IsKiosk();
-// }
 
 // bool BaseWindow::IsTabletMode() const {
 //  return window_->IsTabletMode();
@@ -705,6 +689,18 @@ bool BaseWindow::IsVisibleOnAllWorkspaces() const {
 
 void BaseWindow::SetAutoHideCursor(bool auto_hide) {
   window_->SetAutoHideCursor(auto_hide);
+}
+
+void BaseWindow::SetAutoHideMenuBar(bool auto_hide) {
+  window_->SetAutoHideMenuBar(auto_hide);
+}
+
+bool BaseWindow::IsMenuBarAutoHide() const {
+  return window_->IsMenuBarAutoHide();
+}
+
+bool BaseWindow::IsMenuBarVisible() const {
+  return window_->IsMenuBarVisible();
 }
 
 void BaseWindow::SetVibrancy(v8::Isolate* isolate,
@@ -957,14 +953,13 @@ void BaseWindow::BuildPrototype(v8::Isolate* isolate,
       .SetMethod("getPosition", &BaseWindow::GetPosition)
       .SetMethod("setTitle", &BaseWindow::SetTitle)
       .SetMethod("getTitle", &BaseWindow::GetTitle)
-      // .SetProperty("accessibleTitle", &BaseWindow::GetAccessibleTitle,
-      //              &BaseWindow::SetAccessibleTitle)
       .SetMethod("flashFrame", &BaseWindow::FlashFrame)
       .SetMethod("setSkipTaskbar", &BaseWindow::SetSkipTaskbar)
+      .SetMethod("setAutoHideMenuBar", &BaseWindow::SetAutoHideMenuBar)
+      .SetMethod("isMenuBarAutoHide", &BaseWindow::IsMenuBarAutoHide)
+      .SetMethod("isMenuBarVisible", &BaseWindow::IsMenuBarVisible)
       .SetMethod("setSimpleFullScreen", &BaseWindow::SetSimpleFullScreen)
       .SetMethod("isSimpleFullScreen", &BaseWindow::IsSimpleFullScreen)
-      // .SetMethod("setKiosk", &BaseWindow::SetKiosk)
-      // .SetMethod("isKiosk", &BaseWindow::IsKiosk)
       .SetMethod("setBackgroundColor", &BaseWindow::SetBackgroundColor)
       .SetMethod("getBackgroundColor", &BaseWindow::GetBackgroundColor)
       .SetMethod("setHasShadow", &BaseWindow::SetHasShadow)

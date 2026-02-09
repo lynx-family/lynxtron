@@ -1,4 +1,4 @@
-import { app, LynxWindow } from 'lynxtron';
+import { app, BaseWindow, LynxWindow } from 'lynxtron';
 
 import { expect } from 'chai';
 
@@ -221,6 +221,12 @@ describe('LynxWindow module', () => {
           w.show();
           await show;
           expect(w.isVisible()).to.equal(true);
+        });
+        it('BaseWindow.getFocusedWindow returns focused window', async () => {
+          const p = once(w, 'focus');
+          w.show();
+          await p;
+          expect(BaseWindow.getFocusedWindow()).to.equal(w);
         });
       });
 

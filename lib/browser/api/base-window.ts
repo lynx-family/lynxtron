@@ -55,24 +55,6 @@ Object.defineProperty(BaseWindow.prototype, 'focusable', {
   },
 });
 
-Object.defineProperty(BaseWindow.prototype, 'kiosk', {
-  get: function () {
-    return this.isKiosk();
-  },
-  set: function (kiosk) {
-    this.setKiosk(kiosk);
-  },
-});
-
-Object.defineProperty(BaseWindow.prototype, 'documentEdited', {
-  get: function () {
-    return this.isDocumentEdited();
-  },
-  set: function (edited) {
-    this.setDocumentEdited(edited);
-  },
-});
-
 Object.defineProperty(BaseWindow.prototype, 'shadow', {
   get: function () {
     return this.hasShadow();
@@ -159,8 +141,8 @@ Object.defineProperty(BaseWindow.prototype, 'movable', {
   },
 });
 
-// BaseWindow.getFocusedWindow = () => {
-//   return BaseWindow.getAllWindows().find((win) => win.isFocused());
-// };
+BaseWindow.getFocusedWindow = () => {
+  return BaseWindow.getAllWindows().find((win) => win.isFocused()) || null;
+};
 
 module.exports = BaseWindow;

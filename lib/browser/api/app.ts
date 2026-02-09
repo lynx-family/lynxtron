@@ -61,6 +61,7 @@ if (process.platform === 'darwin') {
   const setDockMenu = app.dock!.setMenu;
   app.dock!.setMenu = (menu: Lynxtron.Menu | null) => {
     dockMenu = menu;
+    if (menu) (menu as any)._callMenuWillShow();
     setDockMenu(menu);
   };
   app.dock!.getMenu = () => dockMenu;

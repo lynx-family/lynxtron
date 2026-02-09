@@ -38,7 +38,7 @@ class Arguments;
 
 namespace lynxtron {
 
-class ElectronMenuModel;
+class LynxtronMenuModel;
 
 #if BUILDFLAG(IS_WIN)
 struct LaunchItem {
@@ -230,7 +230,7 @@ class Application : private WindowListObserver {
   bool DockIsVisible();
 
   // Set docks' menu.
-  void DockSetMenu(ElectronMenuModel* model);
+  void DockSetMenu(LynxtronMenuModel* model);
 
   // Set docks' icon.
   void DockSetIcon(v8::Isolate* isolate, v8::Local<v8::Value> icon);

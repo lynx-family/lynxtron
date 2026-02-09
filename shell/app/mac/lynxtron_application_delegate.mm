@@ -17,6 +17,7 @@
 #include "shell/app/application.h"
 #include "shell/app/mac/dict_util.h"
 #import "shell/app/mac/lynxtron_application.h"
+#import "shell/ui/cocoa/lynxtron_menu_controller.h"
 
 static NSDictionary* UNNotificationResponseToNSDictionary(
     UNNotificationResponse* response) {
@@ -41,13 +42,17 @@ static NSDictionary* UNNotificationResponseToNSDictionary(
 }
 
 @implementation LynxtronApplicationDelegate {
-  // ElectronMenuController* __strong menu_controller_;
+  LynxtronMenuController* __strong menu_controller_;
 }
 
-// - (void)setApplicationDockMenu:(electron::ElectronMenuModel*)model {
-//   menu_controller_ = [[ElectronMenuController alloc] initWithModel:model
-//                                              useDefaultAccelerator:NO];
-// }
+- (void)setApplicationDockMenu:(lynxtron::LynxtronMenuModel*)model {
+  if (!model) {
+    menu_controller_ = nil;
+    return;
+  }
+  menu_controller_ = [[LynxtronMenuController alloc] initWithModel:model
+                                             useDefaultAccelerator:NO];
+}
 
 - (void)willPowerOff:(NSNotification*)notify {
   [[LynxtronApplication sharedApplication] willPowerOff:notify];
@@ -112,8 +117,7 @@ static NSDictionary* UNNotificationResponseToNSDictionary(
 }
 
 - (NSMenu*)applicationDockMenu:(NSApplication*)sender {
-  // return menu_controller_ ? menu_controller_.menu : nil;
-  return nil;
+  return menu_controller_ ? [menu_controller_ menu] : nil;
 }
 
 - (BOOL)application:(NSApplication*)sender openFile:(NSString*)filename {

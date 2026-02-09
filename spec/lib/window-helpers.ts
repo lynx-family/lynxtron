@@ -15,11 +15,11 @@ export const closeWindow = async (
   await ensureWindowIsClosed(window);
 
   if (assertNotWindows) {
-    let windows = BaseWindow.getAllWindows();
+    let windows = BaseWindow.getAllWindows() as BaseWindow[];
     if (windows.length > 0) {
       setTimeout(async () => {
         // Wait until next tick to assert that all windows have been closed.
-        windows = BaseWindow.getAllWindows();
+        windows = BaseWindow.getAllWindows() as BaseWindow[];
         try {
           expect(windows).to.have.lengthOf(0);
         } finally {
@@ -35,7 +35,7 @@ export const closeWindow = async (
 export async function closeAllWindows(assertNotWindows = false) {
   let windowsClosed = 0;
   for (const w of BaseWindow.getAllWindows()) {
-    await closeWindow(w, { assertNotWindows });
+    await closeWindow(w as BaseWindow, { assertNotWindows });
     windowsClosed++;
   }
   return windowsClosed;

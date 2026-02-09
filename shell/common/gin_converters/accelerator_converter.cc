@@ -6,7 +6,7 @@
 
 #include <string>
 
-#include "shell/browser/ui/accelerator_util.h"
+#include "shell/ui/accelerator_util.h"
 
 namespace gin {
 

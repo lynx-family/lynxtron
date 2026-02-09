@@ -7,12 +7,15 @@
 
 #import <Cocoa/Cocoa.h>
 
-// #import "shell/browser/ui/cocoa/electron_menu_controller.h"
+#ifdef __cplusplus
+namespace lynxtron {
+class LynxtronMenuModel;
+}
+#endif
 
 @interface LynxtronApplicationDelegate : NSObject <NSApplicationDelegate>
 
-// Sets the menu that will be returned in "applicationDockMenu:".
-// - (void)setApplicationDockMenu:(electron::ElectronMenuModel*)model;
+- (void)setApplicationDockMenu:(lynxtron::LynxtronMenuModel*)model;
 
 @end
 
