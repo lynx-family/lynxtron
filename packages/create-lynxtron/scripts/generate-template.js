@@ -30,6 +30,9 @@ async function copyDir(src, dest) {
 
 async function main() {
   if (!fs.existsSync(srcDir)) return;
+  if (fs.existsSync(dstDir)) {
+    await fsp.rm(dstDir, { recursive: true, force: true });
+  }
   await ensureDir(dstDir);
   await copyDir(srcDir, dstDir);
 }

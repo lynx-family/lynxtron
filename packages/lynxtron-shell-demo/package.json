@@ -6,19 +6,13 @@
   "description": "A minimal Lynxtron application",
   "main": "main.js",
   "scripts": {
-    "build:lynx": "rspeedy build",
-    "build:node": "rspack build",
-    "build": "npm run build:lynx && npm run build:node",
+    "build": "rspeedy build && rspack build",
     "start": "npm run build && lynxtron ./dist/assets",
-    "dev:lynx": "rspeedy dev",
-    "dev:node": "dev-ready-speedy && rspack build && lynxtron --inspect=9222 ./dist/assets",
-    "dev": "cross-env NODE_ENV=development run-p -l dev:lynx dev:node",
+    "dev": "cross-env NODE_ENV=development bash -c 'rspeedy dev & dev-ready-speedy && rspack build && lynxtron ./dist/assets'",
     "test": "vitest run",
-    "pack:mac:x64": "npm run build && lynxtron-builder --mac --x64 --publish never",
-    "pack:mac:arm64": "npm run build && lynxtron-builder --mac --arm64 --publish never",
-    "pack:mac:universal": "npm run build && lynxtron-builder --mac --universal --publish never",
-    "pack:win": "npm run build && lynxtron-builder --win --ia32 --publish never"
+    "pack": "npm run build && lynxtron-builder --publish never"
   },
+  "private": true,
   "devDependencies": {
     "@electron/universal": "1.0.4",
     "@lynx-js/dev-ready-rsbuild-plugin": "workspace:*",

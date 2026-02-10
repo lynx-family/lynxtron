@@ -1,9 +1,33 @@
 import os
 import platform
+import shutil
 
 machine = platform.machine().lower()
 machine = "x86_64" if machine == "amd64" else machine
 system = platform.system().lower()
+
+def symlink_googletest():
+    src = os.path.join(os.getcwd(), "../third_party/googletest/src/googletest")
+    dest = os.path.join(os.getcwd(), "../third_party/googletest/googletest")
+    symlink_dir(src, dest)
+
+
+def symlink_dir(src, dest):
+    if os.path.exists(dest) or os.path.islink(dest):
+        if os.path.islink(dest):
+            os.unlink(dest)
+        elif os.path.isdir(dest):
+            shutil.rmtree(dest)
+        else:
+            os.remove(dest)
+    dest_parent = os.path.dirname(dest)
+    if dest_parent and not os.path.exists(dest_parent):
+        os.makedirs(dest_parent, exist_ok=True)
+    try:
+        os.symlink(src, dest)
+    except OSError:
+        raise
+
 
 yarn_version = '4.0.0'
 chromium_git = 'https://chromium.googlesource.com'
@@ -25,7 +49,7 @@ fast_float_revision = 'cb1d42aaa1e14b09e1452cfdef373d051b8c02a4'
 fp16_revision = 'b3720617faf1a4581ed7e6787cc51722ec7751f0'
 fuzztest_revision = '2bc33128266f1e4385d42dabc0999b42e463b708'
 google_benchmark_revision = '761305ec3b33abf30e08d50eb829e19a802581cc'
-googletest_revision = '244cec869d12e53378fa0efb610cd4c32a454ec8'
+googletest_revision = "7c3b4d54e3294990d9c3de583fccff97116efb6b"
 highway_revision = '00fe003dac355b979f36157f9407c7c46448958e'
 jsoncpp_revision = '42e892d96e47b1f6e29844cc705e148ec4856448'
 libcxx_revision = '6f8fe913d64254ab2231e0e98d2b6b5650ef4917'
@@ -230,5 +254,19 @@ deps = {
         'commit': 'e128976193546dceb24249206a02ff8f444f7120',
         'ignore_in_git': True,
         "require": [".."],
+    },
+    '../third_party/googletest/src': {
+        'type': 'git',
+        'url': 'https://github.com/google/googletest.git',
+        'commit': googletest_revision,
+        'ignore_in_git': True,
+        'require': ['..'],
+    },
+    '../symlink_googletest': {
+        'type': 'action',
+        'cwd': os.getcwd(),
+        'function': symlink_googletest,
+        'ignore_in_git': True,
+        'require': ['../third_party/googletest/src'],
     },
 }

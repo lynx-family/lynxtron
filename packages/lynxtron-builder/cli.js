@@ -11,7 +11,7 @@ const tempConfigPath = path.join(projectRoot, 'config.json');
 
 function getLynxtronVersion() {
   try {
-    const lynxtronPackageJsonPath = require.resolve('lynxtron/package.json', { paths: [projectRoot] });
+    const lynxtronPackageJsonPath = require.resolve('@lynx-js/lynxtron/package.json', { paths: [projectRoot] });
     const lynxtronPackageJson = JSON.parse(fs.readFileSync(lynxtronPackageJsonPath, 'utf8'));
 
     if (lynxtronPackageJson.version) {
@@ -122,7 +122,7 @@ function runBuild(arch) {
       config.electronDownload = {
         version: lynxtronVersion,
         // TODO(zhengsenyao): change to github release url
-        mirror: 'https://tosv.byted.org/obj/lynx/lynxtron/',
+        mirror: '',
         customDir: `v${lynxtronVersion}`,
         customFilename: `lynxtron-v${lynxtronVersion}-darwin-${resolvedArch}.zip`,
       };

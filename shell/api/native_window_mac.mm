@@ -532,7 +532,10 @@ void NativeWindowMac::FlashFrame(bool flash) {
   }
 }
 
-void NativeWindowMac::SetSkipTaskbar(bool skip) {}
+void NativeWindowMac::SetSkipTaskbar(bool skip) {
+  [NSApp setActivationPolicy:skip ? NSApplicationActivationPolicyAccessory
+                                  : NSApplicationActivationPolicyRegular];
+}
 
 void NativeWindowMac::SetExcludedFromShownWindowsMenu(bool excluded) {
   [window_ setExcludedFromWindowsMenu:excluded];

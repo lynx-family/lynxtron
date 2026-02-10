@@ -5,11 +5,14 @@
 
     "jsx": "react-jsx",
     "jsxImportSource": "@lynx-js/react",
+    "types": ["@lynx-js/types"],
 
     "module": "ESNext",
     "moduleResolution": "Bundler",
 
     "noEmit": true,
+    
   },
+  
   "include": ["./**/*.ts", "./**/*.tsx"],
 }
