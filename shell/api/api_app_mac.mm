@@ -11,11 +11,25 @@
 
 #include "base/path_service.h"
 #include "base/threading/thread_restrictions.h"
+#include "shell/app/icon_manager.h"
+#include "shell/app/javascript_environment.h"
+#include "shell/app/main_parts.h"
+#include "shell/common/gin_converters/image_converter.h"
 #include "shell/common/lynxtron_paths.h"
 #include "shell/common/node_includes.h"
 #include "shell/common/thread_restrictions.h"
+#include "ui/gfx/image/image.h"
 
 namespace lynxtron::api {
+
+void OnIconDataAvailable(gin_helper::Promise<gfx::Image> promise,
+                         gfx::Image icon) {
+  if (!icon.IsEmpty()) {
+    promise.Resolve(icon);
+  } else {
+    promise.RejectWithErrorMessage("Failed to get file icon.");
+  }
+}
 
 void App::SetAppLogsPath(gin_helper::ErrorThrower thrower,
                          std::optional<base::FilePath> custom_path) {
@@ -59,6 +73,39 @@ void App::SetActivationPolicy(gin_helper::ErrorThrower thrower,
   }
 
   [NSApp setActivationPolicy:activation_policy];
+}
+
+v8::Local<v8::Promise> App::GetFileIcon(const base::FilePath& path,
+                                        gin::Arguments* args) {
+  v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
+  gin_helper::Promise<gfx::Image> promise(isolate);
+  v8::Local<v8::Promise> handle = promise.GetHandle();
+
+  gin_helper::Dictionary options;
+  std::string size_string = "normal";
+  if (args->GetNext(&options)) {
+    options.Get("size", &size_string);
+  }
+  IconManager::IconSize size = IconManager::IconSize::kNormal;
+  if (!IconManager::ParseIconSize(size_string, &size)) {
+    promise.RejectWithErrorMessage(
+        "size must be one of 'small', 'normal', 'large'");
+    return handle;
+  }
+
+  base::FilePath normalized_path = path.NormalizePathSeparators();
+  auto* icon_manager = MainParts::Get()->GetIconManager();
+  gfx::Image* icon =
+      icon_manager->LookupIconFromFilepath(normalized_path, size, 1.0f);
+  if (icon) {
+    promise.Resolve(*icon);
+    return handle;
+  }
+  icon_manager->LoadIcon(
+      normalized_path, size, 1.0f,
+      base::BindOnce(&OnIconDataAvailable, std::move(promise)),
+      &cancelable_task_tracker_);
+  return handle;
 }
 
 // bool App::IsRunningUnderRosettaTranslation() const {

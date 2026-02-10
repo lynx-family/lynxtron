@@ -25,10 +25,12 @@
 #include "base/task/single_thread_task_runner.h"
 #include "base/task/thread_pool.h"
 #include "gin/arguments.h"
+#include "shell/app/icon_manager.h"
 #include "shell/app/javascript_environment.h"
 #include "shell/app/main_parts.h"
 #include "shell/app/relauncher.h"
 #include "shell/common/gin_converters/file_path_converter.h"
+#include "shell/common/gin_converters/image_converter.h"
 #include "shell/common/gin_converters/login_item_settings_converter.h"
 #include "shell/common/gin_converters/value_converter.h"
 #include "shell/common/gin_helper/constructible.h"
@@ -45,6 +47,7 @@
 #include "shell/common/platform_util.h"
 #include "shell/common/thread_restrictions.h"
 #include "shell/common/v8_util.h"
+#include "ui/gfx/image/image.h"
 
 #if BUILDFLAG(IS_WIN)
 #include "base/strings/utf_string_conversions.h"
@@ -326,16 +329,6 @@ namespace lynxtron::api {
 gin::DeprecatedWrapperInfo App::kWrapperInfo = {gin::kEmbedderNativeGin};
 
 namespace {
-
-// IconLoader::IconSize GetIconSizeByString(const std::string& size) {
-//   if (size == "small") {
-//     return IconLoader::IconSize::SMALL;
-//   } else if (size == "large") {
-//     return IconLoader::IconSize::LARGE;
-//   }
-//   return IconLoader::IconSize::NORMAL;
-// }
-
 // Return the path constant from string.
 int GetPathConstant(const std::string& name) {
   if (name == "appData") {
@@ -409,15 +402,14 @@ bool NotificationCallbackWrapper(
   return !Application::Get()->is_shutting_down();
 }
 
-// TODO(Guo Xi): icon
-// void OnIconDataAvailable(gin_helper::Promise<gfx::Image> promise,
-//                          gfx::Image icon) {
-//   if (!icon.IsEmpty()) {
-//     promise.Resolve(icon);
-//   } else {
-//     promise.RejectWithErrorMessage("Failed to get file icon.");
-//   }
-// }
+void OnIconDataAvailable(gin_helper::Promise<gfx::Image> promise,
+                         gfx::Image icon) {
+  if (!icon.IsEmpty()) {
+    promise.Resolve(icon);
+  } else {
+    promise.RejectWithErrorMessage("Failed to get file icon.");
+  }
+}
 
 struct ProcessMemoryInfo {
   size_t working_set_size = 0;
@@ -917,39 +909,40 @@ JumpListResult App::SetJumpList(v8::Local<v8::Value> val,
 
 #endif  // defined(OS_WIN)
 
-// TODO(Guo Xi): support GetFileIcon
-// v8::Local<v8::Promise> App::GetFileIcon(const base::FilePath& path,
-//                                         gin::Arguments* args) {
-//   v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
-//   gin_helper::Promise<gfx::Image> promise(isolate);
-//   v8::Local<v8::Promise> handle = promise.GetHandle();
-//   base::FilePath normalized_path = path.NormalizePathSeparators();
+#if !BUILDFLAG(IS_MAC)
+v8::Local<v8::Promise> App::GetFileIcon(const base::FilePath& path,
+                                        gin::Arguments* args) {
+  v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
+  gin_helper::Promise<gfx::Image> promise(isolate);
+  v8::Local<v8::Promise> handle = promise.GetHandle();
 
-//   IconLoader::IconSize icon_size;
-//   gin_helper::Dictionary options;
-//   if (!args->GetNext(&options)) {
-//     icon_size = IconLoader::IconSize::NORMAL;
-//   } else {
-//     std::string icon_size_string;
-//     options.Get("size", &icon_size_string);
-//     icon_size = GetIconSizeByString(icon_size_string);
-//   }
+  gin_helper::Dictionary options;
+  std::string size_string = "normal";
+  if (args->GetNext(&options)) {
+    options.Get("size", &size_string);
+  }
+  IconManager::IconSize size = IconManager::IconSize::kNormal;
+  if (!IconManager::ParseIconSize(size_string, &size)) {
+    promise.RejectWithErrorMessage(
+        "size must be one of 'small', 'normal', 'large'");
+    return handle;
+  }
 
-//   // TODO(Guo Xi) : icon manager
-//   // auto* icon_manager = ElectronMainParts::Get()->GetIconManager();
-//   // gfx::Image* icon =
-//   //     icon_manager->LookupIconFromFilepath(normalized_path,
-//   icon_size, 1.0f);
-//   // if (icon) {
-//   //   promise.Resolve(*icon);
-//   // } else {
-//   //   icon_manager->LoadIcon(
-//   //       normalized_path, icon_size, 1.0f,
-//   //       base::BindOnce(&OnIconDataAvailable, std::move(promise)),
-//   //       &cancelable_task_tracker_);
-//   // }
-//   return handle;
-// }
+  base::FilePath normalized_path = path.NormalizePathSeparators();
+  auto* icon_manager = MainParts::Get()->GetIconManager();
+  gfx::Image* icon =
+      icon_manager->LookupIconFromFilepath(normalized_path, size, 1.0f);
+  if (icon) {
+    promise.Resolve(*icon);
+    return handle;
+  }
+  icon_manager->LoadIcon(
+      normalized_path, size, 1.0f,
+      base::BindOnce(&OnIconDataAvailable, std::move(promise)),
+      &cancelable_task_tracker_);
+  return handle;
+}
+#endif
 
 gin_helper::Dictionary App::GetAppMetrics(v8::Isolate* isolate) {
   gin_helper::Dictionary result;
@@ -1150,7 +1143,7 @@ gin::ObjectTemplateBuilder App::GetObjectTemplateBuilder(v8::Isolate* isolate) {
                  base::BindRepeating(&Application::SetVersion, application))
       .SetMethod("whenReady",
                  base::BindRepeating(&Application::WhenReady, application))
-      // .SetMethod("getFileIcon", &App::GetFileIcon)
+      .SetMethod("getFileIcon", &App::GetFileIcon)
       .SetMethod("getAppMetrics", &App::GetAppMetrics)
       .SetMethod(
           "setAboutPanelOptions",

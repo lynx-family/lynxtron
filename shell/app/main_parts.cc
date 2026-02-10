@@ -14,6 +14,7 @@
 #include "base/task/thread_pool/thread_pool_instance.h"
 #include "gin/v8_initializer.h"
 #include "shell/api/lynxtron_bindings.h"
+#include "shell/app/icon_manager.h"
 #include "shell/app/javascript_environment.h"
 #include "shell/common/global_thread.h"
 #include "shell/common/lynxtron_paths.h"
@@ -239,11 +240,11 @@ void MainParts::PreCreateMainMessageLoopCommon() {
 #endif
 }
 
-// IconManager* MainParts::GetIconManager() {
-//   // DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
-//   if (!icon_manager_.get())
-//     icon_manager_ = std::make_unique<IconManager>();
-//   return icon_manager_.get();
-// }
+IconManager* MainParts::GetIconManager() {
+  if (!icon_manager_) {
+    icon_manager_ = std::make_unique<IconManager>();
+  }
+  return icon_manager_.get();
+}
 
 }  // namespace lynxtron

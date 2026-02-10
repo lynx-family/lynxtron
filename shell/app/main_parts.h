@@ -19,6 +19,7 @@ namespace lynxtron {
 class LynxtronBindings;
 class JavascriptEnvironment;
 class NodeBindings;
+class IconManager;
 
 class MainParts {
  public:
@@ -34,7 +35,7 @@ class MainParts {
   int GetExitCode() const;
 
   // Returns handle to the class responsible for extracting file icons.
-  // IconManager* GetIconManager();
+  IconManager* GetIconManager();
 
   Application* application() { return application_.get(); }
 
@@ -69,8 +70,7 @@ class MainParts {
   // depends-on: js_env_'s isolate
   std::shared_ptr<node::Environment> node_env_;
   std::unique_ptr<LynxtronBindings> lynxtron_bindings_;
-  // TODO(Guo Xi): implement IconManager
-  // std::unique_ptr<IconManager> icon_manager_;
+  std::unique_ptr<IconManager> icon_manager_;
 
 #if BUILDFLAG(IS_MAC)
   std::unique_ptr<display::ScopedNativeScreen> scoped_native_screen_;

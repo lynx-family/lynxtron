@@ -414,8 +414,8 @@ describe('app module', () => {
     // TODO(Guo Xi): change socketPath name
     const socketPath =
       process.platform === 'win32'
-        ? '\\\\.\\pipe\\electron-app-relaunch'
-        : '/tmp/electron-app-relaunch';
+        ? '\\\\.\\pipe\\lynxtron-app-relaunch'
+        : '/tmp/lynxtron-app-relaunch';
 
     beforeEach((done) => {
       fs.unlink(socketPath, () => {
@@ -616,7 +616,53 @@ describe('app module', () => {
   // TODO(Guo Xi): getApplicationInfoForProtocol
   // TODO(Guo Xi): isDefaultProtocolClient()
   // TODO(Guo Xi): app launch through uri
-  // TODO(Guo Xi): getFileIcon() API
+  ifdescribe(process.platform !== 'linux')('getFileIcon() API', () => {
+    const iconPath = path.join(__dirname, 'fixtures/assets/icon.ico');
+    const sizes = {
+      small: 16,
+      normal: 32,
+      large: 256,
+    };
+
+    it('fetches a non-empty icon', async () => {
+      const icon = await app.getFileIcon(iconPath);
+      expect(icon.isEmpty()).to.equal(false);
+    });
+
+    it('fetches normal icon size by default', async () => {
+      const icon = await app.getFileIcon(iconPath);
+      const size = icon.getSize();
+
+      expect(size.height).to.equal(sizes.normal);
+      expect(size.width).to.equal(sizes.normal);
+    });
+
+    describe('size option', () => {
+      it('fetches a small icon', async () => {
+        const icon = await app.getFileIcon(iconPath, { size: 'small' });
+        const size = icon.getSize();
+
+        expect(size.height).to.equal(sizes.small);
+        expect(size.width).to.equal(sizes.small);
+      });
+
+      it('fetches a normal icon', async () => {
+        const icon = await app.getFileIcon(iconPath, { size: 'normal' });
+        const size = icon.getSize();
+
+        expect(size.height).to.equal(sizes.normal);
+        expect(size.width).to.equal(sizes.normal);
+      });
+
+      it('fetches a large icon', async () => {
+        const icon = await app.getFileIcon(iconPath, { size: 'large' });
+        const size = icon.getSize();
+
+        expect(size.height).to.equal(sizes.large);
+        expect(size.width).to.equal(sizes.large);
+      });
+    });
+  });
 
   describe('getAppMetrics() API', () => {
     it('returns memory and cpu stats of the current process', () => {
