@@ -1400,7 +1400,6 @@ export interface App extends EventEmitter {
       | 'appData'
       | 'assets'
       | 'userData'
-      | 'sessionData'
       | 'temp'
       | 'exe'
       | 'module'
