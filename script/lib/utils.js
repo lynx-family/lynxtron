@@ -1,5 +1,4 @@
 const chalk = require('chalk');
-const { GitProcess } = require('dugite');
 
 const fs = require('node:fs');
 const os = require('node:os');
@@ -62,12 +61,10 @@ function getAbsoluteElectronExec () {
   return path.resolve(SRC_DIR, getElectronExec());
 }
 
-async function handleGitCall (args, gitDir) {
-  const details = await GitProcess.exec(args, gitDir);
-  if (details.exitCode === 0) {
-    return details.stdout.replace(/^\*|\s+|\s+$/, '');
-  } else {
-    const error = GitProcess.parseError(details.stderr);
+function handleGitCall (args, gitDir) {
+  try {
+    return execSync(`git ${args.join(' ')}`, { cwd: gitDir }).toString().trim();
+  } catch (error) {
     console.log(`${fail} couldn't parse git process call: `, error);
     process.exit(1);
   }
@@ -78,10 +75,10 @@ async function getCurrentBranch (gitDir) {
   const MAIN_BRANCH_PATTERN = /^main$/;
   const ORIGIN_MAIN_BRANCH_PATTERN = /^origin\/main$/;
 
-  let branch = await handleGitCall(['rev-parse', '--abbrev-ref', 'HEAD'], gitDir);
+  let branch = handleGitCall(['rev-parse', '--abbrev-ref', 'HEAD'], gitDir);
   if (!MAIN_BRANCH_PATTERN.test(branch) && !RELEASE_BRANCH_PATTERN.test(branch)) {
-    const lastCommit = await handleGitCall(['rev-parse', 'HEAD'], gitDir);
-    const branches = (await handleGitCall([
+    const lastCommit = handleGitCall(['rev-parse', 'HEAD'], gitDir);
+    const branches = (handleGitCall([
       'branch',
       '--contains',
       lastCommit,
@@ -143,11 +140,11 @@ async function findMatchingFiles (top, test) {
 module.exports = {
   chunkFilenames,
   findMatchingFiles,
-  getCurrentBranch,
   getElectronExec,
   getOutDir,
   getAbsoluteElectronExec,
   handleGitCall,
+  getCurrentBranch,
   LYNXTRON_DIR,
   SRC_DIR
 };

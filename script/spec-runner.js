@@ -35,7 +35,6 @@ const utils = require('./lib/utils');
 const { YARN_VERSION } = require('./yarn');
 
 const BASE = utils.SRC_DIR;
-const NPX_CMD = process.platform === 'win32' ? 'npx.cmd' : 'npx';
 
 const runners = new Map([
   ['main', { description: 'Main process specs', run: runMainProcessElectronTests }]
@@ -195,7 +194,7 @@ async function installSpecModules (dir) {
   if (fs.existsSync(path.resolve(dir, 'node_modules'))) {
     await fs.promises.rm(path.resolve(dir, 'node_modules'), { force: true, recursive: true });
   }
-  const { status } = childProcess.spawnSync(NPX_CMD, [`yarn@${YARN_VERSION}`, 'install', '--immutable'], {
+  const { status } = childProcess.spawnSync(process.execPath, [path.resolve(__dirname, '../tools/yarn.js'), 'install', '--immutable'], {
     env,
     cwd: dir,
     stdio: 'inherit',
