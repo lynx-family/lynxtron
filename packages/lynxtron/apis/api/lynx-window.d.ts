@@ -100,6 +100,7 @@ export interface LynxWindowConstructorOptions {
    * Whether to show the window in taskbar. Default is `false`.
    */
   skipTaskbar?: boolean;
+  hiddenInMissionControl?: boolean;
   /**
    * Whether the window is in kiosk mode. Default is `false`.
    */

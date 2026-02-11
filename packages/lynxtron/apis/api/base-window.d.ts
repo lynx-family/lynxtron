@@ -1108,6 +1108,7 @@ export declare class BaseWindow {
    * window.
    */
   isFullScreenable(): boolean;
+  isHiddenInMissionControl(): boolean;
   /**
    * Whether the window can be manually maximized by user.
    *
@@ -1328,6 +1329,7 @@ export declare class BaseWindow {
    * maximizes the window.
    */
   setFullScreenable(fullscreenable: boolean): void;
+  setHiddenInMissionControl(hidden: boolean): void;
   /**
    * Sets whether the window should have a shadow.
    */

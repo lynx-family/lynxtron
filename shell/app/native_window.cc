@@ -189,6 +189,9 @@ void NativeWindow::InitFromOptions(const gin_helper::Dictionary& options) {
   if (std::string val; options.Get(options::kVibrancyType, &val)) {
     SetVibrancy(val, 0);
   }
+  if (bool val; options.Get(options::kHiddenInMissionControl, &val)) {
+    SetHiddenInMissionControl(val);
+  }
 #endif
 
   // TODO(Guo Xi): SetBackgroundMaterial

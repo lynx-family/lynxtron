@@ -91,6 +91,8 @@ class NativeWindowMac : public NativeWindow {
   double GetOpacity() override;
   // void SetIgnoreMouseEvents(bool ignore, bool forward) override;
   void SetContentProtection(bool enable) override;
+  bool IsHiddenInMissionControl() const override;
+  void SetHiddenInMissionControl(bool hidden) override;
   void SetFocusable(bool focusable) override;
   bool IsFocusable() const override;
   void SetVibrancy(const std::string& type, int duration) override;

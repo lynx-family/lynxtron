@@ -748,6 +748,14 @@ gfx::Point BaseWindow::GetTrafficLightPosition() const {
   return window_->GetTrafficLightPosition().value_or(gfx::Point());
 }
 
+bool BaseWindow::IsHiddenInMissionControl() const {
+  return window_->IsHiddenInMissionControl();
+}
+
+void BaseWindow::SetHiddenInMissionControl(bool hidden) {
+  window_->SetHiddenInMissionControl(hidden);
+}
+
 v8::Local<v8::Value> BaseWindow::GetTabbingIdentifier() const {
   auto tabbing_identifier = window_->GetTabbingIdentifier();
   if (!tabbing_identifier.has_value()) {
@@ -989,6 +997,10 @@ void BaseWindow::BuildPrototype(v8::Isolate* isolate,
 #if BUILDFLAG(IS_MAC)
       .SetMethod("_getAlwaysOnTopLevel", &BaseWindow::GetAlwaysOnTopLevel)
       .SetMethod("setAutoHideCursor", &BaseWindow::SetAutoHideCursor)
+      .SetMethod("isHiddenInMissionControl",
+                 &BaseWindow::IsHiddenInMissionControl)
+      .SetMethod("setHiddenInMissionControl",
+                 &BaseWindow::SetHiddenInMissionControl)
 #endif
       .SetMethod("setVibrancy", &BaseWindow::SetVibrancy)
 #if BUILDFLAG(IS_MAC)
