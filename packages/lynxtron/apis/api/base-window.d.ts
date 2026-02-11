@@ -41,21 +41,6 @@ export interface BaseWindowConstructorOptions {
   // Docs: https://electronjs.org/docs/api/structures/base-window-options
 
   /**
-   * The accent color for the window. By default, follows user preference in System
-   * Settings. Set to `false` to explicitly disable, or set the color in Hex, RGB,
-   * RGBA, HSL, HSLA or named CSS color format. Alpha values will be ignored.
-   *
-   * @platform win32
-   */
-  accentColor?: boolean | string;
-  /**
-   * Whether clicking an inactive window will also click through to the web contents.
-   * Default is `false` on macOS. This option is not configurable on other platforms.
-   *
-   * @platform darwin
-   */
-  acceptFirstMouse?: boolean;
-  /**
    * Whether the window should always stay on top of other windows. Default is
    * `false`.
    */
@@ -91,11 +76,6 @@ export interface BaseWindowConstructorOptions {
    * @platform darwin,win32
    */
   closable?: boolean;
-  /**
-   * Forces using dark theme for the window, only works on some GTK+3 desktop
-   * environments. Default is `false`.
-   */
-  darkTheme?: boolean;
   /**
    * Whether to hide cursor when typing. Default is `false`.
    */

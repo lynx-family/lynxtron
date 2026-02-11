@@ -58,9 +58,6 @@ inline constexpr std::string_view kSimpleFullscreen = "simpleFullscreen";
 // Make windows stays on the top of all other windows.
 inline constexpr std::string_view kAlwaysOnTop = "alwaysOnTop";
 
-// Enable the NSView to accept first mouse event.
-inline constexpr std::string_view kAcceptFirstMouse = "acceptFirstMouse";
-
 // Whether window zoom should be to page width.
 inline constexpr std::string_view kZoomToPageWidth = "zoomToPageWidth";
 
@@ -72,9 +69,6 @@ inline constexpr std::string_view kTabbingIdentifier = "tabbingIdentifier";
 
 // The menu bar is hidden unless "Alt" is pressed.
 inline constexpr std::string_view kAutoHideMenuBar = "autoHideMenuBar";
-
-// Forces to use dark theme on Linux.
-inline constexpr std::string_view kDarkTheme = "darkTheme";
 
 // Whether the window should be transparent.
 inline constexpr std::string_view kTransparent = "transparent";
@@ -116,8 +110,6 @@ inline constexpr std::string_view kTrafficLightPosition =
 inline constexpr std::string_view kRoundedCorners = "roundedCorners";
 
 inline constexpr std::string_view ktitleBarOverlay = "titleBarOverlay";
-
-inline constexpr std::string_view kAccentColor = "accentColor";
 
 // The color to use as the theme and symbol colors respectively for Window
 // Controls Overlay if enabled on Windows.

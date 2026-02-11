@@ -18,7 +18,6 @@ inline constexpr NSRect kWindowSizeDeterminedLater = {{0, 0}, {1, 1}};
 
 @implementation LynxNSWindow
 
-@synthesize acceptsFirstMouse;
 @synthesize enableLargerThanScreen;
 @synthesize disableAutoHideCursor;
 @synthesize disableKeyOrMainWindow;

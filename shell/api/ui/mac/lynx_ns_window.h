@@ -19,7 +19,6 @@ class NativeWindowMac;
  @private
   raw_ptr<lynxtron::NativeWindowMac> shell_;
 }
-@property BOOL acceptsFirstMouse;
 @property BOOL enableLargerThanScreen;
 @property BOOL disableAutoHideCursor;
 @property BOOL disableKeyOrMainWindow;

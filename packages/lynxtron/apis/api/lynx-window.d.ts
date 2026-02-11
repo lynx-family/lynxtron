@@ -135,11 +135,6 @@ export interface LynxWindowConstructorOptions {
    */
   modal?: boolean;
   /**
-   * Whether clicking an inactive window will also click through to the web contents.
-   * Default is `false` on macOS. This option is not configurable on other platforms.
-   */
-  acceptFirstMouse?: boolean;
-  /**
    * Whether to hide cursor when typing. Default is `false`.
    */
   disableAutoHideCursor?: boolean;
@@ -167,11 +162,6 @@ export interface LynxWindowConstructorOptions {
    * (fully opaque). This is only implemented on Windows and macOS.
    */
   opacity?: number;
-  /**
-   * Forces using dark theme for the window, only works on some GTK+3 desktop
-   * environments. Default is `false`.
-   */
-  darkTheme?: boolean;
   /**
    * Makes the window [transparent]. Default is `false`. On Windows, does not work
    * unless the window is frameless.
