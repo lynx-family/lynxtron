@@ -42,7 +42,7 @@ cp.fork = (modulePath, args?, options?: cp.ForkOptions) => {
   // the electron binary run like upstream Node.js.
   options = options ?? {};
   options.env = Object.create(options.env || process.env);
-  options.env!.ELECTRON_RUN_AS_NODE = '1';
+  options.env!.LYNXTRON_RUN_AS_NODE = '1';
   // On mac the child script runs in helper executable.
   if (!options.execPath && process.platform === 'darwin') {
     options.execPath = process.helperExecPath;

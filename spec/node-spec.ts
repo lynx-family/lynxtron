@@ -41,6 +41,41 @@ describe('node feature', () => {
       //   expect(msg.length).to.equal(2);
       // });
     });
+
+    describe('child_process.spawn', () => {
+      it('supports spawning Lynxtron as a node process via LYNXTRON_RUN_AS_NODE', async () => {
+        const child = childProcess.spawn(
+          process.execPath,
+          [path.join(fixtures, 'module', 'run-as-node.js')],
+          {
+            env: {
+              ...process.env,
+              LYNXTRON_RUN_AS_NODE: 'true',
+            },
+          }
+        );
+
+        if (!child.stdout) {
+          throw new Error('stdout is not available');
+        }
+
+        let output = '';
+        child.stdout.on('data', (data: Buffer) => {
+          output += data;
+        });
+
+        try {
+          await once(child.stdout, 'close');
+          expect(JSON.parse(output)).to.deep.equal({
+            stdoutType: 'pipe',
+            processType: 'undefined',
+            window: 'undefined',
+          });
+        } finally {
+          child.kill();
+        }
+      });
+    });
   });
 
   describe('contexts', () => {
@@ -300,7 +335,7 @@ describe('node feature', () => {
     const nodeOptionsWarning =
       'Node.js environment variables are disabled because this process is invoked by other apps';
 
-    it('is disabled when invoked by other apps in ELECTRON_RUN_AS_NODE mode', async () => {
+    it('is disabled when invoked by other apps in LYNXTRON_RUN_AS_NODE mode', async () => {
       await withTempDirectory(async (dir) => {
         const appPath = await copyMacOSFixtureApp(dir);
         await signApp(appPath, identity);
@@ -316,7 +351,7 @@ describe('node feature', () => {
       });
     });
 
-    it('is disabled when invoked by alien binary in app bundle in ELECTRON_RUN_AS_NODE mode', async function () {
+    it('is disabled when invoked by alien binary in app bundle in LYNXTRON_RUN_AS_NODE mode', async function () {
       await withTempDirectory(async (dir) => {
         const appPath = await copyMacOSFixtureApp(dir);
         await signApp(appPath, identity);
@@ -359,7 +394,7 @@ describe('node feature', () => {
     let child: childProcess.ChildProcessWithoutNullStreams;
     let exitPromise: Promise<any[]>;
 
-    it('Prohibits crypto-related flags in ELECTRON_RUN_AS_NODE mode', (done) => {
+    it('Prohibits crypto-related flags in LYNXTRON_RUN_AS_NODE mode', (done) => {
       after(async () => {
         const [code, signal] = await exitPromise;
         expect(signal).to.equal(null);
@@ -368,7 +403,7 @@ describe('node feature', () => {
       });
 
       child = childProcess.spawn(process.execPath, ['--force-fips'], {
-        env: { ELECTRON_RUN_AS_NODE: 'true' },
+        env: { LYNXTRON_RUN_AS_NODE: 'true' },
       });
       exitPromise = once(child, 'exit');
 
@@ -436,7 +471,7 @@ describe('node feature', () => {
         process.execPath,
         ['--inspect-brk', path.join(fixtures, 'module', 'run-as-node.js')],
         {
-          env: { ELECTRON_RUN_AS_NODE: 'true' },
+          env: { LYNXTRON_RUN_AS_NODE: 'true' },
         }
       );
 
@@ -463,7 +498,7 @@ describe('node feature', () => {
         process.execPath,
         ['--inspect=17364', path.join(fixtures, 'module', 'run-as-node.js')],
         {
-          env: { ELECTRON_RUN_AS_NODE: 'true' },
+          env: { LYNXTRON_RUN_AS_NODE: 'true' },
         }
       );
       exitPromise = once(child, 'exit');
@@ -516,7 +551,7 @@ describe('node feature', () => {
         process.execPath,
         ['--inspect', path.join(fixtures, 'module', 'inspector-binding.js')],
         {
-          env: { ELECTRON_RUN_AS_NODE: 'true' },
+          env: { LYNXTRON_RUN_AS_NODE: 'true' },
           stdio: ['ipc'],
         }
       ) as childProcess.ChildProcessWithoutNullStreams;
@@ -541,7 +576,7 @@ describe('node feature', () => {
   it('handles Promise timeouts correctly', async () => {
     const scriptPath = path.join(fixtures, 'module', 'node-promise-timer.js');
     const child = childProcess.spawn(process.execPath, [scriptPath], {
-      env: { ELECTRON_RUN_AS_NODE: 'true' },
+      env: { LYNXTRON_RUN_AS_NODE: 'true' },
     });
     const [code, signal] = await once(child, 'exit');
     expect(code).to.equal(0);
