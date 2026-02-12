@@ -104,14 +104,17 @@ class NativeWindow : public base::SupportsUserData {
   virtual float GetDevicePixelRatio() const;
   virtual void SetPosition(const gfx::Point& position, bool animate);
   virtual gfx::Point GetPosition() const;
-  // virtual void SetContentSize(const gfx::Size& size, bool animate);
-  // virtual gfx::Size GetContentSize() const;
-  // virtual void SetContentBounds(const gfx::Rect& bounds, bool animate);
-  // virtual gfx::Rect GetContentBounds() const;
+  virtual void SetContentSize(const gfx::Size& size, bool animate);
+  virtual gfx::Size GetContentSize() const;
+  virtual void SetContentBounds(const gfx::Rect& bounds, bool animate);
+  virtual gfx::Rect GetContentBounds() const;
   virtual bool IsNormal() const;
   virtual gfx::Rect GetNormalBounds() const = 0;
   virtual void SetSizeConstraints(const SizeConstraints& window_constraints);
   virtual SizeConstraints GetSizeConstraints() const;
+  virtual void SetContentSizeConstraints(
+      const SizeConstraints& size_constraints);
+  virtual SizeConstraints GetContentSizeConstraints() const;
 
   void SetMinimumSize(const gfx::Size& size);
   [[nodiscard]] gfx::Size GetMinimumSize() const;
@@ -325,6 +328,7 @@ class NativeWindow : public base::SupportsUserData {
 
   // Minimum and maximum size.
   std::optional<SizeConstraints> size_constraints_;
+  std::optional<SizeConstraints> content_size_constraints_;
 
  private:
   static int32_t next_id_;

@@ -854,6 +854,107 @@ describe('LynxWindow module', () => {
           await closeWindow(w2, { assertNotWindows: false });
         });
       });
+
+      describe('LynxWindow content size', () => {
+        it('sets the content size', async () => {
+          const size = [456, 567];
+          const resize = once(w, 'resize');
+          w.setContentSize(size[0], size[1]);
+          await resize;
+          const after = w.getContentSize();
+          expect(after).to.deep.equal(size);
+        });
+
+        it('gets the content size', () => {
+          const size = w.getContentSize();
+          expect(size).to.be.an('array');
+          expect(size).to.have.lengthOf(2);
+          expect(size[0]).to.be.a('number');
+          expect(size[1]).to.be.a('number');
+        });
+
+        it('sets the content size with animation', async () => {
+          const size = [500, 500];
+          const resize = once(w, 'resize');
+          w.setContentSize(size[0], size[1], true);
+          await resize;
+          const after = w.getContentSize();
+          expect(after).to.deep.equal(size);
+        });
+      });
+
+      describe('LynxWindow content bounds', () => {
+        it('sets the content size and position', async () => {
+          const bounds = { x: 10, y: 10, width: 250, height: 250 };
+          const resize = once(w, 'resize');
+          w.setContentBounds(bounds);
+          await resize;
+          await setTimeout();
+          const result = w.getContentBounds();
+          // Check width and height match
+          expect(result.width).to.equal(bounds.width);
+          expect(result.height).to.equal(bounds.height);
+          // Position might be adjusted by the system to keep window visible
+          expect(result.x).to.be.a('number');
+          expect(result.y).to.be.a('number');
+        });
+
+        it('gets the content bounds', () => {
+          const bounds = w.getContentBounds();
+          expect(bounds).to.have.property('x');
+          expect(bounds).to.have.property('y');
+          expect(bounds).to.have.property('width');
+          expect(bounds).to.have.property('height');
+          expect(bounds.x).to.be.a('number');
+          expect(bounds.y).to.be.a('number');
+          expect(bounds.width).to.be.a('number');
+          expect(bounds.height).to.be.a('number');
+        });
+
+        it('sets the content bounds with animation', async () => {
+          const bounds = { x: 20, y: 20, width: 300, height: 300 };
+          const resize = once(w, 'resize');
+          w.setContentBounds(bounds, true);
+          await resize;
+          const result = w.getContentBounds();
+          // Check width and height match
+          expect(result.width).to.equal(bounds.width);
+          expect(result.height).to.equal(bounds.height);
+          // Position might be adjusted by the system to keep window visible
+          expect(result.x).to.be.a('number');
+          expect(result.y).to.be.a('number');
+        });
+
+        it('content size respects window frame', async () => {
+          const wWithFrame = new LynxWindow({
+            show: false,
+            frame: true,
+            width: 400,
+            height: 300,
+          });
+          const contentSize = wWithFrame.getContentSize();
+          const windowSize = wWithFrame.getSize();
+          // Content size should be smaller than window size when frame is present
+          expect(contentSize[0]).to.be.at.most(windowSize[0]);
+          expect(contentSize[1]).to.be.at.most(windowSize[1]);
+          await closeWindow(wWithFrame, { assertNotWindows: false });
+        });
+
+        it('content size equals window size for frameless window', async () => {
+          const wFrameless = new LynxWindow({
+            show: false,
+            frame: false,
+            width: 400,
+            height: 300,
+          });
+          const contentSize = wFrameless.getContentSize();
+          const windowSize = wFrameless.getSize();
+          // Content size should equal window size for frameless windows
+          expect(contentSize[0]).to.equal(windowSize[0]);
+          expect(contentSize[1]).to.equal(windowSize[1]);
+          await closeWindow(wFrameless, { assertNotWindows: false });
+        });
+      });
     });
   });
 });

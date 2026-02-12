@@ -5,6 +5,7 @@
 #include "shell/app/native_window.h"
 
 #include <algorithm>
+#include <climits>
 #include <string>
 #include <vector>
 
@@ -105,8 +106,12 @@ void NativeWindow::InitFromOptions(const gin_helper::Dictionary& options) {
     Center();
   }
 
+  const bool use_content_size =
+      options.ValueOrDefault(options::kUseContentSize, false);
+
   // On Linux and Window we may already have maximum size defined.
-  SizeConstraints size_constraints(GetSizeConstraints());
+  SizeConstraints size_constraints(
+      use_content_size ? GetContentSizeConstraints() : GetSizeConstraints());
 
   const int min_width = options.ValueOrDefault(
       options::kMinWidth, size_constraints.GetMinimumSize().width());
@@ -133,7 +138,11 @@ void NativeWindow::InitFromOptions(const gin_helper::Dictionary& options) {
     size_constraints.set_maximum_size(gfx::Size(max_width, max_height));
   }
 
-  SetSizeConstraints(size_constraints);
+  if (use_content_size) {
+    SetContentSizeConstraints(size_constraints);
+  } else {
+    SetSizeConstraints(size_constraints);
+  }
 
 #if BUILDFLAG(IS_WIN)
   if (bool val; options.Get(options::kClosable, &val)) {
@@ -264,6 +273,22 @@ gfx::Point NativeWindow::GetPosition() const {
 //   return WindowBoundsToContentBounds(GetBounds());
 // }
 
+void NativeWindow::SetContentSize(const gfx::Size& size, bool animate) {
+  SetSize(ContentBoundsToWindowBounds(gfx::Rect(size)).size(), animate);
+}
+
+gfx::Size NativeWindow::GetContentSize() const {
+  return GetContentBounds().size();
+}
+
+void NativeWindow::SetContentBounds(const gfx::Rect& bounds, bool animate) {
+  SetBounds(ContentBoundsToWindowBounds(bounds), animate);
+}
+
+gfx::Rect NativeWindow::GetContentBounds() const {
+  return WindowBoundsToContentBounds(GetBounds());
+}
+
 bool NativeWindow::IsNormal() const {
   return !IsMinimized() && !IsMaximized() && !IsFullscreen();
 }
@@ -271,14 +296,55 @@ bool NativeWindow::IsNormal() const {
 void NativeWindow::SetSizeConstraints(
     const SizeConstraints& window_constraints) {
   size_constraints_ = window_constraints;
-  // content_size_constraints_.reset();
+  content_size_constraints_.reset();
 }
 
 SizeConstraints NativeWindow::GetSizeConstraints() const {
   if (size_constraints_) {
     return *size_constraints_;
   }
-  return SizeConstraints();
+  if (!content_size_constraints_) {
+    return SizeConstraints();
+  }
+  SizeConstraints constraints;
+  if (content_size_constraints_->HasMaximumSize()) {
+    gfx::Rect max_bounds = ContentBoundsToWindowBounds(
+        gfx::Rect(content_size_constraints_->GetMaximumSize()));
+    constraints.set_maximum_size(max_bounds.size());
+  }
+  if (content_size_constraints_->HasMinimumSize()) {
+    gfx::Rect min_bounds = ContentBoundsToWindowBounds(
+        gfx::Rect(content_size_constraints_->GetMinimumSize()));
+    constraints.set_minimum_size(min_bounds.size());
+  }
+  return constraints;
+}
+
+void NativeWindow::SetContentSizeConstraints(
+    const SizeConstraints& size_constraints) {
+  content_size_constraints_ = size_constraints;
+  size_constraints_.reset();
+}
+
+SizeConstraints NativeWindow::GetContentSizeConstraints() const {
+  if (content_size_constraints_) {
+    return *content_size_constraints_;
+  }
+  if (!size_constraints_) {
+    return SizeConstraints();
+  }
+  SizeConstraints constraints;
+  if (size_constraints_->HasMaximumSize()) {
+    gfx::Rect max_bounds = WindowBoundsToContentBounds(
+        gfx::Rect(size_constraints_->GetMaximumSize()));
+    constraints.set_maximum_size(max_bounds.size());
+  }
+  if (size_constraints_->HasMinimumSize()) {
+    gfx::Rect min_bounds = WindowBoundsToContentBounds(
+        gfx::Rect(size_constraints_->GetMinimumSize()));
+    constraints.set_minimum_size(min_bounds.size());
+  }
+  return constraints;
 }
 
 void NativeWindow::SetMinimumSize(const gfx::Size& size) {
@@ -302,24 +368,20 @@ gfx::Size NativeWindow::GetMaximumSize() const {
 }
 
 gfx::Size NativeWindow::GetContentMinimumSize() const {
-  // return GetContentSizeConstraints().GetMinimumSize();
-  return {};
+  return GetContentSizeConstraints().GetMinimumSize();
 }
 
 gfx::Size NativeWindow::GetContentMaximumSize() const {
-  // const auto size_constraints = GetContentSizeConstraints();
-  // gfx::Size maximum_size = size_constraints.GetMaximumSize();
-  // return {};
+  const auto size_constraints = GetContentSizeConstraints();
+  gfx::Size maximum_size = size_constraints.GetMaximumSize();
 
-  // #if BUILDFLAG(IS_WIN)
-  //   if (size_constraints.HasMaximumSize()) {
-  //     maximum_size = GetExpandedWindowSize(this, transparent(),
-  //     maximum_size);
-  //   }
-  // #endif
+#if BUILDFLAG(IS_WIN)
+  if (size_constraints.HasMaximumSize()) {
+    maximum_size = GetExpandedWindowSize(this, transparent(), maximum_size);
+  }
+#endif
 
-  //   return maximum_size;
-  return {};
+  return maximum_size;
 }
 
 // TODO(Guo Xi): 在 macOS 上review sheet 相关的逻辑

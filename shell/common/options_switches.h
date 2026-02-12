@@ -23,6 +23,7 @@ inline constexpr std::string_view kX = "x";
 inline constexpr std::string_view kY = "y";
 inline constexpr std::string_view kWidth = "width";
 inline constexpr std::string_view kHeight = "height";
+inline constexpr std::string_view kUseContentSize = "useContentSize";
 inline constexpr std::string_view kMinWidth = "minWidth";
 inline constexpr std::string_view kMinHeight = "minHeight";
 inline constexpr std::string_view kMaxWidth = "maxWidth";

@@ -387,6 +387,17 @@ gfx::Rect BaseWindow::GetNormalBounds() const {
 //   return window_->GetContentBounds();
 // }
 
+void BaseWindow::SetContentBounds(const gfx::Rect& bounds,
+                                  gin_helper::Arguments* args) {
+  bool animate = false;
+  args->GetNext(&animate);
+  window_->SetContentBounds(bounds, animate);
+}
+
+gfx::Rect BaseWindow::GetContentBounds() const {
+  return window_->GetContentBounds();
+}
+
 void BaseWindow::SetSize(int width, int height, gin_helper::Arguments* args) {
   bool animate = false;
   gfx::Size size = window_->GetMinimumSize();
@@ -414,6 +425,18 @@ std::array<int, 2U> BaseWindow::GetSize() const {
 //   result[1] = size.height();
 //   return result;
 // }
+
+void BaseWindow::SetContentSize(int width,
+                                int height,
+                                gin_helper::Arguments* args) {
+  bool animate = false;
+  args->GetNext(&animate);
+  window_->SetContentSize(gfx::Size(width, height), animate);
+}
+
+std::array<int, 2U> BaseWindow::GetContentSize() const {
+  return ToArray(window_->GetContentSize());
+}
 
 void BaseWindow::SetMinimumSize(int width, int height) {
   window_->SetMinimumSize(gfx::Size(width, height));
@@ -954,10 +977,10 @@ void BaseWindow::BuildPrototype(v8::Isolate* isolate,
       .SetMethod("getNormalBounds", &BaseWindow::GetNormalBounds)
       .SetMethod("setSize", &BaseWindow::SetSize)
       .SetMethod("getSize", &BaseWindow::GetSize)
-      // .SetMethod("setContentBounds", &BaseWindow::SetContentBounds)
-      // .SetMethod("getContentBounds", &BaseWindow::GetContentBounds)
-      // .SetMethod("setContentSize", &BaseWindow::SetContentSize)
-      // .SetMethod("getContentSize", &BaseWindow::GetContentSize)
+      .SetMethod("setContentBounds", &BaseWindow::SetContentBounds)
+      .SetMethod("getContentBounds", &BaseWindow::GetContentBounds)
+      .SetMethod("setContentSize", &BaseWindow::SetContentSize)
+      .SetMethod("getContentSize", &BaseWindow::GetContentSize)
       .SetMethod("setMinimumSize", &BaseWindow::SetMinimumSize)
       .SetMethod("getMinimumSize", &BaseWindow::GetMinimumSize)
       .SetMethod("setMaximumSize", &BaseWindow::SetMaximumSize)

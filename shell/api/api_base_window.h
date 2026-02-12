@@ -103,11 +103,10 @@ class BaseWindow : public gin_helper::TrackableObject<BaseWindow>,
   gfx::Rect GetBounds() const;
   void SetSize(int width, int height, gin_helper::Arguments* args);
   std::array<int, 2U> GetSize() const;
-  // void SetContentSize(int width, int height, gin_helper::Arguments* args);
+  void SetContentSize(int width, int height, gin_helper::Arguments* args);
   std::array<int, 2U> GetContentSize() const;
-  // void SetContentBounds(const gfx::Rect& bounds, gin_helper::Arguments*
-  // args);
-  // gfx::Rect GetContentBounds() const;
+  void SetContentBounds(const gfx::Rect& bounds, gin_helper::Arguments* args);
+  gfx::Rect GetContentBounds() const;
   bool IsNormal() const;
   gfx::Rect GetNormalBounds() const;
   void SetMinimumSize(int width, int height);

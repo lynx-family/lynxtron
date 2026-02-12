@@ -27,6 +27,8 @@ NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
     : NativeWindow(options, parent) {
   auto width = options.ValueOrDefault(options::kWidth, 800);
   auto height = options.ValueOrDefault(options::kHeight, 600);
+  const bool use_content_size =
+      options.ValueOrDefault(options::kUseContentSize, false);
 
   NSRect main_screen_rect = [[[NSScreen screens] firstObject] frame];
   gfx::Rect bounds(round((NSWidth(main_screen_rect) - width) / 2),
@@ -82,6 +84,10 @@ NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
   window_.releasedWhenClosed = NO;
   [window_ setFrame:NSMakeRect(bounds.x(), bounds.y(), width, height)
             display:true];
+
+  if (!has_frame() || use_content_size) {
+    SetContentSize(gfx::Size(width, height), false);
+  }
 
   window_delegate_ = [[LynxNSWindowDelegate alloc] initWithShell:this];
   [window_ setDelegate:window_delegate_];

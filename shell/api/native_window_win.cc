@@ -115,6 +115,7 @@ NativeWindowWin::NativeWindowWin(const gin_helper::Dictionary& options,
   int width = 800, height = 600;
   options.Get(options::kWidth, &width);
   options.Get(options::kHeight, &height);
+  use_content_size_ = options.ValueOrDefault(options::kUseContentSize, false);
   gfx::Rect bounds(x, y, width, height);
   bounds = DIPToScreenRect(GetNativeWindowHandle(), bounds);
 
@@ -133,6 +134,10 @@ NativeWindowWin::NativeWindowWin(const gin_helper::Dictionary& options,
   }
 
   window_->Init(HWND_DESKTOP, bounds);
+
+  if (use_content_size_) {
+    SetContentSize(gfx::Size(width, height), false);
+  }
 
   // window_->SizeConstraintsChanged();
 
@@ -437,11 +442,11 @@ void NativeWindowWin::SetResizable(bool resizable) {
   if (resizable != resizable_) {
     resizable_ = resizable;
     if (resizable) {
-      // SetContentSizeConstraints(old_size_constraints_);
+      SetContentSizeConstraints(old_size_constraints_);
     } else {
-      // old_size_constraints_ = GetContentSizeConstraints();
-      // gfx::Size content_size = GetContentSize();
-      // SetContentSizeConstraints(SizeConstraints(content_size, content_size));
+      old_size_constraints_ = GetContentSizeConstraints();
+      gfx::Size content_size = GetContentSize();
+      SetContentSizeConstraints(SizeConstraints(content_size, content_size));
     }
   }
 }
