@@ -61,6 +61,27 @@ inline constexpr NSRect kWindowSizeDeterminedLater = {{0, 0}, {1, 1}};
 
 // NSWindow overrides.
 
+- (void)sendEvent:(NSEvent*)event {
+  [super sendEvent:event];
+  if (self.disableAutoHideCursor) {
+    return;
+  }
+  if (event.type != NSEventTypeKeyDown) {
+    return;
+  }
+  if (event.modifierFlags & NSEventModifierFlagCommand) {
+    return;
+  }
+  id responder = [self firstResponder];
+  if (!responder) {
+    return;
+  }
+  if (![responder conformsToProtocol:@protocol(NSTextInputClient)]) {
+    return;
+  }
+  [NSCursor setHiddenUntilMouseMoves:YES];
+}
+
 - (void)swipeWithEvent:(NSEvent*)event {
   if (event.deltaY == 1.0) {
     shell_->NotifyWindowSwipe("up");

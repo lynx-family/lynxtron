@@ -133,6 +133,10 @@ NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
     [window_ setTabbingIdentifier:base::SysUTF8ToNSString(tabbingIdentifier)];
   }
 
+  const bool disable_auto_hide_cursor =
+      options.ValueOrDefault(options::kDisableAutoHideCursor, false);
+  [window_ setDisableAutoHideCursor:disable_auto_hide_cursor];
+
   // Set maximizable state last to ensure zoom button does not get reset
   // by calls to other APIs.
   SetMaximizable(maximizable);
@@ -743,6 +747,10 @@ void NativeWindowMac::SetVisibleOnAllWorkspaces(bool visible,
 bool NativeWindowMac::IsVisibleOnAllWorkspaces() {
   NSUInteger collectionBehavior = [window_ collectionBehavior];
   return collectionBehavior & NSWindowCollectionBehaviorCanJoinAllSpaces;
+}
+
+void NativeWindowMac::SetAutoHideCursor(bool auto_hide) {
+  [window_ setDisableAutoHideCursor:!auto_hide];
 }
 
 NativeWindowHandle NativeWindowMac::GetNativeWindowHandle() const {

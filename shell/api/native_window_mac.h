@@ -113,6 +113,7 @@ class NativeWindowMac : public NativeWindow {
                                  bool skipTransformProcessType) override;
 
   bool IsVisibleOnAllWorkspaces() override;
+  void SetAutoHideCursor(bool auto_hide) override;
 
   void SetWindowButtonVisibility(bool visible) override;
   bool GetWindowButtonVisibility() const override;
