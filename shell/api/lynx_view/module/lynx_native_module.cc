@@ -2,13 +2,13 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#include "lynx_view_holder/module/lynx_native_module.h"
+#include "shell/api/lynx_view/module/lynx_native_module.h"
 
 #include "platform/embedder/public/capi/lynx_extension_module_capi.h"
+#include "shell/api/lynx_view/module/lynx_emit_event.h"
 #include "shell/app/javascript_environment.h"
 #include "shell/common/gin_helper/handle.h"
 #include "shell/common/global_thread.h"
-#include "shell/lynx_view_holder/module/lynx_emit_event.h"
 #include "third_party/napi/include/napi_env_v8.h"
 #include "v8.h"
 

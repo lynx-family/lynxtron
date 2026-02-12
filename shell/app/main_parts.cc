@@ -13,6 +13,7 @@
 #include "base/run_loop.h"
 #include "base/task/thread_pool/thread_pool_instance.h"
 #include "gin/v8_initializer.h"
+#include "shell/api/lynx_view/lynx_view.h"
 #include "shell/api/lynxtron_bindings.h"
 #include "shell/app/icon_manager.h"
 #include "shell/app/javascript_environment.h"
@@ -21,7 +22,6 @@
 #include "shell/common/node_bindings.h"
 #include "shell/common/node_includes.h"
 #include "shell/common/path_provider.h"
-#include "shell/lynx_view_holder/lynx_view.h"
 
 namespace lynxtron {
 

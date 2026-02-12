@@ -7,9 +7,9 @@
 #include "base/apple/bundle_locations.h"
 #include "base/files/file_util.h"
 #include "base/path_service.h"
+#include "shell/api/lynx_view/lynx_view.h"
 #include "shell/app/mac/lynxtron_application.h"
 #include "shell/app/mac/lynxtron_application_delegate.h"
-#include "shell/lynx_view_holder/lynx_view.h"
 
 namespace lynxtron {
 

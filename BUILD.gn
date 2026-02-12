@@ -286,11 +286,17 @@ source_set("lynxtron_lib") {
     "//third_party/node:node_external_config",
   ]
 
+  if (is_build_with_lynx) {
+    defines = [
+      "BUILD_WITH_LYNX=1",
+      "USE_PRIMJS_NAPI=1",
+    ]
+  }
+
   deps = [
     ":lynxtron_generate_node_defines",
     ":lynxtron_js2c",
     ":lynxtron_version_header",
-    "shell/lynx_view_holder:lynx_holder",
     "shell/ui/display",
     "shell/ui/gfx",
     "shell/ui/gfx/codec",
@@ -299,6 +305,7 @@ source_set("lynxtron_lib") {
     "//base:i18n",
     "//crypto",
     "//gin",
+    "//lynxtron/shell/lynx:lynx_lib",
     "//third_party/node:libnode",
     "//third_party/re2",
     "//url",
@@ -310,6 +317,7 @@ source_set("lynxtron_lib") {
     ".",
     "$root_gen_dir/lynxtron",
     "$target_gen_dir",
+    "//third_party/node/deps/uv/include",
   ]
 
   sources = [
@@ -333,6 +341,21 @@ source_set("lynxtron_lib") {
     "shell/api/api_shell.cc",
     "shell/api/api_v8_util.cc",
     "shell/api/api_v8_util.h",
+    "shell/api/lynx_view/lynx_view.cc",
+    "shell/api/lynx_view/lynx_view.h",
+    "shell/api/lynx_view/lynx_view_client.h",
+    "shell/api/lynx_view/lynx_view_extension_register.cc",
+    "shell/api/lynx_view/lynx_view_extension_register.h",
+    "shell/api/lynx_view/module/lynx_bridge_module.cc",
+    "shell/api/lynx_view/module/lynx_bridge_module.h",
+    "shell/api/lynx_view/module/lynx_emit_event.cc",
+    "shell/api/lynx_view/module/lynx_emit_event.h",
+    "shell/api/lynx_view/module/lynx_module_utils.cc",
+    "shell/api/lynx_view/module/lynx_module_utils.h",
+    "shell/api/lynx_view/module/lynx_native_module.cc",
+    "shell/api/lynx_view/module/lynx_native_module.h",
+    "shell/api/lynx_view/module/lynx_node_module.cc",
+    "shell/api/lynx_view/module/lynx_node_module.h",
     "shell/api/lynxtron_bindings.cc",
     "shell/api/lynxtron_bindings.h",
     "shell/api/ui/file_dialog.h",

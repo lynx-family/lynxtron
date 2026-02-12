@@ -2,7 +2,7 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#include "shell/lynx_view_holder/module/lynx_module_utils.h"
+#include "shell/api/lynx_view/module/lynx_module_utils.h"
 
 #include "v8.h"
 

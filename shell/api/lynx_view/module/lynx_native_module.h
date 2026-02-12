@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "lynx/platform/embedder/public/capi/lynx_view_builder_capi.h"
-#include "shell/lynx_view_holder/module/lynx_module_utils.h"
+#include "shell/api/lynx_view/module/lynx_module_utils.h"
 
 #ifdef USE_PRIMJS_NAPI
 #include "third_party/napi/include/primjs_napi_defines.h"

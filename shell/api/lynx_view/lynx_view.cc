@@ -2,14 +2,14 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#include "shell/lynx_view_holder/lynx_view.h"
+#include "shell/api/lynx_view/lynx_view.h"
 
 #include <string>
 #include <string_view>
 
 #include "base/memory/ptr_util.h"
 #include "build/build_config.h"
-#include "shell/lynx_view_holder/lynx_view_client.h"
+#include "shell/api/lynx_view/lynx_view_client.h"
 
 #if BUILDFLAG(IS_MAC)
 #if BUILD_WITH_LYNX
@@ -35,8 +35,8 @@
 #endif
 #endif
 
-#include "shell/lynx_view_holder/module/lynx_bridge_module.h"
-#include "shell/lynx_view_holder/module/lynx_node_module.h"
+#include "shell/api/lynx_view/module/lynx_bridge_module.h"
+#include "shell/api/lynx_view/module/lynx_node_module.h"
 
 namespace lynxtron {
 

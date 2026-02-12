@@ -14,9 +14,9 @@
 #include "base/cancelable_callback.h"
 #include "common/gin_helper/dictionary.h"
 #include "shell/api/api_base_window.h"
+#include "shell/api/lynx_view/lynx_view.h"
+#include "shell/api/lynx_view/lynx_view_client.h"
 #include "shell/common/gin_helper/error_thrower.h"
-#include "shell/lynx_view_holder/lynx_view.h"
-#include "shell/lynx_view_holder/lynx_view_client.h"
 
 namespace lynxtron::api {
 std::map<std::string, std::string> GetQueryKeyValueMap(const std::string& spec);

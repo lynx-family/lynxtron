@@ -2,12 +2,12 @@
 // Copyright 2026 The Lynxtron Authors. All rights reserved.
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
-#include "shell/lynx_view_holder/module/lynx_bridge_module.h"
+#include "shell/api/lynx_view/module/lynx_bridge_module.h"
 
 #include <string>
 
 #include "shell/api/api_lynx_window.h"
-#include "shell/lynx_view_holder/module/lynx_native_module.h"
+#include "shell/api/lynx_view/module/lynx_native_module.h"
 #include "v8.h"
 
 #ifdef USE_PRIMJS_NAPI

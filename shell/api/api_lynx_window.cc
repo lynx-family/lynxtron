@@ -24,6 +24,7 @@
 #include "shell/app/window_list.h"
 #include "shell/common/gin_converters/value_converter.h"
 // TODO(Guo Xi): Lynx initialize
+#include "shell/api/lynx_view/lynx_view.h"
 #include "shell/common/asar/archive.h"
 #include "shell/common/asar/asar_util.h"
 #include "shell/common/gin_helper/constructor.h"
@@ -33,7 +34,6 @@
 #include "shell/common/node_includes.h"
 #include "shell/common/options_switches.h"
 #include "shell/common/thread_restrictions.h"
-#include "shell/lynx_view_holder/lynx_view.h"
 #include "url/url_util.h"
 
 #if BUILDFLAG(IS_WIN)

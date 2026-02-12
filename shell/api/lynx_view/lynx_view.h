@@ -10,7 +10,7 @@
 
 #include "base/containers/span.h"
 #include "base/memory/weak_ptr.h"
-#include "shell/lynx_view_holder/lynx_view_client.h"
+#include "shell/api/lynx_view/lynx_view_client.h"
 #include "shell/ui/gfx/geometry/rect.h"
 
 namespace lynxtron {
