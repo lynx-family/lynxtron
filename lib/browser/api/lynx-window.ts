@@ -1,5 +1,5 @@
-import { BaseWindow, Event } from 'lynxtron/main';
-import type { LynxWindow as LWT } from 'lynxtron/main';
+import { BaseWindow, Event } from 'lynxtron';
+import type { LynxWindow as LWT } from 'lynxtron';
 const { LynxWindow } = process._linkedBinding('electron_lynx_window') as {
   LynxWindow: typeof LWT;
 };

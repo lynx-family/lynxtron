@@ -141,6 +141,32 @@ export interface MessageBoxSyncOptions {
   cancelId?: number;
 }
 
+export interface Certificate {
+  data: string;
+  fingerprint: string;
+  issuer: CertificatePrincipal;
+  issuerCert: Certificate;
+  issuerName: string;
+  serialNumber: string;
+  subject: CertificatePrincipal;
+  subjectName: string;
+  validExpiry: number;
+  validStart: number;
+}
+
+export interface CertificatePrincipal {
+  commonName: string;
+  country: string;
+  locality: string;
+  organizations: string[];
+  organizationUnits: string[];
+}
+
+export interface CertificateTrustDialogOptions {
+  certificate: Certificate;
+  message: string;
+}
+
 export interface OpenDialogOptions {
   title?: string;
   defaultPath?: string;

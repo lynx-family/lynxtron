@@ -74,7 +74,6 @@ module.exports = ({
         alias: {
           '@lynxtron/internal': path.resolve(lynxtronRoot, 'lib'),
           lynxtron$: lynxtronAPIFile,
-          'lynxtron/main$': lynxtronAPIFile,
           // Force timers to resolve to our dependency that doesn't use window.postMessage
           timers: path.resolve(lynxtronRoot, 'node_modules', 'timers-browserify', 'main.js')
         },

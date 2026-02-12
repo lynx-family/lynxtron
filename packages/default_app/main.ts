@@ -1,4 +1,4 @@
-import * as lynxtron from 'lynxtron/main';
+import * as lynxtron from 'lynxtron';
 
 import * as fs from 'node:fs';
 import { Module } from 'node:module';

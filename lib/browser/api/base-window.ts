@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import type { BaseWindow as LTLWT } from 'lynxtron/main';
+import type { BaseWindow as LTLWT } from 'lynxtron';
 const { BaseWindow } = process._linkedBinding('electron_base_window') as {
   BaseWindow: typeof LTLWT;
 };

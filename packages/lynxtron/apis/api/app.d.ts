@@ -283,6 +283,9 @@ export interface Settings {
  * @public
  */
 export interface App extends EventEmitter {
+  setVersion(version: string): void;
+  setDesktopName(name: string): void;
+  setAppPath(path: string | null): void;
   /**
    * Emitted when the application is activated. Various actions can trigger this
    * event, such as launching the application for the first time, attempting to

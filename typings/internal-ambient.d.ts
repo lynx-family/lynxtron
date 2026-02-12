@@ -49,7 +49,7 @@ declare namespace NodeJS {
     setVar(name: string, value: string): boolean;
   }
 
-  type AsarFileInfo = {
+  interface AsarFileInfo {
     size: number;
     unpacked: boolean;
     offset: number;
@@ -57,13 +57,13 @@ declare namespace NodeJS {
       algorithm: 'SHA256';
       hash: string;
     };
-  };
+  }
 
-  type AsarFileStat = {
+  interface AsarFileStat {
     size: number;
     offset: number;
     type: number;
-  };
+  }
 
   interface AsarArchive {
     getFileInfo(path: string): AsarFileInfo | false;
@@ -145,6 +145,8 @@ declare namespace NodeJS {
     mainModule?: NodeJS.Module | undefined;
 
     appCodeLoaded?: () => void;
+    noAsar: boolean;
+    readonly resourcesPath: string;
   }
 }
 
