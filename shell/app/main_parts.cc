@@ -10,6 +10,8 @@
 #include "app/application.h"
 #include "base/feature_list.h"
 #include "base/path_service.h"
+#include "base/power_monitor/power_monitor.h"
+#include "base/power_monitor/power_monitor_device_source.h"
 #include "base/run_loop.h"
 #include "base/task/thread_pool/thread_pool_instance.h"
 #include "gin/v8_initializer.h"
@@ -76,9 +78,6 @@ void MainParts::Initialize() {
 
   GlobalThread::Create();
 
-  // TODO(Guo Xi): confirm the implementation of LoadV8Snapshot in electron
-  // Reference:
-  // https://source.chromium.org/chromium/chromium/src/+/main:content/app/content_main_runner_impl.cc;bpv=1;bpt=1
   gin::V8Initializer::LoadV8Snapshot(gin::V8SnapshotFileType::kDefault);
 
   // The ProxyResolverV8 has setup a complete V8 environment, in order to
@@ -126,45 +125,11 @@ void MainParts::Initialize() {
   // // On platforms other than iOS, 100P is always a supported scale factor.
   // supported_scale_factors.push_back(ui::k100Percent);
   // supported_scale_factors.push_back(ui::k200Percent);
+  // TODO(Guo Xi): set supported scale factors
   // SetSupportedResourceScaleFactors(supported_scale_factors);
 
-  // Add Electron extended APIs.
-  // electron_bindings_->BindTo(js_env_->isolate(), env->process_object());
-
-  // Load everything.
-  // node_bindings_->LoadEnvironment(env);
-  // Wrap the uv loop with global env.
-  // node_bindings_->set_uv_env(env);
-
-  // We already initialized the feature list in PreEarlyInitialization(), but
-  // the user JS script would not have had a chance to alter the command-line
-  // switches at that point. Lets reinitialize it here to pick up the
-  // command-line changes.
-
-  // Initialize field trials.
-  // InitializeFieldTrials();
-
-  // Reinitialize logging now that the app has had a chance to set the app name
-  // and/or user data directory.
-  // logging::InitElectronLogging(*base::CommandLine::ForCurrentProcess(),
-  //                              /* is_preinit = */ false);
-
-  // Initialize after user script environment creation.
-  // fake_application_process_->PostEarlyInitialization();
-
-  // mojo::core::Configuration mojo_config;
-  // mojo_config.is_broker_process = false;
-  // mojo::core::Init(mojo_config);
-  // mojo_ipc_thread_.StartWithOptions(
-  //     base::Thread::Options(base::MessagePumpType::IO, 0));
-  // scoped_refptr<base::SingleThreadTaskRunner> mojo_ipc_task_runner =
-  //     mojo_ipc_thread_.task_runner();
-  // mojo_ipc_support_ = std::make_unique<mojo::core::ScopedIPCSupport>(
-  //     mojo_ipc_task_runner,
-  //     mojo::core::ScopedIPCSupport::ShutdownPolicy::FAST);
-
-  // base::PowerMonitor::Initialize(
-  //     std::make_unique<base::PowerMonitorDeviceSource>());
+  base::PowerMonitor::GetInstance()->Initialize(
+      std::make_unique<base::PowerMonitorDeviceSource>());
 }
 
 int MainParts::PreMainMessageLoopRun() {

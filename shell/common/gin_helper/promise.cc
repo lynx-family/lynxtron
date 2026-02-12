@@ -7,6 +7,7 @@
 #include <string>
 #include <string_view>
 
+#include "shell/common/global_thread.h"
 #include "v8/include/v8-context.h"
 
 namespace gin_helper {
@@ -43,11 +44,9 @@ PromiseBase& PromiseBase::operator=(PromiseBase&&) = default;
 
 // static
 scoped_refptr<base::TaskRunner> PromiseBase::GetTaskRunner() {
-  // TODO(Guo Xi)
-  // if (electron::IsBrowserProcess() &&
-  //     !content::BrowserThread::CurrentlyOn(content::BrowserThread::UI)) {
-  //   return content::GetUIThreadTaskRunner({});
-  // }
+  if (!lynxtron::GlobalThread::CurrentlyOn(lynxtron::GlobalThread::UI)) {
+    return lynxtron::GlobalThread::GetUIThreadTaskRunner();
+  }
   return {};
 }
 

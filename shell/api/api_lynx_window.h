@@ -104,7 +104,6 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
 
   bool CheckLynxViewExit(const LynxView* lynx_view);
   // LynxViewHolder* CurrentLynxViewHolder();
-  void UpdateWindowLynxViewPos();
   void ReportErrorToNode(const std::string& error_type,
                          const int32_t error_code,
                          const std::string& message);

@@ -20,13 +20,12 @@
 #include "base/task/thread_pool.h"
 #include "gin/converter.h"
 #include "shell/api/api_app.h"
+#include "shell/api/lynx_view/lynx_view.h"
 #include "shell/app/application.h"
 #include "shell/app/window_list.h"
-#include "shell/common/gin_converters/value_converter.h"
-// TODO(Guo Xi): Lynx initialize
-#include "shell/api/lynx_view/lynx_view.h"
 #include "shell/common/asar/archive.h"
 #include "shell/common/asar/asar_util.h"
+#include "shell/common/gin_converters/value_converter.h"
 #include "shell/common/gin_helper/constructor.h"
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/gin_helper/object_template_builder.h"
@@ -416,18 +415,6 @@ void LynxWindow::SetBackgroundColor(const std::string& color_name) {
 //   }
 // }
 
-// TODO(Guo Xi): implement with napi
-// void LynxWindow::Send(const std::string& channel, gin::Arguments* arguments)
-// {
-//   lynx::EncodableList encodable_args;
-//   arguments->GetRemaining(&encodable_args);
-//   auto props_str = gin::EncodableValueToJsonStr(
-//       isolate(), lynx::EncodableValue{encodable_args});
-//   if (CurrentLynxViewHolder()) {
-//     CurrentLynxViewHolder()->SendGlobalEvent(channel, props_str);
-//   }
-// }
-
 void LynxWindow::CreateLynxView(const std::string& local_url,
                                 const std::string& global_props,
                                 const std::string& initial_props,
@@ -702,19 +689,6 @@ void LynxWindow::OnDataUpdated() {
 
 void LynxWindow::OnPageUpdated() {
   // Emit("on-page-updated");
-}
-
-void LynxWindow::UpdateWindowLynxViewPos() {
-#if BUILDFLAG(IS_WIN)
-  // TODO(Guo Xi): implement it
-  // if (CurrentLynxViewHolder()) {
-  //   RECT rect{};
-  //   ::GetClientRect(window_->GetNativeWindowHandle(), &rect);
-  //   LONG xy = MAKELONG(rect.right - rect.left, rect.bottom - rect.top);
-  //   ::SendMessage(CurrentLynxViewHolder()->GetHwnd(), WM_SIZE,
-  //                 WPARAM(SIZE_MAXSHOW), (LPARAM)xy);
-  // }
-#endif
 }
 
 void LynxWindow::ReportErrorToNode(const std::string& error_type,

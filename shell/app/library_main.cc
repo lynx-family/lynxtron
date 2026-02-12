@@ -31,10 +31,8 @@ const char kProcessType[] = "type";
 // TODO(Guo Xi): refer to content/app/content_main_runner_impl.cc for the
 // following features:
 // 1. ADDRESS_SANITIZER enables ASAN
-// 2. LoadV8SnapshotFile loads V8 snapshot file
 // 3. InstallConsoleControlHandler
 // 4. base::HangWatcher monitors hang events
-// 5. base::PowerMonitor monitors power events
 // 6. Whether we need to call Shutdown, refer to ContentMainRunnerImpl::Shutdown
 // 7. ? _CrtDumpMemoryLeaks
 

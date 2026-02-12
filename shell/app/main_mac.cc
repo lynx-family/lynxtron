@@ -8,18 +8,4 @@ int main(int argc, char* argv[]) {
   // TODO(Guo Xi): review EarlyMallocZoneRegistration
   // partition_alloc::EarlyMallocZoneRegistration();
   return LynxtronMain(argc, argv);
-
-  // TODO(Guo Xi): relauncher
-  // base::CommandLine::Init(argc, argv);
-  // lynxtron::LynxtronCommandLine::Init(argc, argv);
-  // constexpr char kRelauncherProcess[] = "relauncher";
-  // base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
-  // const std::string process_type =
-  //     command_line->GetSwitchValueASCII(kProcessType);
-  // if (process_type == kRelauncherProcess) {
-  //   // TODO(Guo Xi): relauncher
-  //   // relauncher::RelauncherMain();
-  //   return 0;
-  // } else {
-  // }
 }
