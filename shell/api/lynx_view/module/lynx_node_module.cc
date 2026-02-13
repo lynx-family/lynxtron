@@ -247,7 +247,7 @@ void LynxNodeModule::OnRuntimeReady(napi_env env,
 
   constexpr const char* kInitNodeNativeApi = R"(
     (lynx, api) => {
-      lynx.getNativeApp().nativeModuleProxy.nodejs.api = api;
+      lynx.getNativeApp().nativeModuleProxy.nodejs.getExposed = () => api;
     }
   )";
   napi_value test_func;

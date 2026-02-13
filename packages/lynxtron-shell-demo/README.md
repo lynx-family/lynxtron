@@ -10,15 +10,14 @@
 
 ## Features
 
-- One-click run, debug, and package
-- Supports TypeScript for type safety
-- A complete engineering experience
-- Supports packaging for various platforms using `electron-builder`
+- **Symmetric Host**: Identical UI code runs on both Desktop (Node.js) and Web (Browser).
+- **Background Thread Injection**: `NativeModules.nodejs` provides high-performance background logic without blocking UI.
+- One-click run, debug, and package.
+- Supports TypeScript for type safety.
 
 ## Prerequisites
 
 - NodeJS >= 22
-- TypeScript
 - [LynxDevTool](https://github.com/lynx-family/lynx-devtool/releases/) >= 0.1.1
 
 ## Usage Guide
@@ -29,85 +28,55 @@
 npm install
 ```
 
-### One-Click Start
+### Development
 
-Run the following command to compile the code and start the application with a single command.
-
-```bash
-npm run start
-```
-
-### Debugging
-
-This project supports debugging Lynx (renderer process) and Lynxtron (main process) separately or simultaneously.
-
-- **Debug Lynx and Lynxtron Simultaneously (Recommended)**
-
-  Run the following command in a terminal to start both Lynx and Lynxtron in debug mode with hot-reloading enabled.
-
+- **Desktop (Lynxtron)**
   ```bash
   npm run dev
   ```
 
-- **Debug Lynx Only**
-
-  If you only need to focus on the UI, you can start the Lynx debug server alone. You will need to open the **LynxDevTool** to debug.
-
+/* WEB_SUPPORT_START */
+- **Web (Browser)**
   ```bash
-  npm run dev:lynx
+  npm run dev:web
+  ```
+/* WEB_SUPPORT_END */
+
+### Build & Start
+
+- **Build for Production**
+  ```bash
+  npm run build
   ```
 
-- **Debug Lynxtron Only**
-
-  If you only need to focus on the main process logic, you can start the Lynxtron debug server alone.
-  **Note**: This command will wait for the Lynx development server (`http://localhost:3000`) to be ready before executing.
-
+- **Start Desktop**
   ```bash
-  npm run dev:node
+  npm start
   ```
-  The debug port for the Lynxtron main process is `9222`. You need to open `chrome://inspect` in a Chrome browser and add a listener for port `9222` to debug.
+
+- **Start Web**
+  ```bash
+  npm run start:web
+  ```
 
 ### Application Packaging
 
-Use the following commands to package the application for different platforms.
-
 - **Package for macOS (x64)**
-
   ```bash
   npm run pack:mac:x64
   ```
 
 - **Package for macOS (arm64)**
-
   ```bash
   npm run pack:mac:arm64
   ```
 
 - **Package for macOS (Universal)**
-
-  This command builds a universal application for macOS that runs on both x64 and arm64 architectures.
-
   ```bash
   npm run pack:mac:universal
   ```
 
 - **Package for Windows (ia32)**
-
   ```bash
   npm run pack:win
   ```
-
-### Extension build & test
-#### Build demo_extension.node
-```bash
-git checkout p/chenyouhui.duke/krypton_extension_2
-cd extension
-npm install
-npm run build
-cd ..
-```
-#### Run demo_extension.node in lynxtron
-```bash
-npm install
-npm run start
-```

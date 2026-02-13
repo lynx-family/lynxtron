@@ -1,0 +1,21 @@
+{
+  "name": "@lynx-js/lynxtron-dev-plugins",
+  "version": "0.0.0-alpha.8",
+  "type": "module",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    "./rspeedy": {
+      "default": "./src/rspeedy.ts"
+    },
+    "./rspack": {
+      "default": "./src/rspack.ts"
+    }
+  },
+  "bin": {
+    "dev-ready-rspeedy": "bin/cli-rspeedy.js"
+  },
+  "peerDependencies": {
+    "@rsbuild/core": "^1.6.0"
+  }
+}

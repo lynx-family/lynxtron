@@ -41,7 +41,7 @@
     "packages/lynxtron",
     "packages/lynxtron-builder",
     "packages/lynxtron-shell-demo",
-    "packages/dev-ready-plugin",
+    "packages/lynxtron-dev-plugins",
     "packages/create-lynxtron"
   ],
   "packageManager": "yarn@4.0.0",

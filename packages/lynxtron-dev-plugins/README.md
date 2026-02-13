@@ -13,7 +13,7 @@ In monorepos you often run multiple dev processes at once (e.g. RSBuild app serv
 
 ## Installation
 ```
-npm i -D @lynx-js/dev-ready-plugin
+npm i -D @lynx-js/lynxtron-dev-plugins
 ```
 Peer dependency: `@rsbuild/core@^1.6.0`.
 
@@ -22,7 +22,7 @@ Register the plugin only for `serve`:
 ```ts
 // rsbuild.config.ts
 import { defineConfig } from '@rsbuild/core'
-import { pluginRspeedyDevReady } from '@lynx-js/dev-ready-plugin'
+import { pluginRspeedyDevReady } from '@lynx-js/lynxtron-dev-plugins'
 
 export default defineConfig({
   plugins: [pluginRspeedyDevReady()],
@@ -85,8 +85,8 @@ Run RSBuild and a dependent process in parallel:
 `dev:shell` starts only after RSBuild writes `dev-ready.json` and the CLI returns success.
 
 ## Internals
-- Plugin implementation: `pluginRspeedyDevReady` writes the marker on first compile and logs port info on server start (`packages/dev-ready-plugin/dist/index.js:4`).
-- CLIs poll the expected file until it contains a valid JSON and required fields, then exit (`packages/dev-ready-plugin/dist/cli-speedy.js:4`, `packages/dev-ready-plugin/dist/cli.js:25`, `packages/dev-ready-plugin/dist/cli-rspack.js:4`).
+- Plugin implementation: `pluginRspeedyDevReady` writes the marker on first compile and logs port info on server start (`packages/lynxtron-dev-plugins/src/rspeedy.ts:1`).
+- CLIs poll the expected file until it contains a valid JSON and required fields, then exit (`packages/lynxtron-dev-plugins/bin/cli-rspeedy.js:1`).
 
 ## Troubleshooting
 - Seeing “command not found” for `import`?
@@ -94,4 +94,3 @@ Run RSBuild and a dependent process in parallel:
 - CLI times out:
   - Verify the file path and contents match the expected `source` (`rspeedy` or `rspack`).
   - Increase timeout with `-t <ms>` for `dev-ready`.
-

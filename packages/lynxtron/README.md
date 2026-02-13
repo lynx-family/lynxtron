@@ -28,3 +28,22 @@ npx lynxtron <args>
 
 ## Type Definitions
 - Types entry: `./apis/lynxtron.d.ts`
+
+## Multi-Environment Support
+
+Lynxtron supports both **Desktop** (Node.js/Electron) and **Web** (Browser) environments. To ensure compatibility, use the correct import paths:
+
+- **Main Process (Desktop)**: `import { app, LynxWindow } from '@lynx-js/lynxtron'`
+- **Web Host (Browser)**: `import { setupSymmetricHost } from '@lynx-js/lynxtron/web-host'`
+- **Worker / Preload (Cross-Platform)**: `import { contextBridge } from '@lynx-js/lynxtron/context-bridge'`
+
+### Context Bridge
+When writing code that runs in the Lynx Background Thread (e.g., preload scripts or adapters), always import `contextBridge` from the subpath to ensure the correct implementation is loaded for the target environment (Native Module for Desktop, Polyfill for Web).
+
+```typescript
+import { contextBridge } from '@lynx-js/lynxtron/context-bridge';
+
+contextBridge.exposeInLynxBTS({
+  // ...
+});
+```

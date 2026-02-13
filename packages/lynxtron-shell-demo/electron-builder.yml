@@ -3,17 +3,17 @@ appId: com.lynxtron.shelldemo
 directories:
   buildResources: resources
   output: dist
-  app: dist/assets
+  app: dist/desktop
 files:
   - index.js
-  - "**/*.lynx.bundle"
-  - "**/*.js"
-  - "**/*.css"
-  - "**/*.html"
-  - "**/*.json"
-  - "**/*.jsn"
-  - "**/*.png"
-  - "**/*.exe"
+  - '**/*.lynx.bundle'
+  - '**/*.js'
+  - '**/*.css'
+  - '**/*.html'
+  - '**/*.json'
+  - '**/*.jsn'
+  - '**/*.png'
+  - '**/*.exe'
 asar: true
 asarUnpack:
   - statics/
