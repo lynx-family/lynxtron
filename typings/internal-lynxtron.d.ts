@@ -8,6 +8,8 @@ import { Menu as LynxtronMenu } from '../packages/lynxtron/apis/api/menu';
 import { Event as LynxtronEvent } from '../packages/lynxtron/apis/lynxtron';
 import { CommandLine as LynxtronCommandLine } from '../packages/lynxtron/apis/api/command-line';
 import { Screen as LynxtronScreen } from '../packages/lynxtron/apis/api/screen';
+import { NativeImage as LynxtronNativeImage } from '../packages/lynxtron/apis/api/native-image';
+import { Shell as LynxtronShell } from '../packages/lynxtron/apis/api/shell';
 import {
   TouchBar as LynxtronTouchBar,
   TouchBarConstructorOptions as LynxtronTouchBarConstructorOptions,
@@ -65,6 +67,10 @@ declare class BaseWindowInternal extends LynxtronBaseWindow {
 
 declare class LynxWindowInternal extends LynxtronLynxWindow {
   _init(): void;
+  _touchBar: Lynxtron.TouchBar | null;
+  _setTouchBarItems: (items: TouchBarItemType[]) => void;
+  _setEscapeTouchBarItem: (item: TouchBarItemType | {}) => void;
+  _refreshTouchBarItem: (itemID: string) => void;
   _getWindowButtonVisibility: () => boolean;
   _getAlwaysOnTopLevel: () => string;
   frameName: string;
@@ -88,9 +94,15 @@ declare module 'lynxtron' {
   export const BaseWindow: typeof BaseWindowInternal;
   export const LynxWindow: typeof LynxWindowInternal;
   export const Menu: typeof LynxtronMenu;
+  export const nativeImage: typeof LynxtronNativeImage;
+  export const screen: LynxtronScreen;
+  export const shell: LynxtronShell;
 
   export type BaseWindow = BaseWindowInternal;
   export type LynxWindow = LynxWindowInternal;
+  export type NativeImage = LynxtronNativeImage;
+  export type Screen = LynxtronScreen;
+  export type Shell = LynxtronShell;
   export type OpenDialogOptions = LynxtronOpenDialogOptions;
   export type OpenDialogReturnValue = LynxtronOpenDialogReturnValue;
   export type MessageBoxOptions = LynxtronMessageBoxOptions;

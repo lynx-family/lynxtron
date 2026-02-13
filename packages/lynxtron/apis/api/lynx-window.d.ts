@@ -272,6 +272,9 @@ export declare class LynxWindow extends BaseWindow {
    * The window that is focused in this application, otherwise returns `null`.
    */
   static getFocusedWindow(): LynxWindow | null;
+  tabbingIdentifier: string;
+  moveAbove(mediaSourceId: string): void;
+  getMediaSourceId(): string;
   /**
    * Load template data for the window.
    */

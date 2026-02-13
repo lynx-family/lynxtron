@@ -42,6 +42,10 @@ export interface ApplicationInfoForProtocolReturnValue {
   name: string;
 }
 
+export interface FileIconOptions {
+  size?: 'small' | 'normal' | 'large';
+}
+
 export interface LaunchItems {
   /**
    * name value of a registry entry.
@@ -1304,7 +1308,7 @@ export interface App extends EventEmitter {
    * Array of `ProcessMetric` objects that correspond to memory and CPU usage
    * statistics of all the processes associated with the app.
    */
-  getAppMetrics(): ProcessMetric[];
+  getAppMetrics(): ProcessMetric;
   /**
    * The current application directory.
    */
@@ -1333,6 +1337,22 @@ export interface App extends EventEmitter {
    * @platform win32
    */
   getJumpListSettings(): JumpListSettings;
+  /**
+   * The current application locale, fetched using Chromium's `l10n_util` library.
+   * Possible return values are documented here.
+   *
+   * To set the locale, you'll want to use a command line switch at app startup,
+   * which may be found here.
+   *
+   * > [!NOTE] When distributing your packaged app, you have to also ship the
+   * `locales` folder.
+   *
+   * > [!NOTE] This API must be called after the `ready` event is emitted.
+   *
+   * > [!NOTE] To see example return values of this API compared to other locale and
+   * language APIs, see `app.getPreferredSystemLanguages()`.
+   */
+  getLocale(): string;
   /**
    * User operating system's locale two-letter ISO 3166 country code. The value is
    * taken from native OS APIs.
@@ -1416,6 +1436,7 @@ export interface App extends EventEmitter {
       | 'logs'
       | 'crashDumps'
   ): string;
+  getFileIcon(path: string, options?: FileIconOptions): Promise<NativeImage>;
   /**
    * An array containing documents in the most recent documents list.
    *

@@ -1,5 +1,5 @@
+import { EventEmitter } from 'node:events';
 import { Point } from '../structures/point';
-
 import { Size } from '../structures/size';
 import { Rectangle } from '../structures/rectangle';
 
@@ -316,7 +316,7 @@ export interface BaseWindowConstructorOptions {
   zoomToPageWidth?: boolean;
 }
 
-export declare class BaseWindow {
+export declare class BaseWindow extends EventEmitter {
   // Docs: https://electronjs.org/docs/api/base-window
 
   /**
@@ -952,6 +952,12 @@ export declare class BaseWindow {
    */
   close(): void;
   /**
+   * Force closing the window, the `unload` and `beforeunload` event won't be emitted
+   * for the web page, and `close` event will also not be emitted for this window,
+   * but it guarantees the `closed` event will be emitted.
+   */
+  destroy(): void;
+  /**
    * Starts or stops flashing the window to attract user's attention.
    */
   flashFrame(flag: boolean): void;
@@ -1065,6 +1071,10 @@ export declare class BaseWindow {
    * @platform darwin,win32
    */
   isClosable(): boolean;
+  /**
+   * Whether the window is destroyed.
+   */
+  isDestroyed(): boolean;
   /**
    * whether the window is enabled.
    */

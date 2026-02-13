@@ -65,25 +65,25 @@ async function main () {
     await getSpecHash().then(saveSpecHash);
   }
 
-  if (!fs.existsSync(path.resolve(__dirname, '../lynxtron.d.ts'))) {
-    console.log('Generating lynxtron.d.ts as it is missing');
-    generateTypeDefinitions();
-  }
+  // if (!fs.existsSync(path.resolve(__dirname, '../lynxtron.d.ts'))) {
+  //   console.log('Generating lynxtron.d.ts as it is missing');
+  //   generateTypeDefinitions();
+  // }
 
   await runLynxtronTests();
 }
 
 // TODO(Guo Xi): handle create-typescript-definitions
-function generateTypeDefinitions () {
-  const { status } = childProcess.spawnSync('npm', ['run', 'create-typescript-definitions'], {
-    cwd: path.resolve(__dirname, '..'),
-    stdio: 'inherit',
-    shell: true
-  });
-  if (status !== 0) {
-    throw new Error(`Electron typescript definition generation failed with exit code: ${status}.`);
-  }
-}
+// function generateTypeDefinitions () {
+//   const { status } = childProcess.spawnSync('npm', ['run', 'create-typescript-definitions'], {
+//     cwd: path.resolve(__dirname, '..'),
+//     stdio: 'inherit',
+//     shell: true
+//   });
+//   if (status !== 0) {
+//     throw new Error(`Electron typescript definition generation failed with exit code: ${status}.`);
+//   }
+// }
 
 function loadLastSpecHash () {
   return fs.existsSync(specHashPath)

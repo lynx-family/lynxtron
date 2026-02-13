@@ -30,14 +30,14 @@ export async function copyApp(targetDir: string): Promise<string> {
     .readFileSync(zipManifestPath, 'utf-8')
     .split('\n')
     .filter(
-      (f) =>
+      (f: string) =>
         f !== 'LICENSE' &&
         f !== 'LICENSES.chromium.html' &&
         f !== 'version' &&
         f.trim()
     );
   await Promise.all(
-    filesToCopy.map(async (rel) => {
+    filesToCopy.map(async (rel: string) => {
       await fs.promises.mkdir(path.dirname(path.resolve(targetDir, rel)), {
         recursive: true,
       });

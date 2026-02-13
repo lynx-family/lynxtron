@@ -167,3 +167,7 @@ interface ContextMenuItem {
   enabled: boolean;
   subItems: ContextMenuItem[];
 }
+
+declare module 'original-fs' {
+  export * from 'node:fs';
+}
