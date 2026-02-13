@@ -10,6 +10,7 @@
 
 #include "base/task/single_thread_task_runner.h"
 #include "gin/dictionary.h"
+#include "shell/api/api_native_image.h"
 #include "shell/app/javascript_environment.h"
 #include "shell/common/gin_converters/callback_converter.h"
 #include "shell/common/gin_converters/file_path_converter.h"
@@ -21,6 +22,7 @@
 #include "shell/common/gin_helper/persistent_dictionary.h"
 #include "shell/common/node_includes.h"
 #include "shell/common/node_util.h"
+#include "shell/common/options_switches.h"
 
 namespace lynxtron::api {
 
@@ -62,6 +64,11 @@ BaseWindow::BaseWindow(v8::Isolate* isolate,
       options, parent.IsEmpty() ? nullptr : parent->window_.get()));
 
   window_->AddObserver(this);
+
+  v8::Local<v8::Value> icon;
+  if (options.Get(options::kIcon, &icon)) {
+    SetIcon(isolate, icon);
+  }
 }
 
 BaseWindow::BaseWindow(gin_helper::Arguments* args,
@@ -519,6 +526,21 @@ std::string BaseWindow::GetTitle() const {
   return window_->GetTitle();
 }
 
+void BaseWindow::SetIcon(v8::Isolate* isolate, v8::Local<v8::Value> icon) {
+  if (icon->IsNullOrUndefined()) {
+    return;
+  }
+  api::NativeImage* native_image = nullptr;
+  if (!NativeImage::TryConvertNativeImage(isolate, icon, &native_image,
+                                          NativeImage::OnConvertError::kWarn)) {
+    return;
+  }
+  if (!native_image || native_image->image().IsEmpty()) {
+    return;
+  }
+  window_->SetIcon(native_image);
+}
+
 void BaseWindow::FlashFrame(bool flash) {
   window_->FlashFrame(flash);
 }
@@ -960,6 +982,7 @@ void BaseWindow::BuildPrototype(v8::Isolate* isolate,
       .SetMethod("setPosition", &BaseWindow::SetPosition)
       .SetMethod("getPosition", &BaseWindow::GetPosition)
       .SetMethod("setTitle", &BaseWindow::SetTitle)
+      .SetMethod("setIcon", &BaseWindow::SetIcon)
       .SetMethod("getTitle", &BaseWindow::GetTitle)
       .SetMethod("flashFrame", &BaseWindow::FlashFrame)
       .SetMethod("setSkipTaskbar", &BaseWindow::SetSkipTaskbar)

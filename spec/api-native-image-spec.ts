@@ -419,7 +419,7 @@ describe('nativeImage module', () => {
 
         // If all bytes are null, that's Bad
         const allBytesAreNotNull = nsimage.reduce(
-          (acc, x) => acc || x !== 0,
+          (acc: boolean, x: number) => acc || x !== 0,
           false
         );
         expect(allBytesAreNotNull);

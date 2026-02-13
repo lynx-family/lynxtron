@@ -52,15 +52,14 @@ describe('LynxWindow module', () => {
       w.destroy();
     });
 
-    // TODO(Guo Xi): support icon
-    // it('does not crash or throw when passed an invalid icon', async () => {
-    //   expect(() => {
-    //     const w = new LynxWindow({
-    //       icon: undefined
-    //     } as any);
-    //     w.destroy();
-    //   }).not.to.throw();
-    // });
+    it('does not crash or throw when passed an invalid icon', async () => {
+      expect(() => {
+        const w = new LynxWindow({
+          icon: undefined,
+        } as any);
+        w.destroy();
+      }).not.to.throw();
+    });
   });
 
   describe('garbage collection', () => {
@@ -546,26 +545,50 @@ describe('LynxWindow module', () => {
           await leaveFullScreen;
           expect(w.isFullScreen()).to.equal(false);
         });
-
-        //   it('correctly reports maximized state after maximizing then fullscreening', async () => {
-        //     const shown = once(w, 'show');
-        //     w.show();
-        //     await shown;
-
-        //     const maximize = once(w, 'maximize');
-        //     w.maximize();
-        //     if (process.platform !== 'darwin') {
-        //       await maximize;
-        //     } else {
-        //       await setTimeout(1000);
-        //     }
-
-        //     const enterFullScreen = once(w, 'enter-full-screen');
-        //     w.setFullScreen(true);
-        //     await enterFullScreen;
-        //     expect(w.isMaximized()).to.equal(true);
-        //   });
       });
+
+      ifdescribe(process.platform === 'darwin')(
+        'LynxWindow.simpleFullScreen',
+        () => {
+          let w: LynxWindow;
+          beforeEach(() => {
+            w = new LynxWindow({ show: false });
+          });
+          afterEach(async () => {
+            await closeWindow(w);
+            w = (null as unknown) as LynxWindow;
+          });
+
+          it('can be changed with the simpleFullScreen property', async () => {
+            const shown = once(w, 'show');
+            w.show();
+            await shown;
+
+            w.simpleFullScreen = true;
+            await waitUntil(() => w.isSimpleFullScreen());
+            expect(w.simpleFullScreen).to.equal(true);
+
+            w.simpleFullScreen = false;
+            await waitUntil(() => !w.isSimpleFullScreen());
+            expect(w.simpleFullScreen).to.equal(false);
+          });
+
+          it('honors simpleFullscreen constructor option with setFullScreen', async () => {
+            await closeWindow(w, { assertNotWindows: false });
+            w = new LynxWindow({ show: false, simpleFullscreen: true });
+            w.show();
+            await waitUntil(() => w.isVisible());
+
+            w.setFullScreen(true);
+            await waitUntil(() => w.isSimpleFullScreen());
+            expect(w.isSimpleFullScreen()).to.equal(true);
+
+            w.setFullScreen(false);
+            await waitUntil(() => !w.isSimpleFullScreen());
+            expect(w.isSimpleFullScreen()).to.equal(false);
+          });
+        }
+      );
 
       ifdescribe(process.platform === 'darwin')(
         'isHiddenInMissionControl state',
@@ -630,6 +653,29 @@ describe('LynxWindow module', () => {
 
             w.setWindowButtonVisibility(true);
             expect(w._getWindowButtonVisibility()).to.equal(true);
+          });
+        }
+      );
+
+      ifdescribe(process.platform === 'darwin')(
+        'LynxWindow trafficLightPosition',
+        () => {
+          afterEach(closeAllWindows);
+
+          it('stores constructor and setter values', () => {
+            const w = new LynxWindow({
+              show: false,
+              frame: false,
+              titleBarStyle: 'hidden',
+              trafficLightPosition: { x: 12, y: 14 },
+            });
+            const getPosition = () =>
+              (w as any).getTrafficLightPosition() as { x: number; y: number };
+            expect(getPosition()).to.deep.equal({ x: 12, y: 14 });
+            w.setTrafficLightPosition({ x: 30, y: 40 });
+            expect(getPosition()).to.deep.equal({ x: 30, y: 40 });
+            w.setTrafficLightPosition({ x: 0, y: 0 });
+            expect(getPosition()).to.deep.equal({ x: 0, y: 0 });
           });
         }
       );

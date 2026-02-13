@@ -20,6 +20,7 @@
 
 @class LynxNSWindow;
 @class LynxNSWindowDelegate;
+@class WindowButtonsProxy;
 
 namespace lynxtron {
 
@@ -186,7 +187,7 @@ class NativeWindowMac : public NativeWindow {
   NSApplicationPresentationOptions kiosk_options_;
 
   // Controls the position and visibility of window buttons.
-  // base::scoped_nsobject<WindowButtonsProxy> buttons_proxy_;
+  WindowButtonsProxy* __strong buttons_proxy_ = nil;
 
   // Maximizable window state; necessary for persistence through redraws.
   bool maximizable_ = true;

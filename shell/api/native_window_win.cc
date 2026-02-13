@@ -16,6 +16,7 @@
 #include "base/stl_util.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/win/win_util.h"
+#include "shell/api/api_native_image.h"
 #include "shell/api/dpi_win.h"
 #include "shell/app/javascript_environment.h"
 #include "shell/app/window_list.h"
@@ -811,6 +812,26 @@ NativeWindowHandle NativeWindowWin::GetNativeWindowHandle() const {
 #else
   return nullptr;
 #endif
+}
+
+void NativeWindowWin::SetIcon(api::NativeImage* icon) {
+  if (!icon) {
+    return;
+  }
+  const int small_icon_size = GetSystemMetrics(SM_CXSMICON);
+  const int large_icon_size = GetSystemMetrics(SM_CXICON);
+  HICON small_icon = icon->GetHICON(small_icon_size);
+  HICON large_icon = icon->GetHICON(large_icon_size);
+  if (!small_icon && !large_icon) {
+    return;
+  }
+  if (!small_icon) {
+    small_icon = large_icon;
+  }
+  if (!large_icon) {
+    large_icon = small_icon;
+  }
+  SetIcon(small_icon, large_icon);
 }
 
 void NativeWindowWin::SetIcon(HICON window_icon, HICON app_icon) {

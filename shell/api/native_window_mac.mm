@@ -13,10 +13,12 @@
 #include "shell/api/ui/mac/lynx_ns_window.h"
 #include "shell/api/ui/mac/lynx_ns_window_delegate.h"
 #include "shell/app/window_list.h"
+#include "shell/common/gin_converters/gfx_converter.h"
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/logging.h"
 #include "shell/common/node_util.h"
 #include "shell/common/options_switches.h"
+#include "shell/ui/cocoa/window_buttons_proxy.h"
 
 namespace lynxtron {
 
@@ -33,6 +35,7 @@ NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
 
   const bool resizable = options.ValueOrDefault(options::kResizable, true);
   options.Get(options::kSimpleFullscreen, &always_simple_fullscreen_);
+  options.GetOptional(options::kTrafficLightPosition, &traffic_light_position_);
 
   const bool minimizable = options.ValueOrDefault(options::kMinimizable, true);
 
@@ -102,6 +105,19 @@ NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
     // Show window buttons if titleBarStyle is not "normal".
     if (title_bar_style_ == TitleBarStyle::kNormal) {
       InternalSetWindowButtonVisibility(false);
+    } else {
+      buttons_proxy_ = [[WindowButtonsProxy alloc] initWithWindow:window_];
+      if (traffic_light_position_) {
+        [buttons_proxy_ setMargin:traffic_light_position_];
+      } else if (title_bar_style_ == TitleBarStyle::kHiddenInset) {
+        std::optional<gfx::Point> inset(gfx::Point(12, 11));
+        [buttons_proxy_ setMargin:inset];
+      }
+      if (title_bar_style_ == TitleBarStyle::kCustomButtonsOnHover) {
+        [buttons_proxy_ setShowOnHover:YES];
+      } else {
+        InternalSetWindowButtonVisibility(true);
+      }
     }
   }
 
@@ -323,6 +339,15 @@ bool NativeWindowMac::IsMinimized() const {
 }
 
 void NativeWindowMac::SetFullScreen(bool fullscreen) {
+  if (always_simple_fullscreen_ || IsSimpleFullScreen()) {
+    SetSimpleFullScreen(fullscreen);
+    set_fullscreen_transition_state(FullScreenTransitionState::NONE);
+    while (!pending_transitions_.empty()) {
+      pending_transitions_.pop();
+    }
+    return;
+  }
+
   // [NSWindow -toggleFullScreen] is an asynchronous operation, which means
   // that it's possible to call it while a fullscreen transition is currently
   // in process. This can create weird behavior (incl. phantom windows),
@@ -341,7 +366,8 @@ void NativeWindowMac::SetFullScreen(bool fullscreen) {
     return;
   }
 
-  if (fullscreen == IsFullscreen()) {
+  const bool is_fullscreen = IsFullscreen() || IsSimpleFullScreen();
+  if (fullscreen == is_fullscreen) {
     return;
   }
 
@@ -939,11 +965,10 @@ bool NativeWindowMac::GetWindowButtonVisibility() const {
 // TODO(Guo Xi) : support traffic light position.
 void NativeWindowMac::SetTrafficLightPosition(
     std::optional<gfx::Point> position) {
-  // traffic_light_position_ = std::move(position);
-  // if (buttons_proxy_) {
-  //   [buttons_proxy_ setMargin:traffic_light_position_];
-  //   NotifyLayoutWindowControlsOverlay();
-  //}
+  traffic_light_position_ = std::move(position);
+  if (buttons_proxy_) {
+    [buttons_proxy_ setMargin:traffic_light_position_];
+  }
 }
 
 std::optional<gfx::Point> NativeWindowMac::GetTrafficLightPosition() const {
@@ -951,8 +976,9 @@ std::optional<gfx::Point> NativeWindowMac::GetTrafficLightPosition() const {
 }
 
 void NativeWindowMac::RedrawTrafficLights() {
-  // if (buttons_proxy_ && !IsFullscreen())
-  //  [buttons_proxy_ redraw];
+  if (buttons_proxy_ && !IsFullscreen()) {
+    [buttons_proxy_ redraw];
+  }
 }
 
 void NativeWindowMac::UpdateFrame() {

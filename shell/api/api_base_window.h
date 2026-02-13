@@ -135,6 +135,7 @@ class BaseWindow : public gin_helper::TrackableObject<BaseWindow>,
   std::array<int, 2U> GetPosition() const;
   void SetTitle(const std::string& title);
   std::string GetTitle() const;
+  void SetIcon(v8::Isolate* isolate, v8::Local<v8::Value> icon);
   void FlashFrame(bool flash);
   void SetSkipTaskbar(bool skip);
   void SetExcludedFromShownWindowsMenu(bool excluded);

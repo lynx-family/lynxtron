@@ -186,6 +186,7 @@
     [button setHidden:hidden];
     [button setNeedsDisplay:YES];
   }
+  [self redraw];
 }
 
 // Return the bounds of all 3 buttons.

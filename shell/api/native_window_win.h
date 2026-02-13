@@ -118,6 +118,7 @@ class NativeWindowWin : public NativeWindow,
   void DecrementChildModals() override;
 
 #if BUILDFLAG(IS_WIN)
+  void SetIcon(api::NativeImage* icon) override;
   // Catch-all message handling and filtering. Called before
   // HWNDMessageHandler's built-in handling, which may pre-empt some
   // expectations in Views/Aura if messages are consumed. Returns true if the

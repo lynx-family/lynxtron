@@ -235,6 +235,9 @@ inline constexpr NSRect kWindowSizeDeterminedLater = {{0, 0}, {1, 1}};
   // with NSWindowStyleMaskTitled mode.
   if (is_simple_fs || always_simple_fs) {
     shell_->SetSimpleFullScreen(!is_simple_fs);
+    shell_->set_fullscreen_transition_state(
+        lynxtron::NativeWindowMac::FullScreenTransitionState::NONE);
+    shell_->HandlePendingFullscreenTransitions();
   } else {
     if (shell_->IsVisible()) {
       // Until 10.13, AppKit would obey a call to -toggleFullScreen: made inside

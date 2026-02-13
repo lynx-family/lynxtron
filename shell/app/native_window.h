@@ -42,6 +42,10 @@ class Dictionary;
 class PersistentDictionary;
 }  // namespace gin_helper
 
+namespace lynxtron::api {
+class NativeImage;
+}  // namespace lynxtron::api
+
 #if !defined(__OBJC__)
 class NSView;
 #endif
@@ -141,6 +145,7 @@ class NativeWindow : public base::SupportsUserData {
   virtual void Center() = 0;
   virtual void SetTitle(const std::string& title) = 0;
   virtual std::string GetTitle() const = 0;
+  virtual void SetIcon(api::NativeImage* icon) {}
 #if BUILDFLAG(IS_MAC)
   virtual std::string GetAlwaysOnTopLevel() = 0;
   virtual void SetActive(bool is_key) = 0;
