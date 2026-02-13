@@ -204,8 +204,6 @@ LynxWindow::~LynxWindow() {
   // #endif
 }
 
-void LynxWindow::RequestPreferredWidth(int* width) {}
-
 void LynxWindow::OnCloseButtonClicked(bool& prevent_default) {
   // When user tries to close the window by clicking the close button, we do
   // not close the window immediately, instead we try to close the web page

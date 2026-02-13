@@ -49,31 +49,6 @@ using FullScreenTransitionState =
 // menu to determine the "standard size" of the window.
 - (NSRect)windowWillUseStandardFrame:(NSWindow*)window
                         defaultFrame:(NSRect)frame {
-  // If the shift key is down, maximize.
-  if ([[NSApp currentEvent] modifierFlags] & NSEventModifierFlagShift) {
-    return frame;
-  }
-
-  // Get preferred width from observers. Usually the page width.
-  int preferred_width = 0;
-  shell_->NotifyWindowRequestPreferredWidth(&preferred_width);
-
-  // Never shrink from the current size on zoom.
-  NSRect window_frame = [window frame];
-  CGFloat zoomed_width =
-      std::max(static_cast<CGFloat>(preferred_width), NSWidth(window_frame));
-
-  // |frame| determines our maximum extents. We need to set the origin of the
-  // frame -- and only move it left if necessary.
-  if (window_frame.origin.x + zoomed_width > NSMaxX(frame)) {
-    frame.origin.x = NSMaxX(frame) - zoomed_width;
-  } else {
-    frame.origin.x = window_frame.origin.x;
-  }
-
-  // Set the width. Don't touch y or height.
-  frame.size.width = zoomed_width;
-
   if (shell_->GetAspectRatio() > 0.0) {
     shell_->set_default_frame_for_zoom(frame);
   }

@@ -398,10 +398,6 @@ void NativeWindow::SetAspectRatio(double aspect_ratio,
 
 // void NativeWindow::CloseFilePreview() {}
 
-void NativeWindow::NotifyWindowRequestPreferredWidth(int* width) {
-  observers_.Notify(&NativeWindowObserver::RequestPreferredWidth, width);
-}
-
 void NativeWindow::NotifyWindowCloseButtonClicked() {
   // First ask the observers whether we want to close.
   bool prevent_default = false;

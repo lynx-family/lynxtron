@@ -58,9 +58,6 @@ inline constexpr std::string_view kSimpleFullscreen = "simpleFullscreen";
 // Make windows stays on the top of all other windows.
 inline constexpr std::string_view kAlwaysOnTop = "alwaysOnTop";
 
-// Whether window zoom should be to page width.
-inline constexpr std::string_view kZoomToPageWidth = "zoomToPageWidth";
-
 // The requested title bar style for the window
 inline constexpr std::string_view kTitleBarStyle = "titleBarStyle";
 

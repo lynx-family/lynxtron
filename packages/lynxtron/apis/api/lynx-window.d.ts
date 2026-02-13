@@ -233,14 +233,6 @@ export interface LynxWindowConstructorOptions {
     | 'under-window'
     | 'under-page';
   /**
-   * Controls the behavior on macOS when option-clicking the green stoplight button
-   * on the toolbar or by clicking the Window > Zoom menu item. If `true`, the window
-   * will grow to the preferred width of the web page when zoomed, `false` will cause
-   * it to zoom to the width of the screen. This will also affect the behavior when
-   * calling `maximize()` directly. Default is `false`.
-   */
-  zoomToPageWidth?: boolean;
-  /**
    * Tab group name, allows opening the window as a native tab on macOS 10.12+.
    * Windows with the same tabbing identifier will be grouped together. This also
    * adds a native new tab button to your window's tab bar and allows your `app` and

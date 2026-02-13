@@ -304,16 +304,6 @@ export interface BaseWindowConstructorOptions {
    * center the window.
    */
   y?: number;
-  /**
-   * Controls the behavior on macOS when option-clicking the green stoplight button
-   * on the toolbar or by clicking the Window > Zoom menu item. If `true`, the window
-   * will grow to the preferred width of the web page when zoomed, `false` will cause
-   * it to zoom to the width of the screen. This will also affect the behavior when
-   * calling `maximize()` directly. Default is `false`.
-   *
-   * @platform darwin
-   */
-  zoomToPageWidth?: boolean;
 }
 
 export declare class BaseWindow extends EventEmitter {
