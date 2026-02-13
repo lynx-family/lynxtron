@@ -1,4 +1,4 @@
-From c309159c04bf95fc58580617a6f92fb550ee819b Mon Sep 17 00:00:00 2001
+From 9bf89e8d7c03de264024810be19b4979da118743 Mon Sep 17 00:00:00 2001
 From: tangyongjie <80395553+yongjieTang@users.noreply.github.com>
 Date: Wed, 11 Feb 2026 15:45:37 +0800
 Subject: [PATCH] [Bugfix] Impl lynx_module set for lynxnodemodule.
@@ -10,14 +10,14 @@ Impl lynx_module set for lynxnodemodule.
  2 files changed, 15 insertions(+)
 
 diff --git a/lynx/core/runtime/js/bindings/modules/lynx_module.cc b/lynx/core/runtime/js/bindings/modules/lynx_module.cc
-index 7667ec1ab..1091e8b5e 100644
+index 7667ec1ab..717d2b929 100644
 --- a/lynx/core/runtime/js/bindings/modules/lynx_module.cc
 +++ b/lynx/core/runtime/js/bindings/modules/lynx_module.cc
 @@ -103,6 +103,9 @@ Value LynxModule::get(Runtime* runtime, const PropNameID& prop) {
            return lock_module->invokeMethod(*(meta.get()), &rt, args, count);
          });
    } else {
-+    if (name_ == "NodeJS" && propNameUtf8 == "api") {
++    if (name_ == "nodejs" && propNameUtf8 == "api") {
 +      return Value(*runtime, node_api_);
 +    }
      // AllowList For Special Methods
@@ -30,7 +30,7 @@ index 7667ec1ab..1091e8b5e 100644
 +
 +void LynxModule::set(Runtime* runtime, const PropNameID& prop, const Value& value) {
 +  std::string propNameUtf8 = prop.utf8(*runtime);
-+  if (name_ == "NodeJS" && propNameUtf8 == "api") {
++  if (name_ == "nodejs" && propNameUtf8 == "api") {
 +    node_api_ = Value(*runtime, value);
 +    return;
 +  }

@@ -247,7 +247,7 @@ void LynxNodeModule::OnRuntimeReady(napi_env env,
 
   constexpr const char* kInitNodeNativeApi = R"(
     (lynx, api) => {
-      lynx.getNativeApp().nativeModuleProxy.NodeJS.api = api;
+      lynx.getNativeApp().nativeModuleProxy.nodejs.api = api;
     }
   )";
   napi_value test_func;
@@ -266,7 +266,7 @@ void RegisterLynxNodeModuleToLynxView(
   };
 
   lynx_view_builder_register_extension_module(
-      builder, "NodeJS", LynxNodeModule::CreateLynxNodeModule, false, data);
+      builder, "nodejs", LynxNodeModule::CreateLynxNodeModule, false, data);
 }
 
 }  // namespace lynxtron
