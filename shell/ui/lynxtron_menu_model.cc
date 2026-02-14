@@ -4,6 +4,7 @@
 
 #include "shell/ui/lynxtron_menu_model.h"
 
+#include <limits>
 #include <utility>
 
 #include "build/build_config.h"
@@ -35,14 +36,23 @@ size_t LynxtronMenuModel::GetItemCount() const {
 }
 
 LynxtronMenuModel::ItemType LynxtronMenuModel::GetTypeAt(size_t index) const {
+  if (items_.empty()) {
+    return TYPE_SEPARATOR;
+  }
   return items_[ValidateIndex(index)].type;
 }
 
 int LynxtronMenuModel::GetCommandIdAt(size_t index) const {
+  if (items_.empty()) {
+    return -1;
+  }
   return items_[ValidateIndex(index)].command_id;
 }
 
 std::u16string LynxtronMenuModel::GetLabelAt(size_t index) const {
+  if (items_.empty()) {
+    return std::u16string();
+  }
   return items_[ValidateIndex(index)].label;
 }
 
@@ -72,22 +82,34 @@ bool LynxtronMenuModel::IsVisibleAt(size_t index) const {
 }
 
 LynxtronMenuModel* LynxtronMenuModel::GetSubmenuModelAt(size_t index) const {
+  if (items_.empty()) {
+    return nullptr;
+  }
   return items_[ValidateIndex(index)].submenu;
 }
 
 void LynxtronMenuModel::SetIcon(size_t index, const gfx::Image& image) {
+  if (items_.empty()) {
+    return;
+  }
   items_[ValidateIndex(index)].icon = image;
 }
 
 gfx::Image LynxtronMenuModel::GetIconAt(size_t index) const {
+  if (items_.empty()) {
+    return gfx::Image();
+  }
   return items_[ValidateIndex(index)].icon;
 }
 
 void LynxtronMenuModel::ActivatedAt(size_t index, int event_flags) {
-  if (!delegate_) {
+  if (!delegate_ || items_.empty()) {
     return;
   }
   size_t validated = ValidateIndex(index);
+  if (validated == std::numeric_limits<size_t>::max()) {
+    return;
+  }
   delegate_->ExecuteCommand(items_[validated].command_id, event_flags);
 }
 
@@ -234,7 +256,7 @@ void LynxtronMenuModel::InsertItem(Item item, size_t index) {
 
 size_t LynxtronMenuModel::ValidateIndex(size_t index) const {
   if (items_.empty()) {
-    return 0;
+    return std::numeric_limits<size_t>::max();
   }
   if (index >= items_.size()) {
     return items_.size() - 1;

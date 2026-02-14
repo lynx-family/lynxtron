@@ -106,11 +106,28 @@ void MenuMac::PopupOnUI(const base::WeakPtr<NativeWindow>& native_window,
   if (!native_window) {
     return;
   }
-  NSWindow* nswindow = native_window->GetNativeWindow().GetNativeNSWindow();
+
+  // 创建弱引用的window来检查是否仍然有效
+  auto weak_window = native_window;
+
+  NSWindow* nswindow = weak_window->GetNativeWindow().GetNativeNSWindow();
+
+  // 再次检查window是否仍然有效
+  if (!nswindow) {
+    return;
+  }
 
   base::OnceClosure close_callback =
       base::BindOnce(&MenuMac::OnClosed, weak_factory_.GetWeakPtr(), window_id,
                      std::move(callback));
+
+  // 检查是否已存在该window_id的控制器，避免内存泄漏
+  auto existing_controller = popup_controllers_.find(window_id);
+  if (existing_controller != popup_controllers_.end()) {
+    [existing_controller->second cancel];
+    popup_controllers_.erase(window_id);
+  }
+
   popup_controllers_[window_id] =
       [[LynxtronMenuController alloc] initWithModel:model()
                               useDefaultAccelerator:NO];

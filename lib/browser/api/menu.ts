@@ -27,15 +27,15 @@ let groupIdIndex = 0;
 
   const focusedWindow = BaseWindow.getFocusedWindow();
 
-  if (item.role === 'minimize' && focusedWindow) {
+  if (item.role === 'minimize' && focusedWindow?.isMinimizable?.()) {
     return focusedWindow.isMinimizable();
   }
 
-  if (item.role === 'togglefullscreen' && focusedWindow) {
+  if (item.role === 'togglefullscreen' && focusedWindow?.isFullScreenable?.()) {
     return focusedWindow.isFullScreenable();
   }
 
-  if (item.role === 'close' && focusedWindow) {
+  if (item.role === 'close' && focusedWindow?.isClosable?.()) {
     return focusedWindow.isClosable();
   }
 
@@ -63,7 +63,9 @@ let groupIdIndex = 0;
 (Menu.prototype as any)._shouldRegisterAcceleratorForCommandId = function (
   id: number
 ) {
-  return this.commandsMap[id]?.registerAccelerator ?? false;
+  const item = this.commandsMap[id];
+  if (!item) return false;
+  return item.registerAccelerator ?? true;
 };
 
 if (process.platform === 'darwin') {
@@ -121,6 +123,33 @@ Menu.prototype.closePopup = function (window?: any) {
   } else {
     this.closePopupAt(-1);
   }
+};
+
+Menu.prototype.removeItem = function (pos: number) {
+  if (pos < 0 || pos >= this.getItemCount()) {
+    return;
+  }
+
+  const item = this.items[pos];
+
+  // 清理commandsMap和groupsMap中的引用
+  if (this.commandsMap[item.commandId]) {
+    delete this.commandsMap[item.commandId];
+  }
+
+  if (item.type === 'radio' && this.groupsMap[item.groupId]) {
+    const group = this.groupsMap[item.groupId];
+    const index = group.indexOf(item);
+    if (index > -1) {
+      group.splice(index, 1);
+    }
+    if (group.length === 0) {
+      delete this.groupsMap[item.groupId];
+    }
+  }
+
+  // WeakMap中的条目会自动清理，因为使用了弱引用
+  this.items.splice(pos, 1);
 };
 
 Menu.prototype.getMenuItemById = function (id: string) {

@@ -4,11 +4,18 @@ import { Menu } from 'lynxtron';
 
 let nextCommandId = 0;
 
+// 重置commandId计数器的函数（用于测试或菜单重建）
+function resetCommandIdCounter(): void {
+  nextCommandId = 0;
+}
+
 const MenuItem = function (this: any, options: any) {
-  for (const key in options) {
-    if (!(key in this)) this[key] = options[key];
-  }
-  if (typeof this.role === 'string' || this.role instanceof String) {
+  Object.keys(options).forEach((key) => {
+    if (!this.hasOwnProperty(key)) {
+      this[key] = options[key];
+    }
+  });
+  if (typeof this.role === 'string' && this.role) {
     this.role = this.role.toLowerCase();
   }
   this.submenu = this.submenu || roles.getDefaultSubmenu(this.role);
@@ -124,3 +131,4 @@ MenuItem.prototype.overrideReadOnlyProperty = function (
 };
 
 module.exports = MenuItem;
+module.exports.resetCommandIdCounter = resetCommandIdCounter;

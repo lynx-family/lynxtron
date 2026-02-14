@@ -325,9 +325,12 @@ export function execute(role: RoleId, focusedWindow: any) {
     return true;
   }
 
-  if (windowMethod && focusedWindow != null) {
-    windowMethod(focusedWindow);
-    return true;
+  if (windowMethod) {
+    if (focusedWindow) {
+      windowMethod(focusedWindow);
+      return true;
+    }
+    return false;
   }
 
   return false;
