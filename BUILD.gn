@@ -715,7 +715,6 @@ if (is_mac) {
 
     include_dirs = [ "." ]
 
-    configs += lynxtron_app_extra_configs
     deps = lynxtron_app_extra_deps
     deps += [
       ":lynxtron_app_framework_bundle_data",
@@ -809,10 +808,8 @@ if (is_win) {
   shared_library("lynxtron_shared") {
     deps = [ ":lynxtron_lib" ]
 
-    configs += [
-      "//build/config/win:delayloads",
-      "//lynx/core/platform/windows:win_libs_config",
-    ]
+    configs += lynxtron_app_extra_configs
+    configs += [ "//build/config/win:delayloads" ]
     libs = [
       "Comctl32.lib",
       "Wintrust.lib",
