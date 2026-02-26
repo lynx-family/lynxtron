@@ -3,6 +3,6 @@
   "node feature handles Promise timeouts correctly",
   "node feature NODE_OPTIONS Disallows crypto-related options",
   "node feature NODE_OPTIONS does not allow --require in packaged apps",
-  "node feature Node.js cli flags Prohibits crypto-related flags in ELECTRON_RUN_AS_NODE mode",
+  "node feature Node.js cli flags Prohibits crypto-related flags in LYNXTRON_RUN_AS_NODE mode",
   "node feature inspector Supports starting the v8 inspector with --inspect and a provided port"
 ]

@@ -213,7 +213,7 @@ v8::ModifyCodeGenerationFromStringsResult ModifyCodeGenerationFromStrings(
 //   }
 // }
 
-// Only allow a specific subset of options in non-ELECTRON_RUN_AS_NODE mode.
+// Only allow a specific subset of options in non-LYNXTRON_RUN_AS_NODE mode.
 // If node CLI inspect support is disabled, allow no debug options.
 bool IsAllowedOption(const std::string_view option) {
   static constexpr auto debug_options =
