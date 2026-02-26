@@ -90,6 +90,7 @@ module.exports = ({
           loader: 'null-loader'
         }, {
           test: /\.ts$/,
+          type: 'javascript/auto',
           loader: 'ts-loader',
           options: {
             configFile: path.resolve(lynxtronRoot, 'tsconfig.lynxtron.json'),

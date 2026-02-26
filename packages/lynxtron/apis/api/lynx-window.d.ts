@@ -245,6 +245,14 @@ export interface LynxWindowConstructorOptions {
    */
   followParent?: boolean;
 
+  /**
+   * Whether node integration is enabled. Default is undefined.
+   * path is node init file for node env exports.
+   */
+  nodeIntegration?: {
+    preload_paths: string[];
+  };
+
   title?: string;
 }
 

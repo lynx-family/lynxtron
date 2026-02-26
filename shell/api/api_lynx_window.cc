@@ -173,13 +173,14 @@ LynxWindow::LynxWindow(gin::Arguments* args,
   //  Init window after everything has been setup.
   window()->InitFromOptions(options);
 
+  gin_helper::Dictionary node_integration_config;
+  if (options.Get(options::kNodeIntegration, &node_integration_config)) {
+    node_integration_config.Get("preload_paths", &node_integration_preload_);
+  }
+
   // node integration
-  if (options.ValueOrDefault(options::kNodeIntegration, false)) {
-    // std::cout << "node integration is enabled" << std::endl;
-    node_integration_ = true;
-  } else {
-    // std::cout << "node integration is disabled" << std::endl;
-    node_integration_ = false;
+  if (!node_integration_preload_.empty()) {
+    // TODO LOG
   }
 
   // transparent
@@ -437,7 +438,7 @@ void LynxWindow::CreateLynxView(const std::string& local_url,
 #endif
 
   lynx_view_->Init(width, height, device_pixel_ratio,
-                   window_->GetNativeWindowHandle(), node_integration_);
+                   window_->GetNativeWindowHandle(), node_integration_preload_);
   lynx_view_->LoadTemplate(local_url, source);
   lynx_view_->SetClient(weak_factory_.GetWeakPtr());
 }

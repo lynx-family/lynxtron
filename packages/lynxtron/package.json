@@ -2,9 +2,9 @@
   "name": "@lynx-js/lynxtron",
   "version": "0.0.2-alpha.13",
   "description": "lynxtron npm package test",
-  "main": "lynxtron_bin.js",
   "type": "module",
   "types": "./apis/lynxtron.d.ts",
+  "main": "lynxtron.js",
   "bin": "cli.js",
   "scripts": {
     "postinstall": "node install.js",

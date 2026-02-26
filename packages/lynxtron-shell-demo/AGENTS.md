@@ -18,25 +18,21 @@ This document equips AI agents to author and modify code in this Lynxtron applic
   - `src/main/main.ts` creates a `LynxWindow`, listens for events, and loads the Lynx bundle.
   - `src/main/vendorPaths.ts` defines paths to packaged assets (e.g., `main.lynx.bundle`).
 - Config: `lynx.config.ts` sets RSpeedy bundler options for the Lynx UI.
-- Builder: `rspack.config.mjs` builds main process code and copies bundled UI artifacts.
+- Builder: `rspack.config.ts` builds main process code and copies bundled UI artifacts.
 
 Project integration reminders:
 - UI entry: `src/app/index.tsx` with `root.render(<App />)`.
 - Main process: `src/main/main.ts` uses `LynxWindow` and `loadFile`.
-- Bundling: `lynx.config.ts` and `rspack.config.mjs` coordinate output paths.
+- Bundling: `lynx.config.ts` and `rspack.config.ts` coordinate output paths.
 
 ## Commands
 
 Use NodeJS ≥ 22 and TypeScript.
 
 - Install: `npm install`
-- Build Lynx UI: `npm run build:lynx`
-- Build Node main: `npm run build:node`
-- Build all: `npm run build`
-- Start packaged app: `npm run start`
-- Dev both (hot reload): `npm run dev`
-- Dev UI only: `npm run dev:lynx`
-- Dev main only: `npm run dev:node`
+- Build: `npm run build`
+- Start app: `npm run start`
+- Dev: `npm run dev`
 - Test: `npm run test`
 
 ## Authoring UI (ReactLynx)
@@ -53,11 +49,8 @@ Read the docs below in advance to help you understand the library or frameworks 
 ### Other UI API Key Differences from the Web
 
 - Event model: `onclick` is not supported. Use Lynx mouse and touch events.
-  - Mouse: `mousedown`, `mousemove`, `mouseup`, `mouseenter`, `mouseover`, `mouseleave`. Note: `mouseenter`/`mouseleave` do not bubble and cannot be captured. See https://lynxjs.org/api/lynx-api/event/mouse-event.html
-  - Touch: `touchstart`, `touchmove`, `touchend`, `touchcancel`, `tap`, `longpress`, `click`. See https://lynxjs.org/api/lynx-api/event/touch-event.html. `tap` vs `click` differ in thresholds and target; neither fires if the response chain scrolls.
-- Coordinate fields:
-  - MouseEvent: `x`/`y` (element coordinates), `pageX`/`pageY` (current LynxView), `clientX`/`clientY` (window coordinates).
-  - TouchEvent: `detail` and `touches`/`changedTouches` provide similar coordinate semantics with `identifier`.
+  - Mouse: `mousedown`, `mousemove`, `mouseup`, `mouseenter`, `mouseover`, `mouseleave`. See https://lynxjs.org/api/lynx-api/event/mouse-event.html
+  - Touch: `touchstart`, `touchmove`, `touchend`, `touchcancel`, `tap`, `longpress`, `click`. See https://lynxjs.org/api/lynx-api/event/touch-event.html. 
 - Not a browser: Lynx is web-like but not the Web. Do not rely on Web compatibility features such as `-webkit-` CSS prefixes, browser-specific behaviors, or deprecated Web APIs. Use only Lynx-supported styles and component capabilities.
 - No Web DOM APIs: Avoid `document`/`window`/`HTMLElement` patterns. Interact via Lynx component refs and official APIs.
 
@@ -122,7 +115,7 @@ Send a global event from main to UI:
 
 Adjust asset paths:
 
-- Update `lynx.config.ts` `output.assetPrefix` and `rspack.config.mjs` copy patterns if you change output locations.
+- Update `lynx.config.ts` `output.assetPrefix` and `rspack.config.ts` copy patterns if you change output locations.
 
 
 
@@ -136,7 +129,3 @@ Where to inspect:
 - `node_modules/@lynx-js/lynxtron/apis/api/lynx-window.d.ts` (window options, `loadFile`, `updateData`, `sendGlobalEvent`)
 - `node_modules/@lynx-js/lynxtron/apis/api/app.d.ts` (app lifecycle)
 - `node_modules/@lynx-js/lynxtron/apis/api/shell.d.ts`, `menu.d.ts`, etc. (subset of Electron APIs)
-
-Monorepo context:
-- In this repository, the same type definitions also exist at `src/lynxtron/lynxtron/packages/lynxtron/apis/api/*.d.ts`.
-- For external environments or different versions, rely on your `node_modules` copy to ensure version-accurate information.

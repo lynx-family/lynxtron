@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "base/containers/span.h"
 #include "base/memory/weak_ptr.h"
@@ -32,7 +33,7 @@ class LynxView {
             double height,
             float dpi,
             void* parent,
-            bool node_integration);
+            const std::vector<std::string>& node_integration_preload);
   void LoadTemplate(std::string_view template_url, base::span<uint8_t> content);
   void SetClient(base::WeakPtr<LynxViewClient> client);
   void SetBounds(const gfx::Rect& bounds);

@@ -1,24 +1,24 @@
 {
-  "name": "@lynx-js/dev-ready-rsbuild-plugin",
-  "version": "0.0.0-alpha",
+  "name": "@lynx-js/dev-ready-plugin",
+  "version": "0.0.0-alpha.8",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
-    ".": {
+    "./rspeedy": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.cjs"
     },
     "./rspack": {
+      "types": "./dist/rspack.d.ts",
       "import": "./dist/rspack.js",
-      "types": "./dist/rspack.d.ts"
+      "require": "./dist/rspack.cjs"
     }
   },
   "bin": {
-    "dev-ready": "dist/cli.js",
-    "dev-ready-rsbuild": "dist/cli.js",
     "dev-ready-rspack": "dist/cli-rspack.js",
-    "dev-ready-speedy": "dist/cli-speedy.js"
+    "dev-ready-rspeedy": "dist/cli-rspeedy.js"
   },
   "peerDependencies": {
     "@rsbuild/core": "^1.6.0"

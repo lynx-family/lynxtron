@@ -11,6 +11,7 @@
 #include "lynx/platform/embedder/public/capi/lynx_env_capi.h"
 #include "platform/embedder/public/lynx_extension_module.h"
 #include "third_party/napi/include/napi_env_v8.h"
+#include "third_party/node/src/env.h"
 #include "third_party/node/src/node.h"
 
 #ifdef USE_PRIMJS_NAPI
@@ -23,104 +24,121 @@ static void* v8_platform_ = nullptr;
 
 const uint64_t kInitNodeEnvflags =
     node::EnvironmentFlags::kNoBrowserGlobals |
+    node::EnvironmentFlags::kHideConsoleWindows |
     node::EnvironmentFlags::kNoStartDebugSignalHandler |
     node::EnvironmentFlags::kNoCreateInspector |
-    node::EnvironmentFlags::kNoWaitForInspectorFrontend;
+    node::EnvironmentFlags::kNoWaitForInspectorFrontend |
+    node::EnvironmentFlags::kNoGlobalSearchPaths;
 
-struct NodeEnvironmentData {
-  ~NodeEnvironmentData();
+uv_loop_t* GetUVLoopFromCurrent() {
+  auto* message_loop = reinterpret_cast<lynx::fml::MessageLoopNode*>(
+      lynx::fml::MessageLoop::GetCurrent().GetLoopImpl().get());
+  return message_loop->GetUVLoop();
+}
 
-  v8::Isolate* isolate_ = nullptr;
+v8::Local<v8::Value> RunFunctionInNodeContext(v8::Isolate* v8_isolate,
+                                              v8::Local<v8::Context> node_ctx,
+                                              const char* script,
+                                              size_t args,
+                                              v8::Local<v8::Value>* argv) {
+  v8::TryCatch try_catch{v8_isolate};
+  v8::Local<v8::Value> ret;
+
+  auto v8_script_str =
+      v8::String::NewFromUtf8(v8_isolate, script).ToLocalChecked();
+
+  auto v8_script =
+      v8::Script::Compile(node_ctx, v8_script_str).ToLocalChecked();
+
+  auto function_maybe = v8_script->Run(node_ctx);
+  v8::Local<v8::Value> function_val;
+  if (!function_maybe.ToLocal(&function_val)) {
+    // Run failed
+    return ret;
+  }
+
+  v8::Local<v8::Function> function =
+      v8::Local<v8::Function>::Cast(function_val);
+
+  auto ret_maybe = function->Call(node_ctx, node_ctx->Global(), args, argv);
+
+  if (try_catch.HasCaught()) {
+    std::string msg = "no error message";
+    if (!try_catch.Message().IsEmpty()) {
+      msg = *v8::String::Utf8Value(
+          v8_isolate,
+          try_catch.Message()->Get()->ToString(node_ctx).ToLocalChecked());
+    } else if (try_catch.HasTerminated()) {
+      msg = "script execution has been terminated";
+    }
+  }
+  if (ret_maybe.ToLocal(&ret)) {
+    return ret;
+  }
+
+  return ret;
+}
+
+}  // namespace
+
+void SetNodePlatformEnvToLynxNodeModule(void* v8_platform) {
+  v8_platform_ = v8_platform;
+}
+
+class LynxNodeModule : public lynx::pub::LynxExtensionModule {
+ public:
+  LynxNodeModule(void* data);
+  ~LynxNodeModule() override;
+
+  static lynx_extension_module_t* CreateLynxNodeModule(void* opaque);
+
+  struct NodeModuleData {
+    std::vector<std::string> preload_paths;
+  };
+
+  void OnRuntimeAttach(
+      napi_env env,
+      std::unique_ptr<lynx::pub::VSyncObserver> vsync_observer) override;
+  void OnRuntimeReady(napi_env env, napi_value lynx, const char* url) override;
+
+ private:
+  v8::Local<v8::Context> CreateNewNodeContext(v8::Isolate* v8_isolate);
+  bool CheckModuleData();
+
+  // module data
+  NodeModuleData* module_data_ = nullptr;
+
+  // node environment data
   node::Environment* env_ = nullptr;
   node::IsolateData* isolate_data_ = nullptr;
+
+  // node exports and context
   v8::Global<v8::Value> node_exports_;
   v8::Global<v8::Context> node_context_;
 };
 
-NodeEnvironmentData::~NodeEnvironmentData() {
+LynxNodeModule::LynxNodeModule(void* data) {
+  if (data) {
+    module_data_ = reinterpret_cast<NodeModuleData*>(data);
+  }
+}
+
+LynxNodeModule::~LynxNodeModule() {
+  if (module_data_) {
+    delete module_data_;
+  }
+
   if (isolate_data_) {
     node::FreeIsolateData(isolate_data_);
   }
   if (env_) {
     node::FreeEnvironment(env_);
   }
-
-  node_exports_.Reset();
-  node_context_.Reset();
-}
-
-uv_loop_t* GetUVLoopFromMessageLoop() {
-  auto* message_loop = reinterpret_cast<lynx::fml::MessageLoopNode*>(
-      lynx::fml::MessageLoop::GetCurrent().GetLoopImpl().get());
-  return message_loop->GetUVLoop();
-}
-
-NodeEnvironmentData* CreateOrGetNodeEnvData(v8::Isolate* isolate) {
-  thread_local std::unique_ptr<NodeEnvironmentData> node_env_ = nullptr;
-
-  if (node_env_ && node_env_->isolate_ == isolate) {
-    return node_env_.get();
-  }
-
-  node_env_ = std::make_unique<NodeEnvironmentData>();
-  node_env_->isolate_ = isolate;
-
-  auto uv_loop = GetUVLoopFromMessageLoop();
-  {
-    v8::Locker locker(isolate);
-    v8::Isolate::Scope isolate_scope(isolate);
-    v8::HandleScope handle_scope(isolate);
-
-    auto new_context = node::NewContext(isolate);
-    v8::Context::Scope context_scope(new_context);
-
-    node_env_->isolate_data_ = node::CreateIsolateData(
-        isolate, uv_loop,
-        reinterpret_cast<node::MultiIsolatePlatform*>(v8_platform_));
-
-    node_env_->env_ = node::CreateEnvironment(
-        node_env_->isolate_data_, new_context, {}, {},
-        static_cast<node::EnvironmentFlags::Flags>(kInitNodeEnvflags));
-
-    static constexpr const char* script =
-        "return {require:require, process:process};";
-    auto node_exports =
-        node::LoadEnvironment(node_env_->env_, script).ToLocalChecked();
-    node_env_->node_exports_ = v8::Global<v8::Value>(isolate, node_exports);
-    node_env_->node_context_ = v8::Global<v8::Context>(isolate, new_context);
-  }
-
-  return node_env_.get();
-}
-}  // namespace
-
-class LynxNodeModule : public lynx::pub::LynxExtensionModule {
- public:
-  LynxNodeModule() {}
-  ~LynxNodeModule() override {}
-
-  static lynx_extension_module_t* CreateLynxNodeModule(void* opaque);
-
-  //   void OnLynxViewCreate(lynx_view_t* lynx_view) override;
-  void OnRuntimeAttach(
-      napi_env env,
-      std::unique_ptr<lynx::pub::VSyncObserver> vsync_observer) override;
-
- private:
-  // node::Environment* env_ = nullptr;
-  // node::IsolateData* isolate_data_ = nullptr;
-};
-
-napi_value LynxNodeModuleMethodsBinder(napi_env env,
-                                       napi_value exports,
-                                       const char* module_name,
-                                       void* opaque) {
-  return exports;
 }
 
 // static
 lynx_extension_module_t* LynxNodeModule::CreateLynxNodeModule(void* opaque) {
-  auto* module = new LynxNodeModule();
+  auto* module = new LynxNodeModule(opaque);
   lynx_extension_module_t* c_module =
       lynx_extension_module_create_with_finalizer(
           module, [](lynx_extension_module_t* m, void* user_data) {
@@ -130,13 +148,44 @@ lynx_extension_module_t* LynxNodeModule::CreateLynxNodeModule(void* opaque) {
           });
 
   module->SetCModule(c_module);
-  module->SetNapiModuleCreator(&LynxNodeModuleMethodsBinder);
+  module->SetNapiModuleCreator([](napi_env env, napi_value exports,
+                                  const char* module_name,
+                                  void* opaque) { return exports; });
   return c_module;
+}
+
+v8::Local<v8::Context> LynxNodeModule::CreateNewNodeContext(
+    v8::Isolate* v8_isolate) {
+  auto new_context = node::NewContext(v8_isolate);
+  v8::Context::Scope context_scope(new_context);
+
+  isolate_data_ = node::CreateIsolateData(
+      v8_isolate, GetUVLoopFromCurrent(),
+      reinterpret_cast<node::MultiIsolatePlatform*>(v8_platform_));
+
+  env_ = node::CreateEnvironment(
+      isolate_data_, new_context, {}, {},
+      static_cast<node::EnvironmentFlags::Flags>(kInitNodeEnvflags));
+
+  node::LoadEnvironment(env_, node::StartExecutionCallback{});
+
+  return new_context;
+}
+
+bool LynxNodeModule::CheckModuleData() {
+  if (!module_data_) {
+    return false;
+  }
+  return !module_data_->preload_paths.empty();
 }
 
 void LynxNodeModule::OnRuntimeAttach(
     napi_env env,
     std::unique_ptr<lynx::pub::VSyncObserver> vsync_observer) {
+  if (!CheckModuleData()) {
+    return;
+  }
+
   auto v8_context = napi_get_env_context_v8(env);
   auto v8_isolate = v8_context->GetIsolate();
 
@@ -144,28 +193,80 @@ void LynxNodeModule::OnRuntimeAttach(
   v8::Isolate::Scope isolate_scope(v8_isolate);
   v8::HandleScope handle_scope(v8_isolate);
 
-  auto* node_env_data = CreateOrGetNodeEnvData(v8_isolate);
+  auto node_ctx = CreateNewNodeContext(v8_isolate);
+  v8::Context::Scope context_scope(node_ctx);
+  node_context_ = v8::Global<v8::Context>(v8_isolate, node_ctx);
 
-  v8::Context::Scope context_scope(v8_context);
-  v8_context->Global()
-      ->Set(v8_context,
-            v8::String::NewFromUtf8Literal(v8_isolate, "__node_exports__"),
-            node_env_data->node_exports_.Get(v8_isolate))
-      .FromJust();
+  auto console = v8_context->Global()
+                     ->Get(v8_context, v8::String::NewFromUtf8Literal(
+                                           v8_isolate, "console"))
+                     .ToLocalChecked();
+
+  v8::Local<v8::Array> preload_paths = v8::Array::New(v8_isolate);
+  for (size_t i = 0; i < module_data_->preload_paths.size(); ++i) {
+    auto path_str = v8::String::NewFromUtf8(
+                        v8_isolate, module_data_->preload_paths[i].c_str())
+                        .ToLocalChecked();
+    preload_paths->Set(node_ctx, i, path_str).Check();
+  }
+
+  // init context bridge
+  const char* const kContextBridgeInitScriptSource = R"(
+    (console, preload_paths)=>{
+      globalThis.console = console;
+      require('lynxtron/js2c/lynxbts_init');
+      const { preloadRunner } = require('lynxtron');
+      let bridgeData = {};
+      globalThis.__contextBridge.initModuleAPI(bridgeData);
+      try {
+        preloadRunner(preload_paths);
+      } catch (e) {
+        console.error("preloadRunner error: ", e);
+      }
+      console.log("bridgeData: ", bridgeData);
+      return bridgeData;
+    }
+  )";
+  v8::Local<v8::Value> v8_argv[2] = {console, preload_paths};
+
+  v8::Local<v8::Value> exportsData = RunFunctionInNodeContext(
+      v8_isolate, node_ctx, kContextBridgeInitScriptSource, 2, v8_argv);
+  node_exports_.Reset(v8_isolate, exportsData);
 }
 
-void SetNodePlatformEnvToLynxNodeModule(void* v8_platform) {
-  v8_platform_ = v8_platform;
+void LynxNodeModule::OnRuntimeReady(napi_env env,
+                                    napi_value lynx,
+                                    const char* url) {
+  if (!CheckModuleData()) {
+    return;
+  }
+  auto v8_context = napi_get_env_context_v8(env);
+  auto v8_isolate = v8_context->GetIsolate();
+  napi_value napi_api =
+      napi_v8_value_to_js_value(env, node_exports_.Get(v8_isolate));
+
+  constexpr const char* kInitNodeNativeApi = R"(
+    (lynx, api) => {
+      lynx.getNativeApp().nativeModuleProxy.NodeJS.api = api;
+    }
+  )";
+  napi_value test_func;
+  env->napi_run_script(env, kInitNodeNativeApi, strlen(kInitNodeNativeApi),
+                       nullptr, &test_func);
+
+  napi_value args[2] = {lynx, napi_api};
+  env->napi_call_function(env, test_func, test_func, 2, args, nullptr);
 }
 
-void RegisterLynxNodeModuleToLynxView(lynx_view_builder_t* builder) {
+void RegisterLynxNodeModuleToLynxView(
+    lynx_view_builder_t* builder,
+    const std::vector<std::string>& node_integration_preload) {
+  void* data = new LynxNodeModule::NodeModuleData{
+      .preload_paths = node_integration_preload,
+  };
+
   lynx_view_builder_register_extension_module(
-      builder, "NodeJS", LynxNodeModule::CreateLynxNodeModule, false, nullptr);
-}
-
-void RegisterLynxNodeModuleGlobal() {
-  lynx_env_register_extension_module(
-      "NodeJS", LynxNodeModule::CreateLynxNodeModule, false, nullptr);
+      builder, "NodeJS", LynxNodeModule::CreateLynxNodeModule, false, data);
 }
 
 }  // namespace lynxtron

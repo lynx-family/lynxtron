@@ -41,11 +41,13 @@
     "packages/lynxtron",
     "packages/lynxtron-builder",
     "packages/lynxtron-shell-demo",
-    "packages/dev-ready-rsbuild-plugin",
+    "packages/dev-ready-plugin",
     "packages/create-lynxtron"
   ],
   "packageManager": "yarn@4.0.0",
   "resolutions": {
-    "nan": "nodejs/nan#e14bdcd1f72d62bca1d541b66da43130384ec213"
+    "nan": "nodejs/nan#e14bdcd1f72d62bca1d541b66da43130384ec213",
+    "memfs": "4.56.10",
+    "@jsonjoy.com/fs-snapshot": "4.56.10"
   }
 }

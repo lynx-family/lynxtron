@@ -1,8 +1,8 @@
 import { defineConfig } from '@lynx-js/rspeedy';
 
-import { pluginQRCode } from '@lynx-js/qrcode-rsbuild-plugin';
 import { pluginReactLynx } from '@lynx-js/react-rsbuild-plugin';
-import { pluginDevReady } from '@lynx-js/dev-ready-rsbuild-plugin';
+import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
+import { pluginRspeedyDevReady } from '@lynx-js/dev-ready-plugin/rspeedy';
 import { fileURLToPath } from 'url';
 import path from 'path';
 
@@ -28,16 +28,5 @@ export default defineConfig({
       '@assets': path.resolve(rootPath, './src/assets'),
     },
   },
-  plugins: [
-    pluginQRCode({
-      schema(url) {
-        // We use `?fullscreen=true` to open the page in LynxExplorer in full screen mode
-        return `${url}`;
-      },
-    }),
-    pluginReactLynx(),
-    pluginDevReady({
-      markerFile: path.resolve(__dirname, './output/bundle/dev-ready.json'),
-    }),
-  ],
+  plugins: [pluginReactLynx(), pluginTypeCheck(), pluginRspeedyDevReady()],
 });

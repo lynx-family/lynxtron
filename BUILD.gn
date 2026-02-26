@@ -101,6 +101,20 @@ templated_file("lynxtron_version_file") {
   args_files = get_target_outputs(":lynxtron_version_args")
 }
 
+lynx_bts_bundle_deps = [
+  "lib/lynxbts/api/context-bridge.ts",
+  "lib/lynxbts/api/exports/lynxtron.ts",
+  "lib/lynxbts/api/preload-runner.ts",
+  "lib/lynxbts/init.ts",
+]
+
+webpack_build("lynxtron_bts_bundle") {
+  inputs = lynx_bts_bundle_deps
+
+  config_file = rebase_path("build/webpack/webpack.config.lynxbts.js")
+  out_file = "$root_gen_dir/lynxtron/js2c/lynxbts_init.js"
+}
+
 browser_bundle_deps = [
   "lib/browser/api/app.ts",
   "lib/browser/api/base-window.ts",
@@ -156,12 +170,14 @@ webpack_build("lynxtron_node_bundle") {
 action("lynxtron_js2c") {
   deps = [
     ":lynxtron_browser_bundle",
+    ":lynxtron_bts_bundle",
     ":lynxtron_node_bundle",
     "//third_party/node:node_js2c($lynxtron_js2c_toolchain)",
   ]
 
   sources = [
     "$root_gen_dir/lynxtron/js2c/browser_init.js",
+    "$root_gen_dir/lynxtron/js2c/lynxbts_init.js",
     "$root_gen_dir/lynxtron/js2c/node_init.js",
   ]
 

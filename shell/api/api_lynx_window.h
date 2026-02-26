@@ -221,8 +221,7 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
   // lynx::EncodableMap global_props_;
   bool software_render_ = true;
 
-  // node integration
-  bool node_integration_ = false;
+  std::vector<std::string> node_integration_preload_ = {};
 
   std::unique_ptr<LynxView> lynx_view_;
   static bool lynx_global_init_;

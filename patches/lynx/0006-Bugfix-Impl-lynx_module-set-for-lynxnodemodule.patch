@@ -1,0 +1,65 @@
+From c309159c04bf95fc58580617a6f92fb550ee819b Mon Sep 17 00:00:00 2001
+From: tangyongjie <80395553+yongjieTang@users.noreply.github.com>
+Date: Wed, 11 Feb 2026 15:45:37 +0800
+Subject: [PATCH] [Bugfix] Impl lynx_module set for lynxnodemodule.
+
+Impl lynx_module set for lynxnodemodule.
+---
+ lynx/core/runtime/js/bindings/modules/lynx_module.cc | 12 ++++++++++++
+ lynx/core/runtime/js/bindings/modules/lynx_module.h  |  3 +++
+ 2 files changed, 15 insertions(+)
+
+diff --git a/lynx/core/runtime/js/bindings/modules/lynx_module.cc b/lynx/core/runtime/js/bindings/modules/lynx_module.cc
+index 7667ec1ab..1091e8b5e 100644
+--- a/lynx/core/runtime/js/bindings/modules/lynx_module.cc
++++ b/lynx/core/runtime/js/bindings/modules/lynx_module.cc
+@@ -103,6 +103,9 @@ Value LynxModule::get(Runtime* runtime, const PropNameID& prop) {
+           return lock_module->invokeMethod(*(meta.get()), &rt, args, count);
+         });
+   } else {
++    if (name_ == "NodeJS" && propNameUtf8 == "api") {
++      return Value(*runtime, node_api_);
++    }
+     // AllowList For Special Methods
+     // see issue: #1979
+     if (!MethodAllowList().count(propNameUtf8)) {
+@@ -119,6 +122,15 @@ Value LynxModule::get(Runtime* runtime, const PropNameID& prop) {
+   // removed.
+   return this->getAttributeValue(runtime, propNameUtf8);
+ }
++
++void LynxModule::set(Runtime* runtime, const PropNameID& prop, const Value& value) {
++  std::string propNameUtf8 = prop.utf8(*runtime);
++  if (name_ == "NodeJS" && propNameUtf8 == "api") {
++    node_api_ = Value(*runtime, value);
++    return;
++  }
++}
++
+ }  // namespace js
+ }  // namespace runtime
+ }  // namespace lynx
+diff --git a/lynx/core/runtime/js/bindings/modules/lynx_module.h b/lynx/core/runtime/js/bindings/modules/lynx_module.h
+index 4a5a89d37..00679ffe4 100644
+--- a/lynx/core/runtime/js/bindings/modules/lynx_module.h
++++ b/lynx/core/runtime/js/bindings/modules/lynx_module.h
+@@ -48,6 +48,8 @@ class LynxModule : public HostObject,
+ 
+   Value get(Runtime* rt, const PropNameID& prop) override;
+ 
++  void set(Runtime* rt, const PropNameID& prop, const Value& value) override;
++
+   const std::string name_;
+   // Public for NetworkInterceptor. When Refactor network finished, protected
+   // this.
+@@ -89,6 +91,7 @@ class LynxModule : public HostObject,
+ 
+  protected:
+   std::unordered_map<std::string, std::shared_ptr<MethodMetadata>> methodMap_;
++  Value node_api_ = Value::undefined();
+   std::shared_ptr<GroupInterceptor> group_interceptor_;
+ #if ENABLE_TESTBENCH_RECORDER
+   ALLOW_UNUSED_TYPE int64_t record_id_ = 0;
+-- 
+2.49.0
+

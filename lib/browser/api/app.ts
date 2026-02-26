@@ -1,4 +1,4 @@
-import { Menu } from 'lynxtron/main';
+import { Menu } from 'lynxtron';
 
 import * as fs from 'fs';
 

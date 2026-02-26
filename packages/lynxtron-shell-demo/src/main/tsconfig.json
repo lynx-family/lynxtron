@@ -1,13 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "jsx": "react-jsx",
-    "jsxImportSource": "@lynx-js/react",
-
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "target": "ES2022",
     "lib": ["ES2023"],
-    "target": "ES2022"
+    "types": ["node"]
   },
-  "include": ["./**/*.ts", "./**/*.tsx"]
+  "include": ["./**/*.ts"]
 }

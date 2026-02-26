@@ -32,7 +32,7 @@ for (const flag of unknownFlags) {
 }
 
 const utils = require('./lib/utils');
-const { YARN_VERSION } = require('./yarn');
+const { YARN_VERSION, getYarnCommand } = require('./yarn');
 
 const BASE = utils.SRC_DIR;
 
@@ -194,7 +194,8 @@ async function installSpecModules (dir) {
   if (fs.existsSync(path.resolve(dir, 'node_modules'))) {
     await fs.promises.rm(path.resolve(dir, 'node_modules'), { force: true, recursive: true });
   }
-  const { status } = childProcess.spawnSync(process.execPath, [path.resolve(__dirname, '../tools/yarn.js'), 'install', '--immutable'], {
+  const [cmd, args] = getYarnCommand(YARN_VERSION);
+  const { status } = childProcess.spawnSync(cmd, [...args, 'install', '--immutable'], {
     env,
     cwd: dir,
     stdio: 'inherit',

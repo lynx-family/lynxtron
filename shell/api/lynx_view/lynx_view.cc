@@ -50,15 +50,15 @@ class LynxViewImpl : public lynx::pub::LynxViewClient,
             double height,
             float dpi,
             void* parent,
-            bool node_integration,
+            const std::vector<std::string>& node_integration_preload,
             base::WeakPtr<api::LynxWindow> lynx_window) {
     lynx::pub::LynxView::Builder builder;
     builder.SetScreenSize(width, height, dpi)
         .SetFrame(0, 0, width, height)
         .SetParent(parent);
-
-    if (node_integration) {
-      RegisterLynxNodeModuleToLynxView(builder.Impl());
+    if (!node_integration_preload.empty()) {
+      RegisterLynxNodeModuleToLynxView(builder.Impl(),
+                                       node_integration_preload);
     }
     RegisterLynxBridgeModuleToLynxView(builder.Impl(), lynx_window);
 
@@ -215,8 +215,9 @@ void LynxView::Init(double width,
                     double height,
                     float dpi,
                     void* parent,
-                    bool node_integration) {
-  impl_->Init(width, height, dpi, parent, node_integration, lynx_window_);
+                    const std::vector<std::string>& node_integration_preload) {
+  impl_->Init(width, height, dpi, parent, node_integration_preload,
+              lynx_window_);
 }
 
 void LynxView::LoadTemplate(std::string_view template_url,
