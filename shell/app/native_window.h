@@ -207,6 +207,8 @@ class NativeWindow : public base::SupportsUserData {
   virtual std::optional<gfx::Point> GetTrafficLightPosition() const = 0;
   virtual void RedrawTrafficLights() = 0;
   virtual void UpdateFrame() = 0;
+  virtual bool IsHiddenInMissionControl() const = 0;
+  virtual void SetHiddenInMissionControl(bool hidden) = 0;
 #endif
 
   // Touchbar API

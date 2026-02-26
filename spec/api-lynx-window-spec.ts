@@ -568,6 +568,40 @@ describe('LynxWindow module', () => {
       });
 
       ifdescribe(process.platform === 'darwin')(
+        'isHiddenInMissionControl state',
+        () => {
+          afterEach(closeAllWindows);
+
+          describe('with functions', () => {
+            it('can be set with hiddenInMissionControl constructor option', () => {
+              const w = new LynxWindow({
+                show: false,
+                hiddenInMissionControl: true,
+              });
+              expect(w.isHiddenInMissionControl()).to.be.true(
+                'isHiddenInMissionControl'
+              );
+            });
+
+            it('can be changed', () => {
+              const w = new LynxWindow({ show: false });
+              expect(w.isHiddenInMissionControl()).to.be.false(
+                'isHiddenInMissionControl'
+              );
+              w.setHiddenInMissionControl(true);
+              expect(w.isHiddenInMissionControl()).to.be.true(
+                'isHiddenInMissionControl'
+              );
+              w.setHiddenInMissionControl(false);
+              expect(w.isHiddenInMissionControl()).to.be.false(
+                'isHiddenInMissionControl'
+              );
+            });
+          });
+        }
+      );
+
+      ifdescribe(process.platform === 'darwin')(
         'LynxWindow.setWindowButtonVisibility()',
         () => {
           afterEach(closeAllWindows);
