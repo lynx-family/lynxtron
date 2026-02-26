@@ -15,7 +15,6 @@
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/gin_helper/object_template_builder.h"
 #include "shell/common/node_includes.h"
-#include "v8/include/cppgc/allocation.h"
 
 namespace lynxtron::api {
 
@@ -90,7 +89,7 @@ bool Menu::ShouldRegisterAcceleratorForCommandId(int command_id) const {
                           command_id);
 }
 
-#if defined(__APPLE__)
+#if BUILDFLAG(IS_MAC)
 bool Menu::GetSharingItemForCommandId(
     int command_id,
     LynxtronMenuModel::SharingItem* item) const {
@@ -262,7 +261,7 @@ void Menu::FillObjectTemplate(v8::Isolate* isolate,
       .SetMethod("popupAt", &Menu::PopupAt)
       .SetMethod("closePopupAt", &Menu::ClosePopupAt)
       .SetMethod("_getAcceleratorTextAt", &Menu::GetAcceleratorTextAtForTesting)
-#if defined(__APPLE__)
+#if BUILDFLAG(IS_MAC)
       .SetMethod("_getUserAcceleratorAt", &Menu::GetUserAcceleratorAt)
 #endif
       .Build();
@@ -289,7 +288,7 @@ void Initialize(v8::Local<v8::Object> exports,
   v8::Isolate* const isolate = lynxtron::JavascriptEnvironment::GetIsolate();
   gin_helper::Dictionary dict{isolate, exports};
   dict.Set("Menu", Menu::GetConstructor(isolate, context));
-#if defined(__APPLE__)
+#if BUILDFLAG(IS_MAC)
   dict.SetMethod("setApplicationMenu", &Menu::SetApplicationMenu);
   dict.SetMethod("sendActionToFirstResponder",
                  &Menu::SendActionToFirstResponder);
@@ -300,13 +299,12 @@ void Initialize(v8::Local<v8::Object> exports,
 
 NODE_LINKED_BINDING_CONTEXT_AWARE(lynxtron_binding_menu, Initialize)
 
-#if !defined(__APPLE__)
+#if BUILDFLAG(IS_WIN)
 namespace lynxtron::api {
 
 Menu* Menu::New(gin::Arguments* args) {
   v8::Isolate* const isolate = args->isolate();
-  Menu* const menu = cppgc::MakeGarbageCollected<Menu>(
-      isolate->GetCppHeap()->GetAllocationHandle(), args);
+  Menu* const menu = new Menu(args);
   gin_helper::CallMethod(isolate, menu, "_init");
   return menu;
 }

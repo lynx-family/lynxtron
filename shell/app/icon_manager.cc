@@ -13,18 +13,9 @@
 #include "shell/common/global_thread.h"
 
 namespace lynxtron {
-
-#if !BUILDFLAG(IS_WIN) && !BUILDFLAG(IS_MAC)
-gfx::Image LoadPlatformIcon(const base::FilePath& path,
-                            IconManager::IconSize size,
-                            float scale_factor) {
-  return gfx::Image();
-}
-#else
 gfx::Image LoadPlatformIcon(const base::FilePath& path,
                             IconManager::IconSize size,
                             float scale_factor);
-#endif
 
 IconManager::IconManager() = default;
 

@@ -6,6 +6,7 @@
 
 #include "base/strings/string_split.h"
 #include "base/strings/string_util.h"
+#include "build/build_config.h"
 
 namespace accelerator_util {
 
@@ -26,7 +27,7 @@ int ModifierFromToken(const std::string& token) {
     return ui::Accelerator::kCmd;
   }
   if (lower == "commandorcontrol" || lower == "cmdorctrl") {
-#if defined(__APPLE__)
+#if BUILDFLAG(IS_MAC)
     return ui::Accelerator::kCmd;
 #else
     return ui::Accelerator::kCtrl;

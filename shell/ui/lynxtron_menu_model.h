@@ -15,6 +15,7 @@
 #include "base/memory/weak_ptr.h"
 #include "base/observer_list.h"
 #include "base/observer_list_types.h"
+#include "build/build_config.h"
 #include "shell/ui/accelerator.h"
 #include "shell/ui/gfx/image/image.h"
 #include "url/gurl.h"
@@ -30,7 +31,7 @@ class LynxtronMenuModel {
     TYPE_SEPARATOR,
     TYPE_SUBMENU,
   };
-#if defined(__APPLE__)
+#if BUILDFLAG(IS_MAC)
   struct SharingItem {
     SharingItem();
     SharingItem(SharingItem&&);
@@ -62,7 +63,7 @@ class LynxtronMenuModel {
 
     virtual bool ShouldCommandIdWorkWhenHidden(int command_id) const = 0;
 
-#if defined(__APPLE__)
+#if BUILDFLAG(IS_MAC)
     virtual bool GetSharingItemForCommandId(int command_id,
                                             SharingItem* item) const = 0;
 #endif
@@ -127,7 +128,7 @@ class LynxtronMenuModel {
                                   ui::Accelerator* accelerator) const;
   bool ShouldRegisterAcceleratorAt(size_t index) const;
   bool WorksWhenHiddenAt(size_t index) const;
-#if defined(__APPLE__)
+#if BUILDFLAG(IS_MAC)
   bool GetSharingItemAt(size_t index, SharingItem* item) const;
   void SetSharingItem(SharingItem item);
   [[nodiscard]] const std::optional<SharingItem>& sharing_item() const {
@@ -164,7 +165,7 @@ class LynxtronMenuModel {
 
   raw_ptr<Delegate> delegate_;
 
-#if defined(__APPLE__)
+#if BUILDFLAG(IS_MAC)
   std::optional<SharingItem> sharing_item_;
 #endif
 
