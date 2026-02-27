@@ -601,6 +601,8 @@ if (is_mac) {
       "//base",
       "//third_party/node:libnode",
     ]
+    deps += lynxtron_app_extra_deps
+
     info_plist = "shell/common/resources/mac/Info.plist"
 
     extra_substitutions = [
@@ -715,8 +717,7 @@ if (is_mac) {
 
     include_dirs = [ "." ]
 
-    deps = lynxtron_app_extra_deps
-    deps += [
+    deps = [
       ":lynxtron_app_framework_bundle_data",
       ":lynxtron_app_plist",
       ":lynxtron_app_resources",
