@@ -588,10 +588,6 @@ bool BaseWindow::IsSimpleFullScreen() const {
   return window_->IsSimpleFullScreen();
 }
 
-// bool BaseWindow::IsTabletMode() const {
-//  return window_->IsTabletMode();
-//}
-
 void BaseWindow::SetBackgroundColor(const std::string& color_name) {
   // SkColor color = ParseHexColor(color_name);
   // window_->SetBackgroundColor(color);

@@ -13,8 +13,6 @@
 #include <string>
 #include <vector>
 
-// #include "base/apple/scoped_nsobject.h"
-// #include "base/memory/raw_ptr.h"
 #include "shell/app/native_window.h"
 #include "shell/ui/gfx/geometry/rect.h"
 

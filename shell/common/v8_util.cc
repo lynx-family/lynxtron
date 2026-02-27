@@ -11,11 +11,6 @@
 #include "base/check_op.h"
 #include "base/memory/raw_ptr.h"
 #include "gin/converter.h"
-// #include "shell/common/api/electron_api_native_image.h"
-// #include "skia/public/mojom/bitmap.mojom.h"
-// #include "third_party/blink/public/common/messaging/cloneable_message.h"
-// #include "third_party/blink/public/common/messaging/web_message_port.h"
-// #include "ui/gfx/image/image_skia.h"
 #include "v8/include/v8-value-serializer.h"
 #include "v8/include/v8.h"
 

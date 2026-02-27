@@ -19,6 +19,7 @@
 #include "gin/arguments.h"
 #include "gin/object_template_builder.h"
 #include "gin/per_isolate_data.h"
+#include "shell/api/api_native_image.h"
 #include "shell/app/application.h"
 #include "shell/common/asar/asar_util.h"
 #include "shell/common/data_url.h"

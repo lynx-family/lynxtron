@@ -4,24 +4,16 @@
 
 #include "shell/api/lynxtron_bindings.h"
 
-#include <algorithm>
-#include <string>
-#include <utility>
-#include <vector>
-
 #include "base/containers/contains.h"
-#include "base/files/file.h"
 #include "base/process/process.h"
-#include "base/process/process_handle.h"
 #include "base/system/sys_info.h"
-#include "shell/app/application.h"
-#include "shell/common/application_info.h"
-#include "shell/common/gin_converters/file_path_converter.h"
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/gin_helper/locker.h"
-#include "shell/common/gin_helper/promise.h"
 #include "shell/common/node_includes.h"
-#include "shell/common/thread_restrictions.h"
+
+#if BUILDFLAG(IS_WIN)
+#include "shell/common/application_info.h"
+#endif
 
 namespace lynxtron {
 
@@ -42,18 +34,11 @@ void LynxtronBindings::BindProcess(v8::Isolate* isolate,
   process->SetMethod("hang", &Hang);
   process->SetMethod("getCreationTime", &GetCreationTime);
   process->SetMethod("getHeapStatistics", &GetHeapStatistics);
-  // process->SetMethod("getBlinkMemoryInfo", &GetBlinkMemoryInfo);
-  // process->SetMethod("getProcessMemoryInfo", &GetProcessMemoryInfo);
-  // process->SetMethod("getSystemMemoryInfo", &GetSystemMemoryInfo);
   process->SetMethod("getSystemVersion",
                      &base::SysInfo::OperatingSystemVersion);
   process->SetMethod("getCPUUsage",
                      base::BindRepeating(&LynxtronBindings::GetCPUUsage,
                                          base::Unretained(metrics)));
-
-  // #if IS_MAS_BUILD()
-  //   process->SetReadOnly("mas", true);
-  // #endif
 
 #if BUILDFLAG(IS_WIN)
   if (IsRunningInDesktopBridge()) {
@@ -67,7 +52,6 @@ void LynxtronBindings::BindTo(v8::Isolate* isolate,
   gin_helper::Dictionary dict(isolate, process);
   BindProcess(isolate, &dict, metrics_.get());
 
-  // dict.SetMethod("takeHeapSnapshot", &TakeHeapSnapshot);
 #if BUILDFLAG(IS_POSIX)
   dict.SetMethod("setFdLimit", &base::IncreaseFdLimitTo);
 #endif
@@ -157,114 +141,6 @@ v8::Local<v8::Value> LynxtronBindings::GetCreationTime(v8::Isolate* isolate) {
 }
 
 // static
-// v8::Local<v8::Value> LynxtronBindings::GetSystemMemoryInfo(
-//     v8::Isolate* isolate,
-//     gin_helper::Arguments* args) {
-//   base::SystemMemoryInfoKB mem_info;
-//   if (!base::GetSystemMemoryInfo(&mem_info)) {
-//     args->ThrowError("Unable to retrieve system memory information");
-//     return v8::Undefined(isolate);
-//   }
-
-//   auto dict = gin_helper::Dictionary::CreateEmpty(isolate);
-//   dict.Set("total", mem_info.total);
-
-//   // See Chromium's "base/process/process_metrics.h" for an explanation.
-//   int free =
-// #if BUILDFLAG(IS_WIN)
-//       mem_info.avail_phys;
-// #else
-//       mem_info.free;
-// #endif
-//   dict.Set("free", free);
-
-// #if BUILDFLAG(IS_MAC)
-//   dict.Set("fileBacked", mem_info.file_backed);
-//   dict.Set("purgeable", mem_info.purgeable);
-// #else
-//   // NB: These return bogus values on macOS
-//   dict.Set("swapTotal", mem_info.swap_total);
-//   dict.Set("swapFree", mem_info.swap_free);
-// #endif
-
-//   return dict.GetHandle();
-// }
-
-// static
-// v8::Local<v8::Promise> LynxtronBindings::GetProcessMemoryInfo(
-//     v8::Isolate* isolate) {
-//   gin_helper::Promise<gin_helper::Dictionary> promise(isolate);
-//   v8::Local<v8::Promise> handle = promise.GetHandle();
-
-//   if (!Browser::Get()->is_ready()) {
-//     promise.RejectWithErrorMessage(
-//         "Memory Info is available only after app ready");
-//     return handle;
-//   }
-
-//   v8::Global<v8::Context> context(isolate, isolate->GetCurrentContext());
-//   memory_instrumentation::MemoryInstrumentation::GetInstance()
-//       ->RequestGlobalDumpForPid(
-//           base::GetCurrentProcId(), std::vector<std::string>(),
-//           base::BindOnce(&LynxtronBindings::DidReceiveMemoryDump,
-//                          std::move(context), std::move(promise),
-//                          base::GetCurrentProcId()));
-//   return handle;
-// }
-
-// static
-// v8::Local<v8::Value> LynxtronBindings::GetBlinkMemoryInfo(
-//     v8::Isolate* isolate) {
-//   auto allocated = blink::ProcessHeap::TotalAllocatedObjectSize();
-//   auto total = blink::ProcessHeap::TotalAllocatedSpace();
-
-//   auto dict = gin_helper::Dictionary::CreateEmpty(isolate);
-//   dict.Set("allocated", static_cast<double>(allocated >> 10));
-//   dict.Set("total", static_cast<double>(total >> 10));
-//   return dict.GetHandle();
-// }
-
-// static
-// void LynxtronBindings::DidReceiveMemoryDump(
-//     v8::Global<v8::Context> context,
-//     gin_helper::Promise<gin_helper::Dictionary> promise,
-//     base::ProcessId target_pid,
-//     bool success,
-//     std::unique_ptr<memory_instrumentation::GlobalMemoryDump> global_dump) {
-//   v8::Isolate* isolate = promise.isolate();
-//   v8::HandleScope handle_scope(isolate);
-//   v8::Local<v8::Context> local_context =
-//       v8::Local<v8::Context>::New(isolate, context);
-//   v8::Context::Scope context_scope(local_context);
-
-//   if (!success) {
-//     promise.RejectWithErrorMessage("Failed to create memory dump");
-//     return;
-//   }
-
-//   bool resolved = false;
-//   for (const memory_instrumentation::GlobalMemoryDump::ProcessDump& dump :
-//        global_dump->process_dumps()) {
-//     if (target_pid == dump.pid()) {
-//       auto dict = gin_helper::Dictionary::CreateEmpty(isolate);
-//       const auto& osdump = dump.os_dump();
-// #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_WIN)
-//       dict.Set("residentSet", osdump.resident_set_kb);
-// #endif
-//       dict.Set("private", osdump.private_footprint_kb);
-//       dict.Set("shared", osdump.shared_footprint_kb);
-//       promise.Resolve(dict);
-//       resolved = true;
-//       break;
-//     }
-//   }
-//   if (!resolved) {
-//     promise.RejectWithErrorMessage(
-//         R"(Failed to find current process memory details in memory dump)");
-//   }
-// }
-
-// static
 v8::Local<v8::Value> LynxtronBindings::GetCPUUsage(
     base::ProcessMetrics* metrics,
     v8::Isolate* isolate) {
@@ -290,16 +166,5 @@ v8::Local<v8::Value> LynxtronBindings::GetCPUUsage(
 
   return dict.GetHandle();
 }
-
-// static
-// bool LynxtronBindings::TakeHeapSnapshot(v8::Isolate* isolate,
-//                                         const base::FilePath& file_path) {
-//   ScopedAllowBlockingForElectron allow_blocking;
-
-//   base::File file(file_path,
-//                   base::File::FLAG_CREATE_ALWAYS | base::File::FLAG_WRITE);
-
-//   return electron::TakeHeapSnapshot(isolate, &file);
-// }
 
 }  // namespace lynxtron

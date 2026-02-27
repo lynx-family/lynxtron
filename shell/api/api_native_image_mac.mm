@@ -16,6 +16,7 @@
 #include "base/strings/sys_string_conversions.h"
 #include "base/task/bind_post_task.h"
 #include "gin/arguments.h"
+#include "shell/api/api_native_image.h"
 #include "shell/common/gin_converters/image_converter.h"
 #include "shell/common/gin_helper/handle.h"
 #include "shell/common/gin_helper/promise.h"

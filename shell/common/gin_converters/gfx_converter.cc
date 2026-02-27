@@ -7,7 +7,6 @@
 #include <string>
 
 #include "gin/data_object_builder.h"
-#include "shell/common/color_util.h"
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/ui/gfx/color_space.h"
 #include "shell/ui/gfx/geometry/insets.h"
@@ -233,18 +232,6 @@ v8::Local<v8::Value> Converter<gfx::ResizeEdge>::ToV8(
     default:
       return StringToV8(isolate, "unknown");
   }
-}
-
-// TODO(Guo Xi):
-bool Converter<WrappedSkColor>::FromV8(v8::Isolate* isolate,
-                                       v8::Local<v8::Value> val,
-                                       WrappedSkColor* out) {
-  std::string str;
-  if (!gin::ConvertFromV8(isolate, val, &str)) {
-    return false;
-  }
-  *out = lynxtron::ParseCSSColor(str).value_or(SK_ColorWHITE);
-  return true;
 }
 
 v8::Local<v8::Value> Converter<gfx::ColorSpace>::ToV8(
