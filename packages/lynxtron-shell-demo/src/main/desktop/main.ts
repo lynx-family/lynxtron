@@ -1,11 +1,15 @@
 import { app, LynxWindow, dialog } from '@lynx-js/lynxtron';
 import { LYNX_BUNDLE_PATH } from './vendorPaths';
+import path from 'path';
 
 app.whenReady().then(() => {
   const w = new LynxWindow({
     width: 800,
     height: 600,
     title: 'Lynxtron Hello World',
+    nodeIntegration: {
+      preload_paths: [path.join(__dirname, 'preload.js')],
+    },
   });
 
   // Handle bridge calls from Lynx UI

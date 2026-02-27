@@ -14,6 +14,7 @@ const desktopConfig = defineConfig({
   target: 'electron-main',
   entry: {
     main: './src/main/desktop/main.ts',
+    preload: './src/main/desktop/preload.ts',
   },
   output: {
     path: path.resolve(__dirname, 'dist/desktop/'),
@@ -119,7 +120,7 @@ const webConfig = defineConfig({
     historyApiFallback: true,
     proxy: [
       {
-        context: (pathname) => {
+        context: (pathname: string) => {
           return (
             pathname.endsWith('.bundle') ||
             pathname.endsWith('.map') ||

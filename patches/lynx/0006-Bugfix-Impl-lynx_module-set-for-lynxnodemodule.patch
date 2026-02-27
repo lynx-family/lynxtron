@@ -17,7 +17,7 @@ index 7667ec1ab..717d2b929 100644
            return lock_module->invokeMethod(*(meta.get()), &rt, args, count);
          });
    } else {
-+    if (name_ == "nodejs" && propNameUtf8 == "api") {
++    if (name_ == "nodejs" && propNameUtf8 == "getExposed") {
 +      return Value(*runtime, node_api_);
 +    }
      // AllowList For Special Methods
@@ -30,7 +30,7 @@ index 7667ec1ab..717d2b929 100644
 +
 +void LynxModule::set(Runtime* runtime, const PropNameID& prop, const Value& value) {
 +  std::string propNameUtf8 = prop.utf8(*runtime);
-+  if (name_ == "nodejs" && propNameUtf8 == "api") {
++  if (name_ == "nodejs" && propNameUtf8 == "getExposed") {
 +    node_api_ = Value(*runtime, value);
 +    return;
 +  }
