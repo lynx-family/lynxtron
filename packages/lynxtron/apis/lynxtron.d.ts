@@ -1,5 +1,6 @@
 // apis
 export * from './api/app';
+export * from './api/context-bridge';
 export * from './api/native-image';
 export * from './api/command-line';
 export * from './api/menu';

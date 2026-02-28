@@ -39,25 +39,114 @@ async function updatePackageName(dest, name) {
   } catch {}
 }
 
-async function main() {
-  let targetArg = process.argv[2];
-  if (!targetArg) {
-    const answers = await prompts(
-      [
-        {
-          type: 'text',
-          name: 'project',
-          message: 'Project name or path',
-          initial: 'lynxtron-app'
-        }
-      ],
-      {
-        onCancel: () => {
-          process.exit(0);
-        }
+async function processTemplate(targetDir, webSupport) {
+  // 1. Files to delete if no web support
+  if (!webSupport) {
+    const toDelete = [
+      'src/main/web',
+    ];
+    for (const f of toDelete) {
+      const p = path.join(targetDir, f);
+      if (fs.existsSync(p)) {
+        await fsp.rm(p, { recursive: true, force: true });
       }
-    );
-    targetArg = answers.project || 'lynxtron-app';
+    }
+  }
+
+  // 2. Process markers in config files
+  const configFiles = [
+    'lynx.config.ts',
+    'rspack.config.ts',
+    'README.md',
+    'README.zh-cn.md',
+    'AGENTS.md',
+  ];
+
+  for (const f of configFiles) {
+    const p = path.join(targetDir, f);
+    if (!fs.existsSync(p)) continue;
+    let content = await fsp.readFile(p, 'utf8');
+
+    if (webSupport) {
+      // Keep web support: remove web markers (comments) and remove no-web block
+      content = content.replace(/^\s*\/\* WEB_SUPPORT_START \*\/\s*\n/gm, '');
+      content = content.replace(/^\s*\/\* WEB_SUPPORT_END \*\/\s*\n/gm, '');
+      content = content.replace(
+        /^\s*\/\* NO_WEB_SUPPORT_START \*\/[\s\S]*?\/\* NO_WEB_SUPPORT_END \*\/[ \t]*\n?/gm,
+        ''
+      );
+    } else {
+      // Remove web support: remove web block and remove no-web markers
+      content = content.replace(
+        /^\s*\/\* WEB_SUPPORT_START \*\/[\s\S]*?\/\* WEB_SUPPORT_END \*\/[ \t]*\n?/gm,
+        ''
+      );
+      content = content.replace(/^\s*\/\* NO_WEB_SUPPORT_START \*\/\s*\n/gm, '');
+      content = content.replace(/^\s*\/\* NO_WEB_SUPPORT_END \*\/\s*\n/gm, '');
+    }
+    await fsp.writeFile(p, content);
+  }
+
+  // 3. Update package.json
+  const pkgPath = path.join(targetDir, 'package.json');
+  if (fs.existsSync(pkgPath)) {
+    const pkg = JSON.parse(await fsp.readFile(pkgPath, 'utf8'));
+    if (!webSupport) {
+      const toRemoveDeps = [
+        '@lynx-js/web-core',
+        '@lynx-js/web-elements',
+      ];
+      if (pkg.dependencies) {
+        toRemoveDeps.forEach((d) => delete pkg.dependencies[d]);
+      }
+      if (pkg.devDependencies) {
+        toRemoveDeps.forEach((d) => delete pkg.devDependencies[d]);
+      }
+      if (pkg.scripts) {
+        delete pkg.scripts['start:web'];
+        delete pkg.scripts['dev:web'];
+      }
+    }
+    await fsp.writeFile(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+  }
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+  let targetArg = args.find((a) => !a.startsWith('-'));
+  let webSupport = args.includes('--web')
+    ? true
+    : args.includes('--no-web')
+    ? false
+    : undefined;
+
+  if (!targetArg || webSupport === undefined) {
+    const questions = [];
+    if (!targetArg) {
+      questions.push({
+        type: 'text',
+        name: 'project',
+        message: 'Project name or path',
+        initial: 'lynxtron-app',
+      });
+    }
+    if (webSupport === undefined) {
+      questions.push({
+        type: 'confirm',
+        name: 'web',
+        message: 'Include Web support (Symmetric Host)?',
+        initial: true,
+      });
+    }
+
+    const answers = await prompts(questions, {
+      onCancel: () => {
+        process.exit(0);
+      },
+    });
+
+    if (!targetArg) targetArg = answers.project || 'lynxtron-app';
+    if (webSupport === undefined) webSupport = !!answers.web;
   }
   const targetDir = path.resolve(process.cwd(), targetArg);
   const appName = path.basename(targetDir);
@@ -132,6 +221,9 @@ async function main() {
     replaceWorkspace(pkg.optionalDependencies);
     await fsp.writeFile(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
   } catch {}
+
+  await processTemplate(targetDir, webSupport);
+
   console.log('Created Lynxtron app at', targetDir);
   console.log('Next steps:');
   const relDir = path.relative(process.cwd(), targetDir) || '.';

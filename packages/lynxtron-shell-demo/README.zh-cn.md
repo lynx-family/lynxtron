@@ -29,43 +29,36 @@
 npm install
 ```
 
-### 一键启动
+### 开发模式
 
-执行以下命令可以一键完成代码编译并启动应用。
-
-```bash
-npm run start
-```
-
-### 调试
-
-本项目支持对 Lynx (渲染进程) 和 Lynxtron (主进程) 的分别或同时调试。
-
-- **同时调试 Lynx 和 Lynxtron (推荐)**
-
-  在一个终端中执行以下命令，将会同时以调试模式启动 Lynx 和 Lynxtron，并支持热更新。
-
+- **桌面端 (Desktop)**
   ```bash
   npm run dev
   ```
 
-- **仅调试 Lynx**
-
-  如果你只需要关注界面部分，可以只启动 Lynx 的调试服务。你需要打开 **LynxDevTool** 工具来进行调试。
-
+/* WEB_SUPPORT_START */
+- **Web 端 (Browser)**
   ```bash
-  npm run dev:lynx
+  npm run dev:web
+  ```
+/* WEB_SUPPORT_END */
+
+### 构建与启动
+
+- **生产环境构建**
+  ```bash
+  npm run build
   ```
 
-- **仅调试 Lynxtron**
-
-  如果你只需要关注主进程逻辑，可以只启动 Lynxtron 的调试服务。
-  **注意**: 此命令会等待 Lynx 的开发服务器 (`http://localhost:3000`) 启动后再执行。
-
+- **启动桌面端**
   ```bash
-  npm run dev:node
+  npm start
   ```
-  Lynxtron 主进程的调试端口为 `9222`。你需要通过 Chrome 浏览器打开 `chrome://inspect` 地址，并添加对 `9222` 端口的监听来进行调试。
+
+- **启动 Web 端**
+  ```bash
+  npm run start:web
+  ```
 
 ### 应用打包
 

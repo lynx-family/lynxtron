@@ -1154,16 +1154,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@lynx-js/dev-ready-plugin@workspace:*, @lynx-js/dev-ready-plugin@workspace:packages/dev-ready-plugin":
-  version: 0.0.0-use.local
-  resolution: "@lynx-js/dev-ready-plugin@workspace:packages/dev-ready-plugin"
-  peerDependencies:
-    "@rsbuild/core": ^1.6.0
-  bin:
-    dev-ready-rspack: dist/cli-rspack.js
-    dev-ready-rspeedy: dist/cli-rspeedy.js
-  languageName: unknown
-  linkType: soft
+"@lynx-js/lynx-core@npm:latest":
+  version: 0.1.3
+  resolution: "@lynx-js/lynx-core@npm:0.1.3"
+  checksum: 4deca514c565ccf0d33c3ff67fc5d5ab1c47d3833f4997b2e5c1e8b8ad8d768ac25b54f086907932949d74f5497e0a1e6d3200ba51c0074e49b36105a2ff378a
+  languageName: node
+  linkType: hard
 
 "@lynx-js/lynxtron-builder@workspace:*, @lynx-js/lynxtron-builder@workspace:packages/lynxtron-builder":
   version: 0.0.0-use.local
@@ -1179,6 +1175,16 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@lynx-js/lynxtron-dev-plugins@workspace:*, @lynx-js/lynxtron-dev-plugins@workspace:packages/lynxtron-dev-plugins":
+  version: 0.0.0-use.local
+  resolution: "@lynx-js/lynxtron-dev-plugins@workspace:packages/lynxtron-dev-plugins"
+  peerDependencies:
+    "@rsbuild/core": ^1.6.0
+  bin:
+    dev-ready-rspeedy: bin/cli-rspeedy.js
+  languageName: unknown
+  linkType: soft
+
 "@lynx-js/lynxtron@workspace:*, @lynx-js/lynxtron@workspace:packages/lynxtron":
   version: 0.0.0-use.local
   resolution: "@lynx-js/lynxtron@workspace:packages/lynxtron"
@@ -1190,6 +1196,13 @@ __metadata:
     lynxtron: cli.js
   languageName: unknown
   linkType: soft
+
+"@lynx-js/offscreen-document@npm:0.1.4":
+  version: 0.1.4
+  resolution: "@lynx-js/offscreen-document@npm:0.1.4"
+  checksum: bc6f5461f1d9ba5286024188038e89e0499b52bf6018c1dd7215ce0452faf003f17ae7d00cd9a6c495bdae72282097d6aa75254be30e35ba4f4ad67997664ffd
+  languageName: node
+  linkType: hard
 
 "@lynx-js/preact-devtools@npm:^5.0.1-c0c936b":
   version: 5.0.1
@@ -1426,6 +1439,51 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@lynx-js/web-constants@npm:0.19.7":
+  version: 0.19.7
+  resolution: "@lynx-js/web-constants@npm:0.19.7"
+  dependencies:
+    "@lynx-js/web-worker-rpc": "npm:0.19.7"
+  checksum: c982c77578d18627c69e9e96a259caa574a21871ec65453703e1ecc448f6713fc0e22eca2f6033244a59cda7015e573a8ffa2b0e2de9d1a7ef95a1168d23c835
+  languageName: node
+  linkType: hard
+
+"@lynx-js/web-core@npm:latest":
+  version: 0.19.7
+  resolution: "@lynx-js/web-core@npm:0.19.7"
+  dependencies:
+    "@lynx-js/offscreen-document": "npm:0.1.4"
+    "@lynx-js/web-constants": "npm:0.19.7"
+    "@lynx-js/web-mainthread-apis": "npm:0.19.7"
+    "@lynx-js/web-worker-rpc": "npm:0.19.7"
+    "@lynx-js/web-worker-runtime": "npm:0.19.7"
+  peerDependencies:
+    "@lynx-js/lynx-core": 0.1.3
+    "@lynx-js/web-elements": ">0.7.7"
+  checksum: 997881a4e9f5bd7b47eac889f78d6bc393138ebd0c37e4b16f389e44fcf7f95453dd5242f7615e81e7943d941f0308e9cea765b87de1077c21638cc4659c8aa3
+  languageName: node
+  linkType: hard
+
+"@lynx-js/web-elements@npm:latest":
+  version: 0.11.1
+  resolution: "@lynx-js/web-elements@npm:0.11.1"
+  peerDependencies:
+    tslib: ^2.5.0
+  checksum: ccc881ae4c1cb0de30fd59383d86adc95f9163b880d6663af2873f3b2b4a7d99c25f4e9a159880ca2f686724efa0174bb943270d7ff7ef7ac3158455c9d0a3d0
+  languageName: node
+  linkType: hard
+
+"@lynx-js/web-mainthread-apis@npm:0.19.7":
+  version: 0.19.7
+  resolution: "@lynx-js/web-mainthread-apis@npm:0.19.7"
+  dependencies:
+    "@lynx-js/web-constants": "npm:0.19.7"
+    hyphenate-style-name: "npm:^1.1.0"
+    wasm-feature-detect: "npm:^1.8.0"
+  checksum: e8ec215a18879fd165edc16202611937a3c34639f28614592a0ceffb21f99f4d291e108aa15e4ad169ad758e4e7376585c0bb0582c1c6c3a7b03f25443f54746
+  languageName: node
+  linkType: hard
+
 "@lynx-js/web-rsbuild-server-middleware@npm:0.19.2":
   version: 0.19.2
   resolution: "@lynx-js/web-rsbuild-server-middleware@npm:0.19.2"
@@ -1437,6 +1495,27 @@ __metadata:
   version: 0.19.5
   resolution: "@lynx-js/web-rsbuild-server-middleware@npm:0.19.5"
   checksum: ff5119767b847a08c8952a3cc2c304cebd0379c1a4cbd8658fcadb7bec2f9ebe72c05642ee2b57c7c1018875632473a2da5b9e0db0e37ed8b1150fee7d4f455a
+  languageName: node
+  linkType: hard
+
+"@lynx-js/web-worker-rpc@npm:0.19.7":
+  version: 0.19.7
+  resolution: "@lynx-js/web-worker-rpc@npm:0.19.7"
+  checksum: 57fdbc38a5baeead45474ef8eafa7584acd1e02fd85ce326712080eec58073782806829e689c0e0e9a7a5eafdb4440baefeb74397eab6e36e069d0b8a45cab9f
+  languageName: node
+  linkType: hard
+
+"@lynx-js/web-worker-runtime@npm:0.19.7":
+  version: 0.19.7
+  resolution: "@lynx-js/web-worker-runtime@npm:0.19.7"
+  dependencies:
+    "@lynx-js/offscreen-document": "npm:0.1.4"
+    "@lynx-js/web-constants": "npm:0.19.7"
+    "@lynx-js/web-mainthread-apis": "npm:0.19.7"
+    "@lynx-js/web-worker-rpc": "npm:0.19.7"
+  peerDependencies:
+    "@lynx-js/lynx-core": 0.1.3
+  checksum: babeec8ff59e64ef6789962034d4bdf84cc5d4c3ee4506e453b75a0e865ec78c38fc1042a6521a9a106dda40df1565e5f4d943842523c850209f071dbcfe5a16
   languageName: node
   linkType: hard
 
@@ -7106,6 +7185,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"hyphenate-style-name@npm:^1.1.0":
+  version: 1.1.0
+  resolution: "hyphenate-style-name@npm:1.1.0"
+  checksum: bfe88deac2414a41a0d08811e277c8c098f23993d6a1eb17f14a0f11b54c4d42865a63d3cfe1914668eefb9a188e2de58f38b55a179a238fd1fef606893e194f
+  languageName: node
+  linkType: hard
+
 "iconv-corefoundation@npm:^1.1.7":
   version: 1.1.7
   resolution: "iconv-corefoundation@npm:1.1.7"
@@ -8117,14 +8203,17 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "lynxtron-shell-demo@workspace:packages/lynxtron-shell-demo"
   dependencies:
-    "@lynx-js/dev-ready-plugin": "workspace:*"
+    "@lynx-js/lynx-core": "npm:latest"
     "@lynx-js/lynxtron": "workspace:*"
     "@lynx-js/lynxtron-builder": "workspace:*"
+    "@lynx-js/lynxtron-dev-plugins": "workspace:*"
     "@lynx-js/preact-devtools": "npm:^5.0.1-c0c936b"
     "@lynx-js/react": "npm:0.115.4"
     "@lynx-js/react-rsbuild-plugin": "npm:^0.12.5"
     "@lynx-js/rspeedy": "npm:^0.13.0"
     "@lynx-js/types": "npm:3.6.0"
+    "@lynx-js/web-core": "npm:latest"
+    "@lynx-js/web-elements": "npm:latest"
     "@rsbuild/plugin-type-check": "npm:1.3.1"
     "@rspack/cli": "npm:^1.7.5"
     "@rspack/core": "npm:^1.7.5"
@@ -12081,6 +12170,13 @@ __metadata:
   dependencies:
     xml-name-validator: "npm:^5.0.0"
   checksum: 8712774c1aeb62dec22928bf1cdfd11426c2c9383a1a63f2bcae18db87ca574165a0fbe96b312b73652149167ac6c7f4cf5409f2eb101d9c805efe0e4bae798b
+  languageName: node
+  linkType: hard
+
+"wasm-feature-detect@npm:^1.8.0":
+  version: 1.8.0
+  resolution: "wasm-feature-detect@npm:1.8.0"
+  checksum: 2cb43e91bbf7aa7c121bc76b3133de3ab6dc4f482acc1d2dc46c528e8adb7a51c72df5c2aacf1d219f113c04efd1706f18274d5790542aa5dd49e0644e3ee665
   languageName: node
   linkType: hard
 
