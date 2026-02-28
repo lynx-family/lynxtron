@@ -12,4 +12,5 @@ export const lynxtronModuleList: LynxtronInternal.ModuleEntry[] = [
   { name: 'shell', loader: () => require('./shell') },
   { name: 'screen', loader: () => require('./screen') },
   { name: 'Tray', loader: () => require('./tray') },
+  { name: 'utilityProcess', loader: () => require('./utility-process') },
 ];

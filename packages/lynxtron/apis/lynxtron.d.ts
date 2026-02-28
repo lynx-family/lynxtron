@@ -20,6 +20,7 @@ export * from './api/dialog';
 export * from './api/shell';
 export * from './api/lynx-extension-utils';
 export * from './api/environment';
+export * from './api/utility-process';
 
 // structures
 export * from './structures/point';

@@ -14,6 +14,7 @@ import { NativeImage as LynxtronNativeImage } from '../packages/lynxtron/apis/ap
 import { Shell as LynxtronShell } from '../packages/lynxtron/apis/api/shell';
 import { MenuItem as LynxtronMenuItem } from '../packages/lynxtron/apis/api/menu';
 import { Tray as LynxtronTray } from '../packages/lynxtron/apis/api/tray';
+import { utilityProcess as LynxtronUtilityProcess } from '../packages/lynxtron/apis/api/utility-process';
 
 import {
   TouchBar as LynxtronTouchBar,
@@ -105,6 +106,7 @@ declare module 'lynxtron' {
   export const screen: LynxtronScreen;
   export const shell: LynxtronShell;
   export const Tray: typeof LynxtronTray;
+  export const utilityProcess: typeof LynxtronUtilityProcess;
 
   export type BaseWindow = BaseWindowInternal;
   export type LynxWindow = LynxWindowInternal;
