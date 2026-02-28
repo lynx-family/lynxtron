@@ -5,14 +5,14 @@ Subject: [PATCH] [Bugfix] Impl lynx_module set for lynxnodemodule.
 
 Impl lynx_module set for lynxnodemodule.
 ---
- lynx/core/runtime/js/bindings/modules/lynx_module.cc | 12 ++++++++++++
- lynx/core/runtime/js/bindings/modules/lynx_module.h  |  3 +++
+ core/runtime/js/bindings/modules/lynx_module.cc | 12 ++++++++++++
+ core/runtime/js/bindings/modules/lynx_module.h  |  3 +++
  2 files changed, 15 insertions(+)
 
-diff --git a/lynx/core/runtime/js/bindings/modules/lynx_module.cc b/lynx/core/runtime/js/bindings/modules/lynx_module.cc
+diff --git a/core/runtime/js/bindings/modules/lynx_module.cc b/core/runtime/js/bindings/modules/lynx_module.cc
 index 7667ec1ab..717d2b929 100644
---- a/lynx/core/runtime/js/bindings/modules/lynx_module.cc
-+++ b/lynx/core/runtime/js/bindings/modules/lynx_module.cc
+--- a/core/runtime/js/bindings/modules/lynx_module.cc
++++ b/core/runtime/js/bindings/modules/lynx_module.cc
 @@ -103,6 +103,9 @@ Value LynxModule::get(Runtime* runtime, const PropNameID& prop) {
            return lock_module->invokeMethod(*(meta.get()), &rt, args, count);
          });
@@ -39,10 +39,10 @@ index 7667ec1ab..717d2b929 100644
  }  // namespace js
  }  // namespace runtime
  }  // namespace lynx
-diff --git a/lynx/core/runtime/js/bindings/modules/lynx_module.h b/lynx/core/runtime/js/bindings/modules/lynx_module.h
+diff --git a/core/runtime/js/bindings/modules/lynx_module.h b/core/runtime/js/bindings/modules/lynx_module.h
 index 4a5a89d37..00679ffe4 100644
---- a/lynx/core/runtime/js/bindings/modules/lynx_module.h
-+++ b/lynx/core/runtime/js/bindings/modules/lynx_module.h
+--- a/core/runtime/js/bindings/modules/lynx_module.h
++++ b/core/runtime/js/bindings/modules/lynx_module.h
 @@ -48,6 +48,8 @@ class LynxModule : public HostObject,
  
    Value get(Runtime* rt, const PropNameID& prop) override;
