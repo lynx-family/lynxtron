@@ -54,6 +54,7 @@
   V(lynxtron_binding_environment)    \
   V(lynxtron_binding_menu)           \
   V(lynxtron_binding_shell)          \
+  V(lynxtron_binding_tray)           \
   V(lynxtron_binding_event_emitter)  \
   V(lynxtron_base_window)            \
   V(lynxtron_lynx_window)            \
