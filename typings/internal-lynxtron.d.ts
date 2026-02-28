@@ -41,7 +41,7 @@ declare global {
     interface App extends LynxtronApp {}
   }
 
-  namespace ElectronInternal {
+  namespace LynxtronInternal {
     type ModuleLoader = () => any;
 
     interface ModuleEntry {

@@ -1,4 +1,4 @@
-const handleESModule = (loader: ElectronInternal.ModuleLoader) => () => {
+const handleESModule = (loader: LynxtronInternal.ModuleLoader) => () => {
   const value = loader();
   if (value.__esModule && value.default) return value.default;
   return value;
@@ -7,7 +7,7 @@ const handleESModule = (loader: ElectronInternal.ModuleLoader) => () => {
 // Attaches properties to |targetExports|.
 export function defineProperties(
   targetExports: Object,
-  moduleList: ElectronInternal.ModuleEntry[]
+  moduleList: LynxtronInternal.ModuleEntry[]
 ) {
   const descriptors: PropertyDescriptorMap = {};
   for (const module of moduleList) {

@@ -1,7 +1,7 @@
 // TODO: Updating this file also required updating the module-keys file
 
 // Browser side modules, please sort alphabetically.
-export const browserModuleList: ElectronInternal.ModuleEntry[] = [
+export const lynxtronModuleList: LynxtronInternal.ModuleEntry[] = [
   { name: 'app', loader: () => require('./app') },
   { name: 'BaseWindow', loader: () => require('./base-window') },
   { name: 'dialog', loader: () => require('./dialog') },

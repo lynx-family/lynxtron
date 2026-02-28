@@ -32,6 +32,7 @@
 // #include "shell/browser/api/api_app.h"
 // #include "shell/common/api/electron_bindings.h"
 #include "gin/function_template.h"
+#include "shell/app/application.h"
 #include "shell/common/gin_converters/callback_converter.h"
 #include "shell/common/gin_converters/file_path_converter.h"
 #include "shell/common/gin_helper/dictionary.h"
@@ -42,19 +43,10 @@
 #include "shell/common/mac/main_application_bundle.h"
 #include "shell/common/node_includes.h"
 #include "shell/common/node_util.h"
-//
-// #include "shell/common/world_ids.h"
-// #include "third_party/blink/public/web/web_local_frame.h"
-// #include "third_party/blink/renderer/bindings/core/v8/v8_initializer.h"  //
-// nogncheck
-#include "shell/app/application.h"
 #include "third_party/node/src/debug_utils.h"
 #include "third_party/node/src/module_wrap.h"
 
-// #if !IS_MAS_BUILD()
-// #include "shell/common/crash_keys.h"
-// #endif
-#define ELECTRON_BROWSER_BINDINGS(V) \
+#define LYNXTRON_BROWSER_BINDINGS(V) \
   V(lynxtron_binding_app)            \
   V(lynxtron_binding_v8_util)        \
   V(lynxtron_binding_asar)           \
@@ -63,8 +55,8 @@
   V(lynxtron_binding_menu)           \
   V(lynxtron_binding_shell)          \
   V(lynxtron_binding_event_emitter)  \
-  V(electron_base_window)            \
-  V(electron_lynx_window)            \
+  V(lynxtron_base_window)            \
+  V(lynxtron_lynx_window)            \
   V(lynxtron_binding_native_image)   \
   V(lynxtron_binding_screen)         \
   V(lynxtron_binding_dialog)
@@ -77,7 +69,7 @@
 // forward declaration. The definitions are in each binding's
 // implementation when calling the NODE_LINKED_BINDING_CONTEXT_AWARE.
 #define V(modname) void _register_##modname();
-ELECTRON_BROWSER_BINDINGS(V)
+LYNXTRON_BROWSER_BINDINGS(V)
 // ELECTRON_COMMON_BINDINGS(V)
 // ELECTRON_RENDERER_BINDINGS(V)
 // ELECTRON_UTILITY_BINDINGS(V)
@@ -380,7 +372,7 @@ uv_loop_t* NodeBindings::InitEventLoop(uv_loop_t* worker_loop) {
 
 void NodeBindings::RegisterBuiltinBindings() {
 #define V(modname) _register_##modname();
-  ELECTRON_BROWSER_BINDINGS(V)
+  LYNXTRON_BROWSER_BINDINGS(V)
   // ELECTRON_COMMON_BINDINGS(V)
 
 // #if DCHECK_IS_ON()
