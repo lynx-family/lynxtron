@@ -1,6 +1,5 @@
 // export * from './packages/lynxtron/apis/lynxtron';
 
-import { app as Lynxtron_app } from '../packages/lynxtron/apis/api/app';
 import { App as LynxtronApp } from '../packages/lynxtron/apis/api/app';
 import { BaseWindow as LynxtronBaseWindow } from '../packages/lynxtron/apis/api/base-window';
 import { LynxWindow as LynxtronLynxWindow } from '../packages/lynxtron/apis/api/lynx-window';
@@ -95,7 +94,7 @@ declare class LynxWindowInternal extends LynxtronLynxWindow {
 }
 
 declare module 'lynxtron' {
-  export const app: typeof Lynxtron_app;
+  export const app: LynxtronApp;
   export const BaseWindow: typeof BaseWindowInternal;
   export const LynxWindow: typeof LynxWindowInternal;
   export const Menu: typeof LynxtronMenu;
