@@ -4,12 +4,24 @@
   "type": "module",
   "main": "index.js",
   "types": "index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "files": [
+    "dist/",
+    "bin/",
+    "index.js",
+    "index.d.ts",
+    "README.md"
+  ],
   "exports": {
     "./rspeedy": {
-      "default": "./src/rspeedy.ts"
+      "types": "./dist/rspeedy.d.ts",
+      "default": "./dist/rspeedy.js"
     },
     "./rspack": {
-      "default": "./src/rspack.ts"
+      "types": "./dist/rspack.d.ts",
+      "default": "./dist/rspack.js"
     }
   },
   "bin": {
