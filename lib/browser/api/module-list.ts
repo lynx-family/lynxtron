@@ -9,6 +9,7 @@ export const lynxtronModuleList: LynxtronInternal.ModuleEntry[] = [
   { name: 'Menu', loader: () => require('./menu') },
   { name: 'MenuItem', loader: () => require('./menu-item') },
   { name: 'nativeImage', loader: () => require('./native-image') },
+  { name: 'Notification', loader: () => require('./notification') },
   { name: 'shell', loader: () => require('./shell') },
   { name: 'screen', loader: () => require('./screen') },
   { name: 'Tray', loader: () => require('./tray') },

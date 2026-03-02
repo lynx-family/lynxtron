@@ -127,6 +127,7 @@ browser_bundle_deps = [
   "lib/browser/api/menu.ts",
   "lib/browser/api/module-list.ts",
   "lib/browser/api/native-image.ts",
+  "lib/browser/api/notification.ts",
   "lib/browser/api/screen.ts",
   "lib/browser/api/shell.ts",
   "lib/browser/api/tray.ts",
@@ -329,6 +330,7 @@ source_set("lynxtron_lib") {
     "//crypto",
     "//gin",
     "//lynxtron/shell/lynx:lynx_lib",
+    "//third_party/libxml:xml_writer",
     "//third_party/node:libnode",
     "//third_party/re2",
     "//url",
@@ -361,6 +363,8 @@ source_set("lynxtron_lib") {
     "shell/api/api_menu.h",
     "shell/api/api_native_image.cc",
     "shell/api/api_native_image.h",
+    "shell/api/api_notification.cc",
+    "shell/api/api_notification.h",
     "shell/api/api_screen.cc",
     "shell/api/api_screen.h",
     "shell/api/api_shell.cc",
@@ -385,6 +389,11 @@ source_set("lynxtron_lib") {
     "shell/api/lynx_view/module/lynx_node_module.h",
     "shell/api/lynxtron_bindings.cc",
     "shell/api/lynxtron_bindings.h",
+    "shell/api/notifications/notification.cc",
+    "shell/api/notifications/notification.h",
+    "shell/api/notifications/notification_delegate.h",
+    "shell/api/notifications/platform_notification_service.cc",
+    "shell/api/notifications/platform_notification_service.h",
     "shell/api/ui/file_dialog.h",
     "shell/api/ui/message_box.h",
     "shell/app/application.cc",
@@ -481,6 +490,8 @@ source_set("lynxtron_lib") {
       "shell/api/api_native_image_mac.mm",
       "shell/api/native_window_mac.h",
       "shell/api/native_window_mac.mm",
+      "shell/api/notifications/notification_platform_bridge_mac.h",
+      "shell/api/notifications/notification_platform_bridge_mac.mm",
       "shell/api/ui/file_dialog_mac.mm",
       "shell/api/ui/mac/lynx_ns_window.h",
       "shell/api/ui/mac/lynx_ns_window.mm",
@@ -535,6 +546,7 @@ source_set("lynxtron_lib") {
       "AppKit.framework",
       "UniformTypeIdentifiers.framework",
       "WebKit.framework",
+      "UserNotifications.framework",
     ]
 
     weak_frameworks = [ "QuickLookThumbnailing.framework" ]
@@ -547,6 +559,12 @@ source_set("lynxtron_lib") {
       "shell/api/dpi_win.h",
       "shell/api/native_window_win.cc",
       "shell/api/native_window_win.h",
+      "shell/api/notifications/notification_platform_bridge_win.cc",
+      "shell/api/notifications/notification_platform_bridge_win.h",
+      "shell/api/notifications/windows_toast_activator.cc",
+      "shell/api/notifications/windows_toast_activator.h",
+      "shell/api/notifications/windows_toast_notification.cc",
+      "shell/api/notifications/windows_toast_notification.h",
       "shell/api/ui/file_dialog_win.cc",
       "shell/api/ui/message_box_win.cc",
       "shell/api/ui/win/dialog_thread.cc",
@@ -827,6 +845,9 @@ if (is_win) {
       "wtsapi32.lib",
       "Dwmapi.lib",
       "WebView2LoaderStatic.lib",
+      "runtimeobject.lib",
+      "propsys.lib",
+      "shlwapi.lib",
     ]
     lib_dirs = [ "//third_party/webview2/Microsoft.Web.WebView2.1.0.902.49/build/native/$current_cpu" ]
     output_name = "lxtn"
@@ -856,6 +877,7 @@ test("lynxtron_unittests") {
     "shell/common/v8_value_converter_impl_unittest.cc",
     "shell/test/lynxtron_test_suite.cc",
     "shell/test/lynxtron_test_suite.h",
+    "shell/test/notification_unittest.cc",
     "shell/test/run_all_unittests.cc",
   ]
 }

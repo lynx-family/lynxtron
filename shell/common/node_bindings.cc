@@ -59,6 +59,7 @@
   V(lynxtron_base_window)            \
   V(lynxtron_lynx_window)            \
   V(lynxtron_binding_native_image)   \
+  V(lynxtron_binding_notification)   \
   V(lynxtron_binding_screen)         \
   V(lynxtron_binding_dialog)
 

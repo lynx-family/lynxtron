@@ -31,7 +31,7 @@ export async function copyMacOSFixtureApp(
   fixture: string | null = 'initial'
 ) {
   const appBundlePath = path.resolve(process.execPath, '../../..');
-  const newPath = path.resolve(newDir, 'Electron.app');
+  const newPath = path.resolve(newDir, 'Lynxtron.app');
   cp.spawnSync('cp', ['-R', appBundlePath, path.dirname(newPath)]);
   if (fixture) {
     const appDir = path.resolve(newPath, 'Contents/Resources/app');

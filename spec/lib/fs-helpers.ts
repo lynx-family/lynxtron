@@ -8,7 +8,7 @@ export async function copyApp(targetDir: string): Promise<string> {
   // On macOS we can just copy the app bundle, easier too because of symlinks
   if (process.platform === 'darwin') {
     const appBundlePath = path.resolve(process.execPath, '../../..');
-    const newPath = path.resolve(targetDir, 'Electron.app');
+    const newPath = path.resolve(targetDir, 'Lynxtron.app');
     cp.spawnSync('cp', ['-R', appBundlePath, path.dirname(newPath)]);
     return newPath;
   }
