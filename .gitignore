@@ -7,3 +7,4 @@ packages/default_app/app/dist
 !.yarn/sdks
 !.yarn/patches
 .DS_Store
+spec/.yarn/
