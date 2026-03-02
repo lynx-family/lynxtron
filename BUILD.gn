@@ -129,6 +129,7 @@ browser_bundle_deps = [
   "lib/browser/api/native-image.ts",
   "lib/browser/api/screen.ts",
   "lib/browser/api/shell.ts",
+  "lib/browser/api/tray.ts",
   "lib/browser/init.ts",
   "lib/common/define-properties.ts",
   "lib/common/webpack-globals-provider.ts",
@@ -363,6 +364,8 @@ source_set("lynxtron_lib") {
     "shell/api/api_screen.cc",
     "shell/api/api_screen.h",
     "shell/api/api_shell.cc",
+    "shell/api/api_tray.cc",
+    "shell/api/api_tray.h",
     "shell/api/api_v8_util.cc",
     "shell/api/api_v8_util.h",
     "shell/api/lynx_view/lynx_view.cc",
@@ -455,6 +458,8 @@ source_set("lynxtron_lib") {
     "shell/ui/accelerator_util.h",
     "shell/ui/lynxtron_menu_model.cc",
     "shell/ui/lynxtron_menu_model.h",
+    "shell/ui/tray_icon.cc",
+    "shell/ui/tray_icon.h",
   ]
 
   sources += gin_helper_sources
@@ -514,6 +519,8 @@ source_set("lynxtron_lib") {
       "shell/ui/cocoa/lynxtron_menu_controller.mm",
       "shell/ui/cocoa/window_buttons_proxy.h",
       "shell/ui/cocoa/window_buttons_proxy.mm",
+      "shell/ui/tray_icon_mac.h",
+      "shell/ui/tray_icon_mac.mm",
     ]
 
     frameworks = [
@@ -563,6 +570,8 @@ source_set("lynxtron_lib") {
       "shell/common/win_util.h",
       "shell/ui/base/win/shell.cc",
       "shell/ui/base/win/shell.h",
+      "shell/ui/tray_icon_win.cc",
+      "shell/ui/tray_icon_win.h",
     ]
     deps += [
       "shell/ui",

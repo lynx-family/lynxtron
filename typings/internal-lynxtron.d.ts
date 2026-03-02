@@ -13,6 +13,7 @@ import { Screen as LynxtronScreen } from '../packages/lynxtron/apis/api/screen';
 import { NativeImage as LynxtronNativeImage } from '../packages/lynxtron/apis/api/native-image';
 import { Shell as LynxtronShell } from '../packages/lynxtron/apis/api/shell';
 import { MenuItem as LynxtronMenuItem } from '../packages/lynxtron/apis/api/menu';
+import { Tray as LynxtronTray } from '../packages/lynxtron/apis/api/tray';
 
 import {
   TouchBar as LynxtronTouchBar,
@@ -36,6 +37,7 @@ declare global {
     type Screen = LynxtronScreen;
     type TouchBar = LynxtronTouchBar;
     type TouchBarConstructorOptions = LynxtronTouchBarConstructorOptions;
+    type Tray = LynxtronTray;
 
     interface App extends LynxtronApp {}
   }
@@ -102,12 +104,14 @@ declare module 'lynxtron' {
   export const nativeImage: typeof LynxtronNativeImage;
   export const screen: LynxtronScreen;
   export const shell: LynxtronShell;
+  export const Tray: typeof LynxtronTray;
 
   export type BaseWindow = BaseWindowInternal;
   export type LynxWindow = LynxWindowInternal;
   export type NativeImage = LynxtronNativeImage;
   export type Screen = LynxtronScreen;
   export type Shell = LynxtronShell;
+  export type Tray = LynxtronTray;
   export type OpenDialogOptions = LynxtronOpenDialogOptions;
   export type OpenDialogReturnValue = LynxtronOpenDialogReturnValue;
   export type MessageBoxOptions = LynxtronMessageBoxOptions;

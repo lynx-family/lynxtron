@@ -11,4 +11,5 @@ export const lynxtronModuleList: LynxtronInternal.ModuleEntry[] = [
   { name: 'nativeImage', loader: () => require('./native-image') },
   { name: 'shell', loader: () => require('./shell') },
   { name: 'screen', loader: () => require('./screen') },
+  { name: 'Tray', loader: () => require('./tray') },
 ];

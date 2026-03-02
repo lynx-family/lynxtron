@@ -4,6 +4,7 @@ export * from './api/context-bridge';
 export * from './api/native-image';
 export * from './api/command-line';
 export * from './api/menu';
+export * from './api/tray';
 export * from './api/notification-response';
 export * from './api/process-metric';
 export * from './api/task';
