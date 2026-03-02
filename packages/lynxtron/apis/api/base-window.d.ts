@@ -1423,6 +1423,26 @@ export declare class BaseWindow extends EventEmitter {
    */
   setSize(width: number, height: number, animate?: boolean): void;
   /**
+   * Contains the window's width and height.
+   */
+  getSize(): number[];
+  /**
+   * Sets the size of the content area.
+   */
+  setContentSize(width: number, height: number, animate?: boolean): void;
+  /**
+   * Gets the size of the content area.
+   */
+  getContentSize(): number[];
+  /**
+   * Resizes and moves the content area to the supplied bounds.
+   */
+  setContentBounds(bounds: Partial<Rectangle>, animate?: boolean): void;
+  /**
+   * Gets the bounds of the content area.
+   */
+  getContentBounds(): Rectangle;
+  /**
    * Makes the window not show in the taskbar.
    *
    * @platform darwin,win32
