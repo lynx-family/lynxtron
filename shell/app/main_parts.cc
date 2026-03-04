@@ -15,6 +15,7 @@
 #include "base/run_loop.h"
 #include "base/task/thread_pool/thread_pool_instance.h"
 #include "gin/v8_initializer.h"
+#include "main_parts_delegate.h"
 #include "shell/api/lynx_view/lynx_view.h"
 #include "shell/api/lynxtron_bindings.h"
 #include "shell/app/icon_manager.h"
@@ -37,6 +38,19 @@ MainParts::MainParts()
           std::make_unique<LynxtronBindings>(node_bindings_->uv_loop())} {
   DCHECK(!self_) << "Cannot have two MainParts";
   self_ = this;
+
+  // Create MainPartsDelegate if need
+  auto& registry = GetGlobalDelegateRegistry();
+  auto it = registry.find(kMainPartsDelegateName);
+  if (it != registry.end()) {
+    auto delegate = it->second.CreateDelegate();
+    if (delegate) {
+      main_parts_delegate_ = std::unique_ptr<MainPartsDelegate>(
+          reinterpret_cast<MainPartsDelegate*>(delegate.release()));
+    }
+  } else {
+    LOG(ERROR) << "MainPartsDelegate not found in registry.";
+  }
 }
 
 MainParts::~MainParts() = default;
@@ -61,6 +75,10 @@ int MainParts::GetExitCode() const {
 }
 
 void MainParts::Initialize() {
+  if (main_parts_delegate_) {
+    main_parts_delegate_->PreInitialization();
+  }
+
   base::FeatureList::ClearInstanceForTesting();
 
   // TODO(Guo Xi): initialize feature list
@@ -86,6 +104,9 @@ void MainParts::Initialize() {
 
   v8::Isolate* const isolate = js_env_->isolate();
   v8::HandleScope scope(isolate);
+  if (main_parts_delegate_) {
+    main_parts_delegate_->PostV8Initialization();
+  }
   node_bindings_->Initialize(isolate, isolate->GetCurrentContext());
 
   // Create the global environment.
@@ -130,6 +151,10 @@ void MainParts::Initialize() {
 
   base::PowerMonitor::GetInstance()->Initialize(
       std::make_unique<base::PowerMonitorDeviceSource>());
+
+  if (main_parts_delegate_) {
+    main_parts_delegate_->PostInitialization();
+  }
 }
 
 int MainParts::PreMainMessageLoopRun() {
@@ -195,6 +220,9 @@ void MainParts::PostCreateMainMessageLoop() {
 
 void MainParts::Shutdown() {
   // content::BrowserTaskExecutor::Shutdown();
+  if (main_parts_delegate_) {
+    main_parts_delegate_->PreShutdown();
+  }
   base::ThreadPoolInstance::Get()->Shutdown();
 }
 

@@ -21,6 +21,7 @@
 #include "gin/converter.h"
 #include "shell/api/api_app.h"
 #include "shell/api/lynx_view/lynx_view.h"
+#include "shell/api/lynx_view_monitor_delegate.h"
 #include "shell/app/application.h"
 #include "shell/app/window_list.h"
 #include "shell/common/asar/archive.h"
@@ -127,7 +128,7 @@ void UpdateFramebufferTransparency(HWND window) {
 
 namespace api {
 
-// const std::string kLynxError = "--lynx-error";
+const std::string kLynxError = "--lynx-error";
 // const std::string kLynxContainerError = "--lynx-container-error";
 const std::string kEventOnLoadOnlineTemplate = "on-load-online-template";
 // const std::string kEventOnLoadLocalTemplate = "on-load-local-template";
@@ -197,6 +198,17 @@ LynxWindow::LynxWindow(gin::Arguments* args,
   // #if defined(OS_MAC)
   //   LynxNapiBridgeModule::RegisterMoudle();
   // #endif
+  auto& registry = GetGlobalDelegateRegistry();
+  auto it = registry.find(kLynxViewMonitorDelegateName);
+  if (it != registry.end()) {
+    auto delegate = it->second.CreateDelegate();
+    if (delegate) {
+      lynx_view_monitor_delegate_ = std::unique_ptr<LynxViewMonitorDelegate>(
+          reinterpret_cast<LynxViewMonitorDelegate*>(delegate.release()));
+    }
+  } else {
+    LOG(ERROR) << "LynxViewMonitorDelegate not found in registry.";
+  }
 }
 
 LynxWindow::~LynxWindow() {
@@ -564,9 +576,12 @@ bool LynxWindow::UpdateData(const gin_helper::Dictionary& data,
 // }
 
 void LynxWindow::OnPageStart(std::string_view url) {
-  // if (lynx_monitor_) {
-  //   lynx_monitor_->OnPageStart(lynx_view_holder, url);
-  // }
+  // Emit("on-page-start", url);
+  if (lynx_view_monitor_delegate_) {
+    lynx_view_monitor_delegate_->SetInstanceId(
+        reinterpret_cast<int64_t>(lynx_view_.get()));
+    lynx_view_monitor_delegate_->OnPageStart(url);
+  }
 }
 
 /**
@@ -603,11 +618,10 @@ void LynxWindow::OnRuntimeReady() {
 }
 
 void LynxWindow::OnReceivedError(int error_code, std::string_view message) {
-  // if (lynx_monitor_) {
-  //   lynx_monitor_->OnReceivedError(lynx_view_holder, error_code, message);
-  // }
-
-  // ReportErrorToNode(kLynxError, error_code, message);
+  if (lynx_view_monitor_delegate_) {
+    lynx_view_monitor_delegate_->OnReceivedError(error_code, message);
+  }
+  ReportErrorToNode(kLynxError, error_code, std::string(message));
 }
 
 void LynxWindow::OnTimingSetup(std::string_view timing_info) {

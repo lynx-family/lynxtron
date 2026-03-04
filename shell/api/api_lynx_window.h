@@ -18,6 +18,10 @@
 #include "shell/api/lynx_view/lynx_view_client.h"
 #include "shell/common/gin_helper/error_thrower.h"
 
+namespace lynxtron {
+class LynxViewMonitorDelegate;
+}
+
 namespace lynxtron::api {
 std::map<std::string, std::string> GetQueryKeyValueMap(const std::string& spec);
 
@@ -226,6 +230,7 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
   std::unique_ptr<LynxView> lynx_view_;
   static bool lynx_global_init_;
   base::WeakPtrFactory<LynxWindow> weak_factory_{this};
+  std::unique_ptr<LynxViewMonitorDelegate> lynx_view_monitor_delegate_;
 };
 
 }  // namespace lynxtron::api

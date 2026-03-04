@@ -9,6 +9,7 @@
 #include "base/functional/callback.h"
 #include "base/run_loop.h"
 #include "shell/app/application.h"
+#include "shell/app/main_parts_delegate.h"
 #include "ui/display/screen.h"
 
 namespace node {
@@ -89,6 +90,8 @@ class MainParts {
   // Todo linshengwei only for test remove later
   //  void TestLynxWindow();
 #endif
+ private:
+  std::unique_ptr<MainPartsDelegate> main_parts_delegate_;
 };
 
 }  // namespace lynxtron
