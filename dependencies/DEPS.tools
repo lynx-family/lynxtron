@@ -102,6 +102,22 @@ deps = {
         "ignore_in_git": True,
         "condition": system in ['linux', 'darwin', 'windows'],
     },
+    '../third_party/llvm-build/Release+Asserts/clangd.tar.gz': {
+        "type": "http",
+        "url": f"https://github.com/zsy-jason/buildtools/releases/download/chromium-140/clangd-{system}-{machine}.tar.gz",
+        "ignore_in_git": True,
+        "condition": system in ['linux', 'darwin', 'windows'],
+        "decompress": False,
+        "require": ["../third_party/llvm-build/Release+Asserts"],
+    },
+    'decompress_clangd': {
+        "type": "action",
+        "cwd": root_dir,
+        "commands": [
+            "python3 tools/decompress_helper.py --file_path ../third_party/llvm-build/Release+Asserts/clangd.tar.gz --output_dir ../third_party/llvm-build/Release+Asserts/",
+        ],
+        "require": ['../third_party/llvm-build/Release+Asserts/clangd.tar.gz']
+    },
     '../third_party/llvm-build/Release+Asserts/llvmobjdump.tar.gz': {
         "type": "http",
         "url": f"https://github.com/zsy-jason/buildtools/releases/download/chromium-140/llvmobjdump-{system}-{machine}.tar.gz",
