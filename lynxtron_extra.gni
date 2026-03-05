@@ -7,4 +7,6 @@ declare_args() {
   lynxtron_app_extra_configs = []
   lynxtron_app_extra_deps = []
   lynxtron_asar_extra_deps = []
+  lynxtron_resource_fetcher_deps =
+      rebase_path([ "shell/lynx/resource_fetcher:resource_fetcher" ])
 }

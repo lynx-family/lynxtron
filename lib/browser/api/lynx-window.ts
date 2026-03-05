@@ -1,5 +1,7 @@
 import { BaseWindow, Event } from 'lynxtron';
 import type { LynxWindow as LWT } from 'lynxtron';
+import { onResourceFetcher, LynxFetchEvent } from './lynx-resource-fetcher';
+
 const { LynxWindow } = process._linkedBinding('lynxtron_lynx_window') as {
   LynxWindow: typeof LWT;
 };
@@ -73,6 +75,13 @@ LynxWindow.prototype._init = function (this: LWT) {
   }
 
   app.emit('lynx-window-created', { preventDefault() {} }, this);
+
+  this.on(
+    '-on-fetch-resource',
+    (event: LynxFetchEvent, resourceType: string, url: string) => {
+      onResourceFetcher(event, resourceType, url);
+    }
+  );
 
   // Object.defineProperty(this, 'devToolsWebContents', {
   //   enumerable: true,

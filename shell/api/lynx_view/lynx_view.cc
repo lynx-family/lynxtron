@@ -10,6 +10,7 @@
 #include "base/memory/ptr_util.h"
 #include "build/build_config.h"
 #include "shell/api/lynx_view/lynx_view_client.h"
+#include "shell/lynx/resource_fetcher/lynx_generic_resource_fetcher_factory.h"
 
 #if BUILDFLAG(IS_MAC)
 #if BUILD_WITH_LYNX
@@ -55,7 +56,10 @@ class LynxViewImpl : public lynx::pub::LynxViewClient,
     lynx::pub::LynxView::Builder builder;
     builder.SetScreenSize(width, height, dpi)
         .SetFrame(0, 0, width, height)
-        .SetParent(parent);
+        .SetParent(parent)
+        .SetGenericResourceFetcher(
+            LynxGenericResourceFetcherFactory::Create(lynx_window));
+
     if (!node_integration_preload.empty()) {
       RegisterLynxNodeModuleToLynxView(builder.Impl(),
                                        node_integration_preload);

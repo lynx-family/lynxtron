@@ -180,11 +180,6 @@ LynxWindow::LynxWindow(gin::Arguments* args,
     node_integration_config.Get("preload_paths", &node_integration_preload_);
   }
 
-  // node integration
-  if (!node_integration_preload_.empty()) {
-    // TODO LOG
-  }
-
   // transparent
   bool transparent = false;
   options.Get(options::kTransparent, &transparent);

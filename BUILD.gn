@@ -343,6 +343,8 @@ source_set("lynxtron_lib") {
     "//v8:v8_libplatform",
   ]
 
+  deps += lynxtron_resource_fetcher_deps
+
   include_dirs = [
     ".",
     "$root_gen_dir/lynxtron",
