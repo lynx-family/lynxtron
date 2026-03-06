@@ -104,7 +104,7 @@ class NativeWindowMac : public NativeWindow {
   gfx::NativeWindow GetNativeWindow() const override;
   // void SetOverlayIcon(const gfx::Image& overlay,
   //                    const std::string& description) override;
-  // void SetProgressBar(double progress, const ProgressState state) override;
+  void SetProgressBar(double progress, const ProgressState state) override;
 
   void SetVisibleOnAllWorkspaces(bool visible,
                                  bool visibleOnFullScreen,

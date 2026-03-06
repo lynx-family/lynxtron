@@ -4,6 +4,10 @@
 #ifndef LYNXTRON_SHELL_API_NATIVE_WINDOW_WIN_H_
 #define LYNXTRON_SHELL_API_NATIVE_WINDOW_WIN_H_
 
+#include <shobjidl.h>
+
+#include <wrl/client.h>
+
 #include <memory>
 #include <set>
 #include <string>
@@ -119,6 +123,7 @@ class NativeWindowWin : public NativeWindow,
 
 #if BUILDFLAG(IS_WIN)
   void SetIcon(api::NativeImage* icon) override;
+  void SetProgressBar(double progress, const ProgressState state) override;
   // Catch-all message handling and filtering. Called before
   // HWNDMessageHandler's built-in handling, which may pre-empt some
   // expectations in Views/Aura if messages are consumed. Returns true if the
@@ -304,6 +309,7 @@ class NativeWindowWin : public NativeWindow,
   std::unique_ptr<HWNDMessageHandler> window_;
 
   ui::ZOrderLevel z_order_ = ui::ZOrderLevel::kNormal;
+  Microsoft::WRL::ComPtr<ITaskbarList3> taskbar_list_;
 };
 
 }  // namespace lynxtron

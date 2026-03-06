@@ -1379,6 +1379,26 @@ export declare class BaseWindow extends EventEmitter {
    */
   setPosition(x: number, y: number, animate?: boolean): void;
   /**
+   * Sets progress value in progress bar. Valid range is [0, 1.0].
+   *
+   * Remove progress bar when progress < 0; Change to indeterminate mode when
+   * progress > 1.
+   *
+   * On Linux platform, only supports `normal` mode, so the options object is ignored.
+   */
+  setProgressBar(
+    progress: number,
+    options?: {
+      /**
+       * Mode for the progress bar. Can be `none`, `normal`, `indeterminate`, `error` or
+       * `paused`. Default is `normal`.
+       *
+       * @platform win32,darwin
+       */
+      mode: 'none' | 'normal' | 'indeterminate' | 'error' | 'paused';
+    }
+  ): void;
+  /**
    * Sets the pathname of the file the window represents, and the icon of the file
    * will show in window's title bar.
    *

@@ -1505,4 +1505,47 @@ NativeWindow* NativeWindow::Create(const gin_helper::Dictionary& options,
   return new NativeWindowWin(options, parent);
 }
 
+void NativeWindowWin::SetProgressBar(double progress,
+                                     const ProgressState state) {
+  if (!taskbar_list_) {
+    HRESULT hr =
+        ::CoCreateInstance(CLSID_TaskbarList, nullptr, CLSCTX_INPROC_SERVER,
+                           IID_PPV_ARGS(&taskbar_list_));
+    if (FAILED(hr)) {
+      return;
+    }
+  }
+
+  HWND hwnd = GetNativeWindowHandle();
+  if (state == ProgressState::kNone) {
+    taskbar_list_->SetProgressState(hwnd, TBPF_NOPROGRESS);
+    return;
+  }
+
+  TBPFLAG flag = TBPF_NORMAL;
+  switch (state) {
+    case ProgressState::kIndeterminate:
+      flag = TBPF_INDETERMINATE;
+      break;
+    case ProgressState::kError:
+      flag = TBPF_ERROR;
+      break;
+    case ProgressState::kPaused:
+      flag = TBPF_PAUSED;
+      break;
+    case ProgressState::kNormal:
+      flag = TBPF_NORMAL;
+      break;
+    default:
+      flag = TBPF_NORMAL;
+      break;
+  }
+
+  taskbar_list_->SetProgressState(hwnd, flag);
+  if (state != ProgressState::kIndeterminate) {
+    taskbar_list_->SetProgressValue(
+        hwnd, static_cast<ULONGLONG>(progress * 100), 100);
+  }
+}
+
 }  // namespace lynxtron

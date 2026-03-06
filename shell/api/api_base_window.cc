@@ -1004,6 +1004,7 @@ void BaseWindow::BuildPrototype(v8::Isolate* isolate,
       .SetMethod("setIcon", &BaseWindow::SetIcon)
       .SetMethod("getTitle", &BaseWindow::GetTitle)
       .SetMethod("flashFrame", &BaseWindow::FlashFrame)
+      .SetMethod("setProgressBar", &BaseWindow::SetProgressBar)
       .SetMethod("setSkipTaskbar", &BaseWindow::SetSkipTaskbar)
       .SetMethod("setAutoHideMenuBar", &BaseWindow::SetAutoHideMenuBar)
       .SetMethod("isMenuBarAutoHide", &BaseWindow::IsMenuBarAutoHide)
@@ -1077,6 +1078,29 @@ void BaseWindow::BuildPrototype(v8::Isolate* isolate,
       .SetMethod("setAppDetails", &BaseWindow::SetAppDetails)
 #endif
       .SetProperty("id", &BaseWindow::GetID);
+}
+
+void BaseWindow::SetProgressBar(double progress, gin_helper::Arguments* args) {
+  gin_helper::Dictionary options;
+  std::string mode = "normal";
+  if (args->GetNext(&options)) {
+    options.Get("mode", &mode);
+  }
+
+  NativeWindow::ProgressState state = NativeWindow::ProgressState::kNormal;
+  if (mode == "none") {
+    state = NativeWindow::ProgressState::kNone;
+  } else if (mode == "indeterminate") {
+    state = NativeWindow::ProgressState::kIndeterminate;
+  } else if (mode == "error") {
+    state = NativeWindow::ProgressState::kError;
+  } else if (mode == "paused") {
+    state = NativeWindow::ProgressState::kPaused;
+  } else if (mode == "normal") {
+    state = NativeWindow::ProgressState::kNormal;
+  }
+
+  window_->SetProgressBar(progress, state);
 }
 
 }  // namespace lynxtron::api

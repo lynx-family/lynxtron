@@ -194,6 +194,8 @@ class NativeWindow : public base::SupportsUserData {
     kNormal,         // progress, not marked (green)
   };
 
+  virtual void SetProgressBar(double progress, const ProgressState state) = 0;
+
   // Workspace APIs.
   virtual void SetVisibleOnAllWorkspaces(
       bool visible,
