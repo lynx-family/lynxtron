@@ -2,6 +2,20 @@ const childProcess = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 
+// This addon only backs the macOS dialog end-to-end suite in
+// spec/api-dialog-spec.ts, which is itself gated behind
+// ELECTRON_SKIP_NATIVE_MODULE_TESTS. When that suite is skipped the compiled
+// addon is never loaded, so building it here is pure overhead — and on some CI
+// test runners the node-gyp compile fails and aborts the whole `yarn install`,
+// which then fails specs that don't touch dialogs at all. Honor the same env
+// switch here so skipping the tests also skips this build.
+if (process.env.ELECTRON_SKIP_NATIVE_MODULE_TESTS) {
+  console.log(
+    '[dialog-helper] ELECTRON_SKIP_NATIVE_MODULE_TESTS is set; skipping native addon build.'
+  );
+  process.exit(0);
+}
+
 const packageRoot = path.resolve(__dirname, '..');
 
 const exists = (targetPath) => {
