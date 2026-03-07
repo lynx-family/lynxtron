@@ -107,7 +107,10 @@ NSString* KeyEquivalentFromAccelerator(const ui::Accelerator& accelerator) {
   }
   std::string key = accelerator.key();
   if (key.size() == 1) {
-    return [NSString stringWithUTF8String:key.c_str()];
+    // NSMenuItem keyEquivalent must be lowercase; uppercase implies Shift
+    // modifier.
+    std::string lower = base::ToLowerASCII(key);
+    return [NSString stringWithUTF8String:lower.c_str()];
   }
   std::string lower = base::ToLowerASCII(key);
   if (lower == "tab") {
