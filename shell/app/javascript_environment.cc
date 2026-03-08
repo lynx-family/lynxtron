@@ -87,8 +87,9 @@ JavascriptEnvironment::~JavascriptEnvironment() {
 
   platform_->UnregisterIsolate(isolate_);
 
-  v8::V8::Dispose();
-  v8::V8::DisposePlatform();
+  // TODO(Guo Xi):  Remove the following two lines cuasing crash when exit.
+  // v8::V8::Dispose();
+  // v8::V8::DisposePlatform();
 }
 
 v8::Isolate* JavascriptEnvironment::Initialize(uv_loop_t* event_loop,
