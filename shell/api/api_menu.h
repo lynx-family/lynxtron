@@ -10,6 +10,7 @@
 
 #include "base/functional/callback.h"
 #include "base/memory/raw_ptr.h"
+#include "build/build_config.h"
 #include "shell/api/event_emitter_mixin.h"
 #include "shell/common/gin_helper/constructible.h"
 #include "shell/common/gin_helper/wrappable.h"
@@ -44,7 +45,7 @@ class Menu : public gin_helper::DeprecatedWrappable<Menu>,
   static void FillObjectTemplate(v8::Isolate*, v8::Local<v8::ObjectTemplate>);
   static const char* GetClassName() { return "Menu"; }
 
-#if defined(__APPLE__)
+#if BUILDFLAG(IS_MAC)
   static void SetApplicationMenu(Menu* menu);
   static void SendActionToFirstResponder(const std::string& action);
 #endif
@@ -64,7 +65,7 @@ class Menu : public gin_helper::DeprecatedWrappable<Menu>,
       bool use_default_accelerator,
       ui::Accelerator* accelerator) const override;
   bool ShouldRegisterAcceleratorForCommandId(int command_id) const override;
-#if defined(__APPLE__)
+#if BUILDFLAG(IS_MAC)
   bool GetSharingItemForCommandId(
       int command_id,
       LynxtronMenuModel::SharingItem* item) const override;

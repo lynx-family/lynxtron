@@ -6,9 +6,11 @@
 
 #include <utility>
 
+#include "build/build_config.h"
+
 namespace lynxtron {
 
-#if defined(__APPLE__)
+#if BUILDFLAG(IS_MAC)
 LynxtronMenuModel::SharingItem::SharingItem() = default;
 LynxtronMenuModel::SharingItem::SharingItem(SharingItem&&) = default;
 LynxtronMenuModel::SharingItem::~SharingItem() = default;
@@ -200,7 +202,7 @@ bool LynxtronMenuModel::WorksWhenHiddenAt(size_t index) const {
   return true;
 }
 
-#if defined(__APPLE__)
+#if BUILDFLAG(IS_MAC)
 bool LynxtronMenuModel::GetSharingItemAt(size_t index,
                                          SharingItem* item) const {
   if (delegate_) {
