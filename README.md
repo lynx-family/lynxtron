@@ -12,7 +12,7 @@
 [![X (formerly Twitter) URL](https://img.shields.io/twitter/url?url=https%3A%2F%2Fx.com%2Flynxjs_org&style=social&label=Lynx)](https://x.com/lynxjs_org)
 [![Discord](https://img.shields.io/discord/1345754526174543964?logo=discord&style=social&label=Lynx)](https://discord.gg/mXk7jqdDXk)
 
-Electron combines Node.js and Chrome technology ideas, using Node.js and Lynx to build desktop applications
+Build desktop applications with Lynx.
 
 </div>
 
@@ -29,9 +29,9 @@ Electron combines Node.js and Chrome technology ideas, using Node.js and Lynx to
 ## About Lynxtron
 
 Lynxtron is an open-source framework inspired by Electron’s vision of uniting Node.js and Chrome technologies—reimagined as a fusion of Node.js with Lynx, empowering developers to build powerful desktop applications from familiar web skills. It inherits the flexibility of cross-technology integration while elevating performance, extensibility, and inter-process communication to new heights.
-- **🚀 High-Performance Inter-App Communications.** Universal plug-in mechanism supports cross-process access to Node.js, Rust, C++ and other business logic, reducing the load of the main process and improving flexibility.
-- **🛠️ Native-Extensible Architecture.** Leverages Lynx’s native extension points, allowing developers to enhance rendering capabilities with custom extension components—tailoring the framework to unique project needs.
-- **⚡ Ultimate Performance.** Compared to Electron, Lynxtron offers a smaller package size and extreme performance: faster startup and lower runtime memory usage.
+- **⚡ Light-weight and Fast.** Electron like app framework with A Light-weight UI Renderer Powered by Lynx.
+- **🛠️ Natively Extensible.** Extend the renderer’s capabilities with custom native modules via UI/texture extension C-APIs and Node-API.
+- **🔗 Multiplatform.** With Lynx, your UI runs across platforms—including the Web—and can be ported to new hosts with minimal effort.
 
 
 ## Documentation

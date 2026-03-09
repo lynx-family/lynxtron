@@ -10,15 +10,9 @@ export default function WebContainer() {
           <view className="introduction">
             <text className="lynxtronTitle">Lynxtron</text>
             <text className="contextWrapper">
-              <text className="contextBold">Electron</text>
-              <text className="contextLight">&nbsp;combines&nbsp;</text>
-              <text className="contextBold">Node.js and Chrome</text>
               <text className="contextLight">
-                &nbsp;technology ideas, using&nbsp;
+                Build desktop applications with Lynx.
               </text>
-              <text className="contextBold">Node.js and Lynx</text>
-              <text className="contextLight">&nbsp;to build&nbsp;</text>
-              <text className="contextBold">desktop applications</text>
             </text>
             <view className="quickStartWrapper">
               <view className="quickStartBackground" />
