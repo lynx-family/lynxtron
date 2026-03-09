@@ -22,7 +22,6 @@ function getPlatformPath (platform) {
   }
 }
 
-// TODO(liting): find BASE_URL.
 export const BASE_URL = '';
 
 const pckJson = JSON.parse(fs.readFileSync(path.join(__dirname, "..", 'package.json'), 'utf8'));
