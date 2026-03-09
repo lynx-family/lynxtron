@@ -47,7 +47,7 @@ void RuntimeProfileHelper::SetV8RuntimeProfiler(v8::Isolate* isolate) {
 void RuntimeProfileHelper::RemoveV8RuntimeProfiler() {
   lynx::runtime::profile::RuntimeProfilerManager::GetInstance()
       ->RemoveRuntimeProfiler(runtime_profiler_);
-  runtime_profiler_.reset();
+  // runtime_profiler_.reset();
 }
 
 }  // namespace trace
