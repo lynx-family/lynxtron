@@ -314,6 +314,7 @@ source_set("lynxtron_lib") {
     "//v8:external_startup_data",
     "//third_party/node:node_external_config",
   ]
+  configs += lynxtron_lib_extra_configs
 
   if (is_build_with_lynx) {
     defines = [
@@ -342,6 +343,7 @@ source_set("lynxtron_lib") {
     "//v8",
     "//v8:v8_libplatform",
   ]
+  deps += lynxtron_lib_extra_deps
 
   deps += lynxtron_resource_fetcher_deps
 
@@ -623,9 +625,6 @@ if (is_mac) {
   lynxtron_framework_name = "$lynxtron_product_name Framework"
 
   mac_framework_bundle("lynxtron_framework") {
-    configs += lynxtron_framework_extra_configs
-    deps = lynxtron_framework_extra_deps
-
     # TODO(Guo Xi): using macro defines
     output_name = "Lynxtron Framework"
     framework_version = "1.0"
@@ -636,7 +635,7 @@ if (is_mac) {
 
     public_deps = [ ":lynxtron_lib" ]
 
-    deps += [
+    deps = [
       ":lynxtron_framework_resources",
       "//base",
       "//third_party/node:libnode",
@@ -654,9 +653,6 @@ if (is_mac) {
 
     ldflags = [
       "-Wl,-install_name,@rpath/$output_name.framework/$output_name",
-      "-rpath",
-      "@loader_path/Libraries",
-
       # TOOD(Guo Xi): generate libuv.a
       # Required for exporting all symbols of libuv.
       # "-Wl,-force_load,obj/third_party/node/deps/uv/libuv.a",
@@ -755,17 +751,15 @@ if (is_mac) {
 
     include_dirs = [ "." ]
 
-    deps = lynxtron_app_extra_deps
-    deps += [
+    deps = [
       ":lynxtron_app_framework_bundle_data",
       ":lynxtron_app_plist",
       ":lynxtron_app_resources",
       ":lynxtron_framework+link",
       "//base/allocator:early_zone_registration_apple",
-
-      # "//base",
-      # "//base/allocator:early_zone_registration_apple",
     ]
+
+    deps += lynxtron_app_extra_deps
     if (is_build_with_lynx) {
       deps += [ ":lynxtron_app_resource_bundle_data" ]
     }
@@ -876,8 +870,8 @@ test("lynxtron_unittests") {
     "//testing/gtest",
     "//v8",
   ]
-  deps += lynxtron_framework_extra_deps
-  configs += lynxtron_framework_extra_configs
+  deps += lynxtron_lib_extra_deps
+  configs += lynxtron_lib_extra_configs
   configs += [ "//v8:external_startup_data" ]
 
   include_dirs = [ "." ]
