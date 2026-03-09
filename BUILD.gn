@@ -2,6 +2,7 @@
 # Licensed under the Apache License Version 2.0 that can be found in the
 # LICENSE file in the root directory of this source tree.
 import("//build/config/win/manifest.gni")
+import("//lynx/config.gni")
 import("//testing/test.gni")
 import("//tools/v8_context_snapshot/v8_context_snapshot.gni")
 import("build/asar.gni")
@@ -37,6 +38,10 @@ config("branding") {
 
 config("lynxtron_lib_config") {
   include_dirs = [ "." ]
+  defines = []
+  if (enable_trace == "perfetto") {
+    defines += [ "ENABLE_TRACE_PERFETTO" ]
+  }
 }
 
 action("lynxtron_generate_node_defines") {
@@ -465,6 +470,8 @@ source_set("lynxtron_lib") {
     "shell/common/v8_value_converter.h",
     "shell/common/v8_value_converter_impl.cc",
     "shell/common/v8_value_converter_impl.h",
+    "shell/lynx/trace/runtime_profile_helper.cc",
+    "shell/lynx/trace/runtime_profile_helper.h",
     "shell/ui/accelerator.cc",
     "shell/ui/accelerator.h",
     "shell/ui/accelerator_util.cc",

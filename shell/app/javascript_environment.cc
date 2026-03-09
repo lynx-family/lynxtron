@@ -21,9 +21,14 @@
 #include "shell/common/options_switches.h"
 #include "third_party/node/src/node_wasm_web_api.h"
 
+#if ENABLE_TRACE_PERFETTO
+#include "shell/lynx/trace/runtime_profile_helper.h"
+#endif  // ENABLE_TRACE_PERFETTO
+
 namespace {
 v8::Isolate* g_isolate;
-}
+
+}  // namespace
 
 namespace lynxtron {
 
@@ -67,6 +72,10 @@ JavascriptEnvironment::JavascriptEnvironment(uv_loop_t* event_loop,
   CHECK(!context.IsEmpty());
 
   context->Enter();
+
+#if ENABLE_TRACE_PERFETTO
+  lynxtron::trace::RuntimeProfileHelper::SetV8RuntimeProfiler(isolate_);
+#endif  // ENABLE_TRACE_PERFETTO
 }
 
 JavascriptEnvironment::~JavascriptEnvironment() {
@@ -90,6 +99,9 @@ JavascriptEnvironment::~JavascriptEnvironment() {
   // TODO(Guo Xi):  Remove the following two lines cuasing crash when exit.
   // v8::V8::Dispose();
   // v8::V8::DisposePlatform();
+#if ENABLE_TRACE_PERFETTO
+  lynxtron::trace::RuntimeProfileHelper::RemoveV8RuntimeProfiler();
+#endif  // ENABLE_TRACE_PERFETTO
 }
 
 v8::Isolate* JavascriptEnvironment::Initialize(uv_loop_t* event_loop,

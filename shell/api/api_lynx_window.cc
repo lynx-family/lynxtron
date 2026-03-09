@@ -19,6 +19,7 @@
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/thread_pool.h"
 #include "gin/converter.h"
+#include "lynx/platform/embedder/public/capi/lynx_env_capi.h"
 #include "shell/api/api_app.h"
 #include "shell/api/lynx_view/lynx_view.h"
 #include "shell/api/lynx_view_monitor_delegate.h"
@@ -194,6 +195,8 @@ LynxWindow::LynxWindow(gin::Arguments* args,
                                  255, LWA_COLORKEY);
   }
 #endif
+  // init lynx env.
+  lynx_env_set_devtool_app_info("sdkVersion", lynx_env_get_sdk_version());
   // util::LynxGlobalInit();
   // #if defined(OS_MAC)
   //   LynxNapiBridgeModule::RegisterMoudle();

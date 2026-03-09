@@ -198,14 +198,6 @@ deps = {
         'ignore_in_git': True,
         "require": [".."],
     },
-    '../third_party/perfetto':
-    {
-        'type': 'git',
-        'url': f'{chromium_git}/external/github.com/google/perfetto.git',
-        'commit': '6588e8474439752ab9e2c95dfde99f9c132dc83d',
-        'ignore_in_git': True,
-        "require": [".."],
-    },
     '../third_party/re2/src': {
         'type': 'git',
         'url': f'{chromium_git}/external/github.com/google/re2.git',

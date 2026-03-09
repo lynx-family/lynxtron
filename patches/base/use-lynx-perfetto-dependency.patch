@@ -1,0 +1,27 @@
+From 3640539b41dab19d55028cdf6f9b393ef1fcc492 Mon Sep 17 00:00:00 2001
+From: tangyongjie <80395553+yongjieTang@users.noreply.github.com>
+Date: Mon, 2 Mar 2026 20:29:17 +0800
+Subject: [PATCH] use lynx perfetto dependency
+
+---
+ BUILD.gn | 4 ----
+ 1 file changed, 4 deletions(-)
+
+diff --git a/BUILD.gn b/BUILD.gn
+index 39780da..31a263b 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -2464,10 +2464,6 @@ component("base") {
+     "trace_event/typed_macros_embedder_support.h",
+     "trace_event/user_action.cc",
+     "trace_event/user_action.h",
+-    "tracing/perfetto_platform.cc",
+-    "tracing/perfetto_platform.h",
+-    "tracing/perfetto_task_runner.cc",
+-    "tracing/perfetto_task_runner.h",
+     "tracing/trace_time.cc",
+     "tracing/trace_time.h",
+     "tracing/tracing_tls.cc",
+-- 
+2.39.3 (Apple Git-145)
+
