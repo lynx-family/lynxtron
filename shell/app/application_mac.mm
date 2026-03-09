@@ -583,8 +583,6 @@ void Application::DockSetMenu(LynxtronMenuModel* model) {
 }
 
 void Application::DockSetIcon(v8::Isolate* isolate, v8::Local<v8::Value> icon) {
-  // TODO(Guo Xi): support gfx::image
-  // #if !BUILDFLAG(IS_NODE_LYNX)
   gfx::Image image;
 
   if (!icon->IsNull()) {
@@ -598,7 +596,6 @@ void Application::DockSetIcon(v8::Isolate* isolate, v8::Local<v8::Value> icon) {
 
   [[LynxtronApplication sharedApplication]
       setApplicationIconImage:image.AsNSImage()];
-  // #endif
 }
 
 void Application::ShowAboutPanel() {

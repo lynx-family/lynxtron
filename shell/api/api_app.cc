@@ -1065,9 +1065,8 @@ v8::Local<v8::Value> App::GetDockAPI(v8::Isolate* isolate) {
         "isVisible",
         base::BindRepeating(&Application::DockIsVisible, application));
     dock_obj.SetMethod("setMenu", &DockSetMenu);
-    // dock_obj.SetMethod("setIcon",
-    //                    base::BindRepeating(&Application::DockSetIcon,
-    //                    browser));
+    dock_obj.SetMethod(
+        "setIcon", base::BindRepeating(&Application::DockSetIcon, application));
 
     dock_.Reset(isolate, dock_obj.GetHandle());
   }
