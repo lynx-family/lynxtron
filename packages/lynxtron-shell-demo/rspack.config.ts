@@ -20,6 +20,11 @@ const desktopConfig = defineConfig({
     path: path.resolve(__dirname, 'dist/desktop/'),
     filename: '[name].js',
   },
+  devServer: {
+    devMiddleware: {
+      writeToDisk: true,
+    },
+  },
   module: {
     rules: [
       {
@@ -48,11 +53,15 @@ const desktopConfig = defineConfig({
         { from: './output/bundle/lynx/', to: '.' },
       ],
     }),
-    pluginLynxtron({
-      isDev,
-      entry: path.resolve(__dirname, './dist/desktop'),
-      args: isDev ? ['--inspect=9222'] : [],
-    }),
+    ...(isDev
+      ? [
+          pluginLynxtron({
+            isDev,
+            entry: path.resolve(__dirname, './dist/desktop'),
+            args: isDev ? ['--inspect=9222'] : [],
+          }),
+        ]
+      : []),
   ],
   resolve: {
     extensions: ['.ts', '.js'],
