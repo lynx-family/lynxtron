@@ -38,8 +38,6 @@ export interface VisibleOnAllWorkspacesOptions {
 }
 
 export interface BaseWindowConstructorOptions {
-  // Docs: https://electronjs.org/docs/api/structures/base-window-options
-
   /**
    * Whether the window should always stay on top of other windows. Default is
    * `false`.
@@ -48,7 +46,7 @@ export interface BaseWindowConstructorOptions {
   /**
    * Auto hide the menu bar unless the `Alt` key is pressed. Default is `false`.
    *
-   * @platform linux,win32
+   * @platform win32
    */
   autoHideMenuBar?: boolean;
   /**
@@ -71,7 +69,7 @@ export interface BaseWindowConstructorOptions {
    */
   center?: boolean;
   /**
-   * Whether window is closable. This is not implemented on Linux. Default is `true`.
+   * Whether window is closable. Default is `true`.
    *
    * @platform darwin,win32
    */
@@ -89,9 +87,7 @@ export interface BaseWindowConstructorOptions {
   enableLargerThanScreen?: boolean;
   /**
    * Whether the window can be focused. Default is `true`. On Windows setting
-   * `focusable: false` also implies setting `skipTaskbar: true`. On Linux setting
-   * `focusable: false` makes the window stop interacting with wm, so the window will
-   * always stay on top in all workspaces.
+   * `focusable: false` also implies setting `skipTaskbar: true`.
    */
   focusable?: boolean;
   /**
@@ -134,7 +130,7 @@ export interface BaseWindowConstructorOptions {
    */
   maxHeight?: number;
   /**
-   * Whether window is maximizable. This is not implemented on Linux. Default is
+   * Whether window is maximizable. Default is
    * `true`.
    *
    * @platform darwin,win32
@@ -149,7 +145,7 @@ export interface BaseWindowConstructorOptions {
    */
   minHeight?: number;
   /**
-   * Whether window is minimizable. This is not implemented on Linux. Default is
+   * Whether window is minimizable. Default is
    * `true`.
    *
    * @platform darwin,win32
@@ -165,7 +161,7 @@ export interface BaseWindowConstructorOptions {
    */
   modal?: boolean;
   /**
-   * Whether window is movable. This is not implemented on Linux. Default is `true`.
+   * Whether window is movable. Default is `true`.
    *
    * @platform darwin,win32
    */
@@ -303,8 +299,6 @@ export interface BaseWindowConstructorOptions {
 }
 
 export declare class BaseWindow extends EventEmitter {
-  // Docs: https://electronjs.org/docs/api/base-window
-
   /**
    * Emitted when an App Command is invoked. These are typically related to keyboard
    * media keys or browser commands, as well as the "Back" button built into some
@@ -314,40 +308,35 @@ export declare class BaseWindow extends EventEmitter {
    * `APPCOMMAND_` prefix is stripped off. e.g. `APPCOMMAND_BROWSER_BACKWARD` is
    * emitted as `browser-backward`.
    *
-   * The following app commands are explicitly supported on Linux:
-   *
-   * * `browser-backward`
-   * * `browser-forward`
-   *
-   * @platform win32,linux
+   * @platform win32
    */
   on(
     event: 'app-command',
     listener: (event: Event, command: string) => void
   ): this;
   /**
-   * @platform win32,linux
+   * @platform win32
    */
   off(
     event: 'app-command',
     listener: (event: Event, command: string) => void
   ): this;
   /**
-   * @platform win32,linux
+   * @platform win32
    */
   once(
     event: 'app-command',
     listener: (event: Event, command: string) => void
   ): this;
   /**
-   * @platform win32,linux
+   * @platform win32
    */
   addListener(
     event: 'app-command',
     listener: (event: Event, command: string) => void
   ): this;
   /**
-   * @platform win32,linux
+   * @platform win32
    */
   removeListener(
     event: 'app-command',
@@ -365,17 +354,6 @@ export declare class BaseWindow extends EventEmitter {
    * Emitted when the window is going to be closed. It's emitted before the
    * `beforeunload` and `unload` event of the DOM. Calling `event.preventDefault()`
    * will cancel the close.
-   *
-   * Usually you would want to use the `beforeunload` handler to decide whether the
-   * window should be closed, which will also be called when the window is reloaded.
-   * In Electron, returning any value other than `undefined` would cancel the close.
-   * For example:
-   *
-   * > [!NOTE] There is a subtle difference between the behaviors of
-   * `window.onbeforeunload = handler` and `window.addEventListener('beforeunload',
-   * handler)`. It is recommended to always set the `event.returnValue` explicitly,
-   * instead of only returning a value, as the former works more consistently within
-   * Electron.
    */
   on(event: 'close', listener: (event: Event) => void): this;
   off(event: 'close', listener: (event: Event) => void): this;
@@ -682,7 +660,7 @@ export declare class BaseWindow extends EventEmitter {
    *
    * To convert `point` to DIP, use `screen.screenToDipPoint(point)`.
    *
-   * @platform win32,linux
+   * @platform win32
    */
   on(
     event: 'system-context-menu',
@@ -695,7 +673,7 @@ export declare class BaseWindow extends EventEmitter {
     ) => void
   ): this;
   /**
-   * @platform win32,linux
+   * @platform win32
    */
   off(
     event: 'system-context-menu',
@@ -708,7 +686,7 @@ export declare class BaseWindow extends EventEmitter {
     ) => void
   ): this;
   /**
-   * @platform win32,linux
+   * @platform win32
    */
   once(
     event: 'system-context-menu',
@@ -721,7 +699,7 @@ export declare class BaseWindow extends EventEmitter {
     ) => void
   ): this;
   /**
-   * @platform win32,linux
+   * @platform win32
    */
   addListener(
     event: 'system-context-menu',
@@ -734,7 +712,7 @@ export declare class BaseWindow extends EventEmitter {
     ) => void
   ): this;
   /**
-   * @platform win32,linux
+   * @platform win32
    */
   removeListener(
     event: 'system-context-menu',
@@ -992,8 +970,7 @@ export declare class BaseWindow extends EventEmitter {
   /**
    * The platform-specific handle of the window.
    *
-   * The native type of the handle is `HWND` on Windows, `NSView*` on macOS, and
-   * `Window` (`unsigned long`) on Linux.
+   * The native type of the handle is `HWND` on Windows, `NSView*` on macOS.
    */
   getNativeWindowHandle(): Buffer;
   /**
@@ -1006,8 +983,7 @@ export declare class BaseWindow extends EventEmitter {
    */
   getNormalBounds(): Rectangle;
   /**
-   * between 0.0 (fully transparent) and 1.0 (fully opaque). On Linux, always returns
-   * 1.
+   * between 0.0 (fully transparent) and 1.0 (fully opaque).
    */
   getOpacity(): number;
   /**
@@ -1018,12 +994,6 @@ export declare class BaseWindow extends EventEmitter {
    * Contains the window's current position.
    */
   getPosition(): number[];
-  /**
-   * The pathname of the file the window represents.
-   *
-   * @platform darwin
-   */
-  getRepresentedFilename(): string;
   /**
    * Contains the window's width and height.
    */
@@ -1060,8 +1030,6 @@ export declare class BaseWindow extends EventEmitter {
   /**
    * Whether the window can be manually closed by user.
    *
-   * On Linux always returns `true`.
-   *
    * @platform darwin,win32
    */
   isClosable(): boolean;
@@ -1096,8 +1064,6 @@ export declare class BaseWindow extends EventEmitter {
   /**
    * Whether the window can be manually maximized by user.
    *
-   * On Linux always returns `true`.
-   *
    * @platform darwin,win32
    */
   isMaximizable(): boolean;
@@ -1108,19 +1074,17 @@ export declare class BaseWindow extends EventEmitter {
   /**
    * Whether menu bar automatically hides itself.
    *
-   * @platform win32,linux
+   * @platform win32
    */
   isMenuBarAutoHide(): boolean;
   /**
    * Whether the menu bar is visible.
    *
-   * @platform win32,linux
+   * @platform win32
    */
   isMenuBarVisible(): boolean;
   /**
    * Whether the window can be manually minimized by the user.
-   *
-   * On Linux always returns `true`.
    *
    * @platform darwin,win32
    */
@@ -1135,8 +1099,6 @@ export declare class BaseWindow extends EventEmitter {
   isModal(): boolean;
   /**
    * Whether the window can be moved by user.
-   *
-   * On Linux always returns `true`.
    *
    * @platform darwin,win32
    */
@@ -1165,7 +1127,7 @@ export declare class BaseWindow extends EventEmitter {
    *
    * > [!NOTE] This API always returns false on Windows.
    *
-   * @platform darwin,linux
+   * @platform darwin
    */
   isVisibleOnAllWorkspaces(): boolean;
   /**
@@ -1246,7 +1208,7 @@ export declare class BaseWindow extends EventEmitter {
    * If the menu bar is already visible, calling `setAutoHideMenuBar(true)` won't
    * hide it immediately.
    *
-   * @platform win32,linux
+   * @platform win32
    */
   setAutoHideMenuBar(hide: boolean): void;
   /**
@@ -1288,22 +1250,11 @@ export declare class BaseWindow extends EventEmitter {
    */
   setBounds(bounds: Partial<Rectangle>, animate?: boolean): void;
   /**
-   * Sets whether the window can be manually closed by user. On Linux does nothing.
+   * Sets whether the window can be manually closed by user.
    *
    * @platform darwin,win32
    */
   setClosable(closable: boolean): void;
-  /**
-   * Prevents the window contents from being captured by other apps.
-   *
-   * On macOS it sets the NSWindow's sharingType to NSWindowSharingNone. On Windows
-   * it calls SetWindowDisplayAffinity with `WDA_EXCLUDEFROMCAPTURE`. For Windows 10
-   * version 2004 and up the window will be removed from capture entirely, older
-   * Windows versions behave as if `WDA_MONITOR` is applied capturing a black window.
-   *
-   * @platform darwin,win32
-   */
-  setContentProtection(enable: boolean): void;
   /**
    * Disable or enable the window.
    */
@@ -1335,8 +1286,7 @@ export declare class BaseWindow extends EventEmitter {
    */
   setHasShadow(hasShadow: boolean): void;
   /**
-   * Sets whether the window can be manually maximized by user. On Linux does
-   * nothing.
+   * Sets whether the window can be manually maximized by user.
    *
    * @platform darwin,win32
    */
@@ -1346,8 +1296,7 @@ export declare class BaseWindow extends EventEmitter {
    */
   setMaximumSize(width: number, height: number): void;
   /**
-   * Sets whether the window can be manually minimized by user. On Linux does
-   * nothing.
+   * Sets whether the window can be manually minimized by user.
    *
    * @platform darwin,win32
    */
@@ -1357,13 +1306,13 @@ export declare class BaseWindow extends EventEmitter {
    */
   setMinimumSize(width: number, height: number): void;
   /**
-   * Sets whether the window can be moved by user. On Linux does nothing.
+   * Sets whether the window can be moved by user.
    *
    * @platform darwin,win32
    */
   setMovable(movable: boolean): void;
   /**
-   * Sets the opacity of the window. On Linux, does nothing. Out of bound number
+   * Sets the opacity of the window. Out of bound number
    * values are clamped to the [0, 1] range.
    *
    * @platform win32,darwin
@@ -1384,7 +1333,6 @@ export declare class BaseWindow extends EventEmitter {
    * Remove progress bar when progress < 0; Change to indeterminate mode when
    * progress > 1.
    *
-   * On Linux platform, only supports `normal` mode, so the options object is ignored.
    */
   setProgressBar(
     progress: number,
@@ -1399,27 +1347,9 @@ export declare class BaseWindow extends EventEmitter {
     }
   ): void;
   /**
-   * Sets the pathname of the file the window represents, and the icon of the file
-   * will show in window's title bar.
-   *
-   * @platform darwin
-   */
-  setRepresentedFilename(filename: string): void;
-  /**
    * Sets whether the window can be manually resized by the user.
    */
   setResizable(resizable: boolean): void;
-  /**
-   * Setting a window shape determines the area within the window where the system
-   * permits drawing and user interaction. Outside of the given region, no pixels
-   * will be drawn and no mouse events will be registered. Mouse events outside of
-   * the region will not be received by that window, but will fall through to
-   * whatever is behind the window.
-   *
-   * @experimental
-   * @platform win32,linux
-   */
-  setShape(rects: Rectangle[]): void;
   /**
    * Changes the attachment point for sheets on macOS. By default, sheets are
    * attached just below the window frame, but you may want to display them beneath a
@@ -1469,59 +1399,6 @@ export declare class BaseWindow extends EventEmitter {
    */
   setSkipTaskbar(skip: boolean): void;
   /**
-   * Whether the buttons were added successfully
-   *
-   * Add a thumbnail toolbar with a specified set of buttons to the thumbnail image
-   * of a window in a taskbar button layout. Returns a `boolean` object indicates
-   * whether the thumbnail has been added successfully.
-   *
-   * The number of buttons in thumbnail toolbar should be no greater than 7 due to
-   * the limited room. Once you setup the thumbnail toolbar, the toolbar cannot be
-   * removed due to the platform's limitation. But you can call the API with an empty
-   * array to clean the buttons.
-   *
-   * The `buttons` is an array of `Button` objects:
-   *
-   * * `Button` Object
-   *   * `icon` NativeImage - The icon showing in thumbnail toolbar.
-   *   * `click` Function
-   *   * `tooltip` string (optional) - The text of the button's tooltip.
-   *   * `flags` string[] (optional) - Control specific states and behaviors of the
-   * button. By default, it is `['enabled']`.
-   *
-   * The `flags` is an array that can include following `string`s:
-   *
-   * * `enabled` - The button is active and available to the user.
-   * * `disabled` - The button is disabled. It is present, but has a visual state
-   * indicating it will not respond to user action.
-   * * `dismissonclick` - When the button is clicked, the thumbnail window closes
-   * immediately.
-   * * `nobackground` - Do not draw a button border, use only the image.
-   * * `hidden` - The button is not shown to the user.
-   * * `noninteractive` - The button is enabled but not interactive; no pressed
-   * button state is drawn. This value is intended for instances where the button is
-   * used in a notification.
-   *
-   * @platform win32
-   */
-  setThumbarButtons(buttons: any[]): boolean; // ThumbarButton[]
-  /**
-   * Sets the region of the window to show as the thumbnail image displayed when
-   * hovering over the window in the taskbar. You can reset the thumbnail to be the
-   * entire window by specifying an empty region: `{ x: 0, y: 0, width: 0, height: 0
-   * }`.
-   *
-   * @platform win32
-   */
-  setThumbnailClip(region: Rectangle): void;
-  /**
-   * Sets the toolTip that is displayed when hovering over the window thumbnail in
-   * the taskbar.
-   *
-   * @platform win32
-   */
-  setThumbnailToolTip(toolTip: string): void;
-  /**
    * Changes the title of native window to `title`.
    */
   setTitle(title: string): void;
@@ -1556,7 +1433,7 @@ export declare class BaseWindow extends EventEmitter {
    *
    * > [!NOTE] This API does nothing on Windows.
    *
-   * @platform darwin,linux
+   * @platform darwin
    */
   setVisibleOnAllWorkspaces(
     visible: boolean,
@@ -1607,14 +1484,12 @@ export declare class BaseWindow extends EventEmitter {
    * If the menu bar is already visible, setting this property to `true` won't hide
    * it immediately.
    *
-   * @platform linux,win32
+   * @platform win32
    */
   autoHideMenuBar: boolean;
   /**
    * A `boolean` property that determines whether the window can be manually closed
    * by user.
-   *
-   * On Linux the setter is a no-op, although the getter returns `true`.
    *
    * @platform darwin,win32
    */
@@ -1638,8 +1513,6 @@ export declare class BaseWindow extends EventEmitter {
    * A `boolean` property that determines whether the window can be manually
    * maximized by user.
    *
-   * On Linux the setter is a no-op, although the getter returns `true`.
-   *
    * @platform darwin,win32
    */
   maximizable: boolean;
@@ -1647,26 +1520,15 @@ export declare class BaseWindow extends EventEmitter {
    * A `boolean` property that determines whether the window can be manually
    * minimized by user.
    *
-   * On Linux the setter is a no-op, although the getter returns `true`.
-   *
    * @platform darwin,win32
    */
   minimizable: boolean;
   /**
    * A `boolean` property that determines Whether the window can be moved by user.
    *
-   * On Linux the setter is a no-op, although the getter returns `true`.
-   *
    * @platform darwin,win32
    */
   movable: boolean;
-  /**
-   * A `string` property that determines the pathname of the file the window
-   * represents, and the icon of the file will show in window's title bar.
-   *
-   * @platform darwin
-   */
-  representedFilename: string;
   /**
    * A `boolean` property that determines whether the window can be manually resized
    * by user.
@@ -1694,7 +1556,7 @@ export declare class BaseWindow extends EventEmitter {
    *
    * > [!NOTE] Always returns false on Windows.
    *
-   * @platform darwin,linux
+   * @platform darwin
    */
   visibleOnAllWorkspaces: boolean;
   /**
@@ -1706,7 +1568,7 @@ export declare class BaseWindow extends EventEmitter {
   excludedFromShownWindowsMenu: boolean;
   /**
    * A `Integer` property representing the unique ID of the window. Each ID is unique
-   * among all `BaseWindow` instances of the entire Electron application.
+   * among all `BaseWindow` instances of the entire application.
    *
    */
   readonly id: number;

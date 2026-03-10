@@ -98,7 +98,6 @@ class NativeWindow : public base::SupportsUserData {
   virtual bool IsFullscreen() const = 0;
   virtual void SetBounds(const gfx::Rect& bounds, bool animate) = 0;
   virtual gfx::Rect GetBounds() const = 0;
-  void SetShape(const std::vector<gfx::Rect>& rects);
   virtual void SetSize(const gfx::Size& size, bool animate);
   virtual gfx::Size GetSize() const;
   virtual float GetDevicePixelRatio() const;
@@ -172,10 +171,6 @@ class NativeWindow : public base::SupportsUserData {
   virtual bool HasShadow() = 0;
   virtual void SetOpacity(const double opacity) = 0;
   virtual double GetOpacity() = 0;
-  virtual void SetRepresentedFilename(const std::string& filename);
-  virtual std::string GetRepresentedFilename();
-  // virtual void SetIgnoreMouseEvents(bool ignore, bool forward) = 0;
-  virtual void SetContentProtection(bool enable) = 0;
   virtual void SetFocusable(bool focusable);
   virtual bool IsFocusable() const;
   virtual void SetParentWindow(NativeWindow* parent);
@@ -234,11 +229,6 @@ class NativeWindow : public base::SupportsUserData {
   double GetAspectRatio() const;
   gfx::Size GetAspectRatioExtraSize();
   virtual void SetAspectRatio(double aspect_ratio, const gfx::Size& extra_size);
-
-  // File preview APIs.
-  // virtual void PreviewFile(const std::string& path,
-  //                          const std::string& display_name);
-  // virtual void CloseFilePreview();
 
   // virtual void SetGTKDarkThemeEnabled(bool use_dark_theme) {}
 

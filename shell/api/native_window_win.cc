@@ -685,43 +685,6 @@ double NativeWindowWin::GetOpacity() {
   return opacity_;
 }
 
-// void NativeWindowWin::SetIgnoreMouseEvents(bool ignore, bool forward) {
-//   LONG ex_style = ::GetWindowLong(GetNativeWindowHandle(), GWL_EXSTYLE);
-//   if (ignore) {
-//     ex_style |= (WS_EX_TRANSPARENT | WS_EX_LAYERED);
-//   } else {
-//     ex_style &= ~(WS_EX_TRANSPARENT | WS_EX_LAYERED);
-//   }
-//   if (layered_) {
-//     ex_style |= WS_EX_LAYERED;
-//   }
-//   ::SetWindowLong(GetNativeWindowHandle(), GWL_EXSTYLE, ex_style);
-
-//   // Forwarding is always disabled when not ignoring mouse messages.
-//   // if (!ignore) {
-//   //   SetForwardMouseMessages(false);
-//   // } else {
-//   //   SetForwardMouseMessages(forward);
-//   // }
-// }
-
-void NativeWindowWin::SetContentProtection(bool enable) {
-  // #if defined(OS_WIN)
-  //   HWND hwnd = GetAcceleratedWidget();
-  //   if (!layered_) {
-  //     // Workaround to prevent black window on screen capture after hiding
-  //     and
-  //     // showing the BrowserWindow.
-  //     LONG ex_style = ::GetWindowLong(hwnd, GWL_EXSTYLE);
-  //     ex_style |= WS_EX_LAYERED;
-  //     ::SetWindowLong(hwnd, GWL_EXSTYLE, ex_style);
-  //     layered_ = true;
-  //   }
-  //   DWORD affinity = enable ? WDA_EXCLUDEFROMCAPTURE : WDA_NONE;
-  //   ::SetWindowDisplayAffinity(hwnd, affinity);
-  // #endif
-}
-
 void NativeWindowWin::SetFocusable(bool focusable) {
   can_activate_ = focusable;
 #if defined(OS_WIN)

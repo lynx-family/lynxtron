@@ -749,11 +749,6 @@ double NativeWindowMac::GetOpacity() {
   return [window_ alphaValue];
 }
 
-void NativeWindowMac::SetContentProtection(bool enable) {
-  [window_
-      setSharingType:enable ? NSWindowSharingNone : NSWindowSharingReadOnly];
-}
-
 bool NativeWindowMac::IsHiddenInMissionControl() const {
   NSUInteger collectionBehavior = [window_ collectionBehavior];
   return collectionBehavior & NSWindowCollectionBehaviorTransient;

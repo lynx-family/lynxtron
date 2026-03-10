@@ -228,11 +228,6 @@ void NativeWindow::InitFromOptions(const gin_helper::Dictionary& options) {
   }
 }
 
-// TODO(Guo Xi): support SetShape
-void NativeWindow::SetShape(const std::vector<gfx::Rect>& rects) {
-  //  widget()->SetShape(std::make_unique<std::vector<gfx::Rect>>(rects));
-}
-
 bool NativeWindow::IsClosed() const {
   return is_closed_;
 }
@@ -245,6 +240,7 @@ gfx::Size NativeWindow::GetSize() const {
   return GetBounds().size();
 }
 
+// TODO(Guo Xi): Add GetDevicePixelRatio
 float NativeWindow::GetDevicePixelRatio() const {
   return 1.0f;
 }
@@ -398,12 +394,6 @@ double NativeWindow::GetSheetOffsetY() {
   return sheet_offset_y_;
 }
 
-void NativeWindow::SetRepresentedFilename(const std::string& filename) {}
-
-std::string NativeWindow::GetRepresentedFilename() {
-  return "";
-}
-
 void NativeWindow::SetFocusable(bool focusable) {}
 
 bool NativeWindow::IsFocusable() const {
@@ -457,11 +447,6 @@ void NativeWindow::SetAspectRatio(double aspect_ratio,
   aspect_ratio_ = aspect_ratio;
   aspect_ratio_extraSize_ = extra_size;
 }
-
-// void NativeWindow::PreviewFile(const std::string& path,
-//                                const std::string& display_name) {}
-
-// void NativeWindow::CloseFilePreview() {}
 
 void NativeWindow::NotifyWindowCloseButtonClicked() {
   // First ask the observers whether we want to close.
@@ -616,14 +601,6 @@ void NativeWindow::NotifyWindowSystemContextMenu(int x,
   observers_.Notify(&NativeWindowObserver::OnSystemContextMenu, x, y,
                     std::ref(prevent_default));
 }
-
-// void NativeWindow::NotifyLayoutWindowControlsOverlay() {
-//   gfx::Rect bounding_rect = GetWindowControlsOverlayRect();
-//   if (!bounding_rect.IsEmpty()) {
-//     observers_.Notify(&NativeWindowObserver::UpdateWindowControlsOverlay,
-//                       bounding_rect);
-//   }
-// }
 
 #if BUILDFLAG(IS_WIN)
 void NativeWindow::NotifyWindowMessage(UINT message,

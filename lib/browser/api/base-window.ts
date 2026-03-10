@@ -64,15 +64,6 @@ Object.defineProperty(BaseWindow.prototype, 'shadow', {
   },
 });
 
-Object.defineProperty(BaseWindow.prototype, 'representedFilename', {
-  get: function () {
-    return this.getRepresentedFilename();
-  },
-  set: function (filename) {
-    this.setRepresentedFilename(filename);
-  },
-});
-
 Object.defineProperty(BaseWindow.prototype, 'minimizable', {
   get: function () {
     return this.isMinimizable();

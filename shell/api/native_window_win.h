@@ -103,8 +103,6 @@ class NativeWindowWin : public NativeWindow,
   bool HasShadow() override;
   void SetOpacity(const double opacity) override;
   double GetOpacity() override;
-  // void SetIgnoreMouseEvents(bool ignore, bool forward) override;
-  void SetContentProtection(bool enable) override;
   void SetFocusable(bool focusable) override;
   bool IsFocusable() const override;
   void SetParentWindow(NativeWindow* parent) override;

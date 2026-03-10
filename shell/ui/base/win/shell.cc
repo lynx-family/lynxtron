@@ -95,63 +95,6 @@ bool PreventWindowFromPinning(HWND hwnd) {
       pps.Get(), PKEY_AppUserModel_PreventPinning, true);
 }
 
-// TODO(calamity): investigate moving this out of the UI thread as COM
-// operations may spawn nested run loops which can cause issues.
-void SetAppDetailsForWindow(const std::wstring& app_id,
-                            const base::FilePath& app_icon_path,
-                            int app_icon_index,
-                            const std::wstring& relaunch_command,
-                            const std::wstring& relaunch_display_name,
-                            HWND hwnd) {
-  DCHECK(hwnd);
-
-  Microsoft::WRL::ComPtr<IPropertyStore> pps;
-  if (FAILED(SHGetPropertyStoreForWindow(hwnd, IID_PPV_ARGS(&pps)))) {
-    return;
-  }
-
-  if (!app_id.empty()) {
-    base::win::SetAppIdForPropertyStore(pps.Get(), app_id.c_str());
-  }
-  if (!app_icon_path.empty()) {
-    // Always add the icon index explicitly to prevent bad interaction with the
-    // index notation when file path has commas.
-    base::win::SetStringValueForPropertyStore(
-        pps.Get(), PKEY_AppUserModel_RelaunchIconResource,
-        base::StrCat({app_icon_path.value(), L",",
-                      base::NumberToWString(app_icon_index)})
-            .c_str());
-  }
-  if (!relaunch_command.empty()) {
-    base::win::SetStringValueForPropertyStore(
-        pps.Get(), PKEY_AppUserModel_RelaunchCommand, relaunch_command.c_str());
-  }
-  if (!relaunch_display_name.empty()) {
-    base::win::SetStringValueForPropertyStore(
-        pps.Get(), PKEY_AppUserModel_RelaunchDisplayNameResource,
-        relaunch_display_name.c_str());
-  }
-}
-
-void SetAppIdForWindow(const std::wstring& app_id, HWND hwnd) {
-  SetAppDetailsForWindow(app_id, base::FilePath(), 0, std::wstring(),
-                         std::wstring(), hwnd);
-}
-
-void SetAppIconForWindow(const base::FilePath& app_icon_path,
-                         int app_icon_index,
-                         HWND hwnd) {
-  SetAppDetailsForWindow(std::wstring(), app_icon_path, app_icon_index,
-                         std::wstring(), std::wstring(), hwnd);
-}
-
-void SetRelaunchDetailsForWindow(const std::wstring& relaunch_command,
-                                 const std::wstring& display_name,
-                                 HWND hwnd) {
-  SetAppDetailsForWindow(std::wstring(), base::FilePath(), 0, relaunch_command,
-                         display_name, hwnd);
-}
-
 void ClearWindowPropertyStore(HWND hwnd) {
   DCHECK(hwnd);
 

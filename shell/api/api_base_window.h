@@ -150,13 +150,6 @@ class BaseWindow : public gin_helper::TrackableObject<BaseWindow>,
   bool HasShadow() const;
   void SetOpacity(const double opacity);
   double GetOpacity() const;
-  void SetShape(const std::vector<gfx::Rect>& rects);
-  void SetRepresentedFilename(const std::string& filename);
-  std::string GetRepresentedFilename() const;
-  void SetDocumentEdited(bool edited);
-  bool IsDocumentEdited() const;
-  // void SetIgnoreMouseEvents(bool ignore, gin_helper::Arguments* args);
-  void SetContentProtection(bool enable);
   void SetFocusable(bool focusable);
   bool IsFocusable() const;
   void SetMenu(v8::Isolate* isolate, v8::Local<v8::Value> menu);
@@ -194,8 +187,6 @@ class BaseWindow : public gin_helper::TrackableObject<BaseWindow>,
   // void MoveTabToNewWindow();
   // void ToggleTabBar();
   void SetAspectRatio(double aspect_ratio, gin_helper::Arguments* args);
-  // void PreviewFile(const std::string& path, gin_helper::Arguments* args);
-  // void CloseFilePreview();
   // void SetGTKDarkThemeEnabled(bool use_dark_theme);
 
   // Public getters of NativeWindow.
@@ -203,9 +194,6 @@ class BaseWindow : public gin_helper::TrackableObject<BaseWindow>,
   v8::Local<v8::Value> GetBrowserParentWindow() const;
   std::vector<v8::Local<v8::Object>> GetChildWindows() const;
   bool IsModal() const;
-
-  // Extra APIs added in JS.
-  bool SetThumbarButtons(gin_helper::Arguments* args);
 
 #if BUILDFLAG(IS_WIN)
   typedef base::RepeatingCallback<void(v8::Local<v8::Value>,
@@ -215,9 +203,6 @@ class BaseWindow : public gin_helper::TrackableObject<BaseWindow>,
   bool IsWindowMessageHooked(UINT message);
   void UnhookWindowMessage(UINT message);
   void UnhookAllWindowMessages();
-  bool SetThumbnailClip(const gfx::Rect& region);
-  bool SetThumbnailToolTip(const std::string& tooltip);
-  void SetAppDetails(const gin_helper::Dictionary& options);
 #endif
   int32_t GetID() const;
 

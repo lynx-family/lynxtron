@@ -240,6 +240,7 @@ void BaseWindow::OnWindowSheetEnd() {
   Emit("sheet-end");
 }
 
+// TODO(Guo Xi): Add OnWindowAlwaysOnTopChanged
 void BaseWindow::OnWindowAlwaysOnTopChanged() {
   // Emit("always-on-top-changed", IsAlwaysOnTop());
 }
@@ -614,38 +615,6 @@ double BaseWindow::GetOpacity() const {
   return window_->GetOpacity();
 }
 
-void BaseWindow::SetShape(const std::vector<gfx::Rect>& rects) {
-  // window_->widget()->SetShape(std::make_unique<std::vector<gfx::Rect>>(rects));
-}
-
-void BaseWindow::SetRepresentedFilename(const std::string& filename) {
-  window_->SetRepresentedFilename(filename);
-}
-
-std::string BaseWindow::GetRepresentedFilename() const {
-  return window_->GetRepresentedFilename();
-}
-
-// void BaseWindow::SetDocumentEdited(bool edited) {
-//  window_->SetDocumentEdited(edited);
-//}
-//
-// bool BaseWindow::IsDocumentEdited() {
-//  return window_->IsDocumentEdited();
-//}
-
-// void BaseWindow::SetIgnoreMouseEvents(bool ignore,
-//                                       gin_helper::Arguments* args) {
-//   gin_helper::Dictionary options;
-//   bool forward = false;
-//   args->GetNext(&options) && options.Get("forward", &forward);
-//   return window_->SetIgnoreMouseEvents(ignore, forward);
-// }
-
-void BaseWindow::SetContentProtection(bool enable) {
-  return window_->SetContentProtection(enable);
-}
-
 void BaseWindow::SetFocusable(bool focusable) {
   return window_->SetFocusable(focusable);
 }
@@ -822,19 +791,6 @@ void BaseWindow::SetAspectRatio(double aspect_ratio,
   window_->SetAspectRatio(aspect_ratio, extra_size);
 }
 
-// void BaseWindow::PreviewFile(const std::string& path,
-//                              gin_helper::Arguments* args) {
-//   std::string display_name;
-//   if (!args->GetNext(&display_name)) {
-//     display_name = path;
-//   }
-//   window_->PreviewFile(path, display_name);
-// }
-
-// void BaseWindow::CloseFilePreview() {
-//   window_->CloseFilePreview();
-// }
-
 v8::Local<v8::Value> BaseWindow::GetParentWindow() const {
   if (parent_window_.IsEmpty()) {
     return v8::Null(isolate());
@@ -849,22 +805,6 @@ std::vector<v8::Local<v8::Object>> BaseWindow::GetChildWindows() const {
 
 bool BaseWindow::IsModal() const {
   return window_->is_modal();
-}
-
-bool BaseWindow::SetThumbarButtons(gin_helper::Arguments* args) {
-  // #if defined(OS_WIN)
-  //   std::vector<TaskbarHost::ThumbarButton> buttons;
-  //   if (!args->GetNext(&buttons)) {
-  //     args->ThrowError();
-  //     return false;
-  //   }
-  //   auto* window = static_cast<NativeWindowWin*>(window_.get());
-  //   return window->taskbar_host().SetThumbarButtons(
-  //       window_->GetAcceleratedWidget(), buttons);
-  // #else
-  //   return false;
-  // #endif
-  return true;
 }
 
 #if defined(OS_WIN)
@@ -886,37 +826,6 @@ void BaseWindow::UnhookAllWindowMessages() {
   messages_callback_map_.clear();
 }
 
-bool BaseWindow::SetThumbnailClip(const gfx::Rect& region) {
-  // auto* window = static_cast<NativeWindowWin*>(window_.get());
-  // return window->taskbar_host().SetThumbnailClip(
-  //    window_->GetAcceleratedWidget(), region);
-  return true;
-}
-
-bool BaseWindow::SetThumbnailToolTip(const std::string& tooltip) {
-  // auto* window = static_cast<NativeWindowWin*>(window_.get());
-  // return window->taskbar_host().SetThumbnailToolTip(
-  //    window_->GetAcceleratedWidget(), tooltip);
-  return true;
-}
-
-void BaseWindow::SetAppDetails(const gin_helper::Dictionary& options) {
-  std::wstring app_id;
-  base::FilePath app_icon_path;
-  int app_icon_index = 0;
-  std::wstring relaunch_command;
-  std::wstring relaunch_display_name;
-
-  options.Get("appId", &app_id);
-  options.Get("appIconPath", &app_icon_path);
-  options.Get("appIconIndex", &app_icon_index);
-  options.Get("relaunchCommand", &relaunch_command);
-  options.Get("relaunchDisplayName", &relaunch_display_name);
-
-  // ui::win::SetAppDetailsForWindow(app_id, app_icon_path, app_icon_index,
-  //                                relaunch_command, relaunch_display_name,
-  //                                window_->GetAcceleratedWidget());
-}
 #endif
 
 int32_t BaseWindow::GetID() const {
@@ -1017,11 +926,6 @@ void BaseWindow::BuildPrototype(v8::Isolate* isolate,
       .SetMethod("hasShadow", &BaseWindow::HasShadow)
       .SetMethod("setOpacity", &BaseWindow::SetOpacity)
       .SetMethod("getOpacity", &BaseWindow::GetOpacity)
-      .SetMethod("setShape", &BaseWindow::SetShape)
-      .SetMethod("setRepresentedFilename", &BaseWindow::SetRepresentedFilename)
-      .SetMethod("getRepresentedFilename", &BaseWindow::GetRepresentedFilename)
-      // .SetMethod("setIgnoreMouseEvents", &BaseWindow::SetIgnoreMouseEvents)
-      .SetMethod("setContentProtection", &BaseWindow::SetContentProtection)
       .SetMethod("setFocusable", &BaseWindow::SetFocusable)
       .SetMethod("isFocusable", &BaseWindow::IsFocusable)
       .SetMethod("setParentWindow", &BaseWindow::SetParentWindow)
@@ -1061,21 +965,15 @@ void BaseWindow::BuildPrototype(v8::Isolate* isolate,
                    &BaseWindow::SetExcludedFromShownWindowsMenu)
 #endif
       .SetMethod("setAspectRatio", &BaseWindow::SetAspectRatio)
-      // .SetMethod("previewFile", &BaseWindow::PreviewFile)
-      // .SetMethod("closeFilePreview", &BaseWindow::CloseFilePreview)
       .SetMethod("getParentWindow", &BaseWindow::GetParentWindow)
       .SetMethod("getChildWindows", &BaseWindow::GetChildWindows)
       .SetMethod("isModal", &BaseWindow::IsModal)
-      .SetMethod("setThumbarButtons", &BaseWindow::SetThumbarButtons)
 #if BUILDFLAG(IS_WIN)
       .SetMethod("hookWindowMessage", &BaseWindow::HookWindowMessage)
       .SetMethod("isWindowMessageHooked", &BaseWindow::IsWindowMessageHooked)
       .SetMethod("unhookWindowMessage", &BaseWindow::UnhookWindowMessage)
       .SetMethod("unhookAllWindowMessages",
                  &BaseWindow::UnhookAllWindowMessages)
-      .SetMethod("setThumbnailClip", &BaseWindow::SetThumbnailClip)
-      .SetMethod("setThumbnailToolTip", &BaseWindow::SetThumbnailToolTip)
-      .SetMethod("setAppDetails", &BaseWindow::SetAppDetails)
 #endif
       .SetProperty("id", &BaseWindow::GetID);
 }
