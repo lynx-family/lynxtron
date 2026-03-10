@@ -2,10 +2,8 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-// --- Types ---
-interface APIS {
-  [key: string]: any;
-}
+import runPreloadScripts from './api/preload-runner';
+import { APIS } from './api/context-bridge';
 
 // --- Context Bridge Setup ---
 (() => {
@@ -69,3 +67,23 @@ Module._resolveFilename = function (request, parent, isMain, options) {
     return originalResolveFilename(request, parent, isMain, options);
   }
 };
+
+const bridgeData: APIS = {};
+
+// --- Lynxtron BTS Env Setup ---
+export function setupLynxtronBTS(console: Console, preload_paths: string[]) {
+  // replace console
+  globalThis.console = console;
+  // @ts-ignore
+  globalThis.__contextBridge.initModuleAPI(bridgeData);
+  try {
+    runPreloadScripts(preload_paths);
+  } catch (e) {
+    console.error('runPreloadScripts error: ', e);
+  }
+}
+
+// --- Get Lynxtron BTS Bridge Data ---
+export function getLynxtronBTSBridgeData() {
+  return bridgeData;
+}

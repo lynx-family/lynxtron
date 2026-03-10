@@ -8,11 +8,12 @@
 
 #include "base/include/fml/message_loop.h"
 #include "base/include/fml/platform/node/message_loop_node.h"
+#include "base/logging.h"
 #include "lynx/platform/embedder/public/capi/lynx_env_capi.h"
 #include "platform/embedder/public/lynx_extension_module.h"
+#include "shell/common/node_includes.h"
+#include "shell/common/node_util.h"
 #include "third_party/napi/include/napi_env_v8.h"
-#include "third_party/node/src/env.h"
-#include "third_party/node/src/node.h"
 
 #ifdef USE_PRIMJS_NAPI
 #include "third_party/napi/include/primjs_napi_defines.h"
@@ -54,7 +55,7 @@ v8::Local<v8::Value> RunFunctionInNodeContext(v8::Isolate* v8_isolate,
   v8::Local<v8::Value> function_val;
   if (!function_maybe.ToLocal(&function_val)) {
     // Run failed
-    return ret;
+    return v8::Undefined(v8_isolate);
   }
 
   v8::Local<v8::Function> function =
@@ -71,12 +72,13 @@ v8::Local<v8::Value> RunFunctionInNodeContext(v8::Isolate* v8_isolate,
     } else if (try_catch.HasTerminated()) {
       msg = "script execution has been terminated";
     }
+    LOG(ERROR) << msg;
   }
   if (ret_maybe.ToLocal(&ret)) {
     return ret;
   }
 
-  return ret;
+  return v8::Undefined(v8_isolate);
 }
 
 }  // namespace
@@ -167,8 +169,22 @@ v8::Local<v8::Context> LynxNodeModule::CreateNewNodeContext(
       isolate_data_, new_context, {}, {},
       static_cast<node::EnvironmentFlags::Flags>(kInitNodeEnvflags));
 
-  node::LoadEnvironment(env_, node::StartExecutionCallback{});
-
+  node::LoadEnvironment(env_, node::StartExecutionCallback{},
+                        [](node::Environment* env, v8::Local<v8::Value> process,
+                           v8::Local<v8::Value> require) {
+                          RunFunctionInNodeContext(
+                              env->isolate(), env->context(), R"((require)=>{
+      const { setupLynxtronBTS, getLynxtronBTSBridgeData } = require('lynxtron/js2c/lynxbts_init');
+      const bts = Object.freeze({ setupLynxtronBTS, getLynxtronBTSBridgeData });
+      Object.defineProperty(globalThis, '__lynxtronBTS', {
+        value: bts,
+        enumerable: false,
+        configurable: false,
+        writable: false,
+      });
+    })",
+                              1, &require);
+                        });
   return new_context;
 }
 
@@ -213,18 +229,12 @@ void LynxNodeModule::OnRuntimeAttach(
   // init context bridge
   const char* const kContextBridgeInitScriptSource = R"(
     (console, preload_paths)=>{
-      globalThis.console = console;
-      require('lynxtron/js2c/lynxbts_init');
-      const { preloadRunner } = require('lynxtron');
-      let bridgeData = {};
-      globalThis.__contextBridge.initModuleAPI(bridgeData);
-      try {
-        preloadRunner(preload_paths);
-      } catch (e) {
-        console.error("preloadRunner error: ", e);
+      const bts = globalThis.__lynxtronBTS;
+      if (!bts || typeof bts !== 'object') {
+        throw new Error('__lynxtronBTS is not found');
       }
-      console.log("bridgeData: ", bridgeData);
-      return bridgeData;
+      bts.setupLynxtronBTS(console, preload_paths);
+      return bts.getLynxtronBTSBridgeData();
     }
   )";
   v8::Local<v8::Value> v8_argv[2] = {console, preload_paths};
@@ -237,7 +247,8 @@ void LynxNodeModule::OnRuntimeAttach(
 void LynxNodeModule::OnRuntimeReady(napi_env env,
                                     napi_value lynx,
                                     const char* url) {
-  if (!CheckModuleData()) {
+  if (!CheckModuleData() || node_exports_.IsEmpty()) {
+    LOG(ERROR) << "OnRuntimeReady: node_exports_ is empty, url: " << url;
     return;
   }
   auto v8_context = napi_get_env_context_v8(env);

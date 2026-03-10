@@ -1,3 +1,8 @@
+// --- Types ---
+export interface APIS {
+  [key: string]: unknown;
+}
+
 interface ContextBridge {
   exposeInLynxBTS(newApis: APIS): void;
 }
@@ -7,13 +12,13 @@ declare global {
 }
 
 const contextBridge = {
-  exposeInLynxBTS: (apis: object): void => {
+  exposeInLynxBTS: (newApis: APIS): void => {
     const fn = globalThis.__contextBridge?.exposeInLynxBTS;
     if (typeof fn !== 'function')
       throw new Error(
         'globalThis.__contextBridge.exposeInLynxBTS is not a function'
       );
-    fn(apis);
+    fn(newApis);
   },
 };
 
