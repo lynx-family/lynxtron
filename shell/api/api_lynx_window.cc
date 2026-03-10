@@ -518,6 +518,11 @@ bool LynxWindow::LoadFile(const std::string& path, gin::Arguments* args) {
   return true;
 }
 
+bool LynxWindow::LoadUrl(const std::string& url) {
+  CreateLynxView(url, "", "", "", "", "");
+  return true;
+}
+
 // bool LynxWindow::RequestLayoutWhenSafepointEnable() {
 // #if BUILDFLAG(IS_WIN)
 //   if (CurrentLynxViewHolder()) {
@@ -781,6 +786,7 @@ void LynxWindow::BuildPrototype(v8::Isolate* isolate,
   prototype->SetClassName(gin::StringToV8(isolate, "LynxWindow"));
   gin_helper::ObjectTemplateBuilder(isolate, prototype->PrototypeTemplate())
       .SetMethod("loadFile", &LynxWindow::LoadFile)
+      .SetMethod("loadURL", &LynxWindow::LoadUrl)
       .SetMethod("updateData", &LynxWindow::UpdateData)
       .SetMethod("sendGlobalEvent", &LynxWindow::SendGlobalEvent);
 

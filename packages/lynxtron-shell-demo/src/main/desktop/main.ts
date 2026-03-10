@@ -1,6 +1,7 @@
 import { app, LynxWindow, dialog } from '@lynx-js/lynxtron';
 import { LYNX_BUNDLE_PATH } from './vendorPaths';
 import path from 'path';
+const isDev = process.env.NODE_ENV === 'development';
 
 app.whenReady().then(() => {
   const w = new LynxWindow({
@@ -36,5 +37,9 @@ app.whenReady().then(() => {
   );
 
   w.show();
-  w.loadFile(LYNX_BUNDLE_PATH);
+  if (isDev) {
+    w.loadURL('http://localhost:3000/main.lynx.bundle');
+  } else {
+    w.loadFile(LYNX_BUNDLE_PATH);
+  }
 });

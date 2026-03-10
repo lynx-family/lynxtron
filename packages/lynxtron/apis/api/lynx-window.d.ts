@@ -277,11 +277,15 @@ export declare class LynxWindow extends BaseWindow {
   moveAbove(mediaSourceId: string): void;
   getMediaSourceId(): string;
   /**
-   * Load template data for the window.
+   * Load bundle data for the window.
    */
   loadFile(path: string): boolean;
   /**
-   * Update template data for the window.
+   * Load bundle url for the window, eg: 'http://localhost:3000/main.lynx.bundle'
+   */
+  loadURL(url: string): boolean;
+  /**
+   * Update bundle data for the window.
    */
   updateData(data: Object, globalProps: Object): boolean;
   /**

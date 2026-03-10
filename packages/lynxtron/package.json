@@ -27,6 +27,7 @@
     "utils",
     "cli.js",
     "install.js",
+    "lynxtron.js",
     "lynxtron_bin.js",
     "web-host",
     "web-worker.js",

@@ -97,6 +97,7 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
   bool RequestLayoutWhenSafepointEnable();
   bool UpdateDataWithString(const std::string& data);
   bool LoadFile(const std::string& url, gin::Arguments* args);
+  bool LoadUrl(const std::string& url);
   bool SendGlobalEvent(const std::string& name,
                        const gin_helper::Dictionary& json);
   // bool SetGlobalProp(v8::Isolate* isolate, v8::Local<v8::Value> value);

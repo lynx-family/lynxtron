@@ -25,6 +25,9 @@ const desktopConfig = defineConfig({
       writeToDisk: true,
     },
   },
+  watchOptions: {
+    ignored: ['**/src/app/**', '**/output/bundle/lynx/**'],
+  },
   module: {
     rules: [
       {
