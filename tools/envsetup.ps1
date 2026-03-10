@@ -14,4 +14,11 @@ function Lynxtron-Env-Setup {
     $env:PATH += Join-Path $buildtoolsDir 'ninja;'
 }
 
+function Python-Env-Setup {
+  python $lynxtron_dir_path\tools\vpython_tools\vpython_env_setup.py --root_dir $lynxtron_dir_path
+  $venv_path = Join-Path $lynxtron_dir_path '.venv'
+  & $venv_path\Scripts\Activate.ps1
+}
+
 Lynxtron-Env-Setup
+Python-Env-Setup

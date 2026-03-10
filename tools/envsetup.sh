@@ -35,4 +35,11 @@ lynxtron_envsetup() {
   fi
 }
 
+function python_env_setup() {
+  VENV_PATH=$LYNXTRON_ROOT_DIR/.venv
+  python3 $LYNXTRON_ROOT_DIR/tools/vpython_tools/vpython_env_setup.py --root_dir $LYNXTRON_ROOT_DIR
+  source $VENV_PATH/bin/activate
+}
+
 lynxtron_envsetup "${BASH_SOURCE:-$0}"
+python_env_setup
