@@ -94,7 +94,7 @@ void MainParts::Initialize() {
   // TODO(Guo Xi): path service
   base::PathService::RegisterProvider(PathProvider, PATH_START, PATH_END);
 
-  GlobalThread::Create();
+  global_thread_ = std::make_unique<GlobalThread>();
 
   gin::V8Initializer::LoadV8Snapshot(gin::V8SnapshotFileType::kDefault);
 
@@ -223,6 +223,7 @@ void MainParts::Shutdown() {
   if (main_parts_delegate_) {
     main_parts_delegate_->PreShutdown();
   }
+  global_thread_.reset();
   base::ThreadPoolInstance::Get()->Shutdown();
 }
 

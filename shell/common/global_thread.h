@@ -7,64 +7,57 @@
 #include <memory>
 
 #include "base/logging.h"
+#include "base/no_destructor.h"
+#include "base/not_fatal_until.h"
 #include "base/task/single_thread_task_executor.h"
 #include "base/thread_annotations.h"
 #include "shell/common/io_thread.h"
 
-// TODO(Guo Xi): organize the naming, and the naming with browser
-
 namespace lynxtron {
 
-// Use DCHECK_CURRENTLY_ON(BrowserThread::ID) to DCHECK that a function can only
-// be called on the named BrowserThread.
-#define DCHECK_CURRENTLY_ON(thread_identifier)                                 \
-  ::lynxtron::internal::ScopedValidateBrowserThreadDebugChecker BASE_UNIQUIFY( \
-      scoped_validate_browser_thread_dchecker_)(thread_identifier)
+// Use DCHECK_CURRENTLY_ON(GlobalThread::ID) to DCHECK that a function can only
+// be called on the named GlobalThread.
+#define DCHECK_CURRENTLY_ON(thread_identifier)                                \
+  ::lynxtron::internal::ScopedValidateGlobalThreadDebugChecker BASE_UNIQUIFY( \
+      scoped_validate_global_thread_dchecker_)(thread_identifier)
 
-// Use CHECK_CURRENTLY_ON(BrowserThread::ID) to CHECK that a function can only
-// be called on the named BrowserThread.
-#define CHECK_CURRENTLY_ON(thread_identifier, ...)                        \
-  ::lynxtron::internal::ScopedValidateBrowserThreadChecker BASE_UNIQUIFY( \
-      scoped_validate_browser_thread_checker_)(                           \
-      thread_identifier __VA_OPT__(, ) __VA_ARGS__)
+// Use CHECK_CURRENTLY_ON(GlobalThread::ID) to CHECK that a function can only
+// be called on the named GlobalThread.
+#define CHECK_CURRENTLY_ON(thread_identifier, ...)                             \
+  ::lynxtron::internal::ScopedValidateGlobalThreadChecker BASE_UNIQUIFY(       \
+      scoped_validate_global_thread_checker_)(thread_identifier __VA_OPT__(, ) \
+                                                  __VA_ARGS__)
 
-// GUARDED_BY_BROWSER_THREAD() enforces that a member variable is only accessed
+// GUARDED_BY_GLOBAL_THREAD() enforces that a member variable is only accessed
 // from a scope that invokes DCHECK_CURRENTLY_ON() or CHECK_CURRENTLY_ON() or
-// from a function annotated with VALID_BROWSER_THREAD_REQUIRED(). The code will
+// from a function annotated with VALID_GLOBAL_THREAD_REQUIRED(). The code will
 // not compile if the member variable is accessed and these conditions are not
 // met.
-#define GUARDED_BY_BROWSER_THREAD(thread_identifier) \
-  GUARDED_BY(::lynxtron::internal::GetBrowserThreadChecker(thread_identifier))
+#define GUARDED_BY_GLOBAL_THREAD(thread_identifier) \
+  GUARDED_BY(::lynxtron::internal::GetGlobalThreadChecker(thread_identifier))
 
-// VALID_CONTEXT_REQUIRED() enforces that a member function is only accessed
-// from a scope that invokes DCHECK_CURRENTLY_ON() or CHECK_CURRENTLY_ON() or
-// from another function annotated with VALID_BROWSER_THREAD_REQUIRED(). The
-// code will not compile if the member function is accessed and these conditions
-// are not met.
-#define VALID_BROWSER_THREAD_REQUIRED(thread_identifier) \
-  EXCLUSIVE_LOCKS_REQUIRED(                              \
-      ::lynxtron::internal::GetBrowserThreadChecker(thread_identifier))
+// VALID_GLOBAL_THREAD_REQUIRED() enforces that a member function is only
+// accessed from a scope that invokes DCHECK_CURRENTLY_ON() or
+// CHECK_CURRENTLY_ON() or from another function annotated with
+// VALID_GLOBAL_THREAD_REQUIRED(). The code will not compile if the member
+// function is accessed and these conditions are not met.
+#define VALID_GLOBAL_THREAD_REQUIRED(thread_identifier) \
+  EXCLUSIVE_LOCKS_REQUIRED(                             \
+      ::lynxtron::internal::GetGlobalThreadChecker(thread_identifier))
 
-// The main entry point to post tasks to the UI thread. Tasks posted with the
-// same |traits| will run in posting order (i.e. according to the
-// SequencedTaskRunner contract). Tasks posted with different |traits| can be
-// re-ordered. You may keep a reference to this task runner, it's always
-// thread-safe to post to it though it may start returning false at some point
-// during shutdown when it definitely is no longer accepting tasks.
-//
-// In unit tests, there must be a content::BrowserTaskEnvironment in scope for
-// this API to be available.
+// The main entry point to post tasks to the main (UI) thread.
+// GlobalThread must be created before this API is used.
 scoped_refptr<base::SingleThreadTaskRunner> GetUIThreadTaskRunner();
 
-// The BrowserThread::IO counterpart to GetUIThreadTaskRunner().
+// The GlobalThread::IO counterpart to GetUIThreadTaskRunner().
 scoped_refptr<base::SingleThreadTaskRunner> GetIOThreadTaskRunner();
 
 class GlobalThread {
  public:
   // An enumeration of the well-known threads.
   enum ID {
-    // The main thread in the browser. It stops running tasks during shutdown
-    // and is never joined.
+    // The main thread. It stops running tasks during shutdown and is never
+    // joined.
     UI,
 
     // This is the thread that processes non-blocking I/O, i.e. IPC and network.
@@ -86,19 +79,20 @@ class GlobalThread {
     ID_COUNT
   };
 
-  // State of a given BrowserThread::ID in chronological order throughout the
-  // browser process' lifetime.
-  enum BrowserThreadState {
-    // BrowserThread::ID isn't associated with anything yet.
+  // State of a given GlobalThread::ID in chronological order throughout the
+  // process' lifetime.
+  enum State {
+    // GlobalThread::ID isn't associated with anything yet.
     UNINITIALIZED = 0,
-    // BrowserThread::ID is associated to a TaskRunner and is accepting tasks.
+    // GlobalThread::ID is associated to a TaskRunner and is accepting tasks.
     RUNNING,
-    // BrowserThread::ID no longer accepts tasks (it's still associated to a
+    // GlobalThread::ID no longer accepts tasks (it's still associated to a
     // TaskRunner but that TaskRunner doesn't have to accept tasks).
     SHUTDOWN
   };
 
-  static void Create();
+  GlobalThread();
+  ~GlobalThread();
 
   GlobalThread(const GlobalThread&) = delete;
   GlobalThread& operator=(const GlobalThread&) = delete;
@@ -108,6 +102,8 @@ class GlobalThread {
   [[nodiscard]] static bool CurrentlyOn(ID identifier);
 
   [[nodiscard]] static bool IsThreadInitialized(ID identifier);
+
+  [[nodiscard]] static const char* GetThreadName(ID identifier);
 
   static scoped_refptr<base::SingleThreadTaskRunner> GetUIThreadTaskRunner();
 
@@ -121,7 +117,7 @@ class GlobalThread {
   // destructing on the IO thread, which often is not what you want (i.e. to
   // notify other objects on the creating thread etc). Note: see
   // base::OnTaskRunnerDeleter and base::RefCountedDeleteOnSequence to bind to
-  // SequencedTaskRunner instead of specific BrowserThreads.
+  // SequencedTaskRunner instead of specific GlobalThreads.
   template <ID thread>
   struct DeleteOnThread {
     template <typename T>
@@ -148,64 +144,56 @@ class GlobalThread {
   // Sample usage with RefCountedThreadSafe:
   // class Foo
   //     : public base::RefCountedThreadSafe<
-  //           Foo, BrowserThread::DeleteOnIOThread> {
+  //           Foo, GlobalThread::DeleteOnIOThread> {
   //
   // ...
   //  private:
-  //   friend struct BrowserThread::DeleteOnThread<BrowserThread::IO>;
+  //   friend struct GlobalThread::DeleteOnThread<GlobalThread::IO>;
   //   friend class base::DeleteHelper<Foo>;
   //
   //   ~Foo();
   //
   // Sample usage with scoped_ptr:
-  // std::unique_ptr<Foo, BrowserThread::DeleteOnIOThread> ptr;
+  // std::unique_ptr<Foo, GlobalThread::DeleteOnIOThread> ptr;
   //
   // Note: see base::OnTaskRunnerDeleter and base::RefCountedDeleteOnSequence to
-  // bind to SequencedTaskRunner instead of specific BrowserThreads.
+  // bind to SequencedTaskRunner instead of specific GlobalThreads.
   struct DeleteOnUIThread : public DeleteOnThread<UI> {};
   struct DeleteOnIOThread : public DeleteOnThread<IO> {};
 
-  // Helper that returns GetUIThreadTaskRunner({}) or GetIOThreadTaskRunner({})
-  // based on |identifier|. Requires that the BrowserThread with the provided
+  // Helper that returns GetUIThreadTaskRunner() or GetIOThreadTaskRunner()
+  // based on |identifier|. Requires that the GlobalThread with the provided
   // |identifier| was started.
   static scoped_refptr<base::SingleThreadTaskRunner> GetTaskRunnerForThread(
       ID identifier);
 
  private:
-  static GlobalThread* Get();
-  GlobalThread();
-  ~GlobalThread();
-
   std::unique_ptr<base::SingleThreadTaskExecutor> main_thread_task_executor_;
   std::unique_ptr<IOThread> io_thread_;
-  std::array<scoped_refptr<base::SingleThreadTaskRunner>,
-             GlobalThread::ID_COUNT>
-      task_runners_;
-  std::atomic<BrowserThreadState> states_[GlobalThread::ID_COUNT] = {};
 };
 
 namespace internal {
 
-class THREAD_ANNOTATION_ATTRIBUTE__(capability("BrowserThread checker"))
-    BrowserThreadChecker {
+class THREAD_ANNOTATION_ATTRIBUTE__(capability("GlobalThread checker"))
+    GlobalThreadChecker {
  public:
-  [[nodiscard]] bool CalledOnValidBrowserThread(
+  [[nodiscard]] bool CalledOnValidGlobalThread(
       GlobalThread::ID thread_identifier) const;
 };
 
-// Returns the global BrowserThreadChecker associated with `thread_identifier`.
-const BrowserThreadChecker& GetBrowserThreadChecker(
+// Returns the global GlobalThreadChecker associated with `thread_identifier`.
+const GlobalThreadChecker& GetGlobalThreadChecker(
     GlobalThread::ID thread_identifier);
 
 // CHECK version.
-class SCOPED_LOCKABLE ScopedValidateBrowserThreadChecker {
+class SCOPED_LOCKABLE ScopedValidateGlobalThreadChecker {
  public:
-  explicit ScopedValidateBrowserThreadChecker(
+  explicit ScopedValidateGlobalThreadChecker(
       GlobalThread::ID thread_identifier,
       base::NotFatalUntil fatal_milestone =
           base::NotFatalUntil::NoSpecifiedMilestoneInternal)
-      EXCLUSIVE_LOCK_FUNCTION(GetBrowserThreadChecker(thread_identifier));
-  ~ScopedValidateBrowserThreadChecker() UNLOCK_FUNCTION();
+      EXCLUSIVE_LOCK_FUNCTION(GetGlobalThreadChecker(thread_identifier));
+  ~ScopedValidateGlobalThreadChecker() UNLOCK_FUNCTION();
 };
 
 // DCHECK version.
@@ -213,11 +201,11 @@ class SCOPED_LOCKABLE ScopedValidateBrowserThreadChecker {
 // out in order to not regress binary size. This is achieved by inlining the
 // constructor and the destructor. When DCHECKs are enabled, the constructor
 // is not unnecessarily inlined.
-class SCOPED_LOCKABLE ScopedValidateBrowserThreadDebugChecker {
+class SCOPED_LOCKABLE ScopedValidateGlobalThreadDebugChecker {
  public:
-  explicit ScopedValidateBrowserThreadDebugChecker(
+  explicit ScopedValidateGlobalThreadDebugChecker(
       GlobalThread::ID thread_identifier)
-      EXCLUSIVE_LOCK_FUNCTION(GetBrowserThreadChecker(thread_identifier))
+      EXCLUSIVE_LOCK_FUNCTION(GetGlobalThreadChecker(thread_identifier))
 // Only inlined when DCHECKs are turned off.
 #if DCHECK_IS_ON()
           ;
@@ -229,7 +217,7 @@ class SCOPED_LOCKABLE ScopedValidateBrowserThreadDebugChecker {
   // Note: Can't use = default as it does not work well with UNLOCK_FUNCTION().
   // Clang will discard the UNLOCK_FUNCTION() attribute.
   // See https://github.com/llvm/llvm-project/issues/101199.
-  ~ScopedValidateBrowserThreadDebugChecker() UNLOCK_FUNCTION() {}
+  ~ScopedValidateGlobalThreadDebugChecker() UNLOCK_FUNCTION() {}
 };
 }  // namespace internal
 
