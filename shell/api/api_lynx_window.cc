@@ -1,6 +1,6 @@
-// Copyright (c) 2013 GitHub, Inc.
-// Use of this source code is governed by the MIT license that can be
-// found in the LICENSE file.
+// Copyright 2025 The Lynxtron Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
 
 #include "shell/api/api_lynx_window.h"
 
@@ -76,19 +76,6 @@ std::vector<uint8_t> LoadFileData(std::string_view path) {
   return buf;
 }
 
-// bool Write
-// void split(const std::string& ,
-//            std::vector<std::string>& tokens,
-//            const std::string& delimiters = " ") {
-//   std::string::size_type lastPos = s.find_first_not_of(delimiters, 0);
-//   std::string::size_type pos = s.find_first_of(delimiters, lastPos);
-//   while (std::string::npos != pos || std::string::npos != lastPos) {
-//     tokens.emplace_back(s.substr(lastPos, pos - lastPos));
-//     lastPos = s.find_first_not_of(delimiters, pos);
-//     pos = s.find_first_of(delimiters, lastPos);
-//   }
-// }
-
 #if BUILDFLAG(IS_WIN)
 void UpdateFramebufferTransparency(HWND window) {
   BOOL enabled;
@@ -123,56 +110,21 @@ void UpdateFramebufferTransparency(HWND window) {
     ::DeleteObject(region);
   }
 }
-#endif
+#endif /*  */
 
 }  // namespace
 
 namespace api {
-
 const std::string kLynxError = "--lynx-error";
-// const std::string kLynxContainerError = "--lynx-container-error";
-const std::string kEventOnLoadOnlineTemplate = "on-load-online-template";
-// const std::string kEventOnLoadLocalTemplate = "on-load-local-template";
-
 enum class ErrorCode : int32_t { kOK = 0, kFatalError = 100 };
-std::map<std::string, std::string> GetQueryKeyValueMap(
-    const std::string& spec) {
-  url::Parsed parsed;
-  ParseStandardURL(spec.c_str(), spec.length(), &parsed);
-  url::Component query = parsed.query;
-
-  std::map<std::string, std::string> map;
-  url::Component key, value;
-  while (ExtractQueryKeyValue(spec.c_str(), &query, &key, &value)) {
-    std::string s_key = spec.substr(key.begin, key.len);
-    std::string s_value = spec.substr(value.begin, value.len);
-
-    map[s_key] = std::move(s_value);
-    key.reset();
-    value.reset();
-  }
-  return map;
-}
 
 LynxWindow::LynxWindow(gin::Arguments* args,
                        const gin_helper::Dictionary& options)
     : BaseWindow(args->isolate(), options) {
-  // lynx_view_holder_group_->AddLynxViewHolderClient(this);
-  // lynx_view_->SetClient(this);
-  // #if BUILDFLAG(IS_WIN)
-  //   lynx_bridge_ =
-  //   std::make_shared<LynxNativeModule>(weak_factory_.GetWeakPtr());
-  //   hybrid_monitor_ =
-  //       std::make_shared<HybridMonitorModule>(weak_factory_.GetWeakPtr());
-  //   js_resource_provider_ =
-  //       std::make_unique<ResourceProviderImpl>("EXTERNAL_JS_SOURCE");
-  //   dynamic_component_provider_ =
-  //       std::make_unique<ResourceProviderImpl>("DYNAMIC_COMPONENT");
-  // #endif
   InitWithArgs(args);
+  // TODO(Guo Xi): support software render.
   options.Get("software_render", &software_render_);
-  // software_render_ = false;
-  //  Init window after everything has been setup.
+
   window()->InitFromOptions(options);
 
   gin_helper::Dictionary node_integration_config;
@@ -192,10 +144,6 @@ LynxWindow::LynxWindow(gin::Arguments* args,
 #endif
   // init lynx env.
   lynx_env_set_devtool_app_info("sdkVersion", lynx_env_get_sdk_version());
-  // util::LynxGlobalInit();
-  // #if defined(OS_MAC)
-  //   LynxNapiBridgeModule::RegisterMoudle();
-  // #endif
   auto& registry = GetGlobalDelegateRegistry();
   auto it = registry.find(kLynxViewMonitorDelegateName);
   if (it != registry.end()) {
@@ -209,11 +157,7 @@ LynxWindow::LynxWindow(gin::Arguments* args,
   }
 }
 
-LynxWindow::~LynxWindow() {
-  // #if BUILDFLAG(IS_NODE_LYNX) || BUILDFLAG(IS_WIN)
-  //   lynx_view_holder_group_->RemoveLynxViewHolderGroupClient(this);
-  // #endif
-}
+LynxWindow::~LynxWindow() = default;
 
 void LynxWindow::OnCloseButtonClicked(bool& prevent_default) {
   // When user tries to close the window by clicking the close button, we do
@@ -256,18 +200,6 @@ void LynxWindow::OnWindowResize() {
   }
 
 #if BUILDFLAG(IS_WIN)
-  // lynx::LynxRect rect;
-  // RECT win_rect{};
-  // ::GetClientRect(window_->GetNativeWindowHandle(), &win_rect);
-  // auto dpi = display::win::ScreenWin::GetScaleFactorForHWND(
-  //     window_->GetNativeWindowHandle());
-  // rect = {0.f, 0.f, static_cast<float>((win_rect.right - win_rect.left) /
-  // dpi),
-  //         static_cast<float>((win_rect.bottom - win_rect.top) / dpi)};
-  // MoveWindow(CurrentLynxViewHolder()->GetHwnd(), win_rect.left, win_rect.top,
-  //            win_rect.right - win_rect.left, win_rect.bottom - win_rect.top,
-  //            TRUE);
-
   // Update LynxView native window size to match client area
   RECT win_rect{};
   ::GetClientRect(window_->GetNativeWindowHandle(), &win_rect);
@@ -466,13 +398,6 @@ void LynxWindow::FocusLynxView() {
   // }
 }
 
-// bool LynxWindow::CheckLynxViewExit(const lynx::LynxView* lynx_view) {
-//   if (!lynx_view_holder_group_) {
-//     return false;
-//   }
-//   return lynx_view_holder_group_->Exist(lynx_view);
-// }
-
 void LynxWindow::OnWindowShow() {
   if (lynx_view_) {
     lynx_view_->Show();
@@ -485,14 +410,6 @@ void LynxWindow::OnWindowHide() {
     lynx_view_->Hide();
   }
   BaseWindow::OnWindowHide();
-}
-
-bool LynxWindow::UpdateDataWithString(const std::string& data) {
-  // if (lynx_view_) {
-  //   lynx_view_->UpdateDataWithString(data);
-  // }
-
-  return true;
 }
 
 bool LynxWindow::LoadFile(const std::string& path, gin::Arguments* args) {
@@ -522,15 +439,6 @@ bool LynxWindow::LoadUrl(const std::string& url) {
   CreateLynxView(url, "", "", "", "", "");
   return true;
 }
-
-// bool LynxWindow::RequestLayoutWhenSafepointEnable() {
-// #if BUILDFLAG(IS_WIN)
-//   if (CurrentLynxViewHolder()) {
-//     CurrentLynxViewHolder()->RequestLayoutWhenSafepointEnable();
-//   }
-// #endif
-//   return true;
-// }
 
 bool LynxWindow::ReloadTemplate(const gin_helper::Dictionary& data,
                                 const gin_helper::Dictionary& global_props) {
@@ -572,12 +480,6 @@ bool LynxWindow::UpdateData(const gin_helper::Dictionary& data,
   return true;
 }
 
-// bool LynxWindow::SetGlobalProp(v8::Isolate* isolate,
-//                                v8::Local<v8::Value> value) {
-//   gin::ConvertFromV8(isolate, value, &global_props_);
-//   return true;
-// }
-
 void LynxWindow::OnPageStart(std::string_view url) {
   // Emit("on-page-start", url);
   if (lynx_view_monitor_delegate_) {
@@ -614,11 +516,7 @@ void LynxWindow::OnDestroy() {
 /**
  * notify JS Runtime initialization complete
  */
-void LynxWindow::OnRuntimeReady() {
-  // if (lynx_monitor_) {
-  //   lynx_monitor_->OnRuntimeReady(lynx_view_holder);
-  // }
-}
+void LynxWindow::OnRuntimeReady() {}
 
 void LynxWindow::OnReceivedError(int error_code, std::string_view message) {
   if (lynx_view_monitor_delegate_) {
@@ -644,60 +542,6 @@ void LynxWindow::OnEnterForeground() {
 void LynxWindow::OnEnterBackground() {
   // Emit("on-enter-background");
 }
-
-// void LynxWindow::OnFirstLoadPerfReady(
-//     LynxView* lynx_view,
-//     const std::unordered_map<int32_t, double>& perf,
-//     const std::unordered_map<int32_t, std::string>& perf_timing) {
-//   // if (lynx_monitor_) {
-//   //   lynx_monitor_->OnFirstLoadPerfReady(lynx_view_holder, perf,
-//   perf_timing);
-//   // }
-// }
-
-// base::FilePath WriteTemplateFile(const std::vector<char>& data) {
-//   base::FilePath path;
-//   if (!base::CreateTemporaryFile(&path)) {
-//     return {};
-//   }
-
-//   if (base::WriteFile(path, data.data(), data.size()) == -1) {
-//     return {};
-//   }
-//   return path;
-// }
-
-// bool LynxWindow::SendGlobalEventSafely(const lynx::LynxView* lynx_view,
-//                                        const std::string& name,
-//                                        const std::string& json_params) {
-//   auto* lynx_view_inter = const_cast<lynx::LynxView*>(lynx_view);
-//   if (!lynx_view_inter) {
-//     return false;
-//   }
-//   if (!CheckLynxViewExit(lynx_view_inter)) {
-//     return false;
-//   }
-//   if (lynx_view_holder_group_) {
-//     lynx_view_holder_group_->GetLynxViewHolder(lynx_view_inter)
-//         ->SendGlobalEvent(name, json_params);
-//   }
-//   return true;
-// }
-
-// bool LynxWindow::CloseByLynxBridge(const lynx::LynxView* lynx_view,
-//                                    const std::string& animation_type,
-//                                    const lynx::EncodableList& container_list)
-//                                    {
-//   Close();
-//   return true;
-// }
-
-// lynx::LynxViewHolder* LynxWindow::CurrentLynxViewHolder() {
-//   if (lynx_view_holder_group_) {
-//     return lynx_view_holder_group_->GetCurrentLynxViewHolder();
-//   }
-//   return nullptr;
-// }
 
 void LynxWindow::OnDataUpdated() {
   // Emit("on-data-updated");
@@ -737,27 +581,6 @@ bool LynxWindow::SendGlobalEvent(const std::string& name,
   lynx_view_->SendGlobalEvent(name, json_string.value());
   return true;
 }
-// bool LynxWindow::ReportJSError(const LynxView* lynx_view,
-//                                const std::string& error_info) {
-//   if (!lynx_monitor_ || !lynx_view_holder_group_) {
-//     return false;
-//   }
-//   auto* lynx_view_holder =
-//       lynx_view_holder_group_->GetLynxViewHolder(lynx_view);
-//   lynx_monitor_->ReportJSError(lynx_view_holder, error_info);
-//   return true;
-// }
-
-// bool LynxWindow::ConfigJSBase(const lynx::LynxView* lynx_view,
-//                               const std::string& bid) {
-//   if (!lynx_monitor_ || !lynx_view_holder_group_) {
-//     return false;
-//   }
-//   auto* lynx_view_holder =
-//       lynx_view_holder_group_->GetLynxViewHolder(lynx_view);
-//   lynx_monitor_->ConfigJSBase(lynx_view_holder, bid);
-//   return true;
-// }
 
 // static
 gin_helper::WrappableBase* LynxWindow::New(gin_helper::ErrorThrower thrower,
@@ -789,10 +612,6 @@ void LynxWindow::BuildPrototype(v8::Isolate* isolate,
       .SetMethod("loadURL", &LynxWindow::LoadUrl)
       .SetMethod("updateData", &LynxWindow::UpdateData)
       .SetMethod("sendGlobalEvent", &LynxWindow::SendGlobalEvent);
-
-  // .SetMethod("Send", &LynxWindow::Send)
-  // .SetMethod("OpenScheme", &LynxWindow::OpenScheme);
-  // .SetMethod("SetGlobalProp", &LynxWindow::SetGlobalProp);
 }
 
 // static
@@ -805,87 +624,6 @@ v8::Local<v8::Value> LynxWindow::From(v8::Isolate* isolate,
     return v8::Null(isolate);
   }
 }
-// bool LynxWindow::CustomReport(const lynx::LynxView* lynx_view,
-//                               const std::string& custom_data) {
-//   if (!lynx_monitor_ || !lynx_view_holder_group_) {
-//     return false;
-//   }
-//   auto* lynx_view_holder =
-//       lynx_view_holder_group_->GetLynxViewHolder(lynx_view);
-//   lynx_monitor_->ReportCustomData(lynx_view_holder, custom_data);
-//   return true;
-// }
-
-// void LynxWindow::LynxVerify(const std::vector<uint8_t>& source,
-//                             const std::string& scheme,
-//                             int lynx_verify_mode,
-//                             const std::string& public_key,
-//                             base::RepeatingCallback<void(bool)> callback) {
-//   auto event = gin_helper::internal::CreateLynxEvent(
-//       isolate(), GetWrapper(),
-//       base::BindRepeating(
-//           [](v8::Isolate* isolate, v8::Local<v8::Value> result) {
-//             LOG(INFO) << "lynx file verify complete";
-//           }));
-//   bool result = true;
-//   if (lynx_verify_mode != 0) {
-//     result = util::VerifyLynxSignature(source, public_key);
-//   }
-//   v8::HandleScope handle_scope(isolate());
-//   auto object = gin_helper::Dictionary::CreateEmpty(isolate());
-//   object.Set("verifyResult", result ? 1 : 0);
-//   object.Set("scheme", scheme);
-//   bool prevent_default =
-//       EmitLynxEvent("lynx-file-verify-complete", event, object);
-//   std::move(callback).Run(!prevent_default);
-// }
-
-// void LynxWindow::CheckLynxValidation(
-//     const std::vector<uint8_t>& source,
-//     const std::string& channel_name,
-//     const std::string& scheme,
-//     base::RepeatingCallback<void(bool)> callback) {
-//   if (!Lynx::Get()->IsLynxVerifyEnable()) {
-//     std::move(callback).Run(true);
-//     return;
-//   }
-
-//   auto event_callback = [](base::WeakPtr<LynxWindow> window,
-//                            const std::string& scheme,
-//                            base::RepeatingCallback<void(bool)> callback,
-//                            const std::vector<uint8_t>& source,
-//                            v8::Isolate* isolate, v8::Local<v8::Value> result)
-//                            {
-//     gin::Dictionary dict(isolate);
-//     gin::ConvertFromV8(isolate, result, &dict);
-//     int lynx_verify_mode = 1;  // 0: not verify, 1: default verify
-//     std::string public_key;
-//     if (!dict.Get("lynxVerifyMode", &lynx_verify_mode)) {
-//       LOG(ERROR) << "[LynxWindow] can't find lynxVerifyMode";
-//     }
-//     if (!dict.Get("publicKey", &public_key)) {
-//       LOG(ERROR) << "[LynxWindow] can't find publicKey";
-//     }
-//     window->LynxVerify(source, scheme, lynx_verify_mode, public_key,
-//                        std::move(callback));
-//   };
-//   auto feId = util::GetLynxFeID(source);
-//   LOG(ERROR) << "LynxWindow::GetLynxFeID" << feId;
-//   v8::HandleScope handle_scope(isolate());
-//   auto object = gin_helper::Dictionary::CreateEmpty(isolate());
-//   object.Set("channel", channel_name);
-//   object.Set("feId", feId);
-
-//   auto event = gin_helper::internal::CreateLynxEvent(
-//       isolate(), GetWrapper(),
-//       base::BindRepeating(event_callback, weak_factory_.GetWeakPtr(), scheme,
-//                           std::move(callback), source));
-
-//   LOG(ERROR) << "LynxWindow::CheckLynxValidation";
-
-//   EmitLynxEvent("lynx-file-load", event, object);
-// }
-
 }  // namespace api
 
 }  // namespace lynxtron

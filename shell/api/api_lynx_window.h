@@ -1,6 +1,6 @@
-// Copyright (c) 2013 GitHub, Inc.
-// Use of this source code is governed by the MIT license that can be
-// found in the LICENSE file.
+// Copyright 2025 The Lynxtron Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
 
 #ifndef LYNXTRON_SHELL_API_API_LYNX_WINDOW_H_
 #define LYNXTRON_SHELL_API_API_LYNX_WINDOW_H_
@@ -95,7 +95,6 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
 
   // Lynx
   bool RequestLayoutWhenSafepointEnable();
-  bool UpdateDataWithString(const std::string& data);
   bool LoadFile(const std::string& url, gin::Arguments* args);
   bool LoadUrl(const std::string& url);
   bool SendGlobalEvent(const std::string& name,
