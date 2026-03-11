@@ -13,27 +13,15 @@
 #include "shell/lynx/resource_fetcher/lynx_generic_resource_fetcher_factory.h"
 
 #if BUILDFLAG(IS_MAC)
-#if BUILD_WITH_LYNX
 #include "lynx/platform/embedder/public/capi/lynx_env_capi.h"
 #include "lynx/platform/embedder/public/lynx_view.h"
 #include "lynx/platform/embedder/public/lynx_view_client.h"
-#else
-#include "shell/lynx/lynx_lib/lib/mac/include/capi/lynx_env_capi.h"
-#include "shell/lynx/lynx_lib/lib/mac/include/lynx_view.h"
-#include "shell/lynx/lynx_lib/lib/mac/include/lynx_view_client.h"
-#endif
 #endif
 
 #if BUILDFLAG(IS_WIN)
-#if BUILD_WITH_LYNX
 #include "lynx/platform/embedder/public/capi/lynx_env_capi.h"
 #include "lynx/platform/embedder/public/lynx_view.h"
 #include "lynx/platform/embedder/public/lynx_view_client.h"
-#else
-#include "shell/lynx/lynx_lib/lib/win/include/capi/lynx_env_capi.h"
-#include "shell/lynx/lynx_lib/lib/win/include/lynx_view.h"
-#include "shell/lynx/lynx_lib/lib/win/include/lynx_view_client.h"
-#endif
 #endif
 
 #include "shell/api/lynx_view/module/lynx_bridge_module.h"

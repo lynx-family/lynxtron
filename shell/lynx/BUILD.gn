@@ -1,121 +1,53 @@
 # Copyright 2025 The Lynxtron Authors. All rights reserved.
 # Licensed under the Apache License Version 2.0 that can be found in the
 # LICENSE file in the root directory of this source tree.
-if (!is_build_with_lynx) {
-  import("//build/config/c++/c++.gni")
+import("//lynx/oliver/oliver.gni")
+if (is_mac) {
+  import("//build/apple/templates/darwin_general_bundle.gni")
 
-  config("lynx_config") {
-    if (is_mac) {
-      include_dirs = [ "lynx_lib/lib/mac/include" ]
-      libs = [ "lynx_lib/lib/mac/$target_cpu/libLynx.dylib" ]
-    }
-
-    if (is_win) {
-      include_dirs = [ "lynx_lib/lib/win/include" ]
-      libs = [ "lynx_lib/lib/win/$target_cpu/lynx.dll.lib" ]
-    }
+  build_kernel_js("lynx_core") {
+    script = "//lynx/tools/js_tools/build.py"
+    platform = "ios"
+    output_path = "$root_build_dir/lynx_lynxtron"
   }
-  if (is_mac) {
-    action("release_reosurce_bundle") {
-      inputs = [
-        "lynx_lib/lib/mac/LynxResources.bundle/Contents/Info.plist",
-        "lynx_lib/lib/mac/LynxResources.bundle/Contents/Resources/lynx_core.js",
-      ]
-      outputs = [ "${root_out_dir}/LynxResources.bundle" ]
-      src_dir = [ "lynx_lib/lib/mac/LynxResources.bundle" ]
 
-      script = "copy_bundle.py"
-      args = rebase_path(src_dir) + rebase_path(outputs)
-    }
+  bundle_data("lynx_core_js") {
+    sources = [ "$root_build_dir/lynx_lynxtron/lynx_core.js" ]
+    outputs = [ "{{bundle_resources_dir}}/lynx_core.js" ]
+    public_deps = [ ":lynx_core" ]
+  }
+
+  darwin_general_bundle("lynx_resources_bundle_for_lynxtron") {
+    bundle_identifier = "com.lynx.LynxResources"
+    info_plist =
+        "//lynx/explorer/darwin/macos/lynx_explorer/Resource/Info.plist"
+    deployment_target = mac_deployment_target
+    output_name = "lynx_lynxtron/LynxResources"
+    public_deps = [ ":lynx_core_js" ]
   }
 
   bundle_data("lynx_resources") {
-    if (is_mac) {
-      sources = [ "lynx_lib/lib/mac/data/icudtl.dat" ]
-    }
-    if (is_win) {
-      sources = [ "lynx_lib/lib/win/data/icudtl.dat" ]
-    }
-    if (is_mac) {
-      sources += get_target_outputs(":release_reosurce_bundle")
+    sources = [ "$root_build_dir/lynx_lynxtron/LynxResources.bundle" ]
 
-      public_deps = [ ":release_reosurce_bundle" ]
-    }
     outputs = [ "{{bundle_contents_dir}}/Resources/{{source_file_part}}" ]
+    public_deps = [ ":lynx_resources_bundle_for_lynxtron" ]
   }
+} else if (is_win) {
+  build_kernel_js("lynx_core") {
+    script = "//lynx/tools/js_tools/build.py"
+    platform = "ios"
+    output_path = "$root_build_dir"
+  }
+}
 
-  copy("lynx_runtime_files") {
-    if (is_mac) {
-      sources = [
-        "lynx_lib/lib/mac/${target_cpu}/libLynx.dylib",
-        "lynx_lib/lib/mac/${target_cpu}/libLynx.dylib.dSYM",
-      ]
-    }
-    if (is_win) {
-      sources = [
-        "lynx_lib/lib/win/${target_cpu}/lynx.dll",
-        # "lynx_lib/lib/win/${target_cpu}/libLynx.dll.pdb"
-      ]
-    }
-    outputs = [ "$root_out_dir/{{source_file_part}}" ]
-  }
-
-  group("lynx_lib") {
-    data_deps = [
-      ":lynx_resources",
-      ":lynx_runtime_files",
-    ]
-    public_configs = [ ":lynx_config" ]
-  }
-} else {
-  import("//lynx/oliver/oliver.gni")
+group("lynx_lib") {
+  deps = []
   if (is_mac) {
-    import("//build/apple/templates/darwin_general_bundle.gni")
-
-    build_kernel_js("lynx_core") {
-      script = "//lynx/tools/js_tools/build.py"
-      platform = "ios"
-      output_path = "$root_build_dir/lynx_lynxtron"
-    }
-
-    bundle_data("lynx_core_js") {
-      sources = [ "$root_build_dir/lynx_lynxtron/lynx_core.js" ]
-      outputs = [ "{{bundle_resources_dir}}/lynx_core.js" ]
-      public_deps = [ ":lynx_core" ]
-    }
-
-    darwin_general_bundle("lynx_resources_bundle_for_lynxtron") {
-      bundle_identifier = "com.lynx.LynxResources"
-      info_plist =
-          "//lynx/explorer/darwin/macos/lynx_explorer/Resource/Info.plist"
-      deployment_target = mac_deployment_target
-      output_name = "lynx_lynxtron/LynxResources"
-      public_deps = [ ":lynx_core_js" ]
-    }
-
-    bundle_data("lynx_resources") {
-      sources = [ "$root_build_dir/lynx_lynxtron/LynxResources.bundle" ]
-
-      outputs = [ "{{bundle_contents_dir}}/Resources/{{source_file_part}}" ]
-      public_deps = [ ":lynx_resources_bundle_for_lynxtron" ]
-    }
+    deps += [ "//lynx/platform/darwin/macos:lynx_common_deps" ]
   } else if (is_win) {
-    build_kernel_js("lynx_core") {
-      script = "//lynx/tools/js_tools/build.py"
-      platform = "ios"
-      output_path = "$root_build_dir"
-    }
-  }
-
-  group("lynx_lib") {
-    deps = []
-    if (is_mac) {
-      deps += [ "//lynx/platform/darwin/macos:lynx_common_deps" ]
-    } else if (is_win) {
-      deps += [
-        ":lynx_core",
-        "//lynx/platform/windows:lynx_windows_group",
-      ]
-    }
+    deps += [
+      ":lynx_core",
+      "//lynx/platform/windows:lynx_windows_group",
+    ]
   }
 }

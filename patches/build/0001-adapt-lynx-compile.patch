@@ -1,4 +1,4 @@
-From bbbfd4ad556255f5ed1b590d0419235d90ede2c1 Mon Sep 17 00:00:00 2001
+From 1dd28194885ac3420e4b767c120ab3dad987331f Mon Sep 17 00:00:00 2001
 From: tangyongjie <80395553+yongjieTang@users.noreply.github.com>
 Date: Fri, 14 Nov 2025 14:46:37 +0800
 Subject: [PATCH] adapt lynx compile
@@ -20,9 +20,9 @@ Subject: [PATCH] adapt lynx compile
  apple/templates/xib.gni                       |  55 +++
  build_config.h                                |   1 +
  config/BUILD.gn                               |   4 +
- config/BUILDCONFIG.gn                         |  30 ++
+ config/BUILDCONFIG.gn                         |  26 ++
  config/clang/BUILD.gn                         |  28 +-
- config/compiler/BUILD.gn                      | 133 +++++++
+ config/compiler/BUILD.gn                      | 232 +++++++------
  config/ios/bundle_identifier_prefix.gni       |   8 +
  config/mac/BUILD.gn                           |  20 ++
  config/mac/script/sdk_info.py                 | 130 +++++++
@@ -50,7 +50,7 @@ Subject: [PATCH] adapt lynx compile
  toolchain/win/toolchain.gni                   |  12 -
  util/write_cmake_config.gni                   |   1 +
  util/write_cmake_config.py                    | 123 +++++++
- 46 files changed, 2903 insertions(+), 26 deletions(-)
+ 46 files changed, 2898 insertions(+), 127 deletions(-)
  create mode 100644 apple/resources/Info.plist
  create mode 100644 apple/resources/compiler-Info.plist
  create mode 100644 apple/script/compile_storyboard.py
@@ -1456,7 +1456,7 @@ index 56ca3ca..2769caf 100644
 +config("symbol_visibility_hidden") {
 +}
 diff --git a/config/BUILDCONFIG.gn b/config/BUILDCONFIG.gn
-index 5af7954..746189d 100644
+index 5af7954..bb32ad6 100644
 --- a/config/BUILDCONFIG.gn
 +++ b/config/BUILDCONFIG.gn
 @@ -14,6 +14,10 @@
@@ -1470,7 +1470,7 @@ index 5af7954..746189d 100644
  # =============================================================================
  # PLATFORM SELECTION
  # =============================================================================
-@@ -168,6 +172,22 @@ declare_args() {
+@@ -168,6 +172,20 @@ declare_args() {
  declare_args() {
    # Debug build. Enabling official builds automatically sets is_debug to false.
    is_debug = !is_official_build
@@ -1487,13 +1487,11 @@ index 5af7954..746189d 100644
 +
 +  default_library_type = "static_library"
 +
-+  is_build_with_lynx = false
-+
 +  use_flutter_cxx = false
  }
  
  declare_args() {
-@@ -327,6 +347,8 @@ is_fuchsia = current_os == "fuchsia"
+@@ -327,6 +345,8 @@ is_fuchsia = current_os == "fuchsia"
  is_ios = current_os == "ios"
  is_linux = current_os == "linux"
  is_mac = current_os == "mac"
@@ -1502,7 +1500,7 @@ index 5af7954..746189d 100644
  
  # TODO(crbug.com/40511454): Remove is_nacl from all build files, then
  #                           remove the is_nacl variable.
-@@ -384,6 +406,7 @@ default_compiler_configs = [
+@@ -384,6 +404,7 @@ default_compiler_configs = [
    "//build/config/coverage:default_coverage",
    "//build/config/sanitizers:default_sanitizer_flags",
    "//build/config:feature_flags",
@@ -1510,16 +1508,14 @@ index 5af7954..746189d 100644
  ]
  
  if (is_win) {
-@@ -432,6 +455,13 @@ if (is_debug) {
+@@ -432,6 +453,11 @@ if (is_debug) {
    default_compiler_configs += [ "//build/config:release" ]
  }
  
-+if (is_build_with_lynx) {
-+  default_compiler_configs += [
-+    "//build/config/compiler:cxx_version_default",
-+    "//build/config/compiler:lynx_disable_warning_config",
-+  ]
-+}
++default_compiler_configs += [
++  "//build/config/compiler:cxx_version_default",
++  "//build/config/compiler:lynx_disable_warning_config",
++]
 +
  # Static libraries and source sets use only the compiler ones.
  set_defaults("static_library") {
@@ -1566,7 +1562,7 @@ index 7aaa873..109c340 100644
  
  # A plugin for incrementally applying the -Wunsafe-buffer-usage warning.
 diff --git a/config/compiler/BUILD.gn b/config/compiler/BUILD.gn
-index 32c9abd..8469fc0 100644
+index 32c9abd..c0d9e43 100644
 --- a/config/compiler/BUILD.gn
 +++ b/config/compiler/BUILD.gn
 @@ -284,9 +284,127 @@ config("default_include_dirs") {
@@ -1717,19 +1713,111 @@ index 32c9abd..8469fc0 100644
  config("compiler") {
    asmflags = []
    cflags = []
-@@ -2281,6 +2412,7 @@ config("prevent_unsafe_narrowing") {
+@@ -2281,107 +2412,6 @@ config("prevent_unsafe_narrowing") {
  # part of Chromium.
  
  config("chromium_code") {
-+  if (!is_build_with_lynx) {
-   if (is_win) {
-     if (is_clang) {
-       cflags = [ "/W4" ]  # Warning level 4.
-@@ -2382,6 +2514,7 @@ config("chromium_code") {
-   if (treat_warnings_as_errors) {
-     configs += [ ":treat_warnings_as_errors" ]
-   }
-+  }
+-  if (is_win) {
+-    if (is_clang) {
+-      cflags = [ "/W4" ]  # Warning level 4.
+-
+-      # Opt in to additional [[nodiscard]] on standard library methods.
+-      defines = [ "_HAS_NODISCARD" ]
+-    }
+-  } else {
+-    cflags = [ "-Wall" ]
+-    if (is_clang) {
+-      # Enable extra warnings for chromium_code when we control the compiler.
+-      cflags += [ "-Wextra" ]
+-    }
+-
+-    # In Chromium code, we define __STDC_foo_MACROS in order to get the
+-    # C99 macros on Mac and Linux.
+-    defines = [
+-      "__STDC_CONSTANT_MACROS",
+-      "__STDC_FORMAT_MACROS",
+-    ]
+-
+-    if (!is_debug && !using_sanitizer && current_cpu != "s390x" &&
+-        current_cpu != "s390" && current_cpu != "ppc64" &&
+-        current_cpu != "mips" && current_cpu != "mips64" &&
+-        current_cpu != "riscv64" && current_cpu != "loong64") {
+-      # Non-chromium code is not guaranteed to compile cleanly with
+-      # _FORTIFY_SOURCE. Also, fortified build may fail when optimizations are
+-      # disabled, so only do that for Release build.
+-      fortify_level = "2"
+-
+-      # ChromeOS's toolchain supports a high-quality _FORTIFY_SOURCE=3
+-      # implementation with a few custom glibc patches. Use that if it's
+-      # available.
+-      if (is_chromeos_device && !lacros_use_chromium_toolchain) {
+-        fortify_level = "3"
+-      }
+-      defines += [ "_FORTIFY_SOURCE=" + fortify_level ]
+-    }
+-
+-    if (is_apple) {
+-      cflags_objc = [ "-Wimplicit-retain-self" ]
+-      cflags_objcc = [ "-Wimplicit-retain-self" ]
+-    }
+-
+-    if (is_mac) {
+-      cflags_objc += [ "-Wobjc-missing-property-synthesis" ]
+-      cflags_objcc += [ "-Wobjc-missing-property-synthesis" ]
+-    }
+-
+-    if (is_ios) {
+-      cflags_objc += [ "-Widiomatic-parentheses" ]
+-      cflags_objcc += [ "-Widiomatic-parentheses" ]
+-    }
+-  }
+-
+-  if (is_clang) {
+-    cflags += [
+-      # Warn on missing break statements at the end of switch cases.
+-      # For intentional fallthrough, use [[fallthrough]].
+-      "-Wimplicit-fallthrough",
+-
+-      # Warn on unnecessary extra semicolons outside of function definitions.
+-      "-Wextra-semi",
+-
+-      # Warn on unreachable code, including unreachable breaks and returns.
+-      # See https://crbug.com/346399#c148 for suppression strategies.
+-      "-Wunreachable-code-aggressive",
+-
+-      # Warn on GNU extensions.
+-      "-Wgnu",
+-
+-      # TODO(crbug.com/357081796): Try to enable these.
+-      "-Wno-gnu-anonymous-struct",
+-      "-Wno-gnu-conditional-omitted-operand",
+-      "-Wno-gnu-include-next",
+-      "-Wno-gnu-label-as-value",
+-      "-Wno-gnu-redeclared-enum",
+-      "-Wno-gnu-statement-expression",
+-      "-Wno-gnu-zero-variadic-macro-arguments",
+-      "-Wno-zero-length-array",
+-
+-      # Thread safety analysis. See base/thread_annotations.h and
+-      # https://clang.llvm.org/docs/ThreadSafetyAnalysis.html
+-      "-Wthread-safety",
+-    ]
+-
+-    if (is_chromeos) {
+-      cflags += [ "-Wno-gnu-offsetof-extensions" ]
+-    }
+-    if (is_ios) {
+-      cflags += [ "-Wno-gnu-case-range" ]
+-    }
+-  }
+-
+-  configs = [
+-    ":default_warnings",
+-    ":noshadowing",
+-  ]
+-  if (treat_warnings_as_errors) {
+-    configs += [ ":treat_warnings_as_errors" ]
+-  }
  }
  
  config("no_chromium_code") {
@@ -3392,5 +3480,5 @@ index 0000000..fbed377
 +    sys.exit(main())
 \ No newline at end of file
 -- 
-2.50.1 (Apple Git-155)
+2.39.3 (Apple Git-145)
 

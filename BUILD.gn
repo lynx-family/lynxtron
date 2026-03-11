@@ -315,12 +315,7 @@ source_set("lynxtron_lib") {
     "//third_party/node:node_external_config",
   ]
 
-  if (is_build_with_lynx) {
-    defines = [
-      "BUILD_WITH_LYNX=1",
-      "USE_PRIMJS_NAPI=1",
-    ]
-  }
+  defines = [ "USE_PRIMJS_NAPI=1" ]
 
   deps = [
     ":lynxtron_generate_node_defines",
@@ -664,19 +659,17 @@ if (is_mac) {
       "-Wl,-dead_strip_dylibs",
     ]
 
-    if (is_build_with_lynx) {
-      frameworks += [
-        "Carbon.framework",
-        "Cocoa.framework",
-        "CoreVideo.framework",
-        "IOSurface.framework",
-        "Metal.framework",
-        "QuartzCore.framework",
-        "OpenGL.framework",
-        "JavaScriptCore.framework",
-        "WebKit.framework",
-      ]
-    }
+    frameworks += [
+      "Carbon.framework",
+      "Cocoa.framework",
+      "CoreVideo.framework",
+      "IOSurface.framework",
+      "Metal.framework",
+      "QuartzCore.framework",
+      "OpenGL.framework",
+      "JavaScriptCore.framework",
+      "WebKit.framework",
+    ]
   }
 
   bundle_data("lynxtron_framework_resources") {
@@ -723,11 +716,6 @@ if (is_mac) {
     #       [ "$root_out_dir/${lynxtron_helper_name}${helper_params[2]}.app" ]
     #   public_deps += [ ":lynxtron_helper_app_${helper_params[0]}" ]
     # }
-    if (!is_build_with_lynx) {
-      sources += [ "$root_out_dir/libLynx.dylib" ]
-
-      public_deps += [ "shell/lynx:lynx_runtime_files" ]
-    }
   }
 
   bundle_data("lynxtron_app_resources") {
@@ -761,9 +749,7 @@ if (is_mac) {
     ]
 
     deps += lynxtron_app_extra_deps
-    if (is_build_with_lynx) {
-      deps += [ ":lynxtron_app_resource_bundle_data" ]
-    }
+    deps += [ ":lynxtron_app_resource_bundle_data" ]
 
     info_plist_target = ":lynxtron_app_plist"
 
