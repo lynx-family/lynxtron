@@ -1,0 +1,45 @@
+{
+  "name": "lynxtron-browser-demo",
+  "author": "Lynxtron Authors",
+  "version": "0.0.1",
+  "description": "A browser Lynxtron application",
+  "main": "main.js",
+  "scripts": {
+    "dev": "cross-env TARGET_ENV=desktop NODE_ENV=development concurrently -k --raw \"rspeedy dev\" \"dev-ready-rspeedy && rspack dev\"",
+    "dev:web": "cross-env TARGET_ENV=web NODE_ENV=development concurrently -k --raw \"rspeedy dev\" \"rspack serve\"",
+    "build": "rspeedy build && rspack build",
+    "start": "cross-env TARGET_ENV=desktop npm run build && lynxtron ./dist/desktop",
+    "start:web": "cross-env TARGET_ENV=web npm run build && npx serve ./dist/web",
+    "test": "vitest run",
+    "pack": "npm run build && lynxtron-builder --publish never",
+    "postinstall": "node ./scripts/postinstall.js"
+  },
+  "private": true,
+  "devDependencies": {
+    "@lynx-js/lynx-core": "latest",
+    "@lynx-js/lynxtron": "workspace:*",
+    "@lynx-js/lynxtron-builder": "workspace:*",
+    "@lynx-js/lynxtron-dev-plugins": "workspace:*",
+    "@lynx-js/preact-devtools": "^5.0.1-c0c936b",
+    "@lynx-js/react": "0.115.4",
+    "@lynx-js/react-rsbuild-plugin": "^0.12.5",
+    "@lynx-js/rspeedy": "^0.13.0",
+    "@lynx-js/types": "3.6.0",
+    "@lynx-js/web-core": "latest",
+    "@lynx-js/web-elements": "latest",
+    "@lynx-js/cef-x-webview": "0.0.10",
+    "@rsbuild/plugin-type-check": "1.3.1",
+    "@rspack/cli": "^1.7.5",
+    "@rspack/core": "^1.7.5",
+    "@testing-library/jest-dom": "^6.9.0",
+    "compressing": "^1.10.0",
+    "concurrently": "^8.2.2",
+    "cross-env": "^10.1.0",
+    "jsdom": "^26.1.0",
+    "typescript": "~5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
