@@ -1,5 +1,5 @@
 import { root } from '@lynx-js/react';
-import './index.scss';
+import './index.css';
 import FeatureGrid from './components/FeatureGrid';
 
 export default function WebContainer() {

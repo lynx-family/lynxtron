@@ -1,7 +1,6 @@
 import { defineConfig } from '@lynx-js/rspeedy';
 import { pluginQRCode } from '@lynx-js/qrcode-rsbuild-plugin';
 import { pluginReactLynx } from '@lynx-js/react-rsbuild-plugin';
-import { pluginSass } from '@rsbuild/plugin-sass';
 import { fileURLToPath } from "url";
 import path from "path";
 const __filename = fileURLToPath(import.meta.url);
@@ -29,7 +28,6 @@ export default defineConfig({
                 return `${url}`;
             },
         }),
-        pluginSass({}),
         pluginReactLynx(),
     ],
 });
