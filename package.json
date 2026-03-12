@@ -29,7 +29,8 @@
     "pre-flight": "pre-flight",
     "tsc": "tsc",
     "webpack": "webpack",
-    "test": "node ./script/spec-runner.js"
+    "test": "node ./script/spec-runner.js",
+    "test:build:lynx": "npm --prefix spec/case/lynx-card run build --"
   },
   "license": "MIT",
   "author": "Lynxtron Authors",
@@ -42,7 +43,8 @@
     "packages/lynxtron-builder",
     "packages/lynxtron-shell-demo",
     "packages/lynxtron-dev-plugins",
-    "packages/create-lynxtron"
+    "packages/create-lynxtron",
+    "spec/case/lynx-card"
   ],
   "packageManager": "yarn@4.0.0",
   "resolutions": {
