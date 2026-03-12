@@ -45,7 +45,7 @@ const char* GetResourceTypeString(lynx_resource_type_e type) {
 }
 
 void CompleteWithError(
-    const std::shared_ptr<lynx::pub::LynxResourceResponse>& response,
+    const std::shared_ptr<lynx::pub::resource::LynxResourceResponse>& response,
     int code,
     const char* message) {
   if (!response) {
@@ -65,7 +65,8 @@ void FreeVector(uint8_t*, size_t, void* opaque) {
 bool SetResponseDataFromV8Value(
     v8::Isolate* isolate,
     v8::Local<v8::Value> value,
-    const std::shared_ptr<lynx::pub::LynxResourceResponse>& response) {
+    const std::shared_ptr<lynx::pub::resource::LynxResourceResponse>&
+        response) {
   if (value.IsEmpty() || value->IsNullOrUndefined() ||
       !node::Buffer::HasInstance(value)) {
     return false;
@@ -87,8 +88,8 @@ LynxGenericResourceFetcherImpl::LynxGenericResourceFetcherImpl(
     : lynx_window_(lynx_window) {}
 
 void LynxGenericResourceFetcherImpl::FetchResource(
-    std::shared_ptr<lynx::pub::LynxResourceRequest> request,
-    std::shared_ptr<lynx::pub::LynxResourceResponse> response) {
+    std::shared_ptr<lynx::pub::resource::LynxResourceRequest> request,
+    std::shared_ptr<lynx::pub::resource::LynxResourceResponse> response) {
   if (!request || !response || !request->GetUrl()) {
     return;
   }
@@ -136,8 +137,8 @@ void LynxGenericResourceFetcherImpl::FetchResource(
 }
 
 void LynxGenericResourceFetcherImpl::FetchResourcePath(
-    std::shared_ptr<lynx::pub::LynxResourceRequest> request,
-    std::shared_ptr<lynx::pub::LynxResourceResponse> response) {
+    std::shared_ptr<lynx::pub::resource::LynxResourceRequest> request,
+    std::shared_ptr<lynx::pub::resource::LynxResourceResponse> response) {
   CompleteWithError(response, kDefaultErrorCode, "No cache");
 }
 

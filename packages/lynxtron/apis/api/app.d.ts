@@ -137,7 +137,7 @@ export interface LoginItemSettings {
   launchItems: LaunchItems[];
 }
 
-export interface AboutPanelOptionsOptions {
+export interface AboutPanelOptions {
   /**
    * The app's name.
    */
@@ -1581,7 +1581,7 @@ export interface App extends EventEmitter {
    * file found is used, and if none is found, the info area is left blank. See Apple
    * documentation for more information.
    */
-  setAboutPanelOptions(options: AboutPanelOptionsOptions): void;
+  setAboutPanelOptions(options: AboutPanelOptions): void;
   /**
    * Sets the activation policy for a given app.
    *

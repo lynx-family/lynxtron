@@ -75,7 +75,7 @@ export declare class Menu extends EventEmitter {
   popup(
     options?: PopupOptions
   ): {
-    browserWindow: any;
+    lynxWindow: any;
     x: number;
     y: number;
     position: number;

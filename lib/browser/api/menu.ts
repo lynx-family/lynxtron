@@ -112,7 +112,7 @@ Menu.prototype.popup = function (options: any = {}) {
   }
 
   this.popupAt(window as any, x, y, positioningItem, callback);
-  return { browserWindow: window, x, y, position: positioningItem };
+  return { lynxWindow: window, x, y, position: positioningItem };
 };
 
 Menu.prototype.closePopup = function (window?: any) {

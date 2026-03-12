@@ -23,12 +23,14 @@ class LynxGenericResourceFetcherImpl
   ~LynxGenericResourceFetcherImpl() override = default;
 
   void FetchResource(
-      std::shared_ptr<lynx::pub::LynxResourceRequest> request,
-      std::shared_ptr<lynx::pub::LynxResourceResponse> response) override;
+      std::shared_ptr<lynx::pub::resource::LynxResourceRequest> request,
+      std::shared_ptr<lynx::pub::resource::LynxResourceResponse> response)
+      override;
 
   void FetchResourcePath(
-      std::shared_ptr<lynx::pub::LynxResourceRequest> request,
-      std::shared_ptr<lynx::pub::LynxResourceResponse> response) override;
+      std::shared_ptr<lynx::pub::resource::LynxResourceRequest> request,
+      std::shared_ptr<lynx::pub::resource::LynxResourceResponse> response)
+      override;
 
  private:
   base::WeakPtr<api::LynxWindow> lynx_window_;
