@@ -42,18 +42,11 @@ class MainParts {
   Application* application() { return application_.get(); }
 
   void Initialize();
-  int PreMainMessageLoopRun();
   void WillRunMainMessageLoop(std::unique_ptr<base::RunLoop>& run_loop);
   void PostMainMessageLoopRun();
-  void PreCreateMainMessageLoop();
-#if BUILDFLAG(IS_MAC)
-  void PostCreateMainMessageLoop();
-#endif
   void Shutdown();
 
  private:
-  void PreCreateMainMessageLoopCommon();
-
 #if BUILDFLAG(IS_MAC)
   // Set signal handlers.
   void HandleSIGCHLD();
@@ -83,6 +76,7 @@ class MainParts {
 
 #if BUILDFLAG(IS_MAC)
   void FreeAppDelegate();
+  void InitializeMacMainMessageLoop();
   void RegisterURLHandler();
   void InitializeMainNib();
   void RegisterAtomCrApp();

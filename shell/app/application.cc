@@ -217,16 +217,8 @@ v8::Local<v8::Value> Application::WhenReady(v8::Isolate* isolate) {
   return ready_promise_->GetHandle();
 }
 
-void Application::OnAccessibilitySupportChanged() {
-  observers_.Notify(&ApplicationObserver::OnAccessibilitySupportChanged);
-}
-
 void Application::PreMainMessageLoopRun() {
   observers_.Notify(&ApplicationObserver::OnPreMainMessageLoopRun);
-}
-
-void Application::PreCreateThreads() {
-  observers_.Notify(&ApplicationObserver::OnPreCreateThreads);
 }
 
 void Application::SetMainMessageLoopQuitClosure(

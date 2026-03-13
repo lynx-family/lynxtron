@@ -15,12 +15,13 @@ namespace lynxtron {
 
 static LynxtronApplicationDelegate* __strong delegate_;
 
-void MainParts::PreCreateMainMessageLoop() {
+void MainParts::InitializeMacMainMessageLoop() {
   // Set our own application delegate.
   delegate_ = [[LynxtronApplicationDelegate alloc] init];
   [NSApp setDelegate:delegate_];
 
-  PreCreateMainMessageLoopCommon();
+  InitializeMainNib();
+  RegisterURLHandler();
 
   // Prevent Cocoa from turning command-line arguments into
   // |-application:openFiles:|, since we already handle them directly.

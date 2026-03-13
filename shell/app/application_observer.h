@@ -49,16 +49,8 @@ class ApplicationObserver : public base::CheckedObserver {
   virtual void OnWillFinishLaunching() {}
   virtual void OnFinishLaunching(base::Value::Dict launch_info) {}
 
-  // The browser's accessibility support has changed.
-  virtual void OnAccessibilitySupportChanged() {}
-
   // The app message loop is ready
   virtual void OnPreMainMessageLoopRun() {}
-
-  // Called just before app threads are created, this is where first access
-  // to in-process GpuDataManager should be made.
-  // Refer https://chromium-review.googlesource.com/c/chromium/src/+/2134864
-  virtual void OnPreCreateThreads() {}
 
 #if BUILDFLAG(IS_MAC)
   // The browser wants to report that an user activity will resume. (macOS only)

@@ -49,13 +49,9 @@ int MainRunner::Initialize() {
 int MainRunner::Run() {
   main_parts_ = std::make_unique<MainParts>();
   main_parts_->Initialize();
-  main_parts_->PreCreateMainMessageLoop();
-  main_parts_->PreMainMessageLoopRun();
+
   auto run_loop =
       std::make_unique<base::RunLoop>(base::RunLoop::Type::kDefault);
-#if BUILDFLAG(IS_MAC)
-  main_parts_->PostCreateMainMessageLoop();
-#endif
   main_parts_->WillRunMainMessageLoop(run_loop);
   run_loop->Run();
   main_parts_->PostMainMessageLoopRun();

@@ -304,10 +304,7 @@ class Application : private WindowListObserver {
   void WillFinishLaunching();
   void DidFinishLaunching(base::Value::Dict launch_info);
 
-  void OnAccessibilitySupportChanged();
-
   void PreMainMessageLoopRun();
-  void PreCreateThreads();
 
   // Stores the supplied |quit_closure|, to be run when the last Application
   // instance is destroyed.

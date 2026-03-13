@@ -4,12 +4,7 @@
 
 #include "shell/api/api_lynx_window.h"
 
-#include <functional>
-#include <iostream>
-#include <map>
-#include <memory>
 #include <string_view>
-#include <utility>
 
 #include "base/files/file_path.h"
 #include "base/files/file_util.h"

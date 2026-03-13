@@ -4,9 +4,6 @@
 
 #include "shell/app/main_parts.h"
 
-#include <memory>
-#include <string>
-
 #include "app/application.h"
 #include "base/feature_list.h"
 #include "base/path_service.h"
@@ -155,34 +152,20 @@ void MainParts::Initialize() {
   if (main_parts_delegate_) {
     main_parts_delegate_->PostInitialization();
   }
-}
 
-int MainParts::PreMainMessageLoopRun() {
-  Application::Get()->PreCreateThreads();
+#if BUILDFLAG(IS_MAC)
+  InitializeMacMainMessageLoop();
+#endif
 
-  // Run user's main script before most things get initialized, so we can have
-  // a chance to setup everything.
   node_bindings_->PrepareEmbedThread();
   node_bindings_->StartPolling();
 
-  // TODO(Guo Xi): new electron code has this, whether we need it
-  // url::Add*Scheme are not threadsafe, this helps prevent data races.
-  // url::LockSchemeRegistries();
-
 #if !BUILDFLAG(IS_MAC)
-  // The corresponding call in macOS is in LynxtronApplicationDelegate.
   Application::Get()->WillFinishLaunching();
   Application::Get()->DidFinishLaunching(base::Value::Dict());
 #endif
-  // Notify observers that main thread message loop was initialized.
+
   Application::Get()->PreMainMessageLoopRun();
-
-#if defined(OS_MAC)
-  // Todo linshengwei only for test remove later
-  //  TestLynxWindow();
-#endif
-
-  return 0;
 }
 
 void MainParts::WillRunMainMessageLoop(
@@ -191,6 +174,11 @@ void MainParts::WillRunMainMessageLoop(
   // js_env_->OnMessageLoopCreated();
   Application::Get()->SetMainMessageLoopQuitClosure(
       run_loop->QuitWhenIdleClosure());
+#if BUILDFLAG(IS_MAC)
+  InstallShutdownSignalHandlers(
+      base::BindOnce(&Application::Quit, base::Unretained(Application::Get())),
+      GetUIThreadTaskRunner());
+#endif
 }
 
 void MainParts::PostMainMessageLoopRun() {
@@ -203,21 +191,6 @@ void MainParts::PostMainMessageLoopRun() {
   node_env_.reset();
 }
 
-#if BUILDFLAG(IS_WIN)
-void MainParts::PreCreateMainMessageLoop() {
-  PreCreateMainMessageLoopCommon();
-}
-#endif
-
-#if BUILDFLAG(IS_MAC)
-void MainParts::PostCreateMainMessageLoop() {
-  // Exit in response to SIGINT, SIGTERM, etc.
-  InstallShutdownSignalHandlers(
-      base::BindOnce(&Application::Quit, base::Unretained(Application::Get())),
-      GetUIThreadTaskRunner());
-}
-#endif
-
 void MainParts::Shutdown() {
   // content::BrowserTaskExecutor::Shutdown();
   if (main_parts_delegate_) {
@@ -225,13 +198,6 @@ void MainParts::Shutdown() {
   }
   global_thread_.reset();
   base::ThreadPoolInstance::Get()->Shutdown();
-}
-
-void MainParts::PreCreateMainMessageLoopCommon() {
-#if BUILDFLAG(IS_MAC)
-  InitializeMainNib();
-  RegisterURLHandler();
-#endif
 }
 
 IconManager* MainParts::GetIconManager() {
