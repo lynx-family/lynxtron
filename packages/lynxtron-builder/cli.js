@@ -10,18 +10,33 @@ const configPath = path.join(projectRoot, 'electron-builder.yml');
 const tempConfigPath = path.join(projectRoot, 'config.json');
 
 function getLynxtronVersion() {
+  // New resolution logic that is compatible with packages using "exports"
   try {
-    const lynxtronPackageJsonPath = require.resolve('@lynx-js/lynxtron/package.json', { paths: [projectRoot] });
-    const lynxtronPackageJson = JSON.parse(fs.readFileSync(lynxtronPackageJsonPath, 'utf8'));
-
-    if (lynxtronPackageJson.version) {
-      return lynxtronPackageJson.version;
+    // Resolve the package entry first, then locate its package.json beside it
+    const lynxtronEntryPath = require.resolve('@lynx-js/lynxtron', { paths: [projectRoot] });
+    const lynxtronPkgPath = path.join(path.dirname(lynxtronEntryPath), 'package.json');
+    if (fs.existsSync(lynxtronPkgPath)) {
+      const lynxtronPackageJson = JSON.parse(fs.readFileSync(lynxtronPkgPath, 'utf8'));
+      if (lynxtronPackageJson && lynxtronPackageJson.version) {
+        return lynxtronPackageJson.version;
+      }
     }
   } catch (e) {
-    console.warn('Could not resolve installed lynxtron version, falling back to package.json.');
+    // Swallow and try legacy approach below
   }
 
-  throw new Error("Failed to determine lynxtron version. Please check your package.json or node_modules.");
+  // Legacy approach for environments that still allow subpath access
+  try {
+    const legacyPkgPath = require.resolve('@lynx-js/lynxtron/package.json', { paths: [projectRoot] });
+    const legacyPkg = JSON.parse(fs.readFileSync(legacyPkgPath, 'utf8'));
+    if (legacyPkg && legacyPkg.version) {
+      return legacyPkg.version;
+    }
+  } catch (e) {
+    console.warn('Could not resolve installed lynxtron version from node_modules.');
+  }
+
+  throw new Error('Failed to determine lynxtron version. Please check your package.json or node_modules.');
 }
 
 
@@ -116,12 +131,11 @@ function runBuild(arch) {
 
     if (!config.electronDownload) {
       const lynxtronVersion = getLynxtronVersion();
-      const archFlag = arch || (process.argv.includes('--arm64') ? 'arm64' : 'x64');
-      const resolvedArch = archFlag.replace('--', '');
+      const archFlag = arch ? arch.replace('--', '') : process.arch;
+      const resolvedArch = archFlag;
       config.electronVersion = lynxtronVersion;
       config.electronDownload = {
         version: lynxtronVersion,
-        // TODO(zhengsenyao): change to github release url
         mirror: '',
         customDir: `v${lynxtronVersion}`,
         customFilename: `lynxtron-v${lynxtronVersion}-darwin-${resolvedArch}.zip`,
