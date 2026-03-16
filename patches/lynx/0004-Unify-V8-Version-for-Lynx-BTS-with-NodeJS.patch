@@ -1,6 +1,6 @@
-From bb51580d5241ea0144823e3a3063d0cf395e059c Mon Sep 17 00:00:00 2001
+From be9358c64af565c294f85b31dad5d2a890eb1f01 Mon Sep 17 00:00:00 2001
 From: tangyongjie <80395553+yongjieTang@users.noreply.github.com>
-Date: Mon, 8 Dec 2025 15:59:11 +0800
+Date: Mon, 16 Mar 2026 22:16:24 +0800
 Subject: [PATCH] Unify V8 Version for Lynx BTS with NodeJS.
 
 ---
@@ -11,17 +11,15 @@ Subject: [PATCH] Unify V8 Version for Lynx BTS with NodeJS.
  core/runtime/js/jsi/v8/v8_platform_data.cc    | 19 ++++
  core/runtime/js/jsi/v8/v8_platform_data.h     | 24 +++++
  core/runtime/js/jsi/v8/v8_runtime.cc          |  4 +-
- core/runtime/js/jsi/v8/v8_runtime.cc.rej      | 10 ++
  devtool/lynx_devtool/js_debug/BUILD.gn        |  3 +
  platform/embedder/lynx_env.cc                 |  5 +
  platform/embedder/public/capi/lynx_env_capi.h |  2 +
  third_party/napi/BUILD.gn                     |  1 +
- 12 files changed, 205 insertions(+), 6 deletions(-)
+ 11 files changed, 195 insertions(+), 6 deletions(-)
  create mode 100644 core/runtime/js/jsi/v8/v8_isolate_wrapper_node_impl.cc
  create mode 100644 core/runtime/js/jsi/v8/v8_isolate_wrapper_node_impl.h
  create mode 100644 core/runtime/js/jsi/v8/v8_platform_data.cc
  create mode 100644 core/runtime/js/jsi/v8/v8_platform_data.h
- create mode 100644 core/runtime/js/jsi/v8/v8_runtime.cc.rej
 
 diff --git a/core/runtime/js/bytecode/v8/v8_cache_generator.cc b/core/runtime/js/bytecode/v8/v8_cache_generator.cc
 index 62ef7b1e..a4bc220c 100644
@@ -268,7 +266,7 @@ index 00000000..779bd8ed
 +}  // namespace js
 +#endif  // CORE_RUNTIME_JSI_V8_V8_PLATFORM_DATA_H_
 diff --git a/core/runtime/js/jsi/v8/v8_runtime.cc b/core/runtime/js/jsi/v8/v8_runtime.cc
-index 7b581675..8444af0e 100644
+index 2be59a1b..f942fd3f 100644
 --- a/core/runtime/js/jsi/v8/v8_runtime.cc
 +++ b/core/runtime/js/jsi/v8/v8_runtime.cc
 @@ -18,7 +18,7 @@
@@ -289,22 +287,6 @@ index 7b581675..8444af0e 100644
    isolate_wrapper->InitIsolate(arg, useSnapshot);
    return isolate_wrapper;
  }
-diff --git a/core/runtime/js/jsi/v8/v8_runtime.cc.rej b/core/runtime/js/jsi/v8/v8_runtime.cc.rej
-new file mode 100644
-index 00000000..7d34a5e0
---- /dev/null
-+++ b/core/runtime/js/jsi/v8/v8_runtime.cc.rej
-@@ -0,0 +1,10 @@
-+diff a/core/runtime/js/jsi/v8/v8_runtime.cc b/core/runtime/js/jsi/v8/v8_runtime.cc	(rejected hunks)
-+@@ -18,7 +18,7 @@
-+ #include "core/runtime/js/jsi/v8/v8_helper.h"
-+ #include "core/runtime/js/jsi/v8/v8_host_function.h"
-+ #include "core/runtime/js/jsi/v8/v8_host_object.h"
-+-#include "core/runtime/js/jsi/v8/v8_isolate_wrapper_impl.h"
-++#include "core/runtime/js/jsi/v8/v8_isolate_wrapper_node_impl.h"
-+ #include "core/runtime/profile/v8/v8_runtime_profiler_wrapper_impl.h"
-+ #include "core/runtime/trace/runtime_trace_event_def.h"
-+ #include "libplatform/libplatform.h"
 diff --git a/devtool/lynx_devtool/js_debug/BUILD.gn b/devtool/lynx_devtool/js_debug/BUILD.gn
 index 90a73efc..aa6a95c9 100644
 --- a/devtool/lynx_devtool/js_debug/BUILD.gn
