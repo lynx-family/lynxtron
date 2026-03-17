@@ -48,6 +48,8 @@ module.exports = ({
       }
     }
 
+    const lynxtronModuleListFile = env.moduleListPath || path.resolve(lynxtronRoot, 'lib', loadElectronFromAlternateTarget || target, 'api', 'module-list.ts');
+
     const ignoredModules = [];
 
     const plugins = [];
@@ -72,6 +74,7 @@ module.exports = ({
       },
       resolve: {
         alias: {
+          '@lynxtron/internal/browser/api/module-list': lynxtronModuleListFile,
           '@lynxtron/internal': path.resolve(lynxtronRoot, 'lib'),
           lynxtron$: lynxtronAPIFile,
           // Force timers to resolve to our dependency that doesn't use window.postMessage

@@ -45,6 +45,20 @@ template("webpack_build") {
       "--env",
       "mode=" + mode,
     ]
+    if (defined(invoker.module_list_path)) {
+      args += [
+        "--env",
+        "moduleListPath=" + invoker.module_list_path,
+      ]
+    }
+    if (defined(invoker.extra_env)) {
+      foreach(e, invoker.extra_env) {
+        args += [
+          "--env",
+          e,
+        ]
+      }
+    }
 
     # TODO(Guo Xi) : There is an override version in electron/buildflags; check if it is still needed.
     # deps += [ "//electron/buildflags" ]

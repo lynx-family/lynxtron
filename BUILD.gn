@@ -149,7 +149,14 @@ browser_bundle_deps = [
 webpack_build("lynxtron_browser_bundle") {
   # deps = [ ":build_lynxtron_definitions" ]
 
-  inputs = browser_bundle_deps
+  inputs = browser_bundle_deps + lynxtron_lib_browser_module_list_path
+
+  foreach(p, lynxtron_lib_browser_module_list_path) {
+    if (get_path_info(p, "name") == "module-list" &&
+        get_path_info(p, "extension") == "ts") {
+      module_list_path = rebase_path(p)
+    }
+  }
 
   config_file = rebase_path("build/webpack/webpack.config.browser.js")
   out_file = "$root_gen_dir/lynxtron/js2c/browser_init.js"
