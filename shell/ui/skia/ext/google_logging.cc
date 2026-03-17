@@ -2,6 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// Copyright 2026 The Lynxtron Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
 // This file provides integration with Google-style "base/logging.h" assertions
 // for Skia SkASSERT. If you don't want this, you can link with another file
 // that provides integration with the logging of your choice.

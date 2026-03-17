@@ -2,6 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// Copyright 2026 The Lynxtron Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
 // An Image wraps an image any flavor, be it platform-native GdkBitmap/NSImage,
 // or a SkBitmap. This also provides easy conversion to other image types
 // through operator overloading. It will cache the converted representations

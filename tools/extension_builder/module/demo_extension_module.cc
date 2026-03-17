@@ -78,7 +78,7 @@ void DemoExtensionModule::Destroy() {
 std::string DemoExtensionModule::CallByLynxJS() {
   static uint64_t call_count = 0;
 
-  std::string result = "点击次数:" + std::to_string(call_count++);
+  std::string result = "Click count:" + std::to_string(call_count++);
 
   return result;
 }

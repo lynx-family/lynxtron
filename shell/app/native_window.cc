@@ -1,3 +1,7 @@
+// Copyright 2026 The Lynxtron Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
 // Copyright (c) 2013 GitHub, Inc.
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
@@ -380,7 +384,7 @@ gfx::Size NativeWindow::GetContentMaximumSize() const {
   return maximum_size;
 }
 
-// TODO(Guo Xi): 在 macOS 上review sheet 相关的逻辑
+// TODO(Guo Xi): review sheet related logic on macOS
 void NativeWindow::SetSheetOffset(const double offsetX, const double offsetY) {
   sheet_offset_x_ = offsetX;
   sheet_offset_y_ = offsetY;

@@ -1,6 +1,10 @@
+// Copyright 2026 The Lynxtron Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
 /**
  * PC Preload Script
- * 导出的内容会被自动映射到 NativeModules.nodejs
+ * Exported content will be automatically mapped to NativeModules.nodejs
  */
 
 import { contextBridge } from '@lynx-js/lynxtron/context-bridge';

@@ -1,10 +1,14 @@
+// Copyright 2026 The Lynxtron Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
 import * as roles from '@lynxtron/internal/browser/api/menu-item-roles';
 
 import { Menu } from 'lynxtron';
 
 let nextCommandId = 0;
 
-// 重置commandId计数器的函数（用于测试或菜单重建）
+// Function to reset commandId counter (for testing or menu rebuild)
 function resetCommandIdCounter(): void {
   nextCommandId = 0;
 }

@@ -1,3 +1,7 @@
+// Copyright 2026 The Lynxtron Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
 // Copyright (c) 2013 GitHub, Inc.
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
@@ -591,7 +595,7 @@ bool Application::IsDefaultProtocolClient(const std::string& protocol,
   return keyVal == exe;
 }
 
-// TODO(Guo Xi): 参考旧代码处理win7兼容性
+// TODO(Guo Xi): refer to old code to handle win7 compatibility
 std::u16string Application::GetApplicationNameForProtocol(const GURL& url) {
   return base::WideToUTF16(GetAppDisplayNameForProtocol(url));
 }

@@ -2,6 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// Copyright 2026 The Lynxtron Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
 // Defines a simple float vector class.  This class is used to indicate a
 // distance in two dimensions between two points. Subtracting two points should
 // produce a vector, and adding a vector to a point produces the point at the

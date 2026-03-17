@@ -1,3 +1,7 @@
+// Copyright 2026 The Lynxtron Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
 import { sortMenuItems } from '@lynxtron/internal/browser/api/menu-utils';
 
 import { BaseWindow, MenuItem } from 'lynxtron';
@@ -132,7 +136,7 @@ Menu.prototype.removeItem = function (pos: number) {
 
   const item = this.items[pos];
 
-  // 清理commandsMap和groupsMap中的引用
+  // Clean up references in commandsMap and groupsMap
   if (this.commandsMap[item.commandId]) {
     delete this.commandsMap[item.commandId];
   }
@@ -148,7 +152,7 @@ Menu.prototype.removeItem = function (pos: number) {
     }
   }
 
-  // WeakMap中的条目会自动清理，因为使用了弱引用
+  // Entries in WeakMap will be cleaned up automatically due to weak references
   this.items.splice(pos, 1);
 };
 

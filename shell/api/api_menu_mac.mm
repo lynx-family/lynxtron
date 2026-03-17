@@ -1,3 +1,7 @@
+// Copyright 2026 The Lynxtron Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
 // Copyright (c) 2013 GitHub, Inc.
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
@@ -107,12 +111,12 @@ void MenuMac::PopupOnUI(const base::WeakPtr<NativeWindow>& native_window,
     return;
   }
 
-  // 创建弱引用的window来检查是否仍然有效
+  // Create a weak reference to the window to check if it's still valid
   auto weak_window = native_window;
 
   NSWindow* nswindow = weak_window->GetNativeWindow().GetNativeNSWindow();
 
-  // 再次检查window是否仍然有效
+  // Check again if the window is still valid
   if (!nswindow) {
     return;
   }
@@ -121,7 +125,8 @@ void MenuMac::PopupOnUI(const base::WeakPtr<NativeWindow>& native_window,
       base::BindOnce(&MenuMac::OnClosed, weak_factory_.GetWeakPtr(), window_id,
                      std::move(callback));
 
-  // 检查是否已存在该window_id的控制器，避免内存泄漏
+  // Check if a controller for this window_id already exists to avoid memory
+  // leak
   auto existing_controller = popup_controllers_.find(window_id);
   if (existing_controller != popup_controllers_.end()) {
     [existing_controller->second cancel];

@@ -2,6 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// Copyright 2026 The Lynxtron Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
 // This small program is used to measure the performance of the various
 // resize algorithms offered by the ImageOperations::Resize function.
 // It will generate an empty source bitmap, and rescale it to specified

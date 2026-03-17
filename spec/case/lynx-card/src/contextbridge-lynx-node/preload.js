@@ -1,4 +1,3 @@
-
 const { contextBridge } = require('lynxtron');
 contextBridge.exposeInLynxBTS({
   get: (message) => {

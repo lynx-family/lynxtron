@@ -2,6 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// Copyright 2026 The Lynxtron Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
 #ifdef UNSAFE_BUFFERS_BUILD
 // TODO(crbug.com/354829279): Remove this and convert code to safer constructs.
 #pragma allow_unsafe_buffers

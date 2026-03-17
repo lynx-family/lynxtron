@@ -2,6 +2,10 @@
 // Use of this source code is governed by the MIT license that can be
 // found in the LICENSE file.
 
+// Copyright 2026 The Lynxtron Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
 // clang-format off
 #include "base/win/shlwapi.h"
 // FIXME(samuelmaddock): refactor this class to use modern

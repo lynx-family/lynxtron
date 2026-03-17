@@ -1,3 +1,7 @@
+// Copyright 2026 The Lynxtron Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
 import { app, BaseWindow, LynxWindow } from 'lynxtron';
 
 import { expect } from 'chai';
@@ -134,7 +138,7 @@ describe('LynxWindow module', () => {
     // });
   });
 
-  // TODO(Guo Xi): LynxWindow load 和 unload 需要 event 吗
+  // TODO(Guo Xi): Does LynxWindow load and unload need event?
   // describe('window.close()', () => {
   //   let w: LynxWindow;
   //   beforeEach(() => {
