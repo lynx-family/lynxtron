@@ -205,4 +205,4 @@ template <typename T>
 
 #define TRACE_DISABLED_BY_DEFAULT(name) "disabled-by-default-" name
 
-#endif
+#endif  // LYNXTRON_SHELL_LYNX_TRACE_LYNX_TRACE_EVENT_H_

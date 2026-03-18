@@ -9,4 +9,4 @@ namespace lynxtron {
 bool IsProcessPerMonitorDpiAware();
 }  // namespace lynxtron
 
-#endif
+#endif  // LYNXTRON_SHELL_COMMON_WIN_UTIL_H_

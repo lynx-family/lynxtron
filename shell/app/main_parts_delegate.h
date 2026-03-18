@@ -2,8 +2,8 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#ifndef SHELL_APP_MAIN_PARTS_DELEGATE_H_
-#define SHELL_APP_MAIN_PARTS_DELEGATE_H_
+#ifndef LYNXTRON_SHELL_APP_MAIN_PARTS_DELEGATE_H_
+#define LYNXTRON_SHELL_APP_MAIN_PARTS_DELEGATE_H_
 
 #include "shell/common/global_delegate_registry.h"
 
@@ -21,4 +21,4 @@ class MainPartsDelegate : public GlobalDelegate {
 
 }  // namespace lynxtron
 
-#endif  // SHELL_APP_MAIN_PARTS_DELEGATE_H_
+#endif  // LYNXTRON_SHELL_APP_MAIN_PARTS_DELEGATE_H_

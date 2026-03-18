@@ -6,8 +6,8 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#ifndef LYNXTRON_SHELL_UI_ELECTRON_MENU_MODEL_H_
-#define LYNXTRON_SHELL_UI_ELECTRON_MENU_MODEL_H_
+#ifndef LYNXTRON_SHELL_UI_LYNXTRON_MENU_MODEL_H_
+#define LYNXTRON_SHELL_UI_LYNXTRON_MENU_MODEL_H_
 
 #include <optional>
 #include <string>
@@ -185,4 +185,4 @@ class LynxtronMenuModel {
 
 }  // namespace lynxtron
 
-#endif  // LYNXTRON_SHELL_UI_ELECTRON_MENU_MODEL_H_
+#endif  // LYNXTRON_SHELL_UI_LYNXTRON_MENU_MODEL_H_

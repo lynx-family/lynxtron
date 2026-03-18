@@ -216,4 +216,4 @@ class NativeWindowMac : public NativeWindow {
 
 }  // namespace lynxtron
 
-#endif  // LYNX_NATIVE_WINDOW_VIEWS_MAC_H_
+#endif  // LYNXTRON_SHELL_API_NATIVE_WINDOW_MAC_H_

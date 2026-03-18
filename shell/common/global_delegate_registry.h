@@ -2,8 +2,8 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#ifndef SHELL_COMMON_GLOBAL_DELEGATE_REGISTRY_H_
-#define SHELL_COMMON_GLOBAL_DELEGATE_REGISTRY_H_
+#ifndef LYNXTRON_SHELL_COMMON_GLOBAL_DELEGATE_REGISTRY_H_
+#define LYNXTRON_SHELL_COMMON_GLOBAL_DELEGATE_REGISTRY_H_
 
 #include <functional>
 #include <memory>
@@ -43,4 +43,4 @@ void RegisterGlobalDelegate(const std::string& name,
         name, []() { return std::make_unique<class_type>(); }); \
   }
 
-#endif  // SHELL_COMMON_GLOBAL_DELEGATE_REGISTRY_H
+#endif  // LYNXTRON_SHELL_COMMON_GLOBAL_DELEGATE_REGISTRY_H_
