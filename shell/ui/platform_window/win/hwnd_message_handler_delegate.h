@@ -112,11 +112,6 @@ class HWNDMessageHandlerDelegate {
 
   virtual void ResetWindowControls() = 0;
 
-  // virtual gfx::NativeViewAccessible GetNativeViewAccessible() = 0;
-
-  // TODO(beng): Investigate migrating these methods to On* prefixes once
-  // HWNDMessageHandler is the WindowImpl.
-
   // Called when the window was activated or deactivated. |active| reflects the
   // new state.
   virtual void HandleActivationChanged(bool active) = 0;
@@ -127,9 +122,6 @@ class HWNDMessageHandlerDelegate {
 
   // Called from WM_CANCELMODE.
   virtual void HandleCancelMode() = 0;
-
-  // Called when the window has lost mouse capture.
-  virtual void HandleCaptureLost() = 0;
 
   // Called when the user tried to close the window.
   virtual void HandleClose() = 0;
@@ -180,6 +172,8 @@ class HWNDMessageHandlerDelegate {
 
   // Called when a top level window is minimized or restored.
   virtual void HandleWindowMinimizedOrRestored(bool restored) = 0;
+
+  virtual void HandleWindowMaximized(bool maximized) = 0;
 
   // Called when the window's client size changed. |new_size| holds the new
   // size.

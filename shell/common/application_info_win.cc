@@ -19,7 +19,7 @@
 #include "base/file_version_info.h"
 #include "base/strings/string_util.h"
 #include "base/strings/utf_string_conversions.h"
-#include "shell/app/win/scoped_hstring.h"
+#include "base/win/scoped_hstring.h"
 
 namespace lynxtron {
 
@@ -69,9 +69,9 @@ PCWSTR GetRawAppUserModelID() {
   return g_app_user_model_id.c_str();
 }
 
-bool GetAppUserModelID(ScopedHString* app_id) {
-  app_id->Reset(GetRawAppUserModelID());
-  return app_id->success();
+bool GetAppUserModelID(base::win::ScopedHString* app_id) {
+  *app_id = base::win::ScopedHString::Create(GetRawAppUserModelID());
+  return app_id->is_valid();
 }
 
 bool IsRunningInDesktopBridgeImpl() {

@@ -589,8 +589,6 @@ source_set("lynxtron_lib") {
       "shell/app/application_win.cc",
       "shell/app/icon_manager_win.cc",
       "shell/app/relauncher_win.cc",
-      "shell/app/win/scoped_hstring.cc",
-      "shell/app/win/scoped_hstring.h",
       "shell/common/application_info_win.cc",
       "shell/common/asar/archive_win.cc",
       "shell/common/node_bindings_win.cc",

@@ -106,10 +106,6 @@ export interface LynxWindowConstructorOptions {
   skipTaskbar?: boolean;
   hiddenInMissionControl?: boolean;
   /**
-   * Whether the window is in kiosk mode. Default is `false`.
-   */
-  kiosk?: boolean;
-  /**
    * The window icon. On Windows it is recommended to use `ICO` icons to get best
    * visual effects, you can also leave it undefined so the executable's icon will be
    * used.
@@ -182,9 +178,10 @@ export interface LynxWindowConstructorOptions {
    */
   visualEffectState?: 'followWindow' | 'active' | 'inactive';
   /**
-   * The style of window title bar. Default is `default`. Possible values are:
+   * The style of window title bar. Default is `default`. Only supported on macOS.
+   * Other platforms ignore this option.
    *
-   * @platform darwin,win32
+   * @platform darwin
    */
   titleBarStyle?: 'default' | 'hidden' | 'hiddenInset' | 'customButtonsOnHover';
   /**

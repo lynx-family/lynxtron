@@ -150,8 +150,8 @@ class DISPLAY_EXPORT ScreenWin : public Screen,
   // to return that HDR is supported.
   static void SetHDREnabled(bool hdr_enabled);
 
-  //   // Returns the HWND associated with the NativeWindow.
-  //   virtual HWND GetHWNDFromNativeWindow(gfx::NativeWindow view) const;
+  // Returns the HWND associated with the NativeWindow.
+  virtual HWND GetHWNDFromNativeWindow(gfx::NativeWindow view) const;
 
   //   // Returns the NativeWindow associated with the HWND.
   //   virtual gfx::NativeWindow GetNativeWindowFromHWND(HWND hwnd) const;
@@ -171,7 +171,7 @@ class DISPLAY_EXPORT ScreenWin : public Screen,
   //       const std::set<gfx::NativeWindow>& ignore) override;
   int GetNumDisplays() const override;
   const std::vector<Display>& GetAllDisplays() const override;
-  //   Display GetDisplayNearestWindow(gfx::NativeWindow window) const override;
+  Display GetDisplayNearestWindow(gfx::NativeWindow window) const override;
   Display GetDisplayNearestPoint(const gfx::Point& point) const override;
   Display GetDisplayMatching(const gfx::Rect& match_rect) const override;
   Display GetPrimaryDisplay() const override;

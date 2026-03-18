@@ -658,10 +658,10 @@ void ScreenWin::SetHDREnabled(bool hdr_enabled) {
   }
 }
 
-// HWND ScreenWin::GetHWNDFromNativeWindow(gfx::NativeWindow window) const {
-//   NOTREACHED();
-//   return nullptr;
-// }
+HWND ScreenWin::GetHWNDFromNativeWindow(gfx::NativeWindow window) const {
+  NOTREACHED();
+  return nullptr;
+}
 
 // gfx::NativeWindow ScreenWin::GetNativeWindowFromHWND(HWND hwnd) const {
 //   NOTREACHED();
@@ -721,16 +721,13 @@ const std::vector<Display>& ScreenWin::GetAllDisplays() const {
   return displays_;
 }
 
-// Display ScreenWin::GetDisplayNearestWindow(gfx::NativeWindow window) const {
-//   const HWND window_hwnd = window ? GetHWNDFromNativeWindow(window) :
-//   nullptr;
-//   // When |window| isn't rooted to a display, we should just return the
-//   default
-//   // display so we get some correct display information like the scaling
-//   factor. return window_hwnd ?
-//   GetScreenWinDisplayNearestHWND(window_hwnd).display()
-//                      : GetPrimaryDisplay();
-// }
+Display ScreenWin::GetDisplayNearestWindow(gfx::NativeWindow window) const {
+  const HWND window_hwnd = window ? GetHWNDFromNativeWindow(window) : nullptr;
+  // When |window| isn't rooted to a display, we should just return the default
+  // display so we get some correct display information like the scaling factor.
+  return window_hwnd ? GetScreenWinDisplayNearestHWND(window_hwnd).display()
+                     : GetPrimaryDisplay();
+}
 
 Display ScreenWin::GetDisplayNearestPoint(const gfx::Point& point) const {
   const gfx::Point screen_point = DIPToScreenPoint(point);

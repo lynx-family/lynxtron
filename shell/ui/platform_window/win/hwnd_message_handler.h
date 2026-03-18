@@ -15,7 +15,6 @@
 
 #include <map>
 #include <memory>
-#include <set>
 #include <string>
 #include <vector>
 
@@ -70,8 +69,6 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   ~HWNDMessageHandler() override;
 
   void Init(HWND parent, const gfx::Rect& bounds);
-  // void InitModalType(ui::ModalType modal_type);
-
   void Close();
   void CloseNow();
 
@@ -90,8 +87,6 @@ class HWNDMessageHandler : public gfx::WindowImpl {
 
   void SetSize(const gfx::Size& size);
   void CenterWindow(const gfx::Size& size);
-
-  void SetRegion(HRGN rgn);
 
   void StackAbove(HWND other_hwnd);
   void StackAtTop();
@@ -125,23 +120,12 @@ class HWNDMessageHandler : public gfx::WindowImpl {
 
   void ClearNativeFocus();
 
-  // void SetCapture();
-  // void ReleaseCapture();
-  // bool HasCapture() const;
-
   FullscreenHandler* fullscreen_handler() { return fullscreen_handler_.get(); }
-
-  // void SetVisibilityChangedAnimationsEnabled(bool enabled);
 
   // Returns true if the title changed.
   bool SetTitle(const std::u16string& title);
 
-  // void SetCursor(scoped_refptr<ui::WinCursor> cursor);
-
   void FrameTypeChanged();
-
-  // void SetWindowIcons(const gfx::ImageSkia& window_icon,
-  //                     const gfx::ImageSkia& app_icon);
 
   void SetFullscreen(bool fullscreen);
 
@@ -160,79 +144,13 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   }
   bool is_translucent() const { return is_translucent_; }
 
-  // std::unique_ptr<aura::ScopedEnableUnadjustedMouseEvents>
-  // RegisterUnadjustedMouseEvent();
-
  private:
   // friend class ::views::test::DesktopWindowTreeHostWinTestApi;
 
-  using TouchIDs = std::set<DWORD>;
   enum class DwmFrameState { kOff, kOn };
 
-  // bool HasNativeFrame();
-
   // Overridden from WindowImpl:
-  // HICON GetDefaultWindowIcon() const override;
-  // HICON GetSmallWindowIcon() const override;
   LRESULT OnWndProc(UINT message, WPARAM w_param, LPARAM l_param) override;
-
-  // Overridden from InputMethodObserver
-  // void OnFocus() override;
-  // void OnBlur() override;
-  // void OnCaretBoundsChanged(const ui::TextInputClient* client) override;
-  // void OnTextInputStateChanged(const ui::TextInputClient* client) override;
-  // void OnInputMethodDestroyed(const ui::InputMethod* input_method) override;
-  // void OnShowVirtualKeyboardIfEnabled() override;
-
-  //// Overridden from WindowEventTarget
-  // LRESULT HandleMouseMessage(unsigned int message,
-  //                            WPARAM w_param,
-  //                            LPARAM l_param,
-  //                            bool* handled) override;
-  // LRESULT HandleKeyboardMessage(unsigned int message,
-  //                               WPARAM w_param,
-  //                               LPARAM l_param,
-  //                               bool* handled) override;
-  // LRESULT HandleTouchMessage(unsigned int message,
-  //                            WPARAM w_param,
-  //                            LPARAM l_param,
-  //                            bool* handled) override;
-  // LRESULT HandlePointerMessage(unsigned int message,
-  //                              WPARAM w_param,
-  //                              LPARAM l_param,
-  //                              bool* handled) override;
-  // LRESULT HandleInputMessage(unsigned int message,
-  //                            WPARAM w_param,
-  //                            LPARAM l_param,
-  //                            bool* handled) override;
-  // LRESULT HandleScrollMessage(unsigned int message,
-  //                             WPARAM w_param,
-  //                             LPARAM l_param,
-  //                             bool* handled) override;
-  // LRESULT HandleNcHitTestMessage(unsigned int message,
-  //                                WPARAM w_param,
-  //                                LPARAM l_param,
-  //                                bool* handled) override;
-  // void HandleParentChanged() override;
-  // void ApplyPinchZoomScale(float scale) override;
-  // void ApplyPinchZoomBegin() override;
-  // void ApplyPinchZoomEnd() override;
-  // void ApplyPanGestureScroll(int scroll_x, int scroll_y) override;
-  // void ApplyPanGestureFling(int scroll_x, int scroll_y) override;
-  // void ApplyPanGestureScrollBegin(int scroll_x, int scroll_y) override;
-  // void ApplyPanGestureScrollEnd(bool transitioning_to_pinch) override;
-  // void ApplyPanGestureFlingBegin() override;
-  // void ApplyPanGestureFlingEnd() override;
-
-  // Overridden from AXFragmentRootDelegateWin.
-  // gfx::NativeViewAccessible GetChildOfAXFragmentRoot() override;
-  // gfx::NativeViewAccessible GetParentOfAXFragmentRoot() override;
-  // bool IsAXFragmentRootAControlElement() override;
-
-  // void ApplyPanGestureEvent(int scroll_x,
-  //                           int scroll_y,
-  //                           ui::EventMomentumPhase momentum_phase,
-  //                           ui::ScrollEventPhase phase);
 
   // Returns the auto-hide edges of the appbar. See
   // ViewsDelegate::GetAppbarAutohideEdges() for details. If the edges change,
@@ -281,11 +199,6 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   // frame windows.
   // void ResetWindowRegion(bool force, bool redraw);
 
-  // Enables or disables rendering of the non-client (glass) area by DWM,
-  // under Vista and above, depending on whether the caller has requested a
-  // custom frame.
-  void UpdateDwmNcRenderingPolicy();
-
   // Calls DefWindowProc, safely wrapping the call in a ScopedRedrawLock to
   // prevent frame flicker. DefWindowProc handling can otherwise render the
   // classic-look window title bar directly.
@@ -293,18 +206,8 @@ class HWNDMessageHandler : public gfx::WindowImpl {
                                       WPARAM w_param,
                                       LPARAM l_param);
 
-  // Lock or unlock the window from being able to redraw itself in response to
-  // updates to its invalid region.
-  class ScopedRedrawLock;
-  void LockUpdates();
-  void UnlockUpdates();
-
   // Stops ignoring SetWindowPos() requests (see below).
   void StopIgnoringPosChanges() { ignore_window_pos_changes_ = false; }
-
-  // Attempts to force the window to be redrawn, ensuring that it gets
-  // onscreen.
-  void ForceRedrawWindow(int attempts);
 
   // Returns whether Windows should help with frame rendering (i.e. we're using
   // the glass frame).
@@ -330,53 +233,12 @@ class HWNDMessageHandler : public gfx::WindowImpl {
     // Win 8.1 and newer
     CR_MESSAGE_HANDLER_EX(WM_DPICHANGED, OnDpiChanged)
 
-    // Non-atlcrack.h handlers
-    // CR_MESSAGE_HANDLER_EX(WM_GETOBJECT, OnGetObject)
-
-    // Mouse events.
-    // CR_MESSAGE_HANDLER_EX(WM_MOUSEACTIVATE, OnMouseActivate)
-    // CR_MESSAGE_HANDLER_EX(WM_MOUSELEAVE, OnMouseRange)
-    // CR_MESSAGE_HANDLER_EX(WM_NCMOUSELEAVE, OnMouseRange)
-    // CR_MESSAGE_HANDLER_EX(WM_SETCURSOR, OnSetCursor);
-
-    // Pointer events.
-    // CR_MESSAGE_HANDLER_EX(WM_POINTERACTIVATE, OnPointerActivate)
-    // CR_MESSAGE_HANDLER_EX(WM_POINTERDOWN, OnPointerEvent)
-    // CR_MESSAGE_HANDLER_EX(WM_POINTERUP, OnPointerEvent)
-    // CR_MESSAGE_HANDLER_EX(WM_POINTERUPDATE, OnPointerEvent)
-    // CR_MESSAGE_HANDLER_EX(WM_POINTERENTER, OnPointerEvent)
-    // CR_MESSAGE_HANDLER_EX(WM_POINTERLEAVE, OnPointerEvent)
-    // CR_MESSAGE_HANDLER_EX(WM_NCPOINTERDOWN, OnPointerEvent)
-    // CR_MESSAGE_HANDLER_EX(WM_NCPOINTERUP, OnPointerEvent)
-    // CR_MESSAGE_HANDLER_EX(WM_NCPOINTERUPDATE, OnPointerEvent)
-
-    // Key events.
-    // CR_MESSAGE_HANDLER_EX(WM_KEYDOWN, OnKeyEvent)
-    // CR_MESSAGE_HANDLER_EX(WM_KEYUP, OnKeyEvent)
-    // CR_MESSAGE_HANDLER_EX(WM_SYSKEYDOWN, OnKeyEvent)
-    // CR_MESSAGE_HANDLER_EX(WM_SYSKEYUP, OnKeyEvent)
-
-    CR_MESSAGE_HANDLER_EX(WM_INPUT, OnInputEvent)
-
-    // Scroll events
-    // CR_MESSAGE_HANDLER_EX(WM_VSCROLL, OnScrollMessage)
-    // CR_MESSAGE_HANDLER_EX(WM_HSCROLL, OnScrollMessage)
-
-    // Touch Events.
-    // CR_MESSAGE_HANDLER_EX(WM_TOUCH, OnTouchEvent)
-
     CR_MESSAGE_HANDLER_EX(WM_WINDOWSIZINGFINISHED, OnWindowSizingFinished)
-
-    // Uses the general handler macro since the specific handler macro
-    // MSG_WM_NCACTIVATE would convert WPARAM type to BOOL type. The high
-    // word of WPARAM could be set when the window is minimized or restored.
-    // CR_MESSAGE_HANDLER_EX(WM_NCACTIVATE, OnNCActivate)
 
     // This list is in _ALPHABETICAL_ order! OR I WILL HURT YOU.
     CR_MSG_WM_ACTIVATEAPP(OnActivateApp)
     CR_MSG_WM_APPCOMMAND(OnAppCommand)
     CR_MSG_WM_CANCELMODE(OnCancelMode)
-    CR_MSG_WM_CAPTURECHANGED(OnCaptureChanged)
     CR_MSG_WM_CLOSE(OnClose)
     CR_MSG_WM_COMMAND(OnCommand)
     CR_MSG_WM_CREATE(OnCreate)
@@ -389,15 +251,14 @@ class HWNDMessageHandler : public gfx::WindowImpl {
     CR_MSG_WM_EXITSIZEMOVE(OnExitSizeMove)
     CR_MSG_WM_GETMINMAXINFO(OnGetMinMaxInfo)
     CR_MSG_WM_INITMENU(OnInitMenu)
-    // CR_MSG_WM_INPUTLANGCHANGE(OnInputLangChange)
     CR_MSG_WM_KILLFOCUS(OnKillFocus)
     CR_MSG_WM_MOVE(OnMove)
     CR_MSG_WM_MOVING(OnMoving)
+    CR_MESSAGE_HANDLER_EX(WM_NCACTIVATE, OnNCActivate)
     CR_MSG_WM_NCCALCSIZE(OnNCCalcSize)
     CR_MSG_WM_NCCREATE(OnNCCreate)
     CR_MSG_WM_NCHITTEST(OnNCHitTest)
-    // CR_MSG_WM_NCPAINT(OnNCPaint)
-    // CR_MSG_WM_NOTIFY(OnNotify)
+    CR_MESSAGE_HANDLER_EX(WM_NCPAINT, OnNCPaint)
     CR_MSG_WM_PAINT(OnPaint)
     CR_MSG_WM_SETFOCUS(OnSetFocus)
     CR_MSG_WM_SETICON(OnSetIcon)
@@ -421,7 +282,6 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   //             WindowImpl.
   BOOL OnAppCommand(HWND window, int command, WORD device, WORD keystate);
   void OnCancelMode();
-  void OnCaptureChanged(HWND window);
   void OnClose();
   void OnCommand(UINT notification_code, int command, HWND window);
   LRESULT OnCreate(CREATESTRUCT* create_struct);
@@ -435,31 +295,18 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   void OnExitMenuLoop(BOOL is_shortcut_menu);
   void OnExitSizeMove();
   void OnGetMinMaxInfo(MINMAXINFO* minmax_info);
-  // LRESULT OnGetObject(UINT message, WPARAM w_param, LPARAM l_param);
-  LRESULT OnImeMessages(UINT message, WPARAM w_param, LPARAM l_param);
   void OnInitMenu(HMENU menu);
-  LRESULT OnInputEvent(UINT message, WPARAM w_param, LPARAM l_param);
-  // void OnInputLangChange(DWORD character_set, HKL input_language_id);
-  // LRESULT OnKeyEvent(UINT message, WPARAM w_param, LPARAM l_param);
   void OnKillFocus(HWND focused_window);
-  LRESULT OnMouseActivate(UINT message, WPARAM w_param, LPARAM l_param);
-  // LRESULT OnMouseRange(UINT message, WPARAM w_param, LPARAM l_param);
-  LRESULT OnPointerActivate(UINT message, WPARAM w_param, LPARAM l_param);
-  LRESULT OnPointerEvent(UINT message, WPARAM w_param, LPARAM l_param);
   void OnMove(const gfx::Point& point);
   void OnMoving(UINT param, RECT* new_bounds);
   LRESULT OnNCActivate(UINT message, WPARAM w_param, LPARAM l_param);
   LRESULT OnNCCalcSize(BOOL mode, LPARAM l_param);
   LRESULT OnNCCreate(LPCREATESTRUCT lpCreateStruct);
   LRESULT OnNCHitTest(const gfx::Point& point);
-  // void OnNCPaint(HRGN rgn);
+  LRESULT OnNCPaint(UINT message, WPARAM w_param, LPARAM l_param);
   LRESULT OnNCUAHDrawCaption(UINT message, WPARAM w_param, LPARAM l_param);
   LRESULT OnNCUAHDrawFrame(UINT message, WPARAM w_param, LPARAM l_param);
-  // LRESULT OnNotify(int w_param, NMHDR* l_param);
   void OnPaint(HDC dc);
-  // LRESULT OnReflectedMessage(UINT message, WPARAM w_param, LPARAM l_param);
-  // LRESULT OnScrollMessage(UINT message, WPARAM w_param, LPARAM l_param);
-  // LRESULT OnSetCursor(UINT message, WPARAM w_param, LPARAM l_param);
   void OnSetFocus(HWND last_focused_window);
   LRESULT OnSetIcon(UINT size_type, HICON new_icon);
   LRESULT OnSetText(const wchar_t* text);
@@ -469,40 +316,9 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   void OnSysCommand(UINT notification_code, const gfx::Point& point);
   void OnThemeChanged();
   void OnTimeChange();
-  // LRESULT OnTouchEvent(UINT message, WPARAM w_param, LPARAM l_param);
   void OnWindowPosChanging(WINDOWPOS* window_pos);
   void OnWindowPosChanged(WINDOWPOS* window_pos);
   LRESULT OnWindowSizingFinished(UINT message, WPARAM w_param, LPARAM l_param);
-
-  // Receives Windows Session Change notifications.
-  void OnSessionChange(WPARAM status_code, const bool* is_current_session);
-
-  // using TouchEvents = std::vector<ui::TouchEvent>;
-  //// Helper to handle the list of touch events passed in. We need this because
-  //// touch events on windows don't fire if we enter a modal loop in the
-  /// context / of a touch event.
-  // void HandleTouchEvents(const TouchEvents& touch_events);
-
-  // Resets the flag which indicates that we are in the context of a touch down
-  // event.
-  // void ResetTouchDownContext();
-
-  // Helper to handle mouse events.
-  // The |message|, |w_param|, |l_param| parameters identify the Windows mouse
-  // message and its parameters respectively.
-  // The |track_mouse| parameter indicates if we should track the mouse.
-  // LRESULT HandleMouseEventInternal(UINT message,
-  //                                  WPARAM w_param,
-  //                                  LPARAM l_param,
-  //                                  bool track_mouse);
-
-  // We handle 2 kinds of WM_POINTER events: PT_TOUCH and PT_PEN.
-
-  // Returns true if the mouse message passed in is an OS synthesized mouse
-  // message.
-
-  // Provides functionality to transition a frame to DWM.
-  void PerformDwmTransition();
 
   // Updates DWM frame to extend into client area if needed.
   void UpdateDwmFrame();
@@ -549,9 +365,6 @@ class HWNDMessageHandler : public gfx::WindowImpl {
 
   std::unique_ptr<FullscreenHandler> fullscreen_handler_;
 
-  // Set to true in Close() and false is CloseNow().
-  bool waiting_for_close_now_;
-
   // Whether all ancestors have been enabled. This is only used if is_modal_ is
   // true.
   bool restored_enabled_;
@@ -559,22 +372,12 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   // The current cursor.
   // scoped_refptr<ui::WinCursor> current_cursor_;
 
-  // The icon created from the bitmap image of the window icon.
-  base::win::ScopedGDIObject<HICON> window_icon_;
-
-  // The icon created from the bitmap image of the app icon.
-  base::win::ScopedGDIObject<HICON> app_icon_;
-
   // The aspect ratio for the window. This is only used for sizing operations
   // for the non-client area.
   absl::optional<float> aspect_ratio_;
 
   // The current DPI.
   int dpi_;
-
-  // This is true if the window is created with a specific size/location, as
-  // opposed to having them set after window creation.
-  bool initial_bounds_valid_ = false;
 
   // Whether EnableNonClientDpiScaling was called successfully with this window.
   // This flag exists because EnableNonClientDpiScaling must be called during
@@ -593,12 +396,6 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   // area. We need this so we can correctly show the context menu on mouse-up.
 
   // The set of touch devices currently down.
-
-  // ScopedRedrawLock ----------------------------------------------------------
-
-  // Represents the number of ScopedRedrawLocks active against this widget.
-  // If this is greater than zero, the widget should be locked against updates.
-  int lock_updates_count_;
 
   // Window resizing -----------------------------------------------------------
 
@@ -641,14 +438,6 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   // int touch_down_contexts_;
 
   // Time the last touch or pen message was received.
-
-  // On Windows Vista and beyond, if we are transitioning from custom frame
-  // to Aero(glass) we delay setting the DWM related properties in full
-  // screen mode as DWM is not supported in full screen windows. We perform
-  // the DWM related operations when the window comes out of fullscreen mode.
-  // This member variable is set to true if the window is transitioning to
-  // glass. Defaults to false.
-  bool dwm_transition_desired_;
 
   // Is DWM composition currently enabled?
   // Note: According to MSDN docs for DwmIsCompositionEnabled(), this is always

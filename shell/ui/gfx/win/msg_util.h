@@ -1260,16 +1260,6 @@
       return TRUE;                      \
   }
 
-// void OnCaptureChanged(CWindow wnd)
-#define CR_MSG_WM_CAPTURECHANGED(func) \
-  if (uMsg == WM_CAPTURECHANGED) {     \
-    SetMsgHandled(TRUE);               \
-    func((HWND)lParam);                \
-    lResult = 0;                       \
-    if (!ref.get() || msg_handled_)    \
-      return TRUE;                     \
-  }
-
 // BOOL OnDeviceChange(UINT nEventType, DWORD dwData)
 #define CR_MSG_WM_DEVICECHANGE(func)                      \
   if (uMsg == WM_DEVICECHANGE) {                          \

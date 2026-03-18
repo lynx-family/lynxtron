@@ -54,8 +54,6 @@ class NativeWindowMac : public NativeWindow {
   gfx::Size GetSize() const override;
   float GetDevicePixelRatio() const override;
   gfx::Rect GetNormalBounds() const override;
-  // SkColor GetBackgroundColor() override;
-
   void SetResizable(bool resizable) override;
   void MoveTop() override;
   bool IsResizable() const override;
@@ -72,10 +70,6 @@ class NativeWindowMac : public NativeWindow {
   void SetClosable(bool closable) override;
   bool IsClosable() const override;
   std::string GetAlwaysOnTopLevel() override;
-  // void SetAlwaysOnTop(ui::ZOrderLevel z_order,
-  //                    const std::string& level,
-  //                    int relativeLevel) override;
-  // ui::ZOrderLevel GetZOrderLevel() override;
   void Center() override;
   void SetTitle(const std::string& title) override;
   std::string GetTitle() const override;
@@ -85,9 +79,6 @@ class NativeWindowMac : public NativeWindow {
   bool IsExcludedFromShownWindowsMenu() override;
   void SetSimpleFullScreen(bool simple_fullscreen) override;
   bool IsSimpleFullScreen() override;
-  void SetKiosk(bool kiosk) override;
-  bool IsKiosk() const override;
-  // void SetBackgroundColor(SkColor color) override;
   void SetHasShadow(bool has_shadow) override;
   bool HasShadow() override;
   void SetOpacity(const double opacity) override;
@@ -97,15 +88,8 @@ class NativeWindowMac : public NativeWindow {
   void SetFocusable(bool focusable) override;
   bool IsFocusable() const override;
   void SetVibrancy(const std::string& type, int duration) override;
-  // void SetMenu(LynxtronMenuModel* menu_model) override;
-  // void AddBrowserView(NativeBrowserView* browser_view) override;
-  // void RemoveBrowserView(NativeBrowserView* browser_view) override;
-  // void SetTopBrowserView(NativeBrowserView* browser_view) override;
   void SetParentWindow(NativeWindow* parent) override;
-  // gfx::NativeView GetNativeView() const override;
   gfx::NativeWindow GetNativeWindow() const override;
-  // void SetOverlayIcon(const gfx::Image& overlay,
-  //                    const std::string& description) override;
   void SetProgressBar(double progress, const ProgressState state) override;
 
   void SetVisibleOnAllWorkspaces(bool visible,
@@ -126,9 +110,6 @@ class NativeWindowMac : public NativeWindow {
   void SetActive(bool is_key) override;
   bool IsActive() const override;
   std::optional<std::string> GetTabbingIdentifier() const override;
-
-  // content::DesktopMediaID GetDesktopMediaID() const override;
-  // gfx::AcceleratedWidget GetAcceleratedWidget() const override;
   NativeWindowHandle GetNativeWindowHandle() const override;
 
   gfx::Rect ContentBoundsToWindowBounds(const gfx::Rect& bounds) const override;
@@ -172,6 +153,13 @@ class NativeWindowMac : public NativeWindow {
       FullScreenTransitionState::NONE;
 
  private:
+  enum class TitleBarStyle {
+    kNormal,
+    kHidden,
+    kHiddenInset,
+    kCustomButtonsOnHover,
+  };
+
   void InternalSetParentWindow(NativeWindow* parent, bool attach);
   void InternalSetWindowButtonVisibility(bool visible);
 
@@ -180,18 +168,14 @@ class NativeWindowMac : public NativeWindow {
 
   NSInteger attention_request_id_ = 0;  // identifier from requestUserAttention
 
-  bool is_kiosk_ = false;
-
   std::optional<gfx::Point> traffic_light_position_;
-
-  // The presentation options before entering kiosk mode.
-  NSApplicationPresentationOptions kiosk_options_;
 
   // Controls the position and visibility of window buttons.
   WindowButtonsProxy* __strong buttons_proxy_ = nil;
 
-  // Maximizable window state; necessary for persistence through redraws.
-  bool maximizable_ = true;
+  NSWindow* __strong disabled_window_ = nil;
+
+  TitleBarStyle title_bar_style_ = TitleBarStyle::kNormal;
 
   bool user_set_bounds_maximized_ = false;
 

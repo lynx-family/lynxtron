@@ -13,7 +13,6 @@
 #include <string>
 #include <vector>
 
-// #include "base/memory/ptr_util.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/values.h"
 #include "shell/app/application.h"
@@ -22,66 +21,20 @@
 #include "shell/common/gin_helper/persistent_dictionary.h"
 #include "shell/common/options_switches.h"
 
-#if BUILDFLAG(IS_WIN)
-#include "shell/api/dpi_win.h"
-#endif
-
-namespace gin {
-
-template <>
-struct Converter<lynxtron::NativeWindow::TitleBarStyle> {
-  static bool FromV8(v8::Isolate* isolate,
-                     v8::Handle<v8::Value> val,
-                     lynxtron::NativeWindow::TitleBarStyle* out) {
-    using TitleBarStyle = lynxtron::NativeWindow::TitleBarStyle;
-    std::string title_bar_style;
-    if (!ConvertFromV8(isolate, val, &title_bar_style)) {
-      return false;
-    }
-    if (title_bar_style == "hidden") {
-      *out = TitleBarStyle::kHidden;
-#if BUILDFLAG(IS_MAC)
-    } else if (title_bar_style == "hiddenInset") {
-      *out = TitleBarStyle::kHiddenInset;
-    } else if (title_bar_style == "customButtonsOnHover") {
-      *out = TitleBarStyle::kCustomButtonsOnHover;
-#endif
-    } else {
-      return false;
-    }
-    return true;
-  }
-};
-
-}  // namespace gin
-
 namespace lynxtron {
-
-namespace {
-#if BUILDFLAG(IS_WIN)
-gfx::Size GetExpandedWindowSize(const NativeWindow* window,
-                                bool transparent,
-                                gfx::Size size) {
-  gfx::Size min_size =
-      ScreenToDIPSize(window->GetNativeWindowHandle(), gfx::Size{64, 64});
-
-  // Some AMD drivers can't display windows that are less than 64x64 pixels,
-  // so expand them to be at least that size. http://crbug.com/286609
-  gfx::Size expanded(std::max(size.width(), min_size.width()),
-                     std::max(size.height(), min_size.height()));
-  return expanded;
-}
-#endif
-
-}  // namespace
 NativeWindow::NativeWindow(const gin_helper::Dictionary& options,
                            NativeWindow* parent)
     : parent_(parent) {
-  ++next_id_;
-
-  options.Get(options::kFrame, &has_frame_);
-  options.Get(options::kTransparent, &transparent_);
-  options.Get(options::kTitleBarStyle, &title_bar_style_);
+  frame_ = options.ValueOrDefault(options::kFrame, true);
+  transparent_ = options.ValueOrDefault(options::kTransparent, false);
+  resizable_ = options.ValueOrDefault(options::kResizable, true);
+  width_ = options.ValueOrDefault(options::kWidth, 800);
+  height_ = options.ValueOrDefault(options::kHeight, 600);
+  use_content_size_ = options.ValueOrDefault(options::kUseContentSize, false);
+  minimizable_ = options.ValueOrDefault(options::kMinimizable, true);
+  maximizable_ = options.ValueOrDefault(options::kMaximizable, true);
+  closable_ = options.ValueOrDefault(options::kClosable, true);
+  window_type_ = options.ValueOrDefault(options::kType, std::string{});
 
   if (parent) {
     options.Get("modal", &is_modal_);
@@ -98,24 +51,13 @@ void NativeWindow::InitFromOptions(const gin_helper::Dictionary& options) {
   // Setup window from options.
   if (int x, y; options.Get(options::kX, &x) && options.Get(options::kY, &y)) {
     SetPosition(gfx::Point{x, y}, false);
-
-#if BUILDFLAG(IS_WIN)
-    // FIXME(felixrieseberg): Dirty, dirty workaround for
-    // https://github.com/electron/electron/issues/10862
-    // Somehow, we need to call `SetBounds` twice to get
-    // usable results. The root cause is still unknown.
-    SetPosition(gfx::Point{x, y}, false);
-#endif
   } else if (bool center; options.Get(options::kCenter, &center) && center) {
     Center();
   }
 
-  const bool use_content_size =
-      options.ValueOrDefault(options::kUseContentSize, false);
-
   // On Linux and Window we may already have maximum size defined.
   SizeConstraints size_constraints(
-      use_content_size ? GetContentSizeConstraints() : GetSizeConstraints());
+      use_content_size_ ? GetContentSizeConstraints() : GetSizeConstraints());
 
   const int min_width = options.ValueOrDefault(
       options::kMinWidth, size_constraints.GetMinimumSize().width());
@@ -142,17 +84,11 @@ void NativeWindow::InitFromOptions(const gin_helper::Dictionary& options) {
     size_constraints.set_maximum_size(gfx::Size(max_width, max_height));
   }
 
-  if (use_content_size) {
+  if (use_content_size_) {
     SetContentSizeConstraints(size_constraints);
   } else {
     SetSizeConstraints(size_constraints);
   }
-
-#if BUILDFLAG(IS_WIN)
-  if (bool val; options.Get(options::kClosable, &val)) {
-    SetClosable(val);
-  }
-#endif
 
   if (bool val; options.Get(options::kMovable, &val)) {
     SetMovable(val);
@@ -194,35 +130,6 @@ void NativeWindow::InitFromOptions(const gin_helper::Dictionary& options) {
     SetSkipTaskbar(val);
   }
 
-  if (bool val; options.Get(options::kKiosk, &val) && val) {
-    SetKiosk(val);
-  }
-
-#if BUILDFLAG(IS_MAC)
-  if (std::string val; options.Get(options::kVibrancyType, &val)) {
-    SetVibrancy(val, 0);
-  }
-  if (bool val; options.Get(options::kHiddenInMissionControl, &val)) {
-    SetHiddenInMissionControl(val);
-  }
-#endif
-
-  // TODO(Guo Xi): SetBackgroundMaterial
-  // #elif BUILDFLAG(IS_WIN)
-  //   if (std::string val; options.Get(options::kBackgroundMaterial, &val))
-  //     SetBackgroundMaterial(val);
-  // #endif
-#
-
-  // TODO(Guo Xi): refer DesktopWindowTreeHostWin::SetBackgroundColor
-  // SkColor background_color = SK_ColorWHITE;
-  // if (std::string color; options.Get(options::kBackgroundColor, &color)) {
-  //   background_color = ParseCSSColor(color).value_or(SK_ColorWHITE);
-  // } else if (IsTranslucent()) {
-  //   background_color = SK_ColorTRANSPARENT;
-  // }
-  // SetBackgroundColor(background_color);
-
   SetTitle(
       options.ValueOrDefault(options::kTitle, Application::Get()->GetName()));
 
@@ -236,17 +143,8 @@ bool NativeWindow::IsClosed() const {
   return is_closed_;
 }
 
-void NativeWindow::SetSize(const gfx::Size& size, bool animate) {
-  SetBounds(gfx::Rect(GetPosition(), size), animate);
-}
-
 gfx::Size NativeWindow::GetSize() const {
   return GetBounds().size();
-}
-
-// TODO(Guo Xi): Add GetDevicePixelRatio
-float NativeWindow::GetDevicePixelRatio() const {
-  return 1.0f;
 }
 
 void NativeWindow::SetPosition(const gfx::Point& position, bool animate) {
@@ -256,22 +154,6 @@ void NativeWindow::SetPosition(const gfx::Point& position, bool animate) {
 gfx::Point NativeWindow::GetPosition() const {
   return GetBounds().origin();
 }
-
-// void NativeWindow::SetContentSize(const gfx::Size& size, bool animate) {
-//   SetSize(ContentBoundsToWindowBounds(gfx::Rect(size)).size(), animate);
-// }
-
-// gfx::Size NativeWindow::GetContentSize() const {
-//   return GetContentBounds().size();
-// }
-
-// void NativeWindow::SetContentBounds(const gfx::Rect& bounds, bool animate) {
-//   SetBounds(ContentBoundsToWindowBounds(bounds), animate);
-// }
-
-// gfx::Rect NativeWindow::GetContentBounds() const {
-//   return WindowBoundsToContentBounds(GetBounds());
-// }
 
 void NativeWindow::SetContentSize(const gfx::Size& size, bool animate) {
   SetSize(ContentBoundsToWindowBounds(gfx::Rect(size)).size(), animate);
@@ -374,13 +256,6 @@ gfx::Size NativeWindow::GetContentMinimumSize() const {
 gfx::Size NativeWindow::GetContentMaximumSize() const {
   const auto size_constraints = GetContentSizeConstraints();
   gfx::Size maximum_size = size_constraints.GetMaximumSize();
-
-#if BUILDFLAG(IS_WIN)
-  if (size_constraints.HasMaximumSize()) {
-    maximum_size = GetExpandedWindowSize(this, transparent(), maximum_size);
-  }
-#endif
-
   return maximum_size;
 }
 
@@ -396,12 +271,6 @@ double NativeWindow::GetSheetOffsetX() {
 
 double NativeWindow::GetSheetOffsetY() {
   return sheet_offset_y_;
-}
-
-void NativeWindow::SetFocusable(bool focusable) {}
-
-bool NativeWindow::IsFocusable() const {
-  return false;
 }
 
 void NativeWindow::SetParentWindow(NativeWindow* parent) {
@@ -462,15 +331,11 @@ void NativeWindow::NotifyWindowCloseButtonClicked() {
     return;
   }
 
-  // Then ask the observers how should we close the window.
-  prevent_default = false;
-  observers_.Notify(&NativeWindowObserver::OnCloseButtonClicked,
-                    std::ref(prevent_default));
-  if (prevent_default) {
-    return;
-  }
-
   CloseImmediately();
+}
+
+void NativeWindow::SetSize(const gfx::Size& size, bool animate) {
+  SetBounds(gfx::Rect(GetPosition(), size), animate);
 }
 
 void NativeWindow::NotifyWindowClosed() {
@@ -605,24 +470,5 @@ void NativeWindow::NotifyWindowSystemContextMenu(int x,
   observers_.Notify(&NativeWindowObserver::OnSystemContextMenu, x, y,
                     std::ref(prevent_default));
 }
-
-#if BUILDFLAG(IS_WIN)
-void NativeWindow::NotifyWindowMessage(UINT message,
-                                       WPARAM w_param,
-                                       LPARAM l_param) {
-  observers_.Notify(&NativeWindowObserver::OnWindowMessage, message, w_param,
-                    l_param);
-}
-#endif
-
-void NativeWindow::SetAccessibleTitle(const std::string& title) {
-  accessible_title_ = base::UTF8ToUTF16(title);
-}
-
-std::string NativeWindow::GetAccessibleTitle() {
-  return base::UTF16ToUTF8(accessible_title_);
-}
-
-int32_t NativeWindow::next_id_ = 0;
 
 }  // namespace lynxtron

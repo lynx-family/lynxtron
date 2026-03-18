@@ -68,7 +68,7 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
   ~LynxWindow() override;
 
   // NativeWindowObserver:
-  void OnCloseButtonClicked(bool& prevent_default) override;
+  // void OnCloseRequested(bool& prevent_default) override;
   void OnWindowIsKeyChanged(bool is_key) override;
   void OnWindowClosed() override;
 #if defined(OS_WIN)

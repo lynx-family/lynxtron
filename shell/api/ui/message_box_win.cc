@@ -142,7 +142,7 @@ TaskDialogCallback(HWND hwnd, UINT msg, WPARAM, LPARAM, LONG_PTR data) {
   return S_OK;
 }
 
-DialogResult ShowTaskDialogWstr(gfx::AcceleratedWidget parent,
+DialogResult ShowTaskDialogWstr(gfx::NativeWindow parent,
                                 MessageBoxType type,
                                 const std::vector<std::wstring>& buttons,
                                 int default_id,
@@ -264,7 +264,7 @@ DialogResult ShowTaskDialogWstr(gfx::AcceleratedWidget parent,
 }
 
 DialogResult ShowTaskDialogUTF8(const MessageBoxSettings& settings,
-                                gfx::AcceleratedWidget parent_widget,
+                                gfx::NativeWindow parent_widget,
                                 HWND* hwnd) {
   std::vector<std::wstring> buttons;
   for (const auto& button : settings.buttons) {
@@ -286,7 +286,7 @@ DialogResult ShowTaskDialogUTF8(const MessageBoxSettings& settings,
 }  // namespace
 
 int ShowMessageBoxSync(const MessageBoxSettings& settings) {
-  gfx::AcceleratedWidget parent_widget =
+  gfx::NativeWindow parent_widget =
       settings.parent_window
           ? static_cast<lynxtron::NativeWindow*>(settings.parent_window)
                 ->GetNativeWindowHandle()
@@ -309,7 +309,7 @@ void ShowMessageBox(const MessageBoxSettings& settings,
     hwnd = it.first->second.get();
   }
 
-  gfx::AcceleratedWidget parent_widget =
+  gfx::NativeWindow parent_widget =
       settings.parent_window
           ? static_cast<lynxtron::NativeWindow*>(settings.parent_window)
                 ->GetNativeWindowHandle()

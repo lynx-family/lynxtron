@@ -784,6 +784,69 @@ describe('LynxWindow module', () => {
         });
       });
 
+      describe('LynxWindow parent/child windows', () => {
+        afterEach(closeAllWindows);
+
+        it('exposes parent and child windows', () => {
+          const parent = new LynxWindow({ show: false });
+          const child = new LynxWindow({ show: false, parent });
+
+          expect(child.getParentWindow()).to.equal(parent);
+          expect(parent.getChildWindows()).to.include(child);
+
+          child.setParentWindow(null);
+
+          expect(child.getParentWindow()).to.equal(null);
+          expect(parent.getChildWindows()).to.not.include(child);
+        });
+      });
+
+      ifdescribe(process.platform === 'win32')(
+        'LynxWindow modal parent enable state',
+        () => {
+          afterEach(closeAllWindows);
+
+          it('disables parent while modal child is visible', async () => {
+            const parent = new LynxWindow({ show: false });
+            parent.show();
+            await once(parent, 'show');
+
+            expect(parent.isEnabled()).to.equal(true);
+
+            const child = new LynxWindow({
+              show: false,
+              parent,
+              modal: true,
+            });
+
+            child.showInactive();
+            await waitUntil(() => parent.isEnabled() === false);
+            expect(parent.isEnabled()).to.equal(false);
+
+            child.hide();
+            await waitUntil(() => parent.isEnabled() === true);
+            expect(parent.isEnabled()).to.equal(true);
+          });
+
+          it('defaults minimizable to false for modal child window', () => {
+            const parent = new LynxWindow({ show: false });
+            const child = new LynxWindow({ show: false, parent, modal: true });
+            expect(child.minimizable).to.equal(false);
+          });
+
+          it('does not override explicit minimizable for modal child window', () => {
+            const parent = new LynxWindow({ show: false });
+            const child = new LynxWindow({
+              show: false,
+              parent,
+              modal: true,
+              minimizable: true,
+            });
+            expect(child.minimizable).to.equal(true);
+          });
+        }
+      );
+
       describe('LynxWindow.moveAbove(mediaSourceId)', () => {
         it.skip('should throw an exception if wrong formatting', async () => {
           const fakeSourceIds = [
@@ -958,6 +1021,47 @@ describe('LynxWindow module', () => {
           expect(contentSize[1]).to.equal(windowSize[1]);
           await closeWindow(wFrameless, { assertNotWindows: false });
         });
+
+        ifit(process.platform === 'win32')(
+          'frameless window keeps client size across activation changes',
+          async () => {
+            const wFrameless = new LynxWindow({
+              show: true,
+              frame: false,
+              resizable: true,
+              thickFrame: true,
+              width: 400,
+              height: 300,
+            });
+            const wOther = new LynxWindow({
+              show: true,
+              frame: true,
+              resizable: false,
+              width: 200,
+              height: 200,
+            });
+
+            await setTimeout(50);
+            wFrameless.focus();
+            await setTimeout(100);
+
+            const beforeContentSize = wFrameless.getContentSize();
+            const beforeWindowSize = wFrameless.getSize();
+            expect(beforeContentSize[0]).to.equal(beforeWindowSize[0]);
+            expect(beforeContentSize[1]).to.equal(beforeWindowSize[1]);
+
+            wOther.focus();
+            await setTimeout(150);
+
+            const afterContentSize = wFrameless.getContentSize();
+            const afterWindowSize = wFrameless.getSize();
+            expect(afterContentSize[0]).to.equal(afterWindowSize[0]);
+            expect(afterContentSize[1]).to.equal(afterWindowSize[1]);
+
+            await closeWindow(wOther, { assertNotWindows: false });
+            await closeWindow(wFrameless, { assertNotWindows: false });
+          }
+        );
       });
     });
   });

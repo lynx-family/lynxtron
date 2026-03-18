@@ -8,6 +8,7 @@
 
 #include "base/functional/callback.h"
 #include "base/run_loop.h"
+#include "build/build_config.h"
 #include "shell/app/application.h"
 #include "shell/app/main_parts_delegate.h"
 #include "ui/display/screen.h"
@@ -15,6 +16,14 @@
 namespace node {
 class Environment;
 }
+
+#if BUILDFLAG(IS_WIN)
+namespace base {
+namespace win {
+class ScopedCOMInitializer;
+}
+}  // namespace base
+#endif
 
 namespace lynxtron {
 class LynxtronBindings;
@@ -58,6 +67,11 @@ class MainParts {
   // A place to remember the exit code once the message loop is ready.
   // Before then, we just exit() without any intermediate steps.
   std::optional<int> exit_code_;
+
+#if BUILDFLAG(IS_WIN)
+  std::unique_ptr<base::win::ScopedCOMInitializer> com_initializer_;
+#endif
+
   std::unique_ptr<GlobalThread> global_thread_;
   std::unique_ptr<JavascriptEnvironment> js_env_;
   std::unique_ptr<Application> application_;

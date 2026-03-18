@@ -24,6 +24,7 @@
 #include "base/strings/string_util_win.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/thread_pool.h"
+#include "base/win/scoped_hstring.h"
 #include "shell/api/notifications/notification_delegate.h"
 #include "shell/api/notifications/notification_platform_bridge_win.h"
 #include "shell/common/application_info.h"
@@ -156,14 +157,14 @@ bool WindowsToastNotification::Initialize() {
         (*toast_manager_)
             ->CreateToastNotifier(toast_notifier_->GetAddressOf()));
   } else {
-    ScopedHString app_id;
+    base::win::ScopedHString app_id(nullptr);
     if (!GetAppUserModelID(&app_id)) {
       return false;
     }
 
     return SUCCEEDED((*toast_manager_)
                          ->CreateToastNotifierWithId(
-                             app_id, toast_notifier_->GetAddressOf()));
+                             app_id.get(), toast_notifier_->GetAddressOf()));
   }
 }
 

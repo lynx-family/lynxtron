@@ -11,8 +11,8 @@
 #include "base/json/json_writer.h"
 #include "base/logging.h"
 #include "base/path_service.h"
-#include "base/strings/utf_string_conversions.h"
-#include "base/task/thread_pool.h"
+// #include "base/strings/utf_string_conversions.h"
+// #include "base/task/thread_pool.h"
 #include "gin/converter.h"
 #include "lynx/platform/embedder/public/capi/lynx_env_capi.h"
 #include "shell/api/api_app.h"
@@ -30,15 +30,15 @@
 #include "shell/common/node_includes.h"
 #include "shell/common/options_switches.h"
 #include "shell/common/thread_restrictions.h"
-#include "url/url_util.h"
+// #include "url/url_util.h"
 
 #if BUILDFLAG(IS_WIN)
 #include <windows.h>
 
-#include <TlHelp32.h>
+// #include <TlHelp32.h>
 #include <dwmapi.h>
 
-#include <ctime>
+// #include <ctime>
 #endif
 
 namespace lynxtron {
@@ -154,29 +154,30 @@ LynxWindow::LynxWindow(gin::Arguments* args,
 
 LynxWindow::~LynxWindow() = default;
 
-void LynxWindow::OnCloseButtonClicked(bool& prevent_default) {
-  // When user tries to close the window by clicking the close button, we do
-  // not close the window immediately, instead we try to close the web page
-  // first, and when the web page is closed the window will also be closed.
-  prevent_default = true;
+// void LynxWindow::OnCloseRequested(bool& prevent_default) {
+//   // When user tries to close the window by clicking the close button, we do
+//   // not close the window immediately, instead we try to close the web page
+//   // first, and when the web page is closed the window will also be closed.
+//   prevent_default = true;
 
-  // Assume the window is not responding if it doesn't cancel the close and is
-  // not closed in 5s, in this way we can quickly show the unresponsive
-  // dialog when the window is busy executing some script without waiting for
-  // the unresponsive timeout.
-  // if (window_unresponsive_closure_.IsCancelled()) {
-  //   ScheduleUnresponsiveEvent(5000);
-  // }
-  GlobalThread::GetUIThreadTaskRunner()->PostTask(
-      FROM_HERE, base::BindOnce(
-                     [](base::WeakPtr<LynxWindow> window) {
-                       if (window) {
-                         window->CloseImmediately();
-                       }
-                     },
-                     GetWeakPtr()));
+//   // Assume the window is not responding if it doesn't cancel the close and
+//   is
+//   // not closed in 5s, in this way we can quickly show the unresponsive
+//   // dialog when the window is busy executing some script without waiting for
+//   // the unresponsive timeout.
+//   // if (window_unresponsive_closure_.IsCancelled()) {
+//   //   ScheduleUnresponsiveEvent(5000);
+//   // }
+//   GlobalThread::GetUIThreadTaskRunner()->PostTask(
+//       FROM_HERE, base::BindOnce(
+//                      [](base::WeakPtr<LynxWindow> window) {
+//                        if (window) {
+//                          window->CloseImmediately();
+//                        }
+//                      },
+//                      GetWeakPtr()));
 
-}  // namespace api
+// }  // namespace api
 
 void LynxWindow::OnWindowBlur() {
   BaseWindow::OnWindowBlur();

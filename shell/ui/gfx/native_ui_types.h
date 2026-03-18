@@ -14,12 +14,7 @@
 #include "base/compiler_specific.h"
 #include "base/component_export.h"
 #include "base/memory/raw_ptr_exclusion.h"
-#include "build/blink_buildflags.h"
 #include "build/build_config.h"
-
-#if BUILDFLAG(IS_ANDROID)
-#include "base/android/scoped_java_ref.h"
-#endif
 
 #if BUILDFLAG(IS_APPLE)
 #include "base/apple/owned_objc.h"
@@ -27,10 +22,6 @@
 
 #if BUILDFLAG(IS_MAC)
 #include <string>
-#endif
-
-#if BUILDFLAG(IS_IOS)
-#include <variant>
 #endif
 
 #if BUILDFLAG(IS_WIN)
@@ -65,29 +56,7 @@
 // TODO(https://crbug.com/40157665): gfx::NativeCursor is ui::Cursor in Aura;
 // perhaps remove gfx::NativeCursor and use ui::Cursor everywhere?
 
-#if defined(USE_AURA)
-namespace aura {
-class Window;
-}
-namespace ui {
-class Cursor;
-class Event;
-namespace mojom {
-enum class CursorType;
-}
-}  // namespace ui
-
-#endif  // defined(USE_AURA)
-
-#if BUILDFLAG(IS_WIN)
-struct IAccessible;
-#elif BUILDFLAG(IS_IOS)
-#ifdef __OBJC__
-@class UIImage;
-#else
-class UIImage;
-#endif  // __OBJC__
-#elif BUILDFLAG(IS_MAC)
+#if BUILDFLAG(IS_MAC)
 #ifdef __OBJC__
 @class NSImage;
 @class NSView;
@@ -97,36 +66,13 @@ class NSImage;
 #endif  // __OBJC__
 #endif
 
-#if BUILDFLAG(IS_ANDROID)
-struct ANativeWindow;
-namespace ui {
-class WindowAndroid;
-class ViewAndroid;
-}  // namespace ui
-#endif
-
 namespace gfx {
 
-#if defined(USE_AURA)
-using NativeCursor = ui::Cursor;
-using NativeView = aura::Window*;
-using NativeWindow = aura::Window*;
-using NativeEvent = ui::Event*;
-#elif BUILDFLAG(IS_IOS)
-using NativeCursor = void*;
-using NativeView = base::apple::WeakUIView;
-using NativeWindow = base::apple::WeakUIWindow;
-#if BUILDFLAG(USE_BLINK)
-#if BUILDFLAG(IS_IOS_TVOS)
-using NativeEvent =
-    std::variant<base::apple::OwnedUIEvent, base::apple::OwnedUIPress>;
-#else
-using NativeEvent =
-    std::variant<base::apple::OwnedUIEvent, base::apple::OwnedBEKeyEntry>;
-#endif  // BUILDFLAG(IS_IOS_TVOS)
-#else
-using NativeEvent = base::apple::OwnedUIEvent;
-#endif  // BUILDFLAG(USE_BLINK)
+#if BUILDFLAG(IS_WIN)
+using NativeCursor = HCURSOR;
+using NativeView = HWND;
+using NativeWindow = HWND;
+using NativeEvent = MSG*;
 #elif BUILDFLAG(IS_MAC)
 using NativeCursor = base::apple::OwnedNSCursor;
 using NativeEvent = base::apple::OwnedNSEvent;
@@ -170,28 +116,6 @@ class COMPONENT_EXPORT(GFX) NativeWindow : public base::apple::WeakNSWindow {
  private:
   uintptr_t pointer_bits_ = 0;
 };
-#elif BUILDFLAG(IS_ANDROID)
-using NativeCursor = void*;
-using NativeView = ui::ViewAndroid*;
-using NativeWindow = ui::WindowAndroid*;
-using NativeEvent = base::android::ScopedJavaGlobalRef<jobject>;
-#else
-#error Unknown build environment.
-#endif
-
-#if BUILDFLAG(IS_WIN)
-using NativeViewAccessible = IAccessible*;
-#elif BUILDFLAG(IS_IOS)
-// UIAccessibility is an informal protocol on NSObject, so make accessible
-// objects owned NSObjects. Do not use as a general object wrapper.
-using NativeViewAccessible = base::apple::OwnedNSObject;
-#elif BUILDFLAG(IS_MAC)
-using NativeViewAccessible = base::apple::OwnedNSAccessibility;
-#else
-// Android, Chrome OS, etc.
-using UnimplementedNativeViewAccessible =
-    struct _UnimplementedNativeViewAccessible;
-using NativeViewAccessible = UnimplementedNativeViewAccessible*;
 #endif
 
 // Note: for test_shell we're packing a pointer into the NativeViewId. So, if
@@ -200,32 +124,6 @@ using NativeViewAccessible = UnimplementedNativeViewAccessible*;
 //
 // See comment at the top of the file for usage.
 using NativeViewId = intptr_t;
-
-// AcceleratedWidget provides a surface to compositors to paint pixels.
-#if BUILDFLAG(IS_WIN)
-using AcceleratedWidget = HWND;
-// The compiler doesn't realize that a const nullptr can't point to anything
-// mutable, so it's okay for this pointer to be duplicated.
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunique-object-duplication"
-inline constexpr AcceleratedWidget kNullAcceleratedWidget = nullptr;
-#pragma clang diagnostic pop
-#elif BUILDFLAG(IS_IOS)
-using AcceleratedWidget = uint64_t;
-inline constexpr AcceleratedWidget kNullAcceleratedWidget = 0;
-#elif BUILDFLAG(IS_MAC)
-using AcceleratedWidget = uint64_t;
-inline constexpr AcceleratedWidget kNullAcceleratedWidget = 0;
-#elif BUILDFLAG(IS_ANDROID)
-using AcceleratedWidget = ANativeWindow*;
-constexpr AcceleratedWidget kNullAcceleratedWidget = nullptr;
-#elif BUILDFLAG(IS_OZONE)
-using AcceleratedWidget = uint32_t;
-inline constexpr AcceleratedWidget kNullAcceleratedWidget = 0;
-#else
-#error unknown platform
-#endif
-
 }  // namespace gfx
 
 #endif  // LYNXTRON_SHELL_UI_GFX_NATIVE_UI_TYPES_H_

@@ -104,7 +104,7 @@ class NativeWindow : public base::SupportsUserData {
   virtual gfx::Rect GetBounds() const = 0;
   virtual void SetSize(const gfx::Size& size, bool animate);
   virtual gfx::Size GetSize() const;
-  virtual float GetDevicePixelRatio() const;
+  virtual float GetDevicePixelRatio() const = 0;
   virtual void SetPosition(const gfx::Point& position, bool animate);
   virtual gfx::Point GetPosition() const;
   virtual void SetContentSize(const gfx::Size& size, bool animate);
@@ -159,29 +159,22 @@ class NativeWindow : public base::SupportsUserData {
   virtual std::optional<std::string> GetTabbingIdentifier() const;
 #endif
 
-  // Ability to augment the window title for the screen readers.
-  void SetAccessibleTitle(const std::string& title);
-  std::string GetAccessibleTitle();
-
   virtual void FlashFrame(bool flash) = 0;
   virtual void SetSkipTaskbar(bool skip) = 0;
   virtual void SetExcludedFromShownWindowsMenu(bool excluded) = 0;
   virtual bool IsExcludedFromShownWindowsMenu() = 0;
   virtual void SetSimpleFullScreen(bool simple_fullscreen) = 0;
   virtual bool IsSimpleFullScreen() = 0;
-  virtual void SetKiosk(bool kiosk) = 0;
-  virtual bool IsKiosk() const = 0;
   virtual void SetHasShadow(bool has_shadow) = 0;
   virtual bool HasShadow() = 0;
   virtual void SetOpacity(const double opacity) = 0;
   virtual double GetOpacity() = 0;
-  virtual void SetFocusable(bool focusable);
-  virtual bool IsFocusable() const;
-  virtual void SetParentWindow(NativeWindow* parent);
+  virtual void SetFocusable(bool focusable) = 0;
+  virtual bool IsFocusable() const = 0;
+  virtual void SetParentWindow(NativeWindow* parent) = 0;
 #if BUILDFLAG(IS_MAC)
   virtual gfx::NativeWindow GetNativeWindow() const = 0;
 #endif
-  // virtual gfx::AcceleratedWidget GetAcceleratedWidget() const = 0;
   virtual NativeWindowHandle GetNativeWindowHandle() const = 0;
 
   // Taskbar/Dock APIs.
@@ -234,14 +227,6 @@ class NativeWindow : public base::SupportsUserData {
   gfx::Size GetAspectRatioExtraSize();
   virtual void SetAspectRatio(double aspect_ratio, const gfx::Size& extra_size);
 
-  // virtual void SetGTKDarkThemeEnabled(bool use_dark_theme) {}
-
-  // Converts between content bounds and window bounds.
-  // virtual gfx::Rect ContentBoundsToWindowBounds(
-  //     const gfx::Rect& bounds) const = 0;
-  // virtual gfx::Rect WindowBoundsToContentBounds(
-  //     const gfx::Rect& bounds) const = 0;
-
   base::WeakPtr<NativeWindow> GetWeakPtr() {
     return weak_factory_.GetWeakPtr();
   }
@@ -282,33 +267,39 @@ class NativeWindow : public base::SupportsUserData {
                                      const base::Value::Dict& details);
   void NotifyWindowSystemContextMenu(int x, int y, bool& prevent_default);
 
-#if BUILDFLAG(IS_WIN)
-  void NotifyWindowMessage(UINT message, WPARAM w_param, LPARAM l_param);
-#endif
-
   void AddObserver(NativeWindowObserver* obs) { observers_.AddObserver(obs); }
   void RemoveObserver(NativeWindowObserver* obs) {
     observers_.RemoveObserver(obs);
   }
 
-  enum class TitleBarStyle {
-    kNormal,
-    kHidden,
-    kHiddenInset,
-    kCustomButtonsOnHover,
-  };
-  TitleBarStyle title_bar_style() const { return title_bar_style_; }
-
-  bool has_frame() const { return has_frame_; }
-  void set_has_frame(bool has_frame) { has_frame_ = has_frame; }
-  bool transparent() const { return transparent_; }
+  [[nodiscard]] bool frame() const { return frame_; }
+  void set_frame(bool frame) { frame_ = frame; }
+  [[nodiscard]] bool transparent() const { return transparent_; }
+  [[nodiscard]] bool resizable() const { return resizable_; }
+  [[nodiscard]] int width() const { return width_; }
+  [[nodiscard]] int height() const { return height_; }
+  [[nodiscard]] bool use_content_size() const { return use_content_size_; }
+  [[nodiscard]] bool minimizable() const { return minimizable_; }
+  [[nodiscard]] bool maximizable() const { return maximizable_; }
+  [[nodiscard]] bool closable() const { return closable_; }
+  [[nodiscard]] const std::string& window_type() const { return window_type_; }
 
   NativeWindow* parent() const { return parent_; }
   bool is_modal() const { return is_modal_; }
-  int32_t window_id() const { return next_id_; }
 
  protected:
   NativeWindow(const gin_helper::Dictionary& options, NativeWindow* parent);
+  void set_resizable(bool resizable) { resizable_ = resizable; }
+  void set_minimizable(bool minimizable) { minimizable_ = minimizable; }
+  void set_maximizable(bool maximizable) { maximizable_ = maximizable; }
+  void set_closable(bool closable) { closable_ = closable; }
+  int width_ = 0;
+  int height_ = 0;
+  bool use_content_size_ = false;
+  bool minimizable_ = true;
+  bool maximizable_ = true;
+  bool closable_ = true;
+  std::string window_type_;
 
   // Converts between content bounds and window bounds.
   virtual gfx::Rect ContentBoundsToWindowBounds(
@@ -319,21 +310,21 @@ class NativeWindow : public base::SupportsUserData {
   // The boolean parsing of the "titleBarOverlay" option
   bool titlebar_overlay_ = false;
 
-  // The "titleBarStyle" option.
-  TitleBarStyle title_bar_style_ = TitleBarStyle::kNormal;
-
   // Minimum and maximum size.
   std::optional<SizeConstraints> size_constraints_;
   std::optional<SizeConstraints> content_size_constraints_;
 
- private:
-  static int32_t next_id_;
+  // Observers of this window.
+  base::ObserverList<NativeWindowObserver> observers_;
 
+ private:
   // Whether window has standard frame.
-  bool has_frame_ = true;
+  bool frame_ = true;
 
   // Whether window is transparent.
   bool transparent_ = false;
+
+  bool resizable_ = true;
 
   // The windows has been closed.
   bool is_closed_ = false;
@@ -355,11 +346,6 @@ class NativeWindow : public base::SupportsUserData {
   bool is_modal_ = false;
 
   std::string vibrancy_;
-  // Observers of this window.
-  base::ObserverList<NativeWindowObserver> observers_;
-
-  // Accessible title.
-  std::u16string accessible_title_;
 
   base::WeakPtrFactory<NativeWindow> weak_factory_{this};
 };

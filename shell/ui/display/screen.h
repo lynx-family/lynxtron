@@ -108,8 +108,7 @@ class DISPLAY_EXPORT Screen {
   // Warning: When determining which scale factor to use for a given native
   // window, use `GetPreferredScaleFactorForWindow` instead, as it properly
   // supports system-controlled per-window scaling, such as Wayland.
-  // virtual Display GetDisplayNearestWindow(gfx::NativeWindow window) const =
-  // 0;
+  virtual Display GetDisplayNearestWindow(gfx::NativeWindow window) const = 0;
 
   // Returns the display nearest the specified view. It may still use the window
   // that contains the view (i.e. if a window is spread over two displays,

@@ -351,25 +351,28 @@ class ScreenMac : public Screen {
     return displays_;
   }
 
-  // Display GetDisplayNearestWindow(
-  //     gfx::NativeWindow native_window) const override {
-  //   if (displays_.size() == 1)
-  //     return displays_[0];
+  Display GetDisplayNearestWindow(
+      gfx::NativeWindow native_window) const override {
+    if (displays_.size() == 1) {
+      return displays_[0];
+    }
 
-  //   NSWindow* window = native_window.GetNativeNSWindow();
-  //   if (!window)
-  //     return GetPrimaryDisplay();
+    NSWindow* window = native_window.GetNativeNSWindow();
+    if (!window) {
+      return GetPrimaryDisplay();
+    }
 
-  //   // Note the following line calls -[NSWindow
-  //   // _bestScreenBySpaceAssignmentOrGeometry] which is quite expensive and
-  //   // performs IPC with the window server process.
-  //   NSScreen* match_screen = window.screen;
+    // Note the following line calls -[NSWindow
+    // _bestScreenBySpaceAssignmentOrGeometry] which is quite expensive and
+    // performs IPC with the window server process.
+    NSScreen* match_screen = window.screen;
 
-  //   if (!match_screen)
-  //     return GetPrimaryDisplay();
+    if (!match_screen) {
+      return GetPrimaryDisplay();
+    }
 
-  //   return GetCachedDisplayForScreen(match_screen);
-  // }
+    return GetCachedDisplayForScreen(match_screen);
+  }
 
   // Display GetDisplayNearestView(gfx::NativeView native_view) const override {
   //   NSView* view = native_view.GetNativeNSView();

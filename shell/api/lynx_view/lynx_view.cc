@@ -4,6 +4,7 @@
 
 #include "shell/api/lynx_view/lynx_view.h"
 
+#include <algorithm>
 #include <string>
 #include <string_view>
 
@@ -26,6 +27,121 @@
 
 #include "shell/api/lynx_view/module/lynx_bridge_module.h"
 #include "shell/api/lynx_view/module/lynx_node_module.h"
+
+#if BUILDFLAG(IS_WIN)
+#include <windows.h>
+
+#include <windowsx.h>
+#endif
+
+namespace {
+
+#if BUILDFLAG(IS_WIN)
+constexpr wchar_t kLynxViewHitTestOldWndProcProp[] =
+    L"LynxtronLynxViewHitTestOldWndProc";
+
+using GetDpiForWindowPtr = decltype(::GetDpiForWindow)*;
+using GetSystemMetricsForDpiPtr = decltype(::GetSystemMetricsForDpi)*;
+
+void* GetUser32FunctionPointer(const char* function_name) {
+  static HMODULE user32_module = ::GetModuleHandleW(L"user32.dll");
+  if (!user32_module) {
+    user32_module = ::LoadLibraryW(L"user32.dll");
+  }
+  return user32_module ? reinterpret_cast<void*>(
+                             ::GetProcAddress(user32_module, function_name))
+                       : nullptr;
+}
+
+int GetFrameThicknessForDpi(UINT dpi) {
+  static const auto get_system_metrics_for_dpi_func =
+      reinterpret_cast<GetSystemMetricsForDpiPtr>(
+          GetUser32FunctionPointer("GetSystemMetricsForDpi"));
+  if (get_system_metrics_for_dpi_func) {
+    return get_system_metrics_for_dpi_func(SM_CXSIZEFRAME, dpi) +
+           get_system_metrics_for_dpi_func(SM_CXPADDEDBORDER, dpi);
+  }
+  return ::GetSystemMetrics(SM_CXSIZEFRAME) +
+         ::GetSystemMetrics(SM_CXPADDEDBORDER);
+}
+
+int GetFrameThicknessForHwnd(HWND hwnd) {
+  static const auto get_dpi_for_window_func =
+      reinterpret_cast<GetDpiForWindowPtr>(
+          GetUser32FunctionPointer("GetDpiForWindow"));
+  const UINT dpi = get_dpi_for_window_func ? get_dpi_for_window_func(hwnd) : 96;
+  return GetFrameThicknessForDpi(dpi);
+}
+
+LRESULT CALLBACK LynxViewHitTestWndProc(HWND hwnd,
+                                        UINT message,
+                                        WPARAM wparam,
+                                        LPARAM lparam) {
+  auto old_proc = reinterpret_cast<WNDPROC>(
+      ::GetPropW(hwnd, kLynxViewHitTestOldWndProcProp));
+  if (!old_proc) {
+    return ::DefWindowProcW(hwnd, message, wparam, lparam);
+  }
+
+  if (message == WM_NCHITTEST) {
+    LRESULT hit = ::CallWindowProcW(old_proc, hwnd, message, wparam, lparam);
+    if (hit == HTCLIENT) {
+      const POINT pt{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+      RECT rect{};
+      if (::GetWindowRect(hwnd, &rect)) {
+        const int thickness = std::max(1, GetFrameThicknessForHwnd(hwnd));
+        RECT inner = rect;
+        ::InflateRect(&inner, -thickness, -thickness);
+        if (!::PtInRect(&inner, pt)) {
+          return HTTRANSPARENT;
+        }
+      }
+    }
+    return hit;
+  }
+
+  if (message == WM_NCDESTROY) {
+    ::RemovePropW(hwnd, kLynxViewHitTestOldWndProcProp);
+    ::SetWindowLongPtrW(hwnd, GWLP_WNDPROC,
+                        reinterpret_cast<LONG_PTR>(old_proc));
+    return ::CallWindowProcW(old_proc, hwnd, message, wparam, lparam);
+  }
+
+  return ::CallWindowProcW(old_proc, hwnd, message, wparam, lparam);
+}
+
+void InstallLynxViewHitTestHook(HWND hwnd) {
+  if (!::IsWindow(hwnd)) {
+    return;
+  }
+  // Only enable this for frameless windows (top-level window without
+  // WS_CAPTION). In frameless mode the top-level window typically implements
+  // resize hit-testing in WM_NCHITTEST. If the mouse is over the Lynx child
+  // HWND edge and the child returns HTCLIENT, hit-testing won't propagate to
+  // the parent, breaking resize/drag behaviors.
+  HWND top_level = ::GetAncestor(hwnd, GA_ROOT);
+  if (::IsWindow(top_level)) {
+    const LONG style = ::GetWindowLongW(top_level, GWL_STYLE);
+    if (style & WS_CAPTION) {
+      return;
+    }
+  }
+  if (::GetPropW(hwnd, kLynxViewHitTestOldWndProcProp)) {
+    return;
+  }
+
+  ::SetLastError(0);
+  auto old_proc = reinterpret_cast<WNDPROC>(::SetWindowLongPtrW(
+      hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&LynxViewHitTestWndProc)));
+  if (!old_proc && ::GetLastError() != 0) {
+    return;
+  }
+  ::SetPropW(hwnd, kLynxViewHitTestOldWndProcProp,
+             reinterpret_cast<HANDLE>(old_proc));
+}
+#endif
+
+}  // namespace
 
 namespace lynxtron {
 
@@ -55,6 +171,12 @@ class LynxViewImpl : public lynx::pub::LynxViewClient,
     RegisterLynxBridgeModuleToLynxView(builder.Impl(), lynx_window);
 
     lynx_view_ = builder.Build();
+#if BUILDFLAG(IS_WIN)
+    // Hook the Lynx render child HWND: return HTTRANSPARENT near the edge so
+    // hit-testing continues to the parent (which handles resize/caption logic).
+    InstallLynxViewHitTestHook(
+        reinterpret_cast<HWND>(lynx_view_->GetNativeWindow()));
+#endif
     lynx_view_->AddClient(shared_from_this());
   }
 

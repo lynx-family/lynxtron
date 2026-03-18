@@ -21,6 +21,7 @@ inline constexpr NSRect kWindowSizeDeterminedLater = {{0, 0}, {1, 1}};
 @synthesize enableLargerThanScreen;
 @synthesize disableAutoHideCursor;
 @synthesize disableKeyOrMainWindow;
+@synthesize customButtonsOnHover;
 @synthesize vibrantView;
 @synthesize cornerMask;
 
@@ -99,7 +100,7 @@ inline constexpr NSRect kWindowSizeDeterminedLater = {{0, 0}, {1, 1}};
 }
 
 - (NSRect)contentRectForFrameRect:(NSRect)frameRect {
-  if (shell_->has_frame()) {
+  if (shell_->frame()) {
     return [super contentRectForFrameRect:frameRect];
   } else {
     return frameRect;
@@ -120,7 +121,7 @@ inline constexpr NSRect kWindowSizeDeterminedLater = {{0, 0}, {1, 1}};
 //     //
 //     // If there's no frame, put the window wherever the developer
 //     // wanted it to go
-//     if (shell_->has_frame()) {
+//     if (shell_->frame()) {
 //       result.size = frameRect.size;
 //     } else {
 //       result = frameRect;
@@ -187,6 +188,37 @@ inline constexpr NSRect kWindowSizeDeterminedLater = {{0, 0}, {1, 1}};
     return shell_->IsClosable();
   }
   return [super validateUserInterfaceItem:item];
+}
+
+- (BOOL)windowShouldClose:(id)sender {
+  return YES;
+}
+
+- (void)performClose:(id)sender {
+  if (self.customButtonsOnHover) {
+    [[self delegate] windowShouldClose:self];
+    return;
+  }
+
+  if (!([self styleMask] & NSWindowStyleMaskTitled)) {
+    if ([[self delegate] respondsToSelector:@selector(windowShouldClose:)]) {
+      if (![[self delegate] windowShouldClose:self]) {
+        return;
+      }
+    } else if ([self respondsToSelector:@selector(windowShouldClose:)]) {
+      if (![self windowShouldClose:self]) {
+        return;
+      }
+    }
+    [self close];
+    return;
+  }
+
+  if (shell_ && shell_->is_modal() && shell_->parent() && shell_->IsVisible()) {
+    return;
+  }
+
+  [super performClose:sender];
 }
 
 // By overriding this built-in method the corners of the vibrant view (if set)

@@ -22,6 +22,7 @@ class NativeWindowMac;
 @property BOOL enableLargerThanScreen;
 @property BOOL disableAutoHideCursor;
 @property BOOL disableKeyOrMainWindow;
+@property BOOL customButtonsOnHover;
 @property(nonatomic, retain) NSVisualEffectView* vibrantView;
 @property(nonatomic, retain) NSImage* cornerMask;
 - (id)initWithShell:(lynxtron::NativeWindowMac*)shell

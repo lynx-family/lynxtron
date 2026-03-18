@@ -64,31 +64,46 @@ namespace lynxtron {
 NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
                                  NativeWindow* parent)
     : NativeWindow(options, parent) {
-  auto width = options.ValueOrDefault(options::kWidth, 800);
-  auto height = options.ValueOrDefault(options::kHeight, 600);
-  const bool use_content_size =
-      options.ValueOrDefault(options::kUseContentSize, false);
+  if (std::string val; options.Get(options::kVibrancyType, &val)) {
+    SetVibrancy(val, 0);
+  }
+  if (bool val; options.Get(options::kHiddenInMissionControl, &val)) {
+    SetHiddenInMissionControl(val);
+  }
+
+  std::string title_bar_style;
+  if (options.Get(options::kTitleBarStyle, &title_bar_style)) {
+    if (title_bar_style == "hidden") {
+      title_bar_style_ = TitleBarStyle::kHidden;
+    } else if (title_bar_style == "hiddenInset") {
+      title_bar_style_ = TitleBarStyle::kHiddenInset;
+    } else if (title_bar_style == "customButtonsOnHover") {
+      title_bar_style_ = TitleBarStyle::kCustomButtonsOnHover;
+    } else {
+      title_bar_style_ = TitleBarStyle::kNormal;
+    }
+  }
+  const int window_width = this->width();
+  const int window_height = this->height();
+  const bool use_content_size = this->use_content_size();
 
   NSRect main_screen_rect = [[[NSScreen screens] firstObject] frame];
-  gfx::Rect bounds(round((NSWidth(main_screen_rect) - width) / 2),
-                   round((NSHeight(main_screen_rect) - height) / 2), width,
-                   height);
+  gfx::Rect bounds(round((NSWidth(main_screen_rect) - window_width) / 2),
+                   round((NSHeight(main_screen_rect) - window_height) / 2),
+                   window_width, window_height);
 
-  const bool resizable = options.ValueOrDefault(options::kResizable, true);
+  const bool resizable = this->resizable();
   options.Get(options::kSimpleFullscreen, &always_simple_fullscreen_);
   options.GetOptional(options::kTrafficLightPosition, &traffic_light_position_);
 
-  const bool minimizable = options.ValueOrDefault(options::kMinimizable, true);
-
-  const bool maximizable = options.ValueOrDefault(options::kMaximizable, true);
-
-  const bool closable = options.ValueOrDefault(options::kClosable, true);
+  const bool minimizable = this->minimizable();
+  const bool maximizable = this->maximizable();
+  const bool closable = this->closable();
 
   const std::string tabbingIdentifier =
       options.ValueOrDefault(options::kTabbingIdentifier, std::string{});
 
-  const std::string windowType =
-      options.ValueOrDefault(options::kType, std::string{});
+  const std::string& windowType = window_type();
 
   NSUInteger styleMask = NSWindowStyleMaskTitled;
 
@@ -104,15 +119,16 @@ NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
 
   const bool rounded_corner =
       options.ValueOrDefault(options::kRoundedCorners, true);
-  if (!rounded_corner && !has_frame()) {
-    SetBorderless(!rounded_corner);
+  if (!rounded_corner && !frame()) {
+    styleMask &= ~NSWindowStyleMaskTitled;
+    styleMask |= NSWindowStyleMaskBorderless;
   }
 
   // TODO: remove NSWindowStyleMaskTexturedBackground.
   // https://github.com/electron/electron/issues/43125
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-  if (windowType == "textured" && (transparent() || !has_frame())) {
+  if (windowType == "textured" && (transparent() || !frame())) {
     util::EmitDeprecationWarning(
         "The 'textured' window type is deprecated and will be removed");
     styleMask |= NSWindowStyleMaskTexturedBackground;
@@ -121,11 +137,14 @@ NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
 
   window_ = [[LynxNSWindow alloc] initWithShell:this styleMask:styleMask];
   window_.releasedWhenClosed = NO;
-  [window_ setFrame:NSMakeRect(bounds.x(), bounds.y(), width, height)
-            display:true];
+  window_.customButtonsOnHover =
+      title_bar_style_ == TitleBarStyle::kCustomButtonsOnHover;
+  [window_
+      setFrame:NSMakeRect(bounds.x(), bounds.y(), window_width, window_height)
+       display:true];
 
-  if (!has_frame() || use_content_size) {
-    SetContentSize(gfx::Size(width, height), false);
+  if (!frame() || use_content_size) {
+    SetContentSize(gfx::Size(window_width, window_height), false);
   }
 
   window_delegate_ = [[LynxNSWindowDelegate alloc] initWithShell:this];
@@ -141,16 +160,31 @@ NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
     [window_ setBackgroundColor:[NSColor clearColor]];
   }
 
-  if (transparent() || !has_frame()) {
-    // Don't show title bar.
+  const bool use_custom_title_bar = title_bar_style_ != TitleBarStyle::kNormal;
+  if (transparent() || !frame() || use_custom_title_bar) {
     [window_ setTitlebarAppearsTransparent:YES];
     [window_ setTitleVisibility:NSWindowTitleHidden];
-    [window_ setOpaque:NO];
     SetStyleMask(true, NSWindowStyleMaskFullSizeContentView);
-    // Show window buttons if titleBarStyle is not "normal".
-    if (title_bar_style_ == TitleBarStyle::kNormal) {
-      InternalSetWindowButtonVisibility(false);
-    } else {
+    if (transparent() || !frame()) {
+      [window_ setOpaque:NO];
+      if (!use_custom_title_bar) {
+        InternalSetWindowButtonVisibility(false);
+      } else {
+        buttons_proxy_ = [[WindowButtonsProxy alloc] initWithWindow:window_];
+        if (traffic_light_position_) {
+          [buttons_proxy_ setMargin:traffic_light_position_];
+        } else if (title_bar_style_ == TitleBarStyle::kHiddenInset) {
+          std::optional<gfx::Point> inset(gfx::Point(12, 11));
+          [buttons_proxy_ setMargin:inset];
+        }
+        if (title_bar_style_ == TitleBarStyle::kCustomButtonsOnHover) {
+          [buttons_proxy_ setShowOnHover:YES];
+        } else {
+          InternalSetWindowButtonVisibility(true);
+        }
+      }
+    } else if (title_bar_style_ == TitleBarStyle::kHiddenInset ||
+               title_bar_style_ == TitleBarStyle::kCustomButtonsOnHover) {
       buttons_proxy_ = [[WindowButtonsProxy alloc] initWithWindow:window_];
       if (traffic_light_position_) {
         [buttons_proxy_ setMargin:traffic_light_position_];
@@ -160,13 +194,11 @@ NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
       }
       if (title_bar_style_ == TitleBarStyle::kCustomButtonsOnHover) {
         [buttons_proxy_ setShowOnHover:YES];
-      } else {
-        InternalSetWindowButtonVisibility(true);
       }
     }
   }
 
-  if (tabbingIdentifier.empty() || transparent() || !has_frame()) {
+  if (tabbingIdentifier.empty() || transparent() || !frame()) {
     [window_ setTabbingMode:NSWindowTabbingModeDisallowed];
   } else {
     [window_ setTabbingIdentifier:base::SysUTF8ToNSString(tabbingIdentifier)];
@@ -192,10 +224,6 @@ void NativeWindowMac::Close() {
     return;
   }
 
-  // If a sheet is attached to the window when we call
-  // [window_ performClose:nil], the window won't close properly
-  // even after the user has ended the sheet.
-  // Ensure it's closed before calling [window_ performClose:nil].
   SetEnabled(true);
 
   // window_ could be nil after performClose.
@@ -203,14 +231,16 @@ void NativeWindowMac::Close() {
 
   [window_ performClose:nil];
 
-  // Closing a sheet doesn't trigger windowShouldClose,
-  // so we need to manually call it ourselves here.
+  // Closing a sheet doesn't trigger windowShouldClose. The common close veto
+  // logic has already run in NativeWindow::Close(),
+  // so finish the close directly here instead of re-entering that flow.
   if (should_notify) {
     NotifyWindowCloseButtonClicked();
   }
 }
 
 void NativeWindowMac::CloseImmediately() {
+  SetEnabled(true);
   [window_ close];
 }
 
@@ -291,7 +321,7 @@ void NativeWindowMac::Hide() {
 }
 
 bool NativeWindowMac::IsVisible() {
-  bool occluded = [window_ occlusionState] == NSWindowOcclusionStateVisible;
+  bool occluded = !([window_ occlusionState] & NSWindowOcclusionStateVisible);
 
   // For a window to be visible, it must be visible to the user in the
   // foreground of the app, which means that it should not be minimized or
@@ -304,12 +334,35 @@ bool NativeWindowMac::IsEnabled() {
 
 void NativeWindowMac::SetEnabled(bool enable) {
   if (!enable) {
-    [window_ beginSheet:window_
-        completionHandler:^(NSModalResponse returnCode) {
-          NSLog(@"modal enabled");
-          return;
+    if (disabled_window_) {
+      return;
+    }
+
+    NSRect frame = [window_ frame];
+    disabled_window_ =
+        [[NSWindow alloc] initWithContentRect:frame
+                                    styleMask:NSWindowStyleMaskBorderless
+                                      backing:NSBackingStoreBuffered
+                                        defer:NO];
+    [disabled_window_ setOpaque:NO];
+    [disabled_window_ setBackgroundColor:[NSColor clearColor]];
+    [disabled_window_ setHasShadow:NO];
+    [disabled_window_ setIgnoresMouseEvents:YES];
+    [disabled_window_ setMovable:NO];
+
+    [window_ beginSheet:disabled_window_
+        completionHandler:^(NSModalResponse){
         }];
-  } else if ([window_ attachedSheet]) {
+    return;
+  }
+
+  if (disabled_window_) {
+    [window_ endSheet:disabled_window_];
+    [disabled_window_ orderOut:nil];
+    disabled_window_ = nil;
+  }
+
+  while ([window_ attachedSheet]) {
     [window_ endSheet:[window_ attachedSheet]];
   }
 }
@@ -509,6 +562,7 @@ gfx::Rect NativeWindowMac::GetNormalBounds() const {
 }
 
 void NativeWindowMac::SetResizable(bool resizable) {
+  set_resizable(resizable);
   SetStyleMask(resizable, NSWindowStyleMaskResizable);
 }
 
@@ -530,7 +584,7 @@ void NativeWindowMac::SetAspectRatio(double aspect_ratio,
   // Reset the behaviour to default if aspect_ratio is set to 0 or less.
   if (aspect_ratio > 0.0) {
     NSSize aspect_ratio_size = NSMakeSize(aspect_ratio, 1.0);
-    if (has_frame()) {
+    if (frame()) {
       [window_ setContentAspectRatio:aspect_ratio_size];
     } else {
       [window_ setAspectRatio:aspect_ratio_size];
@@ -549,6 +603,7 @@ bool NativeWindowMac::IsMovable() const {
 }
 
 void NativeWindowMac::SetMinimizable(bool minimizable) {
+  set_minimizable(minimizable);
   SetStyleMask(minimizable, NSWindowStyleMaskMiniaturizable);
 }
 
@@ -557,7 +612,7 @@ bool NativeWindowMac::IsMinimizable() const {
 }
 
 void NativeWindowMac::SetMaximizable(bool maximizable) {
-  maximizable_ = maximizable;
+  set_maximizable(maximizable);
   [[window_ standardWindowButton:NSWindowZoomButton] setEnabled:maximizable];
 }
 
@@ -579,6 +634,7 @@ bool NativeWindowMac::IsFullScreenable() const {
 }
 
 void NativeWindowMac::SetClosable(bool closable) {
+  set_closable(closable);
   SetStyleMask(closable, NSWindowStyleMaskClosable);
 }
 
@@ -691,7 +747,7 @@ void NativeWindowMac::SetSimpleFullScreen(bool simple_fullscreen) {
     // Restore default window controls visibility state.
     // if (!window_button_visibility_.has_value()) {
     //   bool visibility;
-    //   if (has_frame())
+    //   if (frame())
     //     visibility = true;
     //   else
     //     visibility = title_bar_style_ != TitleBarStyle::kNormal;
@@ -705,31 +761,6 @@ void NativeWindowMac::SetSimpleFullScreen(bool simple_fullscreen) {
 
 bool NativeWindowMac::IsSimpleFullScreen() {
   return is_simple_fullscreen_;
-}
-
-void NativeWindowMac::SetKiosk(bool kiosk) {
-  if (kiosk && !is_kiosk_) {
-    kiosk_options_ = [NSApp currentSystemPresentationOptions];
-    NSApplicationPresentationOptions options =
-        NSApplicationPresentationHideDock |
-        NSApplicationPresentationHideMenuBar |
-        NSApplicationPresentationDisableAppleMenu |
-        NSApplicationPresentationDisableProcessSwitching |
-        NSApplicationPresentationDisableForceQuit |
-        NSApplicationPresentationDisableSessionTermination |
-        NSApplicationPresentationDisableHideApplication;
-    [NSApp setPresentationOptions:options];
-    is_kiosk_ = true;
-    SetFullScreen(true);
-  } else if (!kiosk && is_kiosk_) {
-    [NSApp setPresentationOptions:kiosk_options_];
-    is_kiosk_ = false;
-    SetFullScreen(false);
-  }
-}
-
-bool NativeWindowMac::IsKiosk() const {
-  return is_kiosk_;
 }
 
 void NativeWindowMac::SetHasShadow(bool has_shadow) {
@@ -793,7 +824,7 @@ NativeWindowHandle NativeWindowMac::GetNativeWindowHandle() const {
 
 gfx::Rect NativeWindowMac::ContentBoundsToWindowBounds(
     const gfx::Rect& bounds) const {
-  if (has_frame()) {
+  if (frame()) {
     gfx::Rect window_bounds(
         [window_ frameRectForContentRect:bounds.ToCGRect()]);
     int frame_height = window_bounds.height() - bounds.height();
@@ -806,7 +837,7 @@ gfx::Rect NativeWindowMac::ContentBoundsToWindowBounds(
 
 gfx::Rect NativeWindowMac::WindowBoundsToContentBounds(
     const gfx::Rect& bounds) const {
-  if (has_frame()) {
+  if (frame()) {
     gfx::Rect content_bounds(
         [window_ contentRectForFrameRect:bounds.ToCGRect()]);
     int frame_height = bounds.height() - content_bounds.height();
@@ -987,17 +1018,16 @@ std::optional<std::string> NativeWindowMac::GetTabbingIdentifier() const {
 }
 
 void NativeWindowMac::SetWindowButtonVisibility(bool visible) {
-  // window_button_visibility_ = visible;
-  // if (buttons_proxy_) {
-  //   if (visible)
-  //     [buttons_proxy_ redraw];
-  //   [buttons_proxy_ setVisible:visible];
-  // }
+  if (buttons_proxy_) {
+    if (visible) {
+      [buttons_proxy_ redraw];
+    }
+    [buttons_proxy_ setVisible:visible];
+  }
 
-  // if (title_bar_style_ != TitleBarStyle::kCustomButtonsOnHover)
-  InternalSetWindowButtonVisibility(visible);
-
-  // NotifyLayoutWindowControlsOverlay();
+  if (title_bar_style_ != TitleBarStyle::kCustomButtonsOnHover) {
+    InternalSetWindowButtonVisibility(visible);
+  }
 }
 
 void NativeWindowMac::SetVibrancy(const std::string& type, int duration) {

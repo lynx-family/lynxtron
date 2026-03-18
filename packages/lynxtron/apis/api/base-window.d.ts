@@ -231,7 +231,10 @@ export interface BaseWindowConstructorOptions {
    */
   title?: string;
   /**
-   * The style of window title bar. Default is `default`. Possible values are:
+   * The style of window title bar. Default is `default`. Only supported on macOS.
+   * Other platforms ignore this option.
+   *
+   * @platform darwin
    */
   titleBarStyle?: 'default' | 'hidden' | 'hiddenInset' | 'customButtonsOnHover';
   /**

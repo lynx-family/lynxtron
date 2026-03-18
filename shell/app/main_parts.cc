@@ -15,6 +15,7 @@
 #include "base/power_monitor/power_monitor_device_source.h"
 #include "base/run_loop.h"
 #include "base/task/thread_pool/thread_pool_instance.h"
+#include "build/build_config.h"
 #include "gin/v8_initializer.h"
 #include "main_parts_delegate.h"
 #include "shell/api/lynx_view/lynx_view.h"
@@ -26,6 +27,10 @@
 #include "shell/common/node_bindings.h"
 #include "shell/common/node_includes.h"
 #include "shell/common/path_provider.h"
+
+#if BUILDFLAG(IS_WIN)
+#include "base/win/scoped_com_initializer.h"
+#endif
 
 namespace lynxtron {
 
@@ -81,6 +86,10 @@ void MainParts::Initialize() {
   }
 
   base::FeatureList::ClearInstanceForTesting();
+
+#if BUILDFLAG(IS_WIN)
+  com_initializer_ = std::make_unique<base::win::ScopedCOMInitializer>();
+#endif
 
   // TODO(Guo Xi): initialize feature list
   // InitializeFeatureList();
@@ -202,6 +211,10 @@ void MainParts::Shutdown() {
   }
   global_thread_.reset();
   base::ThreadPoolInstance::Get()->Shutdown();
+
+#if BUILDFLAG(IS_WIN)
+  com_initializer_.reset();
+#endif
 }
 
 IconManager* MainParts::GetIconManager() {
