@@ -1,44 +1,14 @@
 // Copyright 2025 The Lynxtron Authors. All rights reserved.
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
-#include "lynxtron/shell/common/v8_util.h"
+#include "shell/common/v8_util.h"
 
-#include "base/test/task_environment.h"
-#include "gin/public/isolate_holder.h"
+#include "shell/test/shell_v8_test.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "v8/include/v8.h"
 
-// TODO(Guo Xi): review unittest
-
 namespace lynxtron {
-class V8UtilTest : public testing::Test {
- public:
-  V8UtilTest()
-      : isolate_holder_(task_environment_.GetMainThreadTaskRunner(),
-                        gin::IsolateHolder::IsolateType::kTest),
-        isolate_scope_(isolate_holder_.isolate()),
-        isolate_(isolate_holder_.isolate()) {}
-
-  void SetUp() override {
-    v8::HandleScope handle_scope(isolate_);
-    v8::Local<v8::Context> context = v8::Context::New(isolate_);
-    context_.Reset(isolate_, context);
-  }
-
-  void TearDown() override { context_.Reset(); }
-
-  v8::Isolate* isolate() { return isolate_; }
-  v8::Local<v8::Context> GetContext() {
-    return v8::Local<v8::Context>::New(isolate(), context_);
-  }
-
- protected:
-  base::test::TaskEnvironment task_environment_;
-  gin::IsolateHolder isolate_holder_;
-  v8::Isolate::Scope isolate_scope_;
-  raw_ptr<v8::Isolate> isolate_;
-  v8::Persistent<v8::Context> context_;
-};
+class V8UtilTest : public ShellV8Test {};
 
 TEST_F(V8UtilTest, SerializeAndDeserializeV8Value) {
   v8::HandleScope handle_scope(isolate());

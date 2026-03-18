@@ -18,12 +18,11 @@
 #include "base/containers/span.h"
 #include "base/memory/raw_ptr.h"
 #include "base/task/single_thread_task_runner.h"
-#include "base/test/task_environment.h"
 #include "base/test/values_test_util.h"
 #include "base/values.h"
 #include "gin/array_buffer.h"
 #include "gin/public/isolate_holder.h"
-#include "gin/v8_initializer.h"
+#include "shell/test/shell_v8_test.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "v8/include/v8-array-buffer.h"
 #include "v8/include/v8-container.h"
@@ -77,22 +76,8 @@ ScopedAvoidIdentityHashForTesting::~ScopedAvoidIdentityHashForTesting() {
   converter_->avoid_identity_hash_for_testing_ = false;
 }
 
-class V8ValueConverterImplTest : public testing::Test {
- public:
-  V8ValueConverterImplTest()
-      : isolate_holder_(task_environment_.GetMainThreadTaskRunner(),
-                        gin::IsolateHolder::IsolateType::kTest),
-        isolate_scope_(isolate_holder_.isolate()),
-        isolate_(isolate_holder_.isolate()) {}
-
+class V8ValueConverterImplTest : public ShellV8Test {
  protected:
-  void SetUp() override {
-    v8::HandleScope handle_scope(isolate_);
-    v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(isolate_);
-    context_.Reset(isolate_, v8::Context::New(isolate_, nullptr, global));
-  }
-  void TearDown() override { context_.Reset(); }
-
   std::string GetString(base::Value::Dict* value, const std::string& key) {
     std::string* temp = value->FindString(key);
     if (!temp) {
@@ -105,15 +90,15 @@ class V8ValueConverterImplTest : public testing::Test {
   std::string GetString(v8::Local<v8::Object> value, const std::string& key) {
     v8::Local<v8::Value> temp;
     if (!value
-             ->Get(isolate_->GetCurrentContext(),
-                   v8::String::NewFromUtf8(isolate_, key.c_str(),
+             ->Get(isolate()->GetCurrentContext(),
+                   v8::String::NewFromUtf8(isolate(), key.c_str(),
                                            v8::NewStringType::kInternalized)
                        .ToLocalChecked())
              .ToLocal(&temp)) {
       ADD_FAILURE();
       return std::string();
     }
-    v8::String::Utf8Value utf8(isolate_, temp.As<v8::String>());
+    v8::String::Utf8Value utf8(isolate(), temp.As<v8::String>());
     return std::string(*utf8, utf8.length());
   }
 
@@ -127,19 +112,19 @@ class V8ValueConverterImplTest : public testing::Test {
 
   std::string GetString(v8::Local<v8::Array> value, uint32_t index) {
     v8::Local<v8::Value> temp;
-    if (!value->Get(isolate_->GetCurrentContext(), index).ToLocal(&temp)) {
+    if (!value->Get(isolate()->GetCurrentContext(), index).ToLocal(&temp)) {
       ADD_FAILURE();
       return std::string();
     }
-    v8::String::Utf8Value utf8(isolate_, temp.As<v8::String>());
+    v8::String::Utf8Value utf8(isolate(), temp.As<v8::String>());
     return std::string(*utf8, utf8.length());
   }
 
   int32_t GetInt(v8::Local<v8::Object> value, const std::string& key) {
     v8::Local<v8::Value> temp;
     if (!value
-             ->Get(isolate_->GetCurrentContext(),
-                   v8::String::NewFromUtf8(isolate_, key.c_str(),
+             ->Get(isolate()->GetCurrentContext(),
+                   v8::String::NewFromUtf8(isolate(), key.c_str(),
                                            v8::NewStringType::kInternalized)
                        .ToLocalChecked())
              .ToLocal(&temp)) {
@@ -151,7 +136,7 @@ class V8ValueConverterImplTest : public testing::Test {
 
   int32_t GetInt(v8::Local<v8::Object> value, uint32_t index) {
     v8::Local<v8::Value> temp;
-    if (!value->Get(isolate_->GetCurrentContext(), index).ToLocal(&temp)) {
+    if (!value->Get(isolate()->GetCurrentContext(), index).ToLocal(&temp)) {
       ADD_FAILURE();
       return -1;
     }
@@ -170,8 +155,8 @@ class V8ValueConverterImplTest : public testing::Test {
   bool IsNull(v8::Local<v8::Object> value, const std::string& key) {
     v8::Local<v8::Value> child;
     if (!value
-             ->Get(isolate_->GetCurrentContext(),
-                   v8::String::NewFromUtf8(isolate_, key.c_str(),
+             ->Get(isolate()->GetCurrentContext(),
+                   v8::String::NewFromUtf8(isolate(), key.c_str(),
                                            v8::NewStringType::kInternalized)
                        .ToLocalChecked())
              .ToLocal(&child)) {
@@ -191,7 +176,7 @@ class V8ValueConverterImplTest : public testing::Test {
 
   bool IsNull(v8::Local<v8::Array> value, uint32_t index) {
     v8::Local<v8::Value> child;
-    if (!value->Get(isolate_->GetCurrentContext(), index).ToLocal(&child)) {
+    if (!value->Get(isolate()->GetCurrentContext(), index).ToLocal(&child)) {
       ADD_FAILURE();
       return false;
     }
@@ -202,8 +187,7 @@ class V8ValueConverterImplTest : public testing::Test {
                      v8::Local<v8::Value> val,
                      base::Value::Type expected_type,
                      std::unique_ptr<base::Value> expected_value) {
-    v8::Local<v8::Context> context =
-        v8::Local<v8::Context>::New(isolate_, context_);
+    v8::Local<v8::Context> context = GetContext();
     std::unique_ptr<base::Value> raw(converter.FromV8Value(val, context));
 
     if (expected_value) {
@@ -214,10 +198,10 @@ class V8ValueConverterImplTest : public testing::Test {
       EXPECT_FALSE(raw.get());
     }
 
-    v8::Local<v8::Object> object(v8::Object::New(isolate_));
+    v8::Local<v8::Object> object(v8::Object::New(isolate()));
     object
         ->Set(context,
-              v8::String::NewFromUtf8(isolate_, "test",
+              v8::String::NewFromUtf8(isolate(), "test",
                                       v8::NewStringType::kInternalized)
                   .ToLocalChecked(),
               val)
@@ -237,7 +221,7 @@ class V8ValueConverterImplTest : public testing::Test {
       EXPECT_FALSE(dictionary.contains("test"));
     }
 
-    v8::Local<v8::Array> array(v8::Array::New(isolate_));
+    v8::Local<v8::Array> array(v8::Array::New(isolate()));
     array->Set(context, 0, val).Check();
     std::unique_ptr<base::Value> list(converter.FromV8Value(array, context));
     ASSERT_TRUE(list.get());
@@ -260,20 +244,12 @@ class V8ValueConverterImplTest : public testing::Test {
   v8::Local<T> CompileRun(v8::Local<v8::Context> context, const char* source) {
     return v8::Script::Compile(
                context,
-               v8::String::NewFromUtf8(isolate_, source).ToLocalChecked())
+               v8::String::NewFromUtf8(isolate(), source).ToLocalChecked())
         .ToLocalChecked()
         ->Run(context)
         .ToLocalChecked()
         .As<T>();
   }
-
-  base::test::TaskEnvironment task_environment_;
-  gin::IsolateHolder isolate_holder_;
-  v8::Isolate::Scope isolate_scope_;
-  raw_ptr<v8::Isolate> isolate_ = nullptr;
-
-  // Context for the JavaScript in the test.
-  v8::Persistent<v8::Context> context_;
 };
 
 TEST_F(V8ValueConverterImplTest, BasicRoundTrip) {
@@ -299,9 +275,9 @@ TEST_F(V8ValueConverterImplTest, BasicRoundTrip) {
       "}");
   ASSERT_TRUE(original_root.is_dict());
 
+  v8::Isolate* isolate_ = isolate();
   v8::HandleScope handle_scope(isolate_);
-  v8::Local<v8::Context> context =
-      v8::Local<v8::Context>::New(isolate_, context_);
+  v8::Local<v8::Context> context = GetContext();
   v8::Context::Scope context_scope(context);
 
   V8ValueConverterImpl converter;
@@ -420,9 +396,9 @@ TEST_F(V8ValueConverterImplTest, KeysWithDots) {
       base::test::ParseJson("{ \"foo.bar\": \"baz\" }");
   ASSERT_TRUE(original.is_dict());
 
+  v8::Isolate* isolate_ = isolate();
   v8::HandleScope handle_scope(isolate_);
-  v8::Local<v8::Context> context =
-      v8::Local<v8::Context>::New(isolate_, context_);
+  v8::Local<v8::Context> context = GetContext();
   v8::Context::Scope context_scope(context);
 
   V8ValueConverterImpl converter;
@@ -433,9 +409,9 @@ TEST_F(V8ValueConverterImplTest, KeysWithDots) {
 }
 
 TEST_F(V8ValueConverterImplTest, ObjectExceptions) {
+  v8::Isolate* isolate_ = isolate();
   v8::HandleScope handle_scope(isolate_);
-  v8::Local<v8::Context> context =
-      v8::Local<v8::Context>::New(isolate_, context_);
+  v8::Local<v8::Context> context = GetContext();
   v8::Context::Scope context_scope(context);
   v8::MicrotasksScope microtasks(context,
                                  v8::MicrotasksScope::kDoNotRunMicrotasks);
@@ -479,9 +455,9 @@ TEST_F(V8ValueConverterImplTest, ObjectExceptions) {
 }
 
 TEST_F(V8ValueConverterImplTest, ArrayExceptions) {
+  v8::Isolate* isolate_ = isolate();
   v8::HandleScope handle_scope(isolate_);
-  v8::Local<v8::Context> context =
-      v8::Local<v8::Context>::New(isolate_, context_);
+  v8::Local<v8::Context> context = GetContext();
   v8::Context::Scope context_scope(context);
   v8::MicrotasksScope microtasks(context,
                                  v8::MicrotasksScope::kDoNotRunMicrotasks);
@@ -522,9 +498,9 @@ TEST_F(V8ValueConverterImplTest, ArrayExceptions) {
 }
 
 TEST_F(V8ValueConverterImplTest, WeirdTypes) {
+  v8::Isolate* isolate_ = isolate();
   v8::HandleScope handle_scope(isolate_);
-  v8::Local<v8::Context> context =
-      v8::Local<v8::Context>::New(isolate_, context_);
+  v8::Local<v8::Context> context = GetContext();
   v8::Context::Scope context_scope(context);
   v8::MicrotasksScope microtasks(context,
                                  v8::MicrotasksScope::kDoNotRunMicrotasks);
@@ -554,9 +530,9 @@ TEST_F(V8ValueConverterImplTest, WeirdTypes) {
 }
 
 TEST_F(V8ValueConverterImplTest, Prototype) {
+  v8::Isolate* isolate_ = isolate();
   v8::HandleScope handle_scope(isolate_);
-  v8::Local<v8::Context> context =
-      v8::Local<v8::Context>::New(isolate_, context_);
+  v8::Local<v8::Context> context = GetContext();
   v8::Context::Scope context_scope(context);
   v8::MicrotasksScope microtasks(context,
                                  v8::MicrotasksScope::kDoNotRunMicrotasks);
@@ -582,9 +558,9 @@ TEST_F(V8ValueConverterImplTest, ObjectPrototypeSetter) {
       base::test::ParseJson("{ \"foo\": \"good value\" }");
   ASSERT_TRUE(original.is_dict());
 
+  v8::Isolate* isolate_ = isolate();
   v8::HandleScope handle_scope(isolate_);
-  v8::Local<v8::Context> context =
-      v8::Local<v8::Context>::New(isolate_, context_);
+  v8::Local<v8::Context> context = GetContext();
   v8::Context::Scope context_scope(context);
   v8::MicrotasksScope microtasks(context,
                                  v8::MicrotasksScope::kDoNotRunMicrotasks);
@@ -650,9 +626,9 @@ TEST_F(V8ValueConverterImplTest, ArrayPrototypeSetter) {
   const base::Value original = base::test::ParseJson("[100, 200, 300]");
   ASSERT_TRUE(original.is_list());
 
+  v8::Isolate* isolate_ = isolate();
   v8::HandleScope handle_scope(isolate_);
-  v8::Local<v8::Context> context =
-      v8::Local<v8::Context>::New(isolate_, context_);
+  v8::Local<v8::Context> context = GetContext();
   v8::Context::Scope context_scope(context);
   v8::MicrotasksScope microtasks(context,
                                  v8::MicrotasksScope::kDoNotRunMicrotasks);
@@ -715,9 +691,9 @@ TEST_F(V8ValueConverterImplTest, ArrayPrototypeSetter) {
 }
 
 TEST_F(V8ValueConverterImplTest, StripNullFromObjects) {
+  v8::Isolate* isolate_ = isolate();
   v8::HandleScope handle_scope(isolate_);
-  v8::Local<v8::Context> context =
-      v8::Local<v8::Context>::New(isolate_, context_);
+  v8::Local<v8::Context> context = GetContext();
   v8::Context::Scope context_scope(context);
   v8::MicrotasksScope microtasks(context,
                                  v8::MicrotasksScope::kDoNotRunMicrotasks);
@@ -739,9 +715,9 @@ TEST_F(V8ValueConverterImplTest, StripNullFromObjects) {
 }
 
 TEST_F(V8ValueConverterImplTest, RecursiveObjects) {
+  v8::Isolate* isolate_ = isolate();
   v8::HandleScope handle_scope(isolate_);
-  v8::Local<v8::Context> context =
-      v8::Local<v8::Context>::New(isolate_, context_);
+  v8::Local<v8::Context> context = GetContext();
   v8::Context::Scope context_scope(context);
   v8::MicrotasksScope microtasks(context,
                                  v8::MicrotasksScope::kDoNotRunMicrotasks);
@@ -784,9 +760,9 @@ TEST_F(V8ValueConverterImplTest, RecursiveObjects) {
 }
 
 TEST_F(V8ValueConverterImplTest, WeirdProperties) {
+  v8::Isolate* isolate_ = isolate();
   v8::HandleScope handle_scope(isolate_);
-  v8::Local<v8::Context> context =
-      v8::Local<v8::Context>::New(isolate_, context_);
+  v8::Local<v8::Context> context = GetContext();
   v8::Context::Scope context_scope(context);
   v8::MicrotasksScope microtasks(context,
                                  v8::MicrotasksScope::kDoNotRunMicrotasks);
@@ -822,9 +798,9 @@ TEST_F(V8ValueConverterImplTest, WeirdProperties) {
 }
 
 TEST_F(V8ValueConverterImplTest, ArrayGetters) {
+  v8::Isolate* isolate_ = isolate();
   v8::HandleScope handle_scope(isolate_);
-  v8::Local<v8::Context> context =
-      v8::Local<v8::Context>::New(isolate_, context_);
+  v8::Local<v8::Context> context = GetContext();
   v8::Context::Scope context_scope(context);
   v8::MicrotasksScope microtasks(context,
                                  v8::MicrotasksScope::kDoNotRunMicrotasks);
@@ -845,9 +821,9 @@ TEST_F(V8ValueConverterImplTest, ArrayGetters) {
 }
 
 TEST_F(V8ValueConverterImplTest, UndefinedValueBehavior) {
+  v8::Isolate* isolate_ = isolate();
   v8::HandleScope handle_scope(isolate_);
-  v8::Local<v8::Context> context =
-      v8::Local<v8::Context>::New(isolate_, context_);
+  v8::Local<v8::Context> context = GetContext();
   v8::Context::Scope context_scope(context);
   v8::MicrotasksScope microtasks(context,
                                  v8::MicrotasksScope::kDoNotRunMicrotasks);
@@ -897,9 +873,9 @@ TEST_F(V8ValueConverterImplTest, UndefinedValueBehavior) {
 }
 
 TEST_F(V8ValueConverterImplTest, ObjectsWithClashingIdentityHash) {
+  v8::Isolate* isolate_ = isolate();
   v8::HandleScope handle_scope(isolate_);
-  v8::Local<v8::Context> context =
-      v8::Local<v8::Context>::New(isolate_, context_);
+  v8::Local<v8::Context> context = GetContext();
   v8::Context::Scope context_scope(context);
   v8::MicrotasksScope microtasks(context,
                                  v8::MicrotasksScope::kDoNotRunMicrotasks);
@@ -932,9 +908,9 @@ TEST_F(V8ValueConverterImplTest, ObjectsWithClashingIdentityHash) {
 }
 
 TEST_F(V8ValueConverterImplTest, DetectCycles) {
+  v8::Isolate* isolate_ = isolate();
   v8::HandleScope handle_scope(isolate_);
-  v8::Local<v8::Context> context =
-      v8::Local<v8::Context>::New(isolate_, context_);
+  v8::Local<v8::Context> context = GetContext();
   v8::Context::Scope context_scope(context);
   v8::MicrotasksScope microtasks(context,
                                  v8::MicrotasksScope::kDoNotRunMicrotasks);
@@ -981,9 +957,9 @@ TEST_F(V8ValueConverterImplTest, DetectCycles) {
 
 // Tests that reused object values with no cycles do not get nullified.
 TEST_F(V8ValueConverterImplTest, ReuseObjects) {
+  v8::Isolate* isolate_ = isolate();
   v8::HandleScope handle_scope(isolate_);
-  v8::Local<v8::Context> context =
-      v8::Local<v8::Context>::New(isolate_, context_);
+  v8::Local<v8::Context> context = GetContext();
   v8::Context::Scope context_scope(context);
   v8::MicrotasksScope microtasks(context,
                                  v8::MicrotasksScope::kDoNotRunMicrotasks);
@@ -1044,9 +1020,9 @@ TEST_F(V8ValueConverterImplTest, ReuseObjects) {
 }
 
 TEST_F(V8ValueConverterImplTest, MaxRecursionDepth) {
+  v8::Isolate* isolate_ = isolate();
   v8::HandleScope handle_scope(isolate_);
-  v8::Local<v8::Context> context =
-      v8::Local<v8::Context>::New(isolate_, context_);
+  v8::Local<v8::Context> context = GetContext();
   v8::Context::Scope context_scope(context);
   v8::MicrotasksScope microtasks(context,
                                  v8::MicrotasksScope::kDoNotRunMicrotasks);
@@ -1090,9 +1066,9 @@ TEST_F(V8ValueConverterImplTest, MaxRecursionDepth) {
 }
 
 TEST_F(V8ValueConverterImplTest, NegativeZero) {
+  v8::Isolate* isolate_ = isolate();
   v8::HandleScope handle_scope(isolate_);
-  v8::Local<v8::Context> context =
-      v8::Local<v8::Context>::New(isolate_, context_);
+  v8::Local<v8::Context> context = GetContext();
   v8::MicrotasksScope microtasks(context,
                                  v8::MicrotasksScope::kDoNotRunMicrotasks);
 
@@ -1159,9 +1135,9 @@ class V8ValueConverterOverridingStrategyForTesting
 };
 
 TEST_F(V8ValueConverterImplTest, StrategyOverrides) {
+  v8::Isolate* isolate_ = isolate();
   v8::HandleScope handle_scope(isolate_);
-  v8::Local<v8::Context> context =
-      v8::Local<v8::Context>::New(isolate_, context_);
+  v8::Local<v8::Context> context = GetContext();
   v8::Context::Scope context_scope(context);
 
   V8ValueConverterImpl converter;
@@ -1236,9 +1212,9 @@ class V8ValueConverterBypassStrategyForTesting
 // Verify that having a strategy that fallbacks to default behaviour
 // actually preserves it.
 TEST_F(V8ValueConverterImplTest, StrategyBypass) {
+  v8::Isolate* isolate_ = isolate();
   v8::HandleScope handle_scope(isolate_);
-  v8::Local<v8::Context> context =
-      v8::Local<v8::Context>::New(isolate_, context_);
+  v8::Local<v8::Context> context = GetContext();
   v8::Context::Scope context_scope(context);
 
   V8ValueConverterImpl converter;
