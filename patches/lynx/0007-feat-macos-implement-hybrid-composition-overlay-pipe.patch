@@ -1,0 +1,823 @@
+From 20925fab6d41ba75f015494811fcffef7467f22a Mon Sep 17 00:00:00 2001
+From: zhixuan <201550585+icecreamx10@users.noreply.github.com>
+Date: Mon, 9 Mar 2026 15:03:20 +0800
+Subject: [PATCH] feat(macos): implement hybrid composition overlay pipeline
+ (Phase 1+2)
+
+Add macOS platform overlay and presenter services that allow Lynx/Skia
+UI layers to render on top of native NSViews (Scintilla, etc.) using
+CALayer-based overlay composition.
+
+Key changes:
+- Add LynxOverlayView (NSView + CAMetalLayer) as overlay surface
+- Add PlatformOverlayServiceMac / PresenterServiceMac implementations
+- Register overlay services in LynxUIRenderer on the main thread
+- Enable SupportHybridComposition() in NativeViewPluginDesktop
+- Fix CompositorService::OnInit to not call GetService early (race
+  condition: macOS Create() returns non-null, causing FML_DCHECK abort
+  when RegisterService is later called); use lazy re-query in SubmitFrame
+- Add service_manager_weak_ for lazy service resolution after init
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+---
+ .../native_view_service_desktop.cc            |   1 +
+ .../services/compositor/compositor_service.cc |  64 ++++++++-
+ .../services/compositor/compositor_service.h  |   6 +
+ .../clay/shell/platform/darwin/macos/BUILD.gn |   4 +
+ .../Source/platform_overlay_service_mac.h     |  83 +++++++++++
+ .../Source/platform_overlay_service_mac.mm    | 134 ++++++++++++++++++
+ .../framework/Source/presenter_service_mac.h  |  48 +++++++
+ .../framework/Source/presenter_service_mac.mm |  42 ++++++
+ lynx/platform/darwin/macos/common/BUILD.gn    |   7 +
+ .../darwin/macos/common/LynxOverlayView.h     |  31 ++++
+ .../darwin/macos/common/LynxOverlayView.mm    |  82 +++++++++++
+ .../darwin/macos/common/LynxUIRenderer.mm     |  75 ++++++++++
+ 12 files changed, 570 insertions(+), 7 deletions(-)
+ create mode 100644 lynx/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h
+ create mode 100644 lynx/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.mm
+ create mode 100644 lynx/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.h
+ create mode 100644 lynx/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.mm
+ create mode 100644 lynx/platform/darwin/macos/common/LynxOverlayView.h
+ create mode 100644 lynx/platform/darwin/macos/common/LynxOverlayView.mm
+
+diff --git a/lynx/clay/lynx_adaptor/native_view_service_desktop.cc b/lynx/clay/lynx_adaptor/native_view_service_desktop.cc
+index d348ce81a..8da660bed 100644
+--- a/lynx/clay/lynx_adaptor/native_view_service_desktop.cc
++++ b/lynx/clay/lynx_adaptor/native_view_service_desktop.cc
+@@ -74,6 +74,7 @@ class NativeViewPluginDesktop : public NativeViewPlugin {
+   }
+ 
+   std::string GetName() const override { return native_view_->GetName(); }
++  bool SupportHybridComposition() override { return true; }
+   bool SupportScrolling() override {
+     return native_platform_view_->SupportScrolling();
+   }
+diff --git a/lynx/clay/shell/common/services/compositor/compositor_service.cc b/lynx/clay/shell/common/services/compositor/compositor_service.cc
+index 89e730a77..fba9982da 100644
+--- a/lynx/clay/shell/common/services/compositor/compositor_service.cc
++++ b/lynx/clay/shell/common/services/compositor/compositor_service.cc
+@@ -30,6 +30,19 @@ bool CompositorService::SubmitFrame(
+     return background_frame->Submit();
+   }
+ 
++  // Lazily re-query overlay/presenter services in case they were registered
++  // after OnInit() ran (timing race on startup).
++  if (!overlay_service_ || !presenter_service_) {
++    if (auto sm = service_manager_weak_.lock()) {
++      if (!overlay_service_) {
++        overlay_service_ = sm->GetService<PlatformOverlayService>();
++      }
++      if (!presenter_service_) {
++        presenter_service_ = sm->GetService<PresenterService>();
++      }
++    }
++  }
++
+   had_hybrid_composited_ = true;
+ 
+   // TODO(haoyoufeng.aji) support external overlay views
+@@ -41,8 +54,13 @@ bool CompositorService::SubmitFrame(
+   std::unordered_map<int64_t, skity::Rect> view_rects;
+ 
+   for (int64_t view_id : compositor_state->GetCompositionOrder()) {
+-    view_rects[view_id] =
+-        compositor_state->GetViewParams()[view_id]->finalBoundingRect();
++    // Only platform views have entries in view_params; overlay views do not.
++    auto& view_params = compositor_state->GetViewParams();
++    auto vp_it = view_params.find(view_id);
++    if (vp_it == view_params.end()) {
++      continue;
++    }
++    view_rects[view_id] = vp_it->second->finalBoundingRect();
+   }
+ 
+   std::unordered_map<int64_t, skity::Rect> overlay_layers = SliceViews(
+@@ -52,7 +70,18 @@ bool CompositorService::SubmitFrame(
+   // background frame must come first since it's the "current" surface
+   background_frame->set_submit_info({.present_with_transaction = true});
+   did_encode &= background_frame->Encode();
+-  submit_infos.push_back(background_frame->PrepareSubmit());
++  // NOTE: The background frame submit is NOT added to submit_infos.  It is
++  // executed on the raster thread below.  FlutterSurfaceManager::present:
++  // is documented as "Must be called on raster thread": it schedules a CALayer
++  // commit on the main thread and then blocks via
++  // FlutterThreadSynchronizer::performCommit.  If called from the platform
++  // (main) thread – as happens when submit_infos are executed inside
++  // PresenterService::Present – performCommit dispatches back to the main
++  // queue and then blocks the main thread waiting for that dispatch, causing
++  // a permanent deadlock (ANR).  Overlay frame submits use
++  // PlatformOverlayMac::PresentTexture which just sets layer_.contents
++  // directly and is safe to call from the platform thread.
++  auto background_submit = background_frame->PrepareSubmit();
+ 
+   size_t required_overlay_layers = 0;
+   for (int64_t view_id : compositor_state->GetCompositionOrder()) {
+@@ -110,6 +139,21 @@ bool CompositorService::SubmitFrame(
+       RemoveUnusedSurfaces();
+   RecycleSurfaces();
+ 
++  // Execute the background frame submit on the raster thread before posting to
++  // the platform thread.  FlutterSurfaceManager::present:notify: must be
++  // called from the raster thread (see header comment); it internally calls
++  // FlutterThreadSynchronizer::performCommit which schedules the CALayer commit
++  // on the main thread and blocks the raster thread until it completes.
++  if (did_encode) {
++    const auto& [bg_cb, bg_info] = background_submit;
++    if (bg_cb) {
++      bg_cb(bg_info);
++    }
++  }
++
++  // submit_infos now contains only overlay frame callbacks
++  // (PlatformOverlayMac::PresentTexture), which directly set layer_.contents
++  // and are safe to call from the platform thread.
+   PresentFrame present_frame{
+       .overlays = std::move(platform_overlays),
+       .compositor_params = std::move(compositor_state->GetViewParams()),
+@@ -120,8 +164,8 @@ bool CompositorService::SubmitFrame(
+ 
+   presenter_service_.Act([did_encode, present_frame = std::move(present_frame)](
+                              auto& impl) mutable {
+-    // We do `did_encode` check here because present_frame needs to be
+-    // destructed in Platform thread
++    // present_frame must be destructed on the platform thread (contains
++    // ObjC objects whose lifetime must not cross thread boundaries).
+     if (did_encode) {
+       impl.Present(present_frame);
+     }
+@@ -133,8 +177,13 @@ bool CompositorService::SubmitFrame(
+ // |clay::Service|
+ void CompositorService::OnInit(clay::ServiceManager& service_manager,
+                                const clay::RasterServiceContext& ctx) {
+-  presenter_service_ = service_manager.GetService<PresenterService>();
+-  overlay_service_ = service_manager.GetService<PlatformOverlayService>();
++  // Do NOT call GetService<PlatformOverlayService/PresenterService> here.
++  // Those services are registered by LynxUIRenderer on the main thread via
++  // RegisterService(), which runs after this OnInit (raster thread races ahead
++  // at startup). Calling GetService early would invoke Create() and store a
++  // stub entry, causing FML_DCHECK(inserted) to fire when RegisterService
++  // is later called. Instead, store a weak_ptr and let SubmitFrame lazy-query.
++  service_manager_weak_ = service_manager.shared_from_this();
+   raster_task_runner_ = service_manager.GetTaskRunners()
+                             ->SelectTaskRunner<clay::Owner::kRaster>();
+ }
+@@ -143,6 +192,7 @@ void CompositorService::OnDestroy() {
+   presenter_service_ = nullptr;
+   overlay_service_ = nullptr;
+   raster_task_runner_ = nullptr;
++  service_manager_weak_.reset();
+   compositor_surfaces_.clear();
+ }
+ 
+diff --git a/lynx/clay/shell/common/services/compositor/compositor_service.h b/lynx/clay/shell/common/services/compositor/compositor_service.h
+index f5eba2ee3..68187658d 100644
+--- a/lynx/clay/shell/common/services/compositor/compositor_service.h
++++ b/lynx/clay/shell/common/services/compositor/compositor_service.h
+@@ -8,6 +8,7 @@
+ #include <memory>
+ #include <vector>
+ 
++#include "clay/common/service/service_manager.h"
+ #include "clay/flow/compositor/compositor_state.h"
+ #include "clay/flow/surface_frame.h"
+ #include "clay/gfx/rendering_backend.h"
+@@ -52,6 +53,11 @@ class CompositorService
+ 
+   clay::Puppet<clay::Owner::kRaster, PlatformOverlayService> overlay_service_;
+ 
++  // Weak reference used to lazily re-query presenter/overlay services that may
++  // have been registered after OnInit() ran (race between raster thread start
++  // and main-thread service registration in LynxUIRenderer).
++  std::weak_ptr<ServiceManager> service_manager_weak_;
++
+   // The index of the entry in the layers_ vector that determines the beginning
+   // of the unused
+   // layers. For example, consider the following vector:
+diff --git a/lynx/clay/shell/platform/darwin/macos/BUILD.gn b/lynx/clay/shell/platform/darwin/macos/BUILD.gn
+index e91e140af..bd292f3af 100644
+--- a/lynx/clay/shell/platform/darwin/macos/BUILD.gn
++++ b/lynx/clay/shell/platform/darwin/macos/BUILD.gn
+@@ -64,6 +64,10 @@ source_set("flutter_framework_source") {
+     "framework/Source/FlutterViewEngineProvider.mm",
+     "framework/Source/FlutterViewProvider.h",
+     "framework/Source/KeyCodeMap.g.mm",
++    "framework/Source/platform_overlay_service_mac.h",
++    "framework/Source/platform_overlay_service_mac.mm",
++    "framework/Source/presenter_service_mac.h",
++    "framework/Source/presenter_service_mac.mm",
+   ]
+ 
+   sources += _flutter_framework_headers
+diff --git a/lynx/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h b/lynx/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h
+new file mode 100644
+index 000000000..f61e538f1
+--- /dev/null
++++ b/lynx/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h
+@@ -0,0 +1,83 @@
++// Copyright 2025 The Lynx Authors. All rights reserved.
++// Licensed under the Apache License Version 2.0 that can be found in the
++// LICENSE file in the root directory of this source tree.
++
++#ifndef CLAY_SHELL_PLATFORM_DARWIN_MACOS_PLATFORM_OVERLAY_SERVICE_MAC_H_
++#define CLAY_SHELL_PLATFORM_DARWIN_MACOS_PLATFORM_OVERLAY_SERVICE_MAC_H_
++
++#import <Metal/Metal.h>
++#import <QuartzCore/QuartzCore.h>
++
++#include <memory>
++#include <vector>
++
++#include "clay/shell/common/services/compositor/platform_overlay_service.h"
++#include "clay/shell/platform/darwin/macos/framework/Source/FlutterSurface.h"
++#include "clay/shell/platform/embedder/embedder_surface_metal.h"
++
++namespace clay {
++
++// One Metal IOSurface-backed overlay layer rendered above native views.
++// Each instance owns a CALayer sublayer on the Lynx overlay view's layer.
++class PlatformOverlayMac final : public PlatformOverlay,
++                                 private EmbedderSurfaceMetalDelegate {
++ public:
++  PlatformOverlayMac(id<MTLDevice> device,
++                     id<MTLCommandQueue> command_queue,
++                     CALayer* layer);
++  ~PlatformOverlayMac() override;
++
++  // Update the sublayer frame (called from platform/main thread).
++  void UpdateLayerFrame(CGRect frame);
++
++  // Returns the contentsScale set on this overlay's CALayer.
++  CGFloat GetContentsScale() const;
++
++  // PlatformOverlay
++  fml::RefPtr<OutputSurface> GetOutputSurface() const override;
++  void OnSurfaceUpdated() override {}
++
++ private:
++  // EmbedderSurfaceMetalDelegate
++  GPUMTLDeviceHandle GetMTLDevice() const override;
++  GPUMTLCommandQueueHandle GetMTLCommandQueue() const override;
++  GPUMTLTextureInfo GetMTLTexture(const skity::Vec2& frame_size) const override;
++  bool PresentTexture(GPUMTLTextureInfo texture) const override;
++  bool EnablePartialRepaint() const override;
++
++  id<MTLDevice> device_;
++  id<MTLCommandQueue> command_queue_;
++  CALayer* layer_;
++  mutable FlutterSurface* back_surface_;
++  fml::RefPtr<EmbedderSurfaceMetal> output_surface_;
++};
++
++// Creates PlatformOverlayMac instances, adding CALayer sublayers to the
++// provided overlay_layer (LynxOverlayView.layer).
++class PlatformOverlayServiceMac final : public PlatformOverlayService {
++ public:
++  // overlay_layer is LynxOverlayView.layer — the parent for all overlay sublayers.
++  static std::shared_ptr<PlatformOverlayServiceMac> CreateMac(
++      id<MTLDevice> device,
++      id<MTLCommandQueue> command_queue,
++      CALayer* overlay_layer,
++      CGFloat initial_scale);
++
++  std::vector<std::shared_ptr<PlatformOverlay>> CreatePlatformOverlay(
++      size_t num) override;
++
++ private:
++  PlatformOverlayServiceMac(id<MTLDevice> device,
++                             id<MTLCommandQueue> command_queue,
++                             CALayer* overlay_layer,
++                             CGFloat initial_scale);
++
++  id<MTLDevice> device_;
++  id<MTLCommandQueue> command_queue_;
++  CALayer* overlay_layer_;
++  CGFloat initial_scale_;
++};
++
++}  // namespace clay
++
++#endif  // CLAY_SHELL_PLATFORM_DARWIN_MACOS_PLATFORM_OVERLAY_SERVICE_MAC_H_
+diff --git a/lynx/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.mm b/lynx/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.mm
+new file mode 100644
+index 000000000..338c81b22
+--- /dev/null
++++ b/lynx/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.mm
+@@ -0,0 +1,134 @@
++// Copyright 2025 The Lynx Authors. All rights reserved.
++// Licensed under the Apache License Version 2.0 that can be found in the
++// LICENSE file in the root directory of this source tree.
++
++#import "clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h"
++
++#import <Cocoa/Cocoa.h>
++#import <IOSurface/IOSurface.h>
++
++#include "clay/fml/logging.h"
++#include "clay/shell/platform/embedder/embedder_surface_metal.h"
++
++namespace clay {
++
++// ---------------------------------------------------------------------------
++// PlatformOverlayMac
++// ---------------------------------------------------------------------------
++
++PlatformOverlayMac::PlatformOverlayMac(id<MTLDevice> device,
++                                       id<MTLCommandQueue> command_queue,
++                                       CALayer* layer)
++    : device_(device),
++      command_queue_(command_queue),
++      layer_(layer),
++      back_surface_(nil) {
++  // Upcast to base inside the class where private inheritance is accessible.
++  EmbedderSurfaceMetalDelegate* delegate = this;
++  output_surface_ = fml::MakeRefCounted<EmbedderSurfaceMetal>(delegate);
++}
++
++PlatformOverlayMac::~PlatformOverlayMac() {
++  // CALayer removal must be on the main thread.
++  CALayer* layer = layer_;
++  dispatch_async(dispatch_get_main_queue(), ^{
++    [layer removeFromSuperlayer];
++  });
++}
++
++void PlatformOverlayMac::UpdateLayerFrame(CGRect frame) {
++  layer_.frame = frame;
++}
++
++CGFloat PlatformOverlayMac::GetContentsScale() const {
++  return layer_.contentsScale;
++}
++
++fml::RefPtr<OutputSurface> PlatformOverlayMac::GetOutputSurface() const {
++  return output_surface_;
++}
++
++GPUMTLDeviceHandle PlatformOverlayMac::GetMTLDevice() const {
++  return (__bridge GPUMTLDeviceHandle)device_;
++}
++
++GPUMTLCommandQueueHandle PlatformOverlayMac::GetMTLCommandQueue() const {
++  return (__bridge GPUMTLCommandQueueHandle)command_queue_;
++}
++
++GPUMTLTextureInfo PlatformOverlayMac::GetMTLTexture(
++    const skity::Vec2& frame_size) const {
++  // Allocate a fresh IOSurface-backed texture for this frame.
++  CGSize size = CGSizeMake(frame_size.x, frame_size.y);
++  back_surface_ = [[FlutterSurface alloc] initWithSize:size device:device_];
++  return [back_surface_ asGPUMTLTextureInfo];
++}
++
++bool PlatformOverlayMac::PresentTexture(GPUMTLTextureInfo texture) const {
++  // Called on the platform (main) thread via the submit callback.
++  FlutterSurface* surface = [FlutterSurface fromGPUMTLTextureInfo:&texture];
++  if (!surface) {
++    return false;
++  }
++  layer_.contents = (__bridge id)surface.ioSurface;
++  return true;
++}
++
++bool PlatformOverlayMac::EnablePartialRepaint() const {
++  return false;
++}
++
++// ---------------------------------------------------------------------------
++// PlatformOverlayServiceMac
++// ---------------------------------------------------------------------------
++
++PlatformOverlayServiceMac::PlatformOverlayServiceMac(
++    id<MTLDevice> device,
++    id<MTLCommandQueue> command_queue,
++    CALayer* overlay_layer,
++    CGFloat initial_scale)
++    : device_(device),
++      command_queue_(command_queue),
++      overlay_layer_(overlay_layer),
++      initial_scale_(initial_scale) {}
++
++std::shared_ptr<PlatformOverlayServiceMac> PlatformOverlayServiceMac::CreateMac(
++    id<MTLDevice> device,
++    id<MTLCommandQueue> command_queue,
++    CALayer* overlay_layer,
++    CGFloat initial_scale) {
++  return std::shared_ptr<PlatformOverlayServiceMac>(
++      new PlatformOverlayServiceMac(device, command_queue, overlay_layer,
++                                    initial_scale));
++}
++
++std::vector<std::shared_ptr<PlatformOverlay>>
++PlatformOverlayServiceMac::CreatePlatformOverlay(size_t num) {
++  // CALayer creation and parenting must happen on the main thread.
++  __block std::vector<CALayer*> layers(num);
++  CALayer* parent = overlay_layer_;
++  CGFloat scale = initial_scale_;
++
++  dispatch_sync(dispatch_get_main_queue(), ^{
++    for (size_t i = 0; i < num; i++) {
++      CALayer* layer = [CALayer layer];
++      layer.opaque = NO;
++      layer.contentsGravity = kCAGravityTopLeft;
++      layer.contentsScale = scale;
++      layer.frame = parent.bounds;
++      layer.autoresizingMask = kCALayerWidthSizable | kCALayerHeightSizable;
++      [parent addSublayer:layer];
++      layers[i] = layer;
++    }
++  });
++
++  std::vector<std::shared_ptr<PlatformOverlay>> result;
++  result.reserve(num);
++  for (size_t i = 0; i < num; i++) {
++    result.push_back(
++        std::make_shared<PlatformOverlayMac>(device_, command_queue_, layers[i]));
++  }
++  return result;
++}
++
++}  // namespace clay
+diff --git a/lynx/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.h b/lynx/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.h
+new file mode 100644
+index 000000000..13a801e9b
+--- /dev/null
++++ b/lynx/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.h
+@@ -0,0 +1,48 @@
++// Copyright 2025 The Lynx Authors. All rights reserved.
++// Licensed under the Apache License Version 2.0 that can be found in the
++// LICENSE file in the root directory of this source tree.
++
++#ifndef CLAY_SHELL_PLATFORM_DARWIN_MACOS_PRESENTER_SERVICE_MAC_H_
++#define CLAY_SHELL_PLATFORM_DARWIN_MACOS_PRESENTER_SERVICE_MAC_H_
++
++#import <QuartzCore/QuartzCore.h>
++
++#include <memory>
++
++#include "clay/shell/common/services/compositor/presenter_service.h"
++#include "clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h"
++
++namespace clay {
++
++// macOS implementation of PresenterService.
++// - Wraps frame submits in a CATransaction to batch layer commits.
++// - Repositions overlay CALayers when UpdateOverlay is called.
++// - No-ops for native view z-ordering (native views are positioned by
++//   the Lynx layout system, not by the compositor).
++class PresenterServiceMac final : public PresenterService {
++ public:
++  PresenterServiceMac() = default;
++
++  static std::shared_ptr<PresenterServiceMac> Create();
++
++ private:
++  // PresenterService hooks
++  void OnBeforePresent() override;
++  void OnAfterPresent() override;
++
++  // Overlay management — position the CALayer and set its contents scale.
++  void UpdateOverlay(const OverlayData& overlay_data) override;
++  void BringOverlayToFront(const PlatformOverlay& overlay) override {}
++  void DisposeOverlay(PlatformOverlay& overlay) override {}
++
++  // Native view management — no-ops on macOS.
++  void CompositePlatformView(int64_t id,
++                             const EmbeddedViewParams& params) override {}
++  void BringPlatformViewToFront(int64_t id) override {}
++  void DisposePlatformView(int64_t id) override {}
++  void HidePlatformView(int64_t id) override {}
++};
++
++}  // namespace clay
++
++#endif  // CLAY_SHELL_PLATFORM_DARWIN_MACOS_PRESENTER_SERVICE_MAC_H_
+diff --git a/lynx/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.mm b/lynx/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.mm
+new file mode 100644
+index 000000000..8cb67de7e
+--- /dev/null
++++ b/lynx/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.mm
+@@ -0,0 +1,42 @@
++// Copyright 2025 The Lynx Authors. All rights reserved.
++// Licensed under the Apache License Version 2.0 that can be found in the
++// LICENSE file in the root directory of this source tree.
++
++#import "clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.h"
++
++#import <Cocoa/Cocoa.h>
++
++namespace clay {
++
++std::shared_ptr<PresenterServiceMac> PresenterServiceMac::Create() {
++  return std::make_shared<PresenterServiceMac>();
++}
++
++void PresenterServiceMac::OnBeforePresent() {
++  [CATransaction begin];
++  [CATransaction setDisableActions:YES];
++}
++
++void PresenterServiceMac::OnAfterPresent() {
++  [CATransaction commit];
++}
++
++void PresenterServiceMac::UpdateOverlay(const OverlayData& overlay_data) {
++  auto* mac_overlay =
++      static_cast<PlatformOverlayMac*>(overlay_data.overlay.get());
++  if (!mac_overlay) {
++    return;
++  }
++  // Convert the overlay rect from physical pixels to logical points using the
++  // contentsScale that was recorded when the CALayer was created.
++  CGFloat scale = mac_overlay->GetContentsScale();
++  if (scale <= 0.0) {
++    scale = 1.0;
++  }
++  const skity::Rect& rect = overlay_data.rect;
++  CGRect frame = CGRectMake(rect.X() / scale, rect.Y() / scale,
++                             rect.Width() / scale, rect.Height() / scale);
++  mac_overlay->UpdateLayerFrame(frame);
++}
++
++}  // namespace clay
+diff --git a/lynx/platform/darwin/macos/common/BUILD.gn b/lynx/platform/darwin/macos/common/BUILD.gn
+index f2606c564..5b21d7616 100644
+--- a/lynx/platform/darwin/macos/common/BUILD.gn
++++ b/lynx/platform/darwin/macos/common/BUILD.gn
+@@ -6,6 +6,8 @@ import("../../../../core/Lynx.gni")
+ 
+ lynx_core_source_set("common") {
+   sources = [
++    "LynxOverlayView.h",
++    "LynxOverlayView.mm",
+     "LynxUIRenderer.h",
+     "LynxUIRenderer.mm",
+     "vsync_monitor_macos.h",
+@@ -21,4 +23,9 @@ lynx_core_source_set("common") {
+     "../../../../clay/ui:ui",
+     "../../../../third_party/rapidjson",
+   ]
++
++  frameworks = [
++    "Metal.framework",
++    "QuartzCore.framework",
++  ]
+ }
+diff --git a/lynx/platform/darwin/macos/common/LynxOverlayView.h b/lynx/platform/darwin/macos/common/LynxOverlayView.h
+new file mode 100644
+index 000000000..929592237
+--- /dev/null
++++ b/lynx/platform/darwin/macos/common/LynxOverlayView.h
+@@ -0,0 +1,31 @@
++// Copyright 2025 The Lynx Authors. All rights reserved.
++// Licensed under the Apache License Version 2.0 that can be found in the
++// LICENSE file in the root directory of this source tree.
++
++#ifndef PLATFORM_DARWIN_MACOS_COMMON_LYNX_OVERLAY_VIEW_H_
++#define PLATFORM_DARWIN_MACOS_COMMON_LYNX_OVERLAY_VIEW_H_
++
++#import <Cocoa/Cocoa.h>
++
++// A transparent NSView that sits above all native plugin views in the
++// LynxUIRenderer view hierarchy.  It will display Lynx-rendered content
++// (Phase 2: overlay framebuffer) that must appear above native views.
++//
++// Phase 1: The view is transparent with a debug-mode solid background so
++// the z-order can be verified visually before the framebuffer routing is
++// connected.
++//
++// Hit-testing: a CPU-side list of opaque rects is maintained.  Only those
++// regions return |self| from hitTest:; everywhere else returns nil so mouse
++// events fall through to native views below.
++@interface LynxOverlayView : NSView
++
++// Called whenever the overlay content changes (Phase 2: after each frame
++// present).  |rects| is an array of NSValue-wrapped NSRects describing the
++// painted, non-transparent regions of the overlay.  Used by hitTest: to
++// provide per-pixel event pass-through without GPU readback.
++- (void)updateOpaqueRects:(NSArray<NSValue*>*)rects;
++
++@end
++
++#endif  // PLATFORM_DARWIN_MACOS_COMMON_LYNX_OVERLAY_VIEW_H_
+diff --git a/lynx/platform/darwin/macos/common/LynxOverlayView.mm b/lynx/platform/darwin/macos/common/LynxOverlayView.mm
+new file mode 100644
+index 000000000..8e06e441e
+--- /dev/null
++++ b/lynx/platform/darwin/macos/common/LynxOverlayView.mm
+@@ -0,0 +1,82 @@
++// Copyright 2025 The Lynx Authors. All rights reserved.
++// Licensed under the Apache License Version 2.0 that can be found in the
++// LICENSE file in the root directory of this source tree.
++
++#import "platform/darwin/macos/common/LynxOverlayView.h"
++
++@implementation LynxOverlayView {
++  NSArray<NSValue*>* _opaqueRects;
++}
++
++- (instancetype)initWithFrame:(NSRect)frameRect {
++  self = [super initWithFrame:frameRect];
++  if (self) {
++    _opaqueRects = @[];
++    // Opt into layer-backed rendering so that setContents: (Phase 2) works.
++    self.wantsLayer = YES;
++    self.layer.opaque = NO;
++
++    // Autoresize to track the parent view.
++    self.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
++
++    // Do not clip content – a tooltip near a window edge should still be
++    // visible even if it extends slightly beyond the overlay frame.
++    self.layer.masksToBounds = NO;
++  }
++  return self;
++}
++
++- (BOOL)isOpaque {
++  return NO;
++}
++
++// Phase 1 debug rendering: draw a translucent green stripe along the top edge
++// so engineers can confirm the overlay is on top of native views.  This block
++// is compiled out in Release builds.
++- (void)drawRect:(NSRect)dirtyRect {
++#if DEBUG
++  [[NSColor colorWithRed:0.0 green:1.0 blue:0.0 alpha:0.15] set];
++  NSRect stripe = NSMakeRect(0, NSMaxY(self.bounds) - 4, self.bounds.size.width, 4);
++  NSRectFill(stripe);
++#endif
++}
++
++// ---------------------------------------------------------------------------
++// Hit-testing: pass through to underlying native views for areas that the
++// overlay does not paint.  Uses a CPU-side list of opaque rects updated by
++// the paint system (Phase 2) to avoid GPU readback on every mouse event.
++// In Phase 1 the list is always empty → all events pass through.
++// ---------------------------------------------------------------------------
++
++- (void)updateOpaqueRects:(NSArray<NSValue*>*)rects {
++  // Must be called on the main thread.
++  _opaqueRects = [rects copy];
++}
++
++// ---------------------------------------------------------------------------
++// Phase 4: High-DPI display migration (corner case C9)
++// When the window moves between Retina and non-Retina displays, AppKit calls
++// this method.  We update the layer contentsScale to match the new backing
++// scale factor so the overlay is not blurry on a non-Retina display or
++// over-scaled on a Retina one.
++// ---------------------------------------------------------------------------
++- (void)viewDidChangeBackingProperties {
++  [super viewDidChangeBackingProperties];
++  CGFloat scale = self.window ? self.window.backingScaleFactor : 1.0;
++  self.layer.contentsScale = scale;
++}
++
++- (NSView*)hitTest:(NSPoint)point {
++  // |point| is in the superview's coordinate space (same as for any NSView).
++  NSPoint local = [self convertPoint:point fromView:self.superview];
++  for (NSValue* val in _opaqueRects) {
++    if (NSPointInRect(local, [val rectValue])) {
++      // There is painted content here – let the overlay handle the event.
++      return [super hitTest:point];
++    }
++  }
++  // Transparent region – pass through to native views below.
++  return nil;
++}
++
++@end
+diff --git a/lynx/platform/darwin/macos/common/LynxUIRenderer.mm b/lynx/platform/darwin/macos/common/LynxUIRenderer.mm
+index 7296fa844..508740f64 100644
+--- a/lynx/platform/darwin/macos/common/LynxUIRenderer.mm
++++ b/lynx/platform/darwin/macos/common/LynxUIRenderer.mm
+@@ -3,6 +3,8 @@
+ // LICENSE file in the root directory of this source tree.
+ 
+ #import "platform/darwin/macos/common/LynxUIRenderer.h"
++#import "platform/darwin/macos/common/LynxOverlayView.h"
++#import <Metal/Metal.h>
+ #include "clay/common/service/service_manager.h"
+ #include "clay/lynx_adaptor/native_module/lynx_module_factory.h"
+ #include "clay/lynx_adaptor/native_platform_view.h"
+@@ -10,8 +12,11 @@
+ #include "clay/lynx_adaptor/resource_loader_embedder.h"
+ #include "clay/net/loader/resource_loader_creator_service.h"
+ #include "clay/shell/platform/darwin/macos/framework/Headers/ClayViewProvider.h"
++#include "clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h"
++#include "clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.h"
+ #include "clay/ui/component/view_context.h"
+ #include "core/base/threading/task_runner_manufactor.h"
++#import "clay/shell/platform/darwin/macos/framework/Source/FlutterEngine_Internal.h"
+ #if ENABLE_TESTBENCH_REPLAY
+ #include "third_party/rapidjson/document.h"
+ #include "third_party/rapidjson/error/en.h"
+@@ -23,6 +28,7 @@
+ @interface LynxUIRendererMac : NSObject
+ 
+ @property(nonatomic) ClayViewProvider* clayViewProvider;
++@property(nonatomic) LynxOverlayView* overlayView;
+ 
+ @end
+ 
+@@ -51,14 +57,57 @@
+ 
+ - (void)setFrame:(CGRect)frame {
+   _clayViewProvider.flutterView.frame = frame;
++  if (_overlayView) {
++    _overlayView.frame = frame;
++  }
+ }
+ 
+ - (void)setParent:(NativeWindow)parent {
+   if (!parent) {
+     return;
+   }
++  // Tear down any existing overlay when re-parenting.
++  if (_overlayView) {
++    [_overlayView removeFromSuperview];
++    _overlayView = nil;
++  }
+   NSView* view = (__bridge NSView*)parent;
+   [view addSubview:_clayViewProvider.flutterView];
++  [self ensureOverlayCreated:view];
++}
++
++// Creates the overlay view and schedules it to be added as the topmost
++// subview on the next run-loop iteration.  The deferred dispatch guarantees
++// that any native plugin views registered synchronously during startup land
++// *below* the overlay.
++- (void)ensureOverlayCreated:(NSView*)parent {
++  if (_overlayView) return;
++  LynxOverlayView* overlay =
++      [[LynxOverlayView alloc] initWithFrame:parent.bounds];
++  _overlayView = overlay;
++  // Capture parent weakly to avoid a retain cycle if the view is deallocated
++  // before the block runs.
++  __weak NSView* weakParent = parent;
++  __weak LynxUIRendererMac* weakSelf = self;
++  dispatch_async(dispatch_get_main_queue(), ^{
++    NSView* strongParent = weakParent;
++    LynxUIRendererMac* strongSelf = weakSelf;
++    if (!strongParent || !strongSelf) return;
++    // Confirm _overlayView hasn't been replaced (e.g. by re-parenting).
++    if (strongSelf.overlayView == overlay) {
++      [strongParent addSubview:overlay];  // added last → on top
++    }
++  });
++}
++
++// Re-inserts the overlay as the last (topmost) subview.  Called after every
++// native view registration to ensure newly-added native views land below the
++// overlay (corner case C2 in the design doc).
++- (void)ensureOverlayOnTop {
++  if (!_overlayView || !_overlayView.superview) return;
++  NSView* parent = _overlayView.superview;
++  [_overlayView removeFromSuperview];
++  [parent addSubview:_overlayView];  // re-added last → on top
+ }
+ 
+ - (void)RegisterIMEHandler:(void*)handler arg:(void*)arg {
+@@ -198,6 +247,25 @@ LynxUIRendererImpl::LynxUIRendererImpl(lynx_view_builder_t* builder) {
+   clay::NativeViewServiceDesktop::SetViewFactories(view_context,
+                                                    std::move(builder->native_view_creators));
+ 
++  // Register macOS-specific compositor services so that Lynx elements with
++  // high z-index can be rendered into the LynxOverlayView above native views.
++  {
++    FlutterRenderer* renderer = lynx_ui_renderer.clayViewProvider.engine.renderer;
++    if (renderer && lynx_ui_renderer.overlayView) {
++      CALayer* overlay_layer = lynx_ui_renderer.overlayView.layer;
++      CGFloat scale = lynx_ui_renderer.overlayView.window
++                          ? lynx_ui_renderer.overlayView.window.backingScaleFactor
++                          : 2.0;
++      auto overlay_service = clay::PlatformOverlayServiceMac::CreateMac(
++          renderer.device, renderer.commandQueue, overlay_layer, scale);
++      auto presenter_service = clay::PresenterServiceMac::Create();
++      view_context->GetServiceManager()
++          ->RegisterService<clay::PlatformOverlayService>(overlay_service);
++      view_context->GetServiceManager()
++          ->RegisterService<clay::PresenterService>(presenter_service);
++    }
++  }
++
+   if (builder->generic_fetcher) {
+     auto fetcher_holder = std::make_shared<LynxResourceFetcherHolder>(builder->generic_fetcher);
+     view_context->GetServiceManager()->RegisterService<clay::ResourceLoaderCreatorService>(
+@@ -315,6 +383,13 @@ void LynxUIRendererImpl::RegisterNativeView(const char* name, lynx_native_view_c
+   auto* view_context =
+       reinterpret_cast<clay::ViewContext*>(lynx_ui_renderer.clayViewProvider.clayViewContext);
+   clay::NativeViewServiceDesktop::AddViewFactory(view_context, name, creator, opaque);
++
++  // A native view factory was registered.  If the overlay already exists,
++  // re-insert it on top so that a new factory whose view is created later
++  // does not end up above the overlay (corner case C2).
++  dispatch_async(dispatch_get_main_queue(), ^{
++    [lynx_ui_renderer ensureOverlayOnTop];
++  });
+ }
+ 
+ lynx::tasm::UIDelegate* LynxUIRendererImpl::GetUIDelegate() { return ui_delegate_.get(); }
+-- 
+2.49.0
+
