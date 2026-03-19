@@ -1,5 +1,6 @@
 [
   { "patch_dir": "src/patches/lynx", "repo": "lynx" },
   { "patch_dir": "src/patches/lynx/quickjs", "repo": "lynx/third_party/quickjs/src" },
-  { "patch_dir": "src/patches/lynx/perfetto", "repo": "third_party/perfetto" }
+  { "patch_dir": "src/patches/lynx/perfetto", "repo": "third_party/perfetto" },
+  { "patch_dir": "src/patches/lynx/zlib", "repo": "third_party/zlib" }
 ]
