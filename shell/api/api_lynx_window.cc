@@ -18,6 +18,7 @@
 #include "shell/api/api_app.h"
 #include "shell/api/lynx_view/lynx_view.h"
 #include "shell/api/lynx_view_monitor_delegate.h"
+#include "shell/api/lynx_window_manager.h"
 #include "shell/app/application.h"
 #include "shell/app/window_list.h"
 #include "shell/common/asar/archive.h"
@@ -153,9 +154,12 @@ LynxWindow::LynxWindow(gin::Arguments* args,
   } else {
     LOG(ERROR) << "LynxViewMonitorDelegate not found in registry.";
   }
+  LynxWindowManager::GetInstance()->RegisterLynxWindow(GetWeakPtr());
 }
 
-LynxWindow::~LynxWindow() = default;
+LynxWindow::~LynxWindow() {
+  LynxWindowManager::GetInstance()->UnregisterLynxWindow(GetWeakPtr());
+}
 
 // void LynxWindow::OnCloseRequested(bool& prevent_default) {
 //   // When user tries to close the window by clicking the close button, we do
@@ -395,6 +399,44 @@ void LynxWindow::FocusLynxView() {
   // if (CurrentLynxViewHolder() && CurrentLynxViewHolder()->IsShow()) {
   //   CurrentLynxViewHolder()->SetFocus();
   // }
+}
+
+void LynxWindow::SetFpsMonitorEnabled(bool enabled,
+                                      uint32_t sample_interval_millis) {
+  bool state_changed = enable_fps_monitor_ != enabled;
+  enable_fps_monitor_ = enabled;
+  sample_interval_millis_ = sample_interval_millis;
+  if (state_changed) {
+    StartFpsMonitorTask();
+  }
+}
+
+void LynxWindow::StartFpsMonitorTask() {
+  GetUIThreadTaskRunner()->PostDelayedTask(
+      FROM_HERE,
+      base::BindOnce(
+          [](base::WeakPtr<LynxWindow> window) {
+            if (!window) {
+              return;
+            }
+            window->EmitFpsEvent();
+            if (window->enable_fps_monitor_) {
+              window->StartFpsMonitorTask();
+            }
+          },
+          GetWeakPtr()),
+      base::Milliseconds(sample_interval_millis_));
+}
+
+void LynxWindow::EmitFpsEvent() {
+  if (last_frame_timings_.empty()) {
+    return;
+  }
+  v8::HandleScope handle_scope(isolate());
+  v8::Local<v8::Value> arg = gin::ConvertToV8(isolate(), last_frame_timings_);
+
+  last_frame_timings_.clear();
+  Emit("frame-timings", arg);
 }
 
 void LynxWindow::OnWindowShow() {

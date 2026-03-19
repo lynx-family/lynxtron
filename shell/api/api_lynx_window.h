@@ -12,10 +12,10 @@
 #include <vector>
 
 #include "base/cancelable_callback.h"
-#include "common/gin_helper/dictionary.h"
 #include "shell/api/api_base_window.h"
 #include "shell/api/lynx_view/lynx_view.h"
 #include "shell/api/lynx_view/lynx_view_client.h"
+#include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/gin_helper/error_thrower.h"
 
 namespace lynxtron {
@@ -59,6 +59,8 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
   bool ReportJSError(const LynxView* lynx_view, const std::string& error_info);
   bool ConfigJSBase(const LynxView* lynx_view, const std::string& bid);
   bool CustomReport(const LynxView* lynx_view, const std::string& custom_data);
+
+  void SetFpsMonitorEnabled(bool enabled, uint32_t sample_interval_millis);
 
  protected:
   LynxWindow(gin::Arguments* args, const gin_helper::Dictionary& options);
@@ -188,6 +190,9 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
   void CloseLynxView();
   void FocusLynxView();
 
+  void StartFpsMonitorTask();
+  void EmitFpsEvent();
+
   // void CheckLynxValidation(const std::vector<uint8_t>& source,
   //                          const std::string& channel_name,
   //                          const std::string& scheme,
@@ -229,6 +234,11 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
 
   std::unique_ptr<LynxView> lynx_view_;
   static bool lynx_global_init_;
+
+  bool enable_fps_monitor_ = false;
+  int sample_interval_millis_ = 1000;  // default 1000ms
+  std::vector<std::vector<int64_t>> last_frame_timings_;
+
   base::WeakPtrFactory<LynxWindow> weak_factory_{this};
   std::unique_ptr<LynxViewMonitorDelegate> lynx_view_monitor_delegate_;
 };
