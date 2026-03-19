@@ -876,6 +876,7 @@ test("lynxtron_unittests") {
   ]
   if (is_mac) {
     ldflags = [
+      "-Wl,-dead_strip",
       "-rpath",
       "@executable_path",
     ]
