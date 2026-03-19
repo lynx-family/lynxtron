@@ -15,6 +15,9 @@ const __dirname = path.dirname(__filename);
 const rootPath = process.cwd();
 console.log('rootPath: ', path.resolve(rootPath, './src/assets'));
 export default defineConfig({
+  server: {
+    port: 5969,
+  },
   resolve: {
     alias: {
       '@assets': path.resolve(rootPath, './src/assets'),

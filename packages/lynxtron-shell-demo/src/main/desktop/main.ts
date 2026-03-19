@@ -42,7 +42,7 @@ app.whenReady().then(() => {
 
   w.show();
   if (isDev) {
-    w.loadURL('http://localhost:3000/main.lynx.bundle');
+    w.loadURL('http://localhost:5969/main.lynx.bundle');
   } else {
     w.loadFile(LYNX_BUNDLE_PATH);
   }
