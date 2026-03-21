@@ -12,7 +12,6 @@
 #include <vector>
 
 #include "base/containers/span.h"
-// #include "ui/gfx/image/image_skia_rep.h"
 
 namespace v8 {
 class ArrayBufferView;
@@ -21,10 +20,6 @@ template <class T>
 class Local;
 class Value;
 }  // namespace v8
-
-// namespace blink {
-// struct CloneableMessage;
-// }
 
 namespace lynxtron {
 

@@ -412,7 +412,7 @@ void NativeImage::AddRepresentation(const gin_helper::Dictionary& options) {
         scale_factor);
   } else if (options.Get("dataURL", &url)) {
     std::string mime_type, charset, data;
-    if (net::DataURL::Parse(url, &mime_type, &charset, &data)) {
+    if (::lynxtron::DataURL::Parse(url, &mime_type, &charset, &data)) {
       if (mime_type == "image/png") {
         skia_rep_added = lynxtron::util::AddImageSkiaRepFromPNG(
             &image_skia, base::as_byte_span(data), scale_factor);
@@ -570,7 +570,7 @@ gin_helper::Handle<NativeImage> NativeImage::CreateFromDataURL(
     v8::Isolate* isolate,
     const GURL& url) {
   std::string mime_type, charset, data;
-  if (net::DataURL::Parse(url, &mime_type, &charset, &data)) {
+  if (::lynxtron::DataURL::Parse(url, &mime_type, &charset, &data)) {
     if (mime_type == "image/png") {
       return CreateFromPNG(isolate, base::as_byte_span(data));
     }

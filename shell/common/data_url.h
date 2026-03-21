@@ -18,7 +18,7 @@
 
 class GURL;
 
-namespace net {
+namespace lynxtron {
 
 class HttpResponseHeaders;
 
@@ -91,6 +91,6 @@ class DataURL {
   //       scoped_refptr<HttpResponseHeaders>* headers);
 };
 
-}  // namespace net
+}  // namespace lynxtron
 
 #endif  // LYNXTRON_SHELL_COMMON_DATA_URL_H_

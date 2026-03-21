@@ -199,8 +199,8 @@ int LynxtronMain(int argc, char* argv[]) {
   base::CommandLine::Init(argc, argv);
   lynxtron::LynxtronCommandLine::Init(argc, argv);
 #endif
-  logging::InitElectronLogging(*base::CommandLine::ForCurrentProcess(),
-                               /* is_preinit = */ true);
+  lynxtron::InitLogging(*base::CommandLine::ForCurrentProcess(),
+                        /* is_preinit = */ true);
 
   base::i18n::InitializeICU();
 

@@ -8,10 +8,10 @@
 
 #include "shell/common/logging.h"
 
+#include <optional>
 #include <string>
 #include <utility>
 
-#include "base/base_switches.h"
 #include "base/command_line.h"
 #include "base/environment.h"
 #include "base/files/file_path.h"
@@ -21,20 +21,15 @@
 #include "base/strings/string_number_conversions.h"
 #include "shell/common/lynxtron_paths.h"
 #include "shell/common/path_provider.h"
-// #include "chrome/common/chrome_paths.h"
-// #include "content/public/common/content_switches.h"
 
 #if BUILDFLAG(IS_WIN)
 #include <windows.h>
 
 #include "base/win/scoped_handle.h"
 #include "base/win/windows_handle_util.h"
-// #include "sandbox/policy/switches.h"
 #endif
 
-// TODO(Guo Xi): change electron name
-
-namespace logging {
+namespace lynxtron {
 
 // Overrides the default file name to use for general-purpose logging (does not
 // affect which events are logged).
@@ -48,8 +43,8 @@ const char kEnableLogging[] = "enable-logging";
 // INFO = 0, WARNING = 1, LOG_ERROR = 2, LOG_FATAL = 3.
 const char kLoggingLevel[] = "log-level";
 
-constexpr base::cstring_view kLogFileName{"ELECTRON_LOG_FILE"};
-constexpr base::cstring_view kElectronEnableLogging{"ELECTRON_ENABLE_LOGGING"};
+constexpr base::cstring_view kLogFileName{"LYNXTRON_LOG_FILE"};
+constexpr base::cstring_view kLynxtronEnableLogging{"LYNXTRON_ENABLE_LOGGING"};
 
 #if BUILDFLAG(IS_WIN)
 base::win::ScopedHandle GetLogInheritedHandle(
@@ -74,16 +69,26 @@ base::win::ScopedHandle GetLogInheritedHandle(
 }
 #endif
 
-base::FilePath GetLogFileName(const base::CommandLine& command_line) {
+namespace {
+
+std::string GetExplicitLogFileValue(const base::CommandLine& command_line,
+                                    base::Environment& env) {
   std::string filename = command_line.GetSwitchValueASCII(kLogFile);
-  if (filename.empty()) {
-    filename = base::Environment::Create()->GetVar(kLogFileName).value_or("");
+  if (!filename.empty()) {
+    return filename;
   }
+
+  return env.GetVar(kLogFileName).value_or("");
+}
+
+base::FilePath GetLogFileNameInternal(const base::CommandLine& command_line,
+                                      base::Environment& env) {
+  std::string filename = GetExplicitLogFileValue(command_line, env);
   if (!filename.empty()) {
     return base::FilePath::FromUTF8Unsafe(filename);
   }
 
-  auto log_filename = base::FilePath{FILE_PATH_LITERAL("electron_debug.log")};
+  auto log_filename = base::FilePath{FILE_PATH_LITERAL("lynxtron_debug.log")};
 
   if (base::FilePath path;
       base::PathService::Get(lynxtron::DIR_APP_LOGS, &path)) {
@@ -94,39 +99,32 @@ base::FilePath GetLogFileName(const base::CommandLine& command_line) {
   return log_filename;
 }
 
-namespace {
-
-bool HasExplicitLogFile(const base::CommandLine& command_line) {
-  std::string filename = command_line.GetSwitchValueASCII(kLogFile);
-  if (filename.empty()) {
-    filename = base::Environment::Create()->GetVar(kLogFileName).value_or("");
-  }
-  return !filename.empty();
+bool HasExplicitLogFileInternal(const base::CommandLine& command_line,
+                                base::Environment& env) {
+  return !GetExplicitLogFileValue(command_line, env).empty();
 }
 
-std::pair<LoggingDestination, bool /* filename_is_handle */>
+std::pair<::logging::LoggingDestination, bool /* filename_is_handle */>
 DetermineLoggingDestination(const base::CommandLine& command_line,
-                            bool is_preinit) {
+                            bool is_preinit,
+                            base::Environment& env) {
   bool enable_logging = false;
   std::string logging_destination;
   if (command_line.HasSwitch(kEnableLogging)) {
     enable_logging = true;
     logging_destination = command_line.GetSwitchValueASCII(kEnableLogging);
-  } else {
-    auto env = base::Environment::Create();
-    if (env->HasVar(kElectronEnableLogging)) {
-      enable_logging = true;
-      logging_destination = env->GetVar(kElectronEnableLogging).value();
-    }
+  } else if (env.HasVar(kLynxtronEnableLogging)) {
+    enable_logging = true;
+    logging_destination = env.GetVar(kLynxtronEnableLogging).value();
   }
   if (!enable_logging) {
-    return {LOG_NONE, false};
+    return {::logging::LOG_NONE, false};
   }
 
   bool also_log_to_stderr = false;
 #if !defined(NDEBUG)
   if (std::optional<std::string> also_log_to_stderr_str =
-          base::Environment::Create()->GetVar("ELECTRON_ALSO_LOG_TO_STDERR")) {
+          env.GetVar("LYNXTRON_ALSO_LOG_TO_STDERR")) {
     also_log_to_stderr = !also_log_to_stderr_str->empty();
   }
 #endif
@@ -135,48 +133,56 @@ DetermineLoggingDestination(const base::CommandLine& command_line,
   if (logging_destination == "handle" && command_line.HasSwitch(kLogFile)) {
     // Child processes can log to a handle duplicated from the parent, and
     // provided in the log-file switch value.
-    return {LOG_TO_FILE, true};
+    return {::logging::LOG_TO_FILE, true};
   }
 #endif  // BUILDFLAG(IS_WIN)
 
-  // --enable-logging logs to stderr, --enable-logging=file logs to a file.
-  // NB. this differs from Chromium, in which --enable-logging logs to a file
-  // and --enable-logging=stderr logs to stderr, because that's how Electron
-  // used to work, so in order to not break anyone who was depending on
-  // --enable-logging logging to stderr, we preserve the old behavior by
-  // default.
-  // If --log-file or ELECTRON_LOG_FILE is specified along with
-  // --enable-logging, return LOG_TO_FILE.
-  // If we're in the pre-init phase, before JS has run, we want to avoid
-  // logging to the default log file, which is inside the user data directory,
-  // because we aren't able to accurately determine the user data directory
-  // before JS runs. Instead, log to stderr unless there's an explicit filename
-  // given.
-  if (HasExplicitLogFile(command_line) ||
-      (logging_destination == "file" && !is_preinit)) {
-    return {LOG_TO_FILE | (also_log_to_stderr ? LOG_TO_STDERR : 0), false};
+  // Follow Chromium behavior: --enable-logging logs to a file, and
+  // --enable-logging=stderr logs to stderr.
+  // If --log-file or LYNXTRON_LOG_FILE is specified along with
+  // --enable-logging, log to that file. During pre-init, avoid logging to the
+  // default log file (inside the user data directory) until it's known. Log to
+  // stderr unless an explicit filename is given.
+  if (HasExplicitLogFileInternal(command_line, env)) {
+    return {::logging::LOG_TO_FILE |
+                (also_log_to_stderr ? ::logging::LOG_TO_STDERR : 0),
+            false};
   }
-  return {LOG_TO_SYSTEM_DEBUG_LOG | LOG_TO_STDERR, false};
+
+  if (logging_destination == "stderr" || is_preinit) {
+    return {::logging::LOG_TO_SYSTEM_DEBUG_LOG | ::logging::LOG_TO_STDERR,
+            false};
+  }
+
+  return {::logging::LOG_TO_FILE |
+              (also_log_to_stderr ? ::logging::LOG_TO_STDERR : 0),
+          false};
 }
 
 }  // namespace
 
-void InitElectronLogging(const base::CommandLine& command_line,
-                         bool is_preinit) {
+base::FilePath GetLogFileName(const base::CommandLine& command_line) {
+  auto env = base::Environment::Create();
+  return GetLogFileNameInternal(command_line, *env);
+}
+
+void InitLogging(const base::CommandLine& command_line, bool is_preinit) {
+  auto env = base::Environment::Create();
   auto [logging_dest, filename_is_handle] =
-      DetermineLoggingDestination(command_line, is_preinit);
-  LogLockingState log_locking_state = LOCK_LOG_FILE;
+      DetermineLoggingDestination(command_line, is_preinit, *env);
+  ::logging::LogLockingState log_locking_state = ::logging::LOCK_LOG_FILE;
   base::FilePath log_path;
 #if BUILDFLAG(IS_WIN)
   base::win::ScopedHandle log_handle;
 #endif
 
-  if (command_line.HasSwitch(kLoggingLevel) && GetMinLogLevel() >= 0) {
+  if (command_line.HasSwitch(kLoggingLevel) &&
+      ::logging::GetMinLogLevel() >= 0) {
     std::string log_level = command_line.GetSwitchValueASCII(kLoggingLevel);
     int level = 0;
     if (base::StringToInt(log_level, &level) && level >= 0 &&
-        level < LOGGING_NUM_SEVERITIES) {
-      SetMinLogLevel(level);
+        level < ::logging::LOGGING_NUM_SEVERITIES) {
+      ::logging::SetMinLogLevel(level);
     } else {
       DLOG(WARNING) << "Bad log level: " << log_level;
     }
@@ -184,7 +190,7 @@ void InitElectronLogging(const base::CommandLine& command_line,
 
   // Don't resolve the log path unless we need to. Otherwise we leave an open
   // ALPC handle after sandbox lockdown on Windows.
-  if ((logging_dest & LOG_TO_FILE) != 0) {
+  if ((logging_dest & ::logging::LOG_TO_FILE) != 0) {
     if (filename_is_handle) {
 #if BUILDFLAG(IS_WIN)
       // Child processes on Windows are provided a file handle if logging is
@@ -196,17 +202,17 @@ void InitElectronLogging(const base::CommandLine& command_line,
       }
 #endif
     } else {
-      log_path = GetLogFileName(command_line);
+      log_path = GetLogFileNameInternal(command_line, *env);
     }
   } else {
-    log_locking_state = DONT_LOCK_LOG_FILE;
+    log_locking_state = ::logging::DONT_LOCK_LOG_FILE;
   }
 
   // On Windows, having non canonical forward slashes in log file name causes
   // problems with sandbox filters, see https://crbug.com/859676
   log_path = log_path.NormalizePathSeparators();
 
-  LoggingSettings settings;
+  ::logging::LoggingSettings settings;
   settings.logging_dest = logging_dest;
   settings.log_file_path = log_path.value().c_str();
 #if BUILDFLAG(IS_WIN)
@@ -219,15 +225,16 @@ void InitElectronLogging(const base::CommandLine& command_line,
   settings.lock_log = log_locking_state;
   // If we're logging to an explicit file passed with --log-file, we don't want
   // to delete the log file on our second initialization.
-  settings.delete_old = (is_preinit || !HasExplicitLogFile(command_line))
-                            ? DELETE_OLD_LOG_FILE
-                            : APPEND_TO_OLD_LOG_FILE;
-  bool success = InitLogging(settings);
+  settings.delete_old =
+      (is_preinit || !HasExplicitLogFileInternal(command_line, *env))
+          ? ::logging::DELETE_OLD_LOG_FILE
+          : ::logging::APPEND_TO_OLD_LOG_FILE;
+  bool success = ::logging::InitLogging(settings);
   if (!success) {
     PLOG(ERROR) << "Failed to init logging";
   }
 
-  SetLogItems(true /* pid */, false, true /* timestamp */, false);
+  ::logging::SetLogItems(true /* pid */, false, true /* timestamp */, false);
 }
 
-}  // namespace logging
+}  // namespace lynxtron

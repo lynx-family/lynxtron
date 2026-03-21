@@ -14,13 +14,12 @@ class CommandLine;
 class FilePath;
 }  // namespace base
 
-namespace logging {
+namespace lynxtron {
 
-void InitElectronLogging(const base::CommandLine& command_line,
-                         bool is_preinit);
+void InitLogging(const base::CommandLine& command_line, bool is_preinit);
 
 base::FilePath GetLogFileName(const base::CommandLine& command_line);
 
-}  // namespace logging
+}  // namespace lynxtron
 
 #endif  // LYNXTRON_SHELL_COMMON_LOGGING_H_

@@ -15,10 +15,23 @@
 #include "base/check_op.h"
 #include "base/memory/raw_ptr.h"
 #include "gin/converter.h"
+#include "shell/api/api_native_image.h"
+#include "shell/common/gin_helper/handle.h"
+#include "third_party/skia/include/core/SkBitmap.h"
+#include "ui/gfx/codec/png_codec.h"
+#include "ui/gfx/image/image_skia.h"
+#include "ui/gfx/image/image_skia_rep.h"
+#include "v8/include/v8-exception.h"
 #include "v8/include/v8-value-serializer.h"
 #include "v8/include/v8.h"
 
 namespace lynxtron {
+
+namespace {
+
+constexpr uint8_t kNativeImageTag = 'i';
+
+}  // namespace
 
 class V8Serializer : public v8::ValueSerializer::Delegate {
  public:
@@ -66,6 +79,26 @@ class V8Serializer : public v8::ValueSerializer::Delegate {
 
   v8::Maybe<bool> WriteHostObject(v8::Isolate* isolate,
                                   v8::Local<v8::Object> object) override {
+    api::NativeImage* native_image = nullptr;
+    if (gin::ConvertFromV8(isolate, object, &native_image) && native_image) {
+      WriteTag(kNativeImageTag);
+      gfx::ImageSkia image = native_image->image().AsImageSkia();
+      std::vector<gfx::ImageSkiaRep> image_reps = image.image_reps();
+      serializer_.WriteUint32(image_reps.size());
+      for (const auto& rep : image_reps) {
+        serializer_.WriteDouble(rep.scale());
+        const SkBitmap& bitmap = rep.GetBitmap();
+        std::vector<unsigned char> bytes;
+        if (!gfx::PNGCodec::EncodeBGRASkBitmap(bitmap, false, &bytes)) {
+          isolate_->ThrowException(v8::Exception::Error(
+              gin::StringToV8(isolate_, "Failed to serialize NativeImage.")));
+          return v8::Nothing<bool>();
+        }
+        serializer_.WriteUint32(bytes.size());
+        serializer_.WriteRawBytes(bytes.data(), bytes.size());
+      }
+      return v8::Just(true);
+    }
     return v8::ValueSerializer::Delegate::WriteHostObject(isolate, object);
   }
 
@@ -81,7 +114,6 @@ class V8Serializer : public v8::ValueSerializer::Delegate {
   v8::ValueSerializer serializer_;
 };
 
-// TODO(Guo Xi): review V8Deserializer
 class V8Deserializer : public v8::ValueDeserializer::Delegate {
  public:
   V8Deserializer(v8::Isolate* isolate, base::span<const uint8_t> data)
@@ -109,6 +141,15 @@ class V8Deserializer : public v8::ValueDeserializer::Delegate {
     if (!ReadTag(&tag)) {
       return v8::ValueDeserializer::Delegate::ReadHostObject(isolate);
     }
+    switch (tag) {
+      case kNativeImageTag: {
+        v8::Local<v8::Object> wrapper;
+        if (ReadNativeImage(isolate).ToLocal(&wrapper)) {
+          return wrapper;
+        }
+        break;
+      }
+    }
     return v8::ValueDeserializer::Delegate::ReadHostObject(isolate);
   }
 
@@ -120,6 +161,40 @@ class V8Deserializer : public v8::ValueDeserializer::Delegate {
     }
     *tag = *reinterpret_cast<const uint8_t*>(tag_bytes);
     return true;
+  }
+
+  v8::MaybeLocal<v8::Object> ReadNativeImage(v8::Isolate* isolate) {
+    gfx::ImageSkia image_skia;
+    uint32_t num_reps = 0;
+    if (!deserializer_.ReadUint32(&num_reps)) {
+      return {};
+    }
+    for (uint32_t i = 0; i < num_reps; i++) {
+      double scale = 0.0;
+      if (!deserializer_.ReadDouble(&scale)) {
+        return {};
+      }
+      uint32_t png_size_bytes = 0;
+      if (!deserializer_.ReadUint32(&png_size_bytes)) {
+        return {};
+      }
+      const void* png_data = nullptr;
+      if (!deserializer_.ReadRawBytes(png_size_bytes, &png_data)) {
+        return {};
+      }
+      SkBitmap bitmap;
+      if (!gfx::PNGCodec::Decode(static_cast<const unsigned char*>(png_data),
+                                 png_size_bytes, &bitmap)) {
+        return {};
+      }
+      image_skia.AddRepresentation(gfx::ImageSkiaRep(bitmap, scale));
+    }
+    auto handle = api::NativeImage::Create(isolate, gfx::Image(image_skia));
+    v8::Local<v8::Value> wrapper = handle.ToV8();
+    if (!wrapper->IsObject()) {
+      return {};
+    }
+    return wrapper.As<v8::Object>();
   }
 
   raw_ptr<v8::Isolate> isolate_;

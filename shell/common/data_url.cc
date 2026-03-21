@@ -11,7 +11,6 @@
 #include "shell/common/data_url.h"
 
 #include <algorithm>
-#include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -25,32 +24,14 @@
 #include "base/strings/string_split.h"
 #include "base/strings/string_util.h"
 #include "third_party/simdutf/simdutf.h"
-// #include "net/base/base64.h"
-// #include "net/base/features.h"
-// #include "net/base/mime_util.h"
-// #include "net/http/http_response_headers.h"
-// #include "net/http/http_util.h"
 #include "url/gurl.h"
 
-namespace net {
+namespace lynxtron {
 
 namespace {
-
-// Determine if we are in the deprecated mode of whitespace removal
-// Enterprise policies can enable this command line flag to force
-// the old (non-standard compliant) behavior.
-// bool HasRemoveWhitespaceCommandLineFlag() {
-//   const base::CommandLine* command_line =
-//       base::CommandLine::ForCurrentProcess();
-//   if (!command_line) {
-//     return false;
-//   }
-//   return command_line->HasSwitch(kRemoveWhitespaceForDataURLs);
-// }
 bool SimdutfBase64Decode(std::string_view input,
                          std::string* output,
                          base::Base64DecodePolicy policy) {
-  // CHECK(base::FeatureList::IsEnabled(features::kSimdutfBase64Support));
   if (policy == base::Base64DecodePolicy::kStrict) {
     if (input.size() % 4 != 0) {
       // The input is not properly padded.
@@ -253,4 +234,4 @@ bool DataURL::Parse(const GURL& url,
   return true;
 }
 
-}  // namespace net
+}  // namespace lynxtron
