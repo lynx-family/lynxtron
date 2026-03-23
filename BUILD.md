@@ -7,6 +7,8 @@ Dependencies:
 - Node.js >= 22
 - Python 3
 - Xcode >= 15.2 (macOS)
+- Visual Studio 2022 (Windows)
+- Windows 11 SDK version 10.0.26100 with Debugging Tools for Windows installed (Windows)
 
 ## Windows Line Endings (Required)
 
@@ -18,6 +20,7 @@ git config --global core.eol lf
 ```
 
 ## Build Steps
+
 ### macOS
 
 ```
@@ -86,3 +89,4 @@ To run specific checks (currently supported: `coding-style`, `cpplint`):
 ```
 git lynx check --checkers xxx,yyy
 ```
+
