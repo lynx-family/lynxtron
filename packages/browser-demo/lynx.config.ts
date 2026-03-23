@@ -3,7 +3,7 @@ import { defineConfig } from '@lynx-js/rspeedy';
 import { pluginReactLynx } from '@lynx-js/react-rsbuild-plugin';
 import { pluginRspeedyDevReady } from '@lynx-js/lynxtron-dev-plugins/rspeedy';
 import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -43,7 +43,10 @@ export default defineConfig({
         },
       },
       output: {
-        assetPrefix: `file://${path.resolve(__dirname, './dist/desktop/')}/`,
+        assetPrefix: new URL(
+          './dist/desktop/',
+          pathToFileURL(__dirname + path.sep)
+        ).toString(),
         distPath: {
           root: './output/bundle/lynx',
         },

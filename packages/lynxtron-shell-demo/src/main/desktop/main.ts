@@ -33,7 +33,7 @@ app.whenReady().then(() => {
       if (name === 'showDialog') {
         const { message } = data;
         dialog.showMessageBox({ message });
-        callback.sendReply();
+        callback.sendReply('');
       } else if (name == 'getAppVersion') {
         callback.sendReply(app.getVersion());
       }

@@ -1,14 +1,14 @@
 import { defineConfig } from '@lynx-js/rspeedy';
 import { pluginQRCode } from '@lynx-js/qrcode-rsbuild-plugin';
 import { pluginReactLynx } from '@lynx-js/react-rsbuild-plugin';
-import { fileURLToPath } from "url";
+import { fileURLToPath, pathToFileURL } from "url";
 import path from "path";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootPath = process.cwd();
 export default defineConfig({
     output: {
-        assetPrefix: `file://${path.resolve(__dirname, "./dist/assets/")}/`,
+        assetPrefix: new URL("./dist/assets/", pathToFileURL(__dirname + path.sep)).toString(),
         filename: {
             bundle: 'default_app.bundle',
         },
