@@ -171,6 +171,21 @@ void Application::SetName(const std::string& name) {
   OverriddenApplicationName() = name;
 }
 
+std::string Application::GetAppId() const {
+  std::string ret = OverriddenApplicationId();
+  if (ret.empty()) {
+    ret = GetApplicationId();
+    if (ret.empty() || ret == "undefined") {
+      ret = "0000";
+    }
+  }
+  return ret;
+}
+
+void Application::SetAppId(const std::string& id) {
+  OverriddenApplicationId() = id;
+}
+
 bool Application::OpenFile(const std::string& file_path) {
   bool prevent_default = false;
   observers_.Notify(&ApplicationObserver::OnOpenFile, &prevent_default,

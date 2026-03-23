@@ -14,6 +14,7 @@
 #include <appmodel.h>
 #include <shlobj.h>
 
+#include <algorithm>
 #include <memory>
 
 #include "base/file_version_info.h"
@@ -45,6 +46,18 @@ std::string GetApplicationVersion() {
   std::unique_ptr<FileVersionInfo> info(
       FileVersionInfo::CreateFileVersionInfoForModule(module));
   return base::UTF16ToUTF8(info->product_version());
+}
+
+std::string GetApplicationId() {
+  PCWSTR id = GetRawAppUserModelID();
+  if (id) {
+    std::string app_id = base::WideToUTF8(id);
+    if (!app_id.empty() &&
+        std::all_of(app_id.begin(), app_id.end(), ::isdigit)) {
+      return app_id;
+    }
+  }
+  return "undefined";
 }
 
 void SetAppUserModelID(const std::wstring& name) {

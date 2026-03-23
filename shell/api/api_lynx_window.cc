@@ -139,6 +139,9 @@ LynxWindow::LynxWindow(gin::Arguments* args,
 #endif
   // init lynx env.
   lynx_env_set_devtool_app_info("sdkVersion", lynx_env_get_sdk_version());
+  auto* application = lynxtron::Application::Get();
+  lynx_env_set_devtool_app_info("appId", application->GetAppId().c_str());
+  lynx_env_set_devtool_app_info("App", application->GetName().c_str());
   auto& registry = GetGlobalDelegateRegistry();
   auto it = registry.find(kLynxViewMonitorDelegateName);
   if (it != registry.end()) {

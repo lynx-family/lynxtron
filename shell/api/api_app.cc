@@ -1117,6 +1117,8 @@ gin::ObjectTemplateBuilder App::GetObjectTemplateBuilder(v8::Isolate* isolate) {
           base::BindRepeating(&Application::GetRecentDocuments, application))
       .SetMethod("getVersion",
                  base::BindRepeating(&Application::GetVersion, application))
+      .SetMethod("getAppId",
+                 base::BindRepeating(&Application::GetAppId, application))
       .SetMethod("hasSingleInstanceLock", &App::HasSingleInstanceLock)
       .SetMethod("isDefaultProtocolClient",
                  base::BindRepeating(&Application::IsDefaultProtocolClient,
@@ -1144,6 +1146,8 @@ gin::ObjectTemplateBuilder App::GetObjectTemplateBuilder(v8::Isolate* isolate) {
           base::BindRepeating(&Application::SetLoginItemSettings, application))
       .SetMethod("setName",
                  base::BindRepeating(&Application::SetName, application))
+      .SetMethod("setAppId",
+                 base::BindRepeating(&Application::SetAppId, application))
       .SetMethod("setPath", &App::SetPath)
       .SetMethod("setVersion",
                  base::BindRepeating(&Application::SetVersion, application))

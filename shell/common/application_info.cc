@@ -18,6 +18,11 @@ std::string& OverriddenApplicationName() {
   return *overridden_application_name;
 }
 
+std::string& OverriddenApplicationId() {
+  static base::NoDestructor<std::string> id;
+  return *id;
+}
+
 std::string& OverriddenApplicationVersion() {
   static base::NoDestructor<std::string> overridden_application_version;
   return *overridden_application_version;

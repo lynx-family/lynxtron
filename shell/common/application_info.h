@@ -21,11 +21,13 @@ namespace lynxtron {
 
 std::string& OverriddenApplicationName();
 std::string& OverriddenApplicationVersion();
+std::string& OverriddenApplicationId();
 
 std::string GetPossiblyOverriddenApplicationName();
 
 std::string GetApplicationName();
 std::string GetApplicationVersion();
+std::string GetApplicationId();
 // Returns the user agent of lynxtron.
 // std::string GetApplicationUserAgent();
 

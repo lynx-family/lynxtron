@@ -8,6 +8,7 @@
 
 #import "shell/common/application_info.h"
 
+#include <algorithm>
 #include <string>
 
 #import "base/apple/foundation_util.h"
@@ -36,6 +37,15 @@ std::string GetApplicationName() {
 
 std::string GetApplicationVersion() {
   return ApplicationInfoDictionaryValue(@"CFBundleShortVersionString");
+}
+
+std::string GetApplicationId() {
+  std::string app_id = ApplicationInfoDictionaryValue(kCFBundleIdentifierKey);
+  // Check if app_id is purely numeric
+  if (!app_id.empty() && std::all_of(app_id.begin(), app_id.end(), ::isdigit)) {
+    return app_id;
+  }
+  return "";
 }
 
 }  // namespace lynxtron

@@ -122,6 +122,12 @@ class Application : private WindowListObserver {
   // Overrides the application name.
   void SetName(const std::string& name);
 
+  // Returns the application's id, default is just 1128.
+  std::string GetAppId() const;
+
+  // Overrides the application id.
+  void SetAppId(const std::string& id);
+
   // Add the |path| to recent documents list.
   void AddRecentDocument(const base::FilePath& path);
 
