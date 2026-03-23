@@ -11,8 +11,6 @@
 #include "base/json/json_writer.h"
 #include "base/logging.h"
 #include "base/path_service.h"
-// #include "base/strings/utf_string_conversions.h"
-// #include "base/task/thread_pool.h"
 #include "gin/converter.h"
 #include "lynx/platform/embedder/public/capi/lynx_env_capi.h"
 #include "shell/api/api_app.h"
@@ -31,15 +29,11 @@
 #include "shell/common/node_includes.h"
 #include "shell/common/options_switches.h"
 #include "shell/common/thread_restrictions.h"
-// #include "url/url_util.h"
 
 #if BUILDFLAG(IS_WIN)
 #include <windows.h>
 
-// #include <TlHelp32.h>
 #include <dwmapi.h>
-
-// #include <ctime>
 #endif
 
 namespace lynxtron {

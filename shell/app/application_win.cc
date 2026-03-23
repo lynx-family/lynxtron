@@ -438,7 +438,7 @@ bool Application::SetUserTasks(const std::vector<UserTask>& tasks) {
 
 bool Application::RemoveAsDefaultProtocolClient(const std::string& protocol,
                                                 gin::Arguments* args) {
-  if (protocol.empty()) {
+  if (!Application::IsValidProtocolScheme(protocol)) {
     return false;
   }
 
@@ -523,7 +523,7 @@ bool Application::SetAsDefaultProtocolClient(const std::string& protocol,
   // Software\Classes", which is inherited by "HKEY_CLASSES_ROOT"
   // anyway, and can be written by unprivileged users.
 
-  if (protocol.empty()) {
+  if (!Application::IsValidProtocolScheme(protocol)) {
     return false;
   }
 
@@ -557,7 +557,7 @@ bool Application::SetAsDefaultProtocolClient(const std::string& protocol,
 
 bool Application::IsDefaultProtocolClient(const std::string& protocol,
                                           gin::Arguments* args) {
-  if (protocol.empty()) {
+  if (!Application::IsValidProtocolScheme(protocol)) {
     return false;
   }
 

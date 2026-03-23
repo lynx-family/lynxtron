@@ -8,13 +8,11 @@
 
 #include "shell/api/api_app.h"
 
-#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "base/command_line.h"
-#include "base/containers/span.h"
 #include "base/environment.h"
 #include "base/files/file_path.h"
 #include "base/files/file_util.h"
@@ -22,19 +20,16 @@
 #include "base/logging.h"
 #include "base/no_destructor.h"
 #include "base/path_service.h"
-#include "base/process/launch.h"
 #include "base/process/process_metrics.h"
 #include "base/strings/string_util.h"
 #include "base/system/sys_info.h"
 #include "base/task/single_thread_task_runner.h"
-#include "base/task/thread_pool.h"
 #include "gin/arguments.h"
 #include "shell/app/icon_manager.h"
 #include "shell/app/javascript_environment.h"
 #include "shell/app/main_parts.h"
 #include "shell/app/native_window.h"
 #include "shell/app/relauncher.h"
-#include "shell/app/window_list.h"
 #include "shell/common/gin_converters/file_path_converter.h"
 #include "shell/common/gin_converters/image_converter.h"
 #include "shell/common/gin_converters/login_item_settings_converter.h"
@@ -43,14 +38,10 @@
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/gin_helper/error_thrower.h"
 #include "shell/common/gin_helper/handle.h"
-#include "shell/common/gin_helper/object_template_builder.h"
-#include "shell/common/gin_helper/pinnable.h"
 #include "shell/common/global_thread.h"
 #include "shell/common/lynxtron_command_line.h"
 #include "shell/common/lynxtron_paths.h"
 #include "shell/common/node_includes.h"
-#include "shell/common/options_switches.h"
-#include "shell/common/platform_util.h"
 #include "shell/common/thread_restrictions.h"
 #include "shell/common/v8_util.h"
 #include "ui/gfx/image/image.h"
@@ -61,8 +52,6 @@
 #endif
 
 #if BUILDFLAG(IS_MAC)
-#include <CoreFoundation/CoreFoundation.h>
-
 #include "shell/api/api_menu.h"
 #include "shell/ui/cocoa/electron_bundle_mover.h"
 #endif

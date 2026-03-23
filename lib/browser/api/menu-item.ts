@@ -15,10 +15,32 @@ function resetCommandIdCounter(): void {
 
 const MenuItem = function (this: any, options: any) {
   Object.keys(options).forEach((key) => {
-    if (!this.hasOwnProperty(key)) {
+    if (
+      key !== 'overrideProperty' &&
+      key !== 'overrideReadOnlyProperty' &&
+      !this.hasOwnProperty(key)
+    ) {
       this[key] = options[key];
     }
   });
+
+  const overrideProperty = (name: string, defaultValue: any = null) => {
+    if (this[name] == null) {
+      this[name] = defaultValue;
+    }
+  };
+
+  const overrideReadOnlyProperty = (name: string, defaultValue?: any) => {
+    overrideProperty(name, defaultValue);
+    Object.defineProperty(this, name, {
+      enumerable: true,
+      writable: false,
+      value: this[name],
+    });
+  };
+
+  MenuItem.prototype.overrideProperty = overrideProperty;
+  MenuItem.prototype.overrideReadOnlyProperty = overrideReadOnlyProperty;
   if (typeof this.role === 'string' && this.role) {
     this.role = this.role.toLowerCase();
   }
@@ -36,23 +58,23 @@ const MenuItem = function (this: any, options: any) {
     throw new Error('Invalid submenu');
   }
 
-  this.overrideReadOnlyProperty('type', roles.getDefaultType(this.role));
-  this.overrideReadOnlyProperty('role');
-  this.overrideReadOnlyProperty(
+  overrideReadOnlyProperty('type', roles.getDefaultType(this.role));
+  overrideReadOnlyProperty('role');
+  overrideReadOnlyProperty(
     'accelerator',
     roles.getDefaultAccelerator(this.role)
   );
-  this.overrideReadOnlyProperty('icon');
-  this.overrideReadOnlyProperty('submenu');
+  overrideReadOnlyProperty('icon');
+  overrideReadOnlyProperty('submenu');
 
-  this.overrideProperty('label', roles.getDefaultLabel(this.role));
-  this.overrideProperty('sublabel', '');
-  this.overrideProperty('toolTip', '');
-  this.overrideProperty('enabled', true);
-  this.overrideProperty('visible', true);
-  this.overrideProperty('checked', false);
-  this.overrideProperty('acceleratorWorksWhenHidden', true);
-  this.overrideProperty(
+  overrideProperty('label', roles.getDefaultLabel(this.role));
+  overrideProperty('sublabel', '');
+  overrideProperty('toolTip', '');
+  overrideProperty('enabled', true);
+  overrideProperty('visible', true);
+  overrideProperty('checked', false);
+  overrideProperty('acceleratorWorksWhenHidden', true);
+  overrideProperty(
     'registerAccelerator',
     roles.shouldRegisterAccelerator(this.role)
   );
@@ -61,7 +83,7 @@ const MenuItem = function (this: any, options: any) {
     throw new Error(`Unknown menu item type: ${this.type}`);
   }
 
-  this.overrideReadOnlyProperty('commandId', ++nextCommandId);
+  overrideReadOnlyProperty('commandId', ++nextCommandId);
 
   Object.defineProperty(this, 'userAccelerator', {
     get: () => {

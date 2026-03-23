@@ -3,6 +3,8 @@
 // LICENSE file in the root directory of this source tree.
 #include "shell/api/lynx_view/lynx_view_extension_register.h"
 
+#include <cstring>
+
 #include "base/logging.h"
 #include "build/build_config.h"
 #include "lynx/platform/embedder/public/capi/lynx_env_capi.h"
@@ -17,14 +19,15 @@ void RegisterLynxExtensionToGlobalEnv(const char* name,
                                       void* creator_api,
                                       bool is_lazy_create,
                                       void* opaque) {
-  if (strlen(name) == 0) {
-    LOG(ERROR) << "RegisterLynxExtensionToGlobalEnv faild. name is null";
+  if (!name || strlen(name) == 0) {
+    LOG(ERROR)
+        << "RegisterLynxExtensionToGlobalEnv failed. name is null or empty";
     return;
   }
 
   if (!creator_api) {
-    LOG(ERROR)
-        << "RegisterLynxExtensionToGlobalEnv faild. create_module_func is null";
+    LOG(ERROR) << "RegisterLynxExtensionToGlobalEnv failed. create_module_func "
+                  "is null";
     return;
   }
 

@@ -9,16 +9,16 @@
 #include "shell/app/relauncher.h"
 
 #include <sys/event.h>
-#include <sys/time.h>
-#include <sys/types.h>
+#include <sys/fcntl.h>
 #include <unistd.h>
 
-#include "base/apple/osstatus_logging.h"
-#include "base/files/file_util.h"
+#include <cstdint>
+
 #include "base/files/scoped_file.h"
 #include "base/logging.h"
 #include "base/posix/eintr_wrapper.h"
 #include "base/process/launch.h"
+#include "base/process/process.h"
 
 namespace relauncher::internal {
 

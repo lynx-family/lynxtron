@@ -17,7 +17,6 @@
 #include "base/numerics/checked_math.h"
 #include "base/win/scoped_hdc.h"
 #include "base/win/scoped_hglobal.h"
-#include "skia/ext/legacy_display_globals.h"
 #include "skia/ext/skia_utils_base.h"
 #include "third_party/skia/include/core/SkColorSpace.h"
 #include "third_party/skia/include/core/SkRect.h"
@@ -199,16 +198,6 @@ SkImageInfo PrepareAllocation(HDC context, BITMAP* backing) {
   return (GetObject(backing_handle, backing_size, backing) == backing_size)
              ? SkImageInfo::MakeN32Premul(backing->bmWidth, backing->bmHeight)
              : SkImageInfo();
-}
-
-sk_sp<SkSurface> MapPlatformSurface(HDC context) {
-  BITMAP backing;
-  const SkImageInfo size(PrepareAllocation(context, &backing));
-  SkSurfaceProps props = skia::LegacyDisplayGlobals::GetSkSurfaceProps();
-  return size.isEmpty()
-             ? nullptr
-             : SkSurface::MakeRasterDirect(size, backing.bmBits,
-                                           backing.bmWidthBytes, &props);
 }
 
 SkBitmap MapPlatformBitmap(HDC context) {

@@ -13,8 +13,6 @@
 
 #include "base/memory/scoped_refptr.h"
 #include "shell/common/global_thread.h"
-// #include "shell/common/browser_thread/browser_task_traits.h"
-// #include "shell/common/browser_thread/browser_thread.h"
 
 namespace dialog_thread {
 

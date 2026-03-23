@@ -46,6 +46,18 @@ let groupIdIndex = 0;
   return item.enabled;
 };
 
+(Menu.prototype as any)._getLabelForCommandId = function (id: number) {
+  return this.commandsMap[id]?.label ?? '';
+};
+
+(Menu.prototype as any)._getSecondaryLabelForCommandId = function (id: number) {
+  return this.commandsMap[id]?.sublabel ?? '';
+};
+
+(Menu.prototype as any)._getIconForCommandId = function (id: number) {
+  return this.commandsMap[id]?.icon ?? null;
+};
+
 (Menu.prototype as any)._shouldCommandIdWorkWhenHidden = function (id: number) {
   return this.commandsMap[id]?.acceleratorWorksWhenHidden ?? false;
 };

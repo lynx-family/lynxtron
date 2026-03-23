@@ -3,6 +3,8 @@
 // LICENSE file in the root directory of this source tree.
 #include "shell/test/lynxtron_test_suite.h"
 
+#include "base/test/test_suite.h"
+
 namespace lynxtron {
 
 LynxtronTestSuite::LynxtronTestSuite(int argc, char** argv)

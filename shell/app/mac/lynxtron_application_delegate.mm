@@ -121,7 +121,15 @@ static NSDictionary* UNNotificationResponseToNSDictionary(
 }
 
 - (NSMenu*)applicationDockMenu:(NSApplication*)sender {
-  return menu_controller_ ? [menu_controller_ menu] : nil;
+  if (!menu_controller_) {
+    return nil;
+  }
+
+  // Manually refresh menu state since menuWillOpen: is not called
+  // by macOS for dock menus for some reason before they are displayed.
+  NSMenu* menu = menu_controller_.menu;
+  [menu_controller_ refreshMenuTree:menu];
+  return menu;
 }
 
 - (BOOL)application:(NSApplication*)sender openFile:(NSString*)filename {
@@ -148,15 +156,12 @@ static NSDictionary* UNNotificationResponseToNSDictionary(
   std::string activity_type(base::SysNSStringToUTF8(userActivity.activityType));
   NSURL* url = userActivity.webpageURL;
   NSDictionary* details = url ? @{@"webpageURL" : url.absoluteString} : @{};
-  if (!userActivity.userInfo) {
-    return NO;
-  }
+  NSDictionary* user_info = userActivity.userInfo ?: @{};
 
   lynxtron::Application* browser = lynxtron::Application::Get();
-  return browser->ContinueUserActivity(
-             activity_type,
-             lynxtron::NSDictionaryToValue(userActivity.userInfo),
-             lynxtron::NSDictionaryToValue(details))
+  return browser->ContinueUserActivity(activity_type,
+                                       lynxtron::NSDictionaryToValue(user_info),
+                                       lynxtron::NSDictionaryToValue(details))
              ? YES
              : NO;
 }
@@ -187,10 +192,10 @@ static NSDictionary* UNNotificationResponseToNSDictionary(
 - (void)application:(NSApplication*)application
     didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken {
   // Resolve outstanding APNS promises created during registration attempts
-  // TODO(Guo Xi)
-  // if (auto* push_notifications = electron::api::PushNotifications::Get()) {
+  // TODO(Guo Xi): Implement push notifications for Lynxtron
+  // if (auto* push_notifications = lynxtron::api::PushNotifications::Get()) {
   //   std::string encoded =
-  //       base::HexEncode(electron::util::as_byte_span(deviceToken));
+  //       base::HexEncode(lynxtron::util::as_byte_span(deviceToken));
   //   push_notifications->ResolveAPNSPromiseSetWithToken(
   //       base::ToLowerASCII(encoded));
   // }
@@ -198,12 +203,12 @@ static NSDictionary* UNNotificationResponseToNSDictionary(
 
 - (void)application:(NSApplication*)application
     didFailToRegisterForRemoteNotificationsWithError:(NSError*)error {
-  // TODO(Guo Xi)
+  // TODO(Guo Xi): Implement push notifications for Lynxtron
   // std::string error_message(base::SysNSStringToUTF8(
   //     [NSString stringWithFormat:@"%ld %@ %@", error.code, error.domain,
   //                                error.userInfo]));
-  // electron::api::PushNotifications* push_notifications =
-  //     electron::api::PushNotifications::Get();
+  // lynxtron::api::PushNotifications* push_notifications =
+  //     lynxtron::api::PushNotifications::Get();
   // if (push_notifications) {
   //   push_notifications->RejectAPNSPromiseSetWithError(error_message);
   // }
@@ -211,12 +216,12 @@ static NSDictionary* UNNotificationResponseToNSDictionary(
 
 - (void)application:(NSApplication*)application
     didReceiveRemoteNotification:(NSDictionary*)userInfo {
-  // TODO(Guo Xi)
-  // electron::api::PushNotifications* push_notifications =
-  //     electron::api::PushNotifications::Get();
+  // TODO(Guo Xi): Implement push notifications for Lynxtron
+  // lynxtron::api::PushNotifications* push_notifications =
+  //     lynxtron::api::PushNotifications::Get();
   // if (push_notifications) {
-  //   electron::api::PushNotifications::Get()->OnDidReceiveAPNSNotification(
-  //       electron::NSDictionaryToValue(userInfo));
+  //   lynxtron::api::PushNotifications::Get()->OnDidReceiveAPNSNotification(
+  //       lynxtron::NSDictionaryToValue(userInfo));
   // }
 }
 

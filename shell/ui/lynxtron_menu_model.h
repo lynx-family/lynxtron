@@ -13,7 +13,6 @@
 #include <string>
 #include <vector>
 
-#include "base/containers/flat_map.h"
 #include "base/files/file_path.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
@@ -55,6 +54,10 @@ class LynxtronMenuModel {
     virtual bool IsCommandIdChecked(int command_id) const = 0;
     virtual bool IsCommandIdEnabled(int command_id) const = 0;
     virtual bool IsCommandIdVisible(int command_id) const = 0;
+    virtual std::u16string GetLabelForCommandId(int command_id) const = 0;
+    virtual std::u16string GetSecondaryLabelForCommandId(
+        int command_id) const = 0;
+    virtual gfx::Image GetIconForCommandId(int command_id) const = 0;
     virtual void ExecuteCommand(int command_id, int event_flags) = 0;
 
     virtual bool GetAcceleratorForCommandIdWithParams(
@@ -157,6 +160,10 @@ class LynxtronMenuModel {
     int command_id = 0;
     ItemType type = TYPE_COMMAND;
     std::u16string label;
+    std::u16string tool_tip;
+    std::u16string role;
+    std::u16string secondary_label;
+    std::u16string custom_type;
     gfx::Image icon;
     int group_id = -1;
     raw_ptr<LynxtronMenuModel> submenu = nullptr;
@@ -165,7 +172,8 @@ class LynxtronMenuModel {
   };
 
   void InsertItem(Item item, size_t index);
-  size_t ValidateIndex(size_t index) const;
+  const Item* GetItemAt(size_t index) const;
+  Item* GetItemAt(size_t index);
 
   raw_ptr<Delegate> delegate_;
 
@@ -174,10 +182,6 @@ class LynxtronMenuModel {
 #endif
 
   std::vector<Item> items_;
-  base::flat_map<int, std::u16string> toolTips_;
-  base::flat_map<int, std::u16string> roles_;
-  base::flat_map<int, std::u16string> sublabels_;
-  base::flat_map<int, std::u16string> customTypes_;
   base::ObserverList<Observer> observers_;
 
   base::WeakPtrFactory<LynxtronMenuModel> weak_factory_{this};

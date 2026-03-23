@@ -7,6 +7,8 @@
 
 #include <vector>
 
+#include "base/containers/span.h"
+
 namespace v8 {
 class Isolate;
 class Context;
@@ -25,7 +27,7 @@ V8SerializerValue SerializeValue(v8::Isolate* isolate,
 
 v8::Local<v8::Value> DeserializeValue(v8::Isolate* isolate,
                                       v8::Local<v8::Context> context,
-                                      const V8SerializerValue& value);
+                                      base::span<const uint8_t> value);
 
 }  // namespace lynxtron
 

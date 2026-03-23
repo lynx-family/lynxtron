@@ -8,6 +8,7 @@
 
 #include <initguid.h>
 #include <shobjidl.h>  // Must be before propkey.
+#include <tchar.h>     // Must be before tpcshrd.h or for any use of _T macro
 
 #include <aclapi.h>
 #include <cfgmgr32.h>
@@ -21,9 +22,6 @@
 #include <sddl.h>
 #include <setupapi.h>
 #include <shellscalingapi.h>
-// #include <signal.h>
-#include <tchar.h>  // Must be before tpcshrd.h or for any use of _T macro
-
 #include <stddef.h>
 #include <stdlib.h>
 #include <strsafe.h>

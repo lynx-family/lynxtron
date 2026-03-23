@@ -4,16 +4,14 @@
 
 #include "shell/api/lynx_view/module/lynx_module_utils.h"
 
-#include "v8.h"
-
-// #include "base/include/log/logging.h"
 #include "third_party/napi/include/napi_env_v8.h"
+#include "v8.h"
 
 namespace lynxtron {
 
 v8::Local<v8::Value> DeserializeValue(v8::Isolate* isolate,
                                       v8::Local<v8::Context> context,
-                                      const V8SerializerValue& value) {
+                                      base::span<const uint8_t> value) {
   v8::Isolate::Scope isolate_scope(isolate);
   v8::Context::Scope context_scope(context);
 
@@ -24,8 +22,10 @@ v8::Local<v8::Value> DeserializeValue(v8::Isolate* isolate,
     return v8::Null(isolate);
   }
 
-  v8::Local<v8::Value> js_value =
-      deserializer.ReadValue(context).ToLocalChecked();
+  v8::Local<v8::Value> js_value;
+  if (!deserializer.ReadValue(context).ToLocal(&js_value)) {
+    return v8::Null(isolate);
+  }
   return js_value;
 }
 

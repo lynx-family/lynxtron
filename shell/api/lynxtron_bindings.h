@@ -12,7 +12,6 @@
 #include <list>
 #include <memory>
 
-// #include "base/memory/scoped_refptr.h"
 #include "base/process/process_metrics.h"
 #include "shell/common/node_bindings.h"
 #include "uv.h"  // NOLINT(build/include_directory)

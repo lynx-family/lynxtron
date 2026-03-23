@@ -31,6 +31,10 @@ export interface MenuItemConstructorOptions {
   submenu?: Menu | MenuItemConstructorOptions[] | null;
   selector?: string;
   click?: (menuItem: MenuItem, focusedWindow: any, event: any) => void;
+  after?: string[];
+  before?: string[];
+  afterGroupContaining?: string[];
+  beforeGroupContaining?: string[];
 }
 
 export interface PopupOptions {

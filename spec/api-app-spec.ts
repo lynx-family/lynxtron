@@ -847,12 +847,11 @@ describe('app module', () => {
     });
   });
 
-  // TODO(Guo Xi): support applicationMenu API
-  // describe('app.applicationMenu', () => {
-  //   it('has the applicationMenu property', () => {
-  //     expect(app).to.have.property('applicationMenu');
-  //   });
-  // });
+  describe('app.applicationMenu', () => {
+    it('has the applicationMenu property', () => {
+      expect(app).to.have.property('applicationMenu');
+    });
+  });
 
   describe('commandLine.hasSwitch', () => {
     it('returns true when present', () => {
@@ -947,23 +946,22 @@ describe('app module', () => {
 
 // TODO(Guo Xi): app.setProxy(options) is not supported
 describe('default behavior', () => {
-  // TODO(Guo Xi): support application Menu
-  // describe('application menu', () => {
-  //   it('creates the default menu if the app does not set it', async () => {
-  //     const result = await runTestApp('default-menu');
-  //     expect(result).to.equal(false);
-  //   });
+  describe('application menu', () => {
+    it('creates the default menu if the app does not set it', async () => {
+      const result = await runTestApp('default-menu');
+      expect(result).to.equal(false);
+    });
 
-  //   it('does not create the default menu if the app sets a custom menu', async () => {
-  //     const result = await runTestApp('default-menu', '--custom-menu');
-  //     expect(result).to.equal(true);
-  //   });
+    it('does not create the default menu if the app sets a custom menu', async () => {
+      const result = await runTestApp('default-menu', '--custom-menu');
+      expect(result).to.equal(true);
+    });
 
-  //   it('does not create the default menu if the app sets a null menu', async () => {
-  //     const result = await runTestApp('default-menu', '--null-menu');
-  //     expect(result).to.equal(true);
-  //   });
-  // });
+    it('does not create the default menu if the app sets a null menu', async () => {
+      const result = await runTestApp('default-menu', '--null-menu');
+      expect(result).to.equal(true);
+    });
+  });
 
   describe('window-all-closed', () => {
     afterEach(closeAllWindows);

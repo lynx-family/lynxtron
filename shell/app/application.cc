@@ -13,6 +13,7 @@
 #include <utility>
 
 #include "base/files/file_util.h"
+#include "base/logging.h"
 #include "base/path_service.h"
 #include "base/run_loop.h"
 #include "base/task/single_thread_task_runner.h"
@@ -72,6 +73,29 @@ void Application::RemoveObserver(ApplicationObserver* obs) {
 // static
 Application* Application::Get() {
   return MainParts::Get()->application();
+}
+
+// static
+bool Application::IsValidProtocolScheme(const std::string& scheme) {
+  // RFC 3986 Section 3.1:
+  // scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
+  if (scheme.empty()) {
+    LOG(ERROR) << "Protocol scheme must not be empty";
+    return false;
+  }
+  if (!base::IsAsciiAlpha(scheme[0])) {
+    LOG(ERROR) << "Protocol scheme must start with an ASCII letter";
+    return false;
+  }
+  for (size_t i = 1; i < scheme.size(); ++i) {
+    const char c = scheme[i];
+    if (!base::IsAsciiAlpha(c) && !base::IsAsciiDigit(c) && c != '+' &&
+        c != '-' && c != '.') {
+      LOG(ERROR) << "Protocol scheme contains invalid character: '" << c << "'";
+      return false;
+    }
+  }
+  return true;
 }
 
 #if BUILDFLAG(IS_WIN)

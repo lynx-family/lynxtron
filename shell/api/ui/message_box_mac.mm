@@ -17,10 +17,8 @@
 #include "base/mac/mac_util.h"
 #include "base/no_destructor.h"
 #include "base/strings/sys_string_conversions.h"
-#include "shell/common/global_thread.h"
-// #include "content/public/browser/browser_task_traits.h"
-// #include "content/public/browser/browser_thread.h"
 #include "shell/app/native_window.h"
+#include "shell/common/global_thread.h"
 #include "skia/ext/skia_utils_mac.h"
 #include "ui/gfx/image/image_skia.h"
 

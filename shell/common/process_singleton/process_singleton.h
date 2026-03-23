@@ -27,7 +27,6 @@
 #include "base/memory/raw_span.h"
 #include "base/memory/ref_counted.h"
 #include "base/process/process.h"
-// #include "ui/gfx/native_ui_types.h"
 
 #if BUILDFLAG(IS_POSIX) && !BUILDFLAG(IS_ANDROID)
 #include "base/files/scoped_temp_dir.h"

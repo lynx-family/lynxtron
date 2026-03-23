@@ -11,7 +11,6 @@
 #include <algorithm>
 
 #include "base/mac/mac_util.h"
-// #include "base/threading/thread_task_runner_handle.h"
 #include "base/task/single_thread_task_runner.h"
 #include "shell/api/native_window_mac.h"
 #include "shell/ui/gfx/geometry/resize_utils.h"

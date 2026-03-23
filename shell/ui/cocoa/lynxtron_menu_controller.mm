@@ -145,6 +145,29 @@ NSUInteger ModifierMaskFromAccelerator(const ui::Accelerator& accelerator) {
   return mask;
 }
 
+int EventFlagsFromCurrentEvent() {
+  NSEvent* event = NSApp.currentEvent;
+  if (!event) {
+    return 0;
+  }
+
+  int flags = 0;
+  NSEventModifierFlags modifiers = event.modifierFlags;
+  if (modifiers & NSEventModifierFlagShift) {
+    flags |= ui::Accelerator::kShift;
+  }
+  if (modifiers & NSEventModifierFlagControl) {
+    flags |= ui::Accelerator::kCtrl;
+  }
+  if (modifiers & NSEventModifierFlagOption) {
+    flags |= ui::Accelerator::kAlt;
+  }
+  if (modifiers & NSEventModifierFlagCommand) {
+    flags |= ui::Accelerator::kCmd;
+  }
+  return flags;
+}
+
 }  // namespace
 
 @interface WeakPtrToLynxtronMenuModelAsNSObject : NSObject
@@ -182,6 +205,9 @@ NSUInteger ModifierMaskFromAccelerator(const ui::Accelerator& accelerator) {
 
 @interface LynxtronMenuController ()
 - (void)performShare:(id)sender;
+- (lynxtron::LynxtronMenuModel*)modelForMenu:(NSMenu*)menu;
+- (void)finalizeTrackingIfNeeded;
+- (void)applyDisplayAttributesToMenuItem:(NSMenuItem*)item;
 @end
 
 @implementation LynxtronMenuController
@@ -199,6 +225,7 @@ NSUInteger ModifierMaskFromAccelerator(const ui::Accelerator& accelerator) {
   if ((self = [super init])) {
     model_ = model->GetWeakPtr();
     isMenuOpen_ = NO;
+    openMenuCount_ = 0;
     useDefaultAccelerator_ = use;
     [self menu];
   }
@@ -220,36 +247,12 @@ NSUInteger ModifierMaskFromAccelerator(const ui::Accelerator& accelerator) {
     return;
   }
   model_ = model->GetWeakPtr();
-  [menu_ removeAllItems];
-
-  const size_t count = model->GetItemCount();
-  for (size_t index = 0; index < count; index++) {
-    if (model->GetTypeAt(index) ==
-        lynxtron::LynxtronMenuModel::TYPE_SEPARATOR) {
-      [self addSeparatorToMenu:menu_ atIndex:index];
-    } else {
-      [self addItemToMenu:menu_ atIndex:index fromModel:model];
-    }
-  }
+  [self populateMenu:menu_ withModel:model];
 }
 
-- (void)cancel {
-  if (isMenuOpen_) {
-    [menu_ cancelTracking];
-    isMenuOpen_ = NO;
-    if (model_) {
-      model_->MenuWillClose();
-    }
-    if (!popupCloseCallback.is_null()) {
-      base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
-          FROM_HERE, std::move(popupCloseCallback));
-    }
-  }
-}
-
-- (NSMenu*)menuFromModel:(lynxtron::LynxtronMenuModel*)model {
-  NSMenu* menu = [[NSMenu alloc] initWithTitle:@""];
-  menu.autoenablesItems = NO;
+- (void)populateMenu:(NSMenu*)menu
+           withModel:(lynxtron::LynxtronMenuModel*)model {
+  [menu removeAllItems];
 
   const size_t count = model->GetItemCount();
   for (size_t index = 0; index < count; index++) {
@@ -260,7 +263,24 @@ NSUInteger ModifierMaskFromAccelerator(const ui::Accelerator& accelerator) {
       [self addItemToMenu:menu atIndex:index fromModel:model];
     }
   }
+}
 
+- (void)cancel {
+  if (openMenuCount_ > 0) {
+    [menu_ cancelTracking];
+    openMenuCount_ = 0;
+    isMenuOpen_ = NO;
+    if (model_) {
+      model_->MenuWillClose();
+    }
+    [self finalizeTrackingIfNeeded];
+  }
+}
+
+- (NSMenu*)menuFromModel:(lynxtron::LynxtronMenuModel*)model {
+  NSMenu* menu = [[NSMenu alloc] initWithTitle:@""];
+  menu.autoenablesItems = NO;
+  [self populateMenu:menu withModel:model];
   menu.delegate = self;
   return menu;
 }
@@ -360,10 +380,12 @@ NSUInteger ModifierMaskFromAccelerator(const ui::Accelerator& accelerator) {
     [NSApp setServicesMenu:submenu];
   } else if (role == u"sharemenu") {
     SharingItem sharing_item;
-    model->GetSharingItemAt(index, &sharing_item);
+    bool has_sharing_item = model->GetSharingItemAt(index, &sharing_item);
     item.target = nil;
     item.action = nil;
-    [item setSubmenu:[self createShareMenuForItem:sharing_item]];
+    [item setSubmenu:has_sharing_item
+                         ? [self createShareMenuForItem:sharing_item]
+                         : MakeEmptySubmenu()];
   } else if (type == lynxtron::LynxtronMenuModel::TYPE_SUBMENU &&
              model->IsVisibleAt(index)) {
     item.target = nil;
@@ -448,10 +470,112 @@ NSUInteger ModifierMaskFromAccelerator(const ui::Accelerator& accelerator) {
     return;
   }
 
+  [self applyDisplayAttributesToMenuItem:item];
   item.enabled = model->IsEnabledAt(index);
   item.hidden = !model->IsVisibleAt(index);
   item.state = model->IsItemCheckedAt(index) ? NSControlStateValueOn
                                              : NSControlStateValueOff;
+}
+
+- (void)applyDisplayAttributesToMenuItem:(NSMenuItem*)item {
+  lynxtron::LynxtronMenuModel* model =
+      [WeakPtrToLynxtronMenuModelAsNSObject getFrom:item.representedObject];
+  if (!model) {
+    return;
+  }
+
+  NSInteger index = item.tag;
+  size_t count = model->GetItemCount();
+  if (index < 0 || static_cast<size_t>(index) >= count) {
+    return;
+  }
+
+  std::u16string label16 = model->GetLabelAt(index);
+  item.title = base::SysUTF16ToNSString(label16);
+
+  std::u16string toolTip = model->GetToolTipAt(index);
+  item.toolTip = base::SysUTF16ToNSString(toolTip);
+
+  gfx::Image icon = model->GetIconAt(index);
+  item.image = icon.IsEmpty() ? nil : icon.ToNSImage();
+
+  std::u16string secondary_label = model->GetSecondaryLabelAt(index);
+  if (@available(macOS 14.4, *)) {
+    if ([item respondsToSelector:@selector(setSubtitle:)]) {
+      NSString* subtitle = secondary_label.empty()
+                               ? @""
+                               : base::SysUTF16ToNSString(secondary_label);
+      [item setValue:subtitle forKey:@"subtitle"];
+    }
+  }
+
+  ui::Accelerator accelerator;
+  if (model->GetAcceleratorAtWithParams(index, useDefaultAccelerator_,
+                                        &accelerator)) {
+    NSString* key = KeyEquivalentFromAccelerator(accelerator);
+    item.keyEquivalent = key;
+    item.keyEquivalentModifierMask = ModifierMaskFromAccelerator(accelerator);
+  } else {
+    item.keyEquivalent = @"";
+    item.keyEquivalentModifierMask = 0;
+  }
+
+  std::u16string role = model->GetRoleAt(index);
+  if (role == u"sharemenu") {
+    SharingItem sharing_item;
+    BOOL has_sharing_item = model->GetSharingItemAt(index, &sharing_item);
+    item.submenu = has_sharing_item ? [self createShareMenuForItem:sharing_item]
+                                    : MakeEmptySubmenu();
+  } else if (model->GetTypeAt(index) ==
+             lynxtron::LynxtronMenuModel::TYPE_SUBMENU) {
+    lynxtron::LynxtronMenuModel* submenu_model =
+        model->GetSubmenuModelAt(index);
+    if (submenu_model) {
+      NSMenu* submenu = item.submenu;
+      if (!submenu) {
+        submenu = [self menuFromModel:submenu_model];
+        item.submenu = submenu;
+      } else {
+        [self populateMenu:submenu withModel:submenu_model];
+        submenu.delegate = self;
+      }
+      submenu.title = item.title;
+    }
+  }
+}
+
+- (lynxtron::LynxtronMenuModel*)modelForMenu:(NSMenu*)menu {
+  if (menu == menu_) {
+    return model_.get();
+  }
+
+  NSMenu* parent_menu = menu.supermenu;
+  if (!parent_menu) {
+    return model_.get();
+  }
+
+  NSInteger parent_index = [parent_menu indexOfItemWithSubmenu:menu];
+  if (parent_index < 0) {
+    return model_.get();
+  }
+
+  NSMenuItem* parent_item = [parent_menu itemAtIndex:parent_index];
+  lynxtron::LynxtronMenuModel* parent_model =
+      [WeakPtrToLynxtronMenuModelAsNSObject
+          getFrom:parent_item.representedObject];
+  if (!parent_model) {
+    return nullptr;
+  }
+  return parent_model->GetSubmenuModelAt(static_cast<size_t>(parent_item.tag));
+}
+
+- (void)finalizeTrackingIfNeeded {
+  if (openMenuCount_ != 0 || popupCloseCallback.is_null()) {
+    return;
+  }
+
+  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+      FROM_HERE, std::move(popupCloseCallback));
 }
 
 - (void)refreshMenuTree:(NSMenu*)menu {
@@ -478,7 +602,7 @@ NSUInteger ModifierMaskFromAccelerator(const ui::Accelerator& accelerator) {
     return;
   }
   const size_t modelIndex = static_cast<size_t>(menuItem.tag);
-  model->ActivatedAt(modelIndex, 0);
+  model->ActivatedAt(modelIndex, EventFlagsFromCurrentEvent());
 }
 
 - (NSMenu*)menu {
@@ -493,19 +617,33 @@ NSUInteger ModifierMaskFromAccelerator(const ui::Accelerator& accelerator) {
 }
 
 - (void)menuWillOpen:(NSMenu*)menu {
-  isMenuOpen_ = YES;
-  if (model_) {
-    model_->MenuWillShow();
+  if (openMenuCount_++ == 0) {
+    isMenuOpen_ = YES;
+  }
+
+  lynxtron::LynxtronMenuModel* model = [self modelForMenu:menu];
+  if (model) {
+    [self populateMenu:menu withModel:model];
+    menu.delegate = self;
+    model->MenuWillShow();
   }
   [self refreshMenuTree:menu];
 }
 
 - (void)menuDidClose:(NSMenu*)menu {
-  if (isMenuOpen_) {
+  if (openMenuCount_ <= 0) {
+    return;
+  }
+
+  lynxtron::LynxtronMenuModel* model = [self modelForMenu:menu];
+  if (model) {
+    model->MenuWillClose();
+  }
+
+  openMenuCount_--;
+  if (openMenuCount_ == 0) {
     isMenuOpen_ = NO;
-    if (model_) {
-      model_->MenuWillClose();
-    }
+    [self finalizeTrackingIfNeeded];
   }
 }
 

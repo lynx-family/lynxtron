@@ -15,8 +15,6 @@
 #include "base/auto_reset.h"
 #include "base/observer_list.h"
 #include "base/strings/sys_string_conversions.h"
-// #include "electron/buildflags/buildflags.h"
-
 #include "shell/app/application.h"
 #include "shell/app/mac/dict_util.h"
 #import "shell/app/mac/lynxtron_application_delegate.h"

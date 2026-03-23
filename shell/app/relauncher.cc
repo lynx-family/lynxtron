@@ -17,8 +17,6 @@
 #include "base/logging.h"
 #include "base/path_service.h"
 #include "base/process/launch.h"
-// #include "content/public/common/content_paths.h"
-// #include "content/public/common/main_function_params.h"
 #include "shell/common/lynxtron_command_line.h"
 
 #if BUILDFLAG(IS_POSIX)

@@ -390,6 +390,8 @@ source_set("lynxtron_lib") {
     "shell/api/lynx_view/lynx_view_client.h",
     "shell/api/lynx_view/lynx_view_extension_register.cc",
     "shell/api/lynx_view/lynx_view_extension_register.h",
+    "shell/api/lynx_view/lynx_view_impl.cc",
+    "shell/api/lynx_view/lynx_view_impl.h",
     "shell/api/lynx_view/module/lynx_bridge_module.cc",
     "shell/api/lynx_view/module/lynx_bridge_module.h",
     "shell/api/lynx_view/module/lynx_emit_event.cc",
@@ -428,6 +430,8 @@ source_set("lynxtron_lib") {
     "shell/app/native_window.cc",
     "shell/app/native_window.h",
     "shell/app/native_window_observer.h",
+    "shell/app/node_main.cc",
+    "shell/app/node_main.h",
     "shell/app/relauncher.cc",
     "shell/app/relauncher.h",
     "shell/app/window_list.cc",
@@ -882,6 +886,7 @@ test("lynxtron_unittests") {
     ]
   }
   sources = [
+    "shell/common/global_thread_unittest.cc",
     "shell/common/v8_util_unittest.cc",
     "shell/common/v8_value_converter_impl_unittest.cc",
     "shell/test/lynxtron_test_suite.cc",

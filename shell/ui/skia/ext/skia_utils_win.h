@@ -76,10 +76,6 @@ SK_API void CopyHDC(HDC source,
                     const RECT& src_rect,
                     const SkMatrix& transform);
 
-// Creates a surface writing to the pixels backing |context|'s bitmap.
-// Returns null on error.
-SK_API sk_sp<SkSurface> MapPlatformSurface(HDC context);
-
 // Creates a bitmap backed by the same pixels backing the HDC's bitmap.
 // Returns an empty bitmap on error. The HDC's bitmap is assumed to be formatted
 // as 32-bits-per-pixel XRGB8888, as created by CreateHBitmapXRGB8888().

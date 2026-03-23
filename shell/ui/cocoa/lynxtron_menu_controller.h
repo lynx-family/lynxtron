@@ -24,6 +24,7 @@ class LynxtronMenuModel;
   base::WeakPtr<lynxtron::LynxtronMenuModel> model_;
   NSMenu* __strong menu_;
   BOOL isMenuOpen_;
+  NSInteger openMenuCount_;
   BOOL useDefaultAccelerator_;
   base::OnceClosure popupCloseCallback;
 }
@@ -34,6 +35,8 @@ class LynxtronMenuModel;
 - (void)setPopupCloseCallback:(base::OnceClosure)callback;
 - (void)populateWithModel:(lynxtron::LynxtronMenuModel*)model;
 - (void)cancel;
+- (void)populateMenu:(NSMenu*)menu
+           withModel:(lynxtron::LynxtronMenuModel*)model;
 
 - (lynxtron::LynxtronMenuModel*)model;
 - (void)setModel:(lynxtron::LynxtronMenuModel*)model;

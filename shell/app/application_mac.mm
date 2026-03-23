@@ -28,6 +28,7 @@
 #include "shell/app/native_window.h"
 #include "shell/app/window_list.h"
 #include "shell/common/application_info.h"
+#include "shell/common/gin_converters/image_converter.h"
 #include "shell/common/gin_converters/login_item_settings_converter.h"
 #include "shell/common/gin_helper/arguments.h"
 #include "shell/common/gin_helper/dictionary.h"
@@ -67,6 +68,12 @@ std::u16string GetAppDisplayNameForProtocol(NSString* app_path) {
   NSString* app_display_name =
       [[NSFileManager defaultManager] displayNameAtPath:app_path];
   return base::SysNSStringToUTF16(app_display_name);
+}
+
+gfx::Image GetApplicationIconForProtocol(NSString* _Nonnull app_path) {
+  NSImage* image = [[NSWorkspace sharedWorkspace] iconForFile:app_path];
+  gfx::Image icon(image);
+  return icon;
 }
 
 bool CheckLoginItemStatus(bool* is_hidden) {
@@ -116,15 +123,12 @@ v8::Local<v8::Promise> Application::GetApplicationInfoForProtocol(
 
   std::u16string app_path = base::SysNSStringToUTF16(ns_app_path);
   std::u16string app_display_name = GetAppDisplayNameForProtocol(ns_app_path);
-  // #if !BUILDFLAG(IS_NODE_LYNX)
-  //   gfx::Image app_icon = GetApplicationIconForProtocol(ns_app_path);
-  // #endif
+
+  gfx::Image app_icon = GetApplicationIconForProtocol(ns_app_path);
 
   dict.Set("name", app_display_name);
   dict.Set("path", app_path);
-  // #if !BUILDFLAG(IS_NODE_LYNX)
-  //   dict.Set("icon", app_icon);
-  // #endif
+  dict.Set("icon", app_icon);
 
   promise.Resolve(dict);
   return handle;
@@ -203,38 +207,48 @@ bool Application::RemoveAsDefaultProtocolClient(const std::string& protocol,
   }
 
   NSString* protocol_ns = [NSString stringWithUTF8String:protocol.c_str()];
-  CFStringRef protocol_cf = base::apple::NSToCFPtrCast(protocol_ns);
-// TODO(codebytere): Use -[NSWorkspace URLForApplicationToOpenURL:] instead
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-  CFArrayRef bundleList = LSCopyAllHandlersForURLScheme(protocol_cf);
-#pragma clang diagnostic pop
-  if (!bundleList) {
+  NSURL* protocol_url =
+      [NSURL URLWithString:[protocol_ns stringByAppendingString:@":"]];
+
+  if (!protocol_url) {
     return false;
   }
-  // On macOS, we can't query the default, but the handlers list seems to put
-  // Apple's defaults first, so we'll use the first option that isn't our bundle
-  CFStringRef other = nil;
-  for (CFIndex i = 0; i < CFArrayGetCount(bundleList); ++i) {
-    other =
-        base::apple::CFCast<CFStringRef>(CFArrayGetValueAtIndex(bundleList, i));
-    if (![identifier isEqualToString:(__bridge NSString*)other]) {
+
+  // Get all applications that can handle this URL scheme.
+  NSArray<NSURL*>* app_urls =
+      [[NSWorkspace sharedWorkspace] URLsForApplicationsToOpenURL:protocol_url];
+
+  if (app_urls.count == 0) {
+    return false;
+  }
+
+  // Find the first application that isn't our bundle.
+  NSString* other_bundle_id = nil;
+  for (NSURL* app_url in app_urls) {
+    NSBundle* app_bundle = [NSBundle bundleWithURL:app_url];
+    NSString* app_identifier = [app_bundle bundleIdentifier];
+
+    if (app_identifier && ![identifier isEqualToString:app_identifier]) {
+      other_bundle_id = app_identifier;
       break;
     }
   }
 
-  // No other app was found set it to none instead of setting it back to itself.
-  if ([identifier isEqualToString:(__bridge NSString*)other]) {
-    other = base::apple::NSToCFPtrCast(@"None");
+  // No other app was found, set it to none instead of setting it back to
+  // itself.
+  if (!other_bundle_id) {
+    other_bundle_id = @"None";
   }
 
-  OSStatus return_code = LSSetDefaultHandlerForURLScheme(protocol_cf, other);
+  OSStatus return_code = LSSetDefaultHandlerForURLScheme(
+      base::apple::NSToCFPtrCast(protocol_ns),
+      base::apple::NSToCFPtrCast(other_bundle_id));
   return return_code == noErr;
 }
 
 bool Application::SetAsDefaultProtocolClient(const std::string& protocol,
                                              gin::Arguments* args) {
-  if (protocol.empty()) {
+  if (!Application::IsValidProtocolScheme(protocol)) {
     return false;
   }
 
@@ -252,7 +266,7 @@ bool Application::SetAsDefaultProtocolClient(const std::string& protocol,
 
 bool Application::IsDefaultProtocolClient(const std::string& protocol,
                                           gin::Arguments* args) {
-  if (protocol.empty()) {
+  if (!Application::IsValidProtocolScheme(protocol)) {
     return false;
   }
 
@@ -262,22 +276,31 @@ bool Application::IsDefaultProtocolClient(const std::string& protocol,
   }
 
   NSString* protocol_ns = [NSString stringWithUTF8String:protocol.c_str()];
+  NSURL* protocol_url =
+      [NSURL URLWithString:[protocol_ns stringByAppendingString:@":"]];
 
-// TODO(codebytere): Use -[NSWorkspace URLForApplicationToOpenURL:] instead
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-  base::apple::ScopedCFTypeRef<CFStringRef> bundleId(
-      LSCopyDefaultHandlerForURLScheme(
-          base::apple::NSToCFPtrCast(protocol_ns)));
-#pragma clang diagnostic pop
-  if (!bundleId) {
+  if (!protocol_url) {
+    return false;
+  }
+
+  NSURL* default_app_url =
+      [[NSWorkspace sharedWorkspace] URLForApplicationToOpenURL:protocol_url];
+
+  if (!default_app_url) {
+    return false;
+  }
+
+  NSBundle* default_app_bundle = [NSBundle bundleWithURL:default_app_url];
+  NSString* default_bundle_id = [default_app_bundle bundleIdentifier];
+
+  if (!default_bundle_id) {
     return false;
   }
 
   // Ensure the comparison is case-insensitive
-  // as LS does not persist the case of the bundle id.
-  NSComparisonResult result = [base::apple::CFToNSPtrCast(bundleId.get())
-      caseInsensitiveCompare:identifier];
+  // as bundle IDs should be compared case-insensitively
+  NSComparisonResult result =
+      [default_bundle_id caseInsensitiveCompare:identifier];
   return result == NSOrderedSame;
 }
 
@@ -378,32 +401,6 @@ bool Application::UpdateUserActivityState(const std::string& type,
   }
   return prevent_default;
 }
-
-// Modified from chrome/browser/ui/cocoa/l10n_util.mm.
-// void Application::ApplyForcedRTL() {
-//   NSUserDefaults* defaults = NSUserDefaults.standardUserDefaults;
-
-//   auto dir = base::i18n::GetForcedTextDirection();
-
-//   // An Electron app should respect RTL behavior of application locale over
-//   // system locale.
-//   auto should_be_rtl = dir == base::i18n::RIGHT_TO_LEFT || IsAppRTL();
-//   auto should_be_ltr = dir == base::i18n::LEFT_TO_RIGHT || !IsAppRTL();
-
-//   // -registerDefaults: won't do the trick here because these defaults exist
-//   // (in the global domain) to reflect the system locale. They need to be set
-//   // in Chrome's domain to supersede the system value.
-//   if (should_be_rtl) {
-//     [defaults setBool:YES forKey:@"AppleTextDirection"];
-//     [defaults setBool:YES forKey:@"NSForceRightToLeftWritingDirection"];
-//   } else if (should_be_ltr) {
-//     [defaults setBool:YES forKey:@"AppleTextDirection"];
-//     [defaults setBool:NO forKey:@"NSForceRightToLeftWritingDirection"];
-//   } else {
-//     [defaults removeObjectForKey:@"AppleTextDirection"];
-//     [defaults removeObjectForKey:@"NSForceRightToLeftWritingDirection"];
-//   }
-// }
 
 v8::Local<v8::Value> Application::GetLoginItemSettings(
     const LoginItemSettings& options) {

@@ -8,10 +8,15 @@
 
 #include "shell/ui/lynxtron_menu_model.h"
 
-#include <limits>
+#include <cstddef>
+#include <optional>
+#include <string>
 #include <utility>
 
+#include "accelerator.h"
+#include "base/check.h"
 #include "build/build_config.h"
+#include "gfx/image/image.h"
 
 namespace lynxtron {
 
@@ -40,24 +45,22 @@ size_t LynxtronMenuModel::GetItemCount() const {
 }
 
 LynxtronMenuModel::ItemType LynxtronMenuModel::GetTypeAt(size_t index) const {
-  if (items_.empty()) {
-    return TYPE_SEPARATOR;
-  }
-  return items_[ValidateIndex(index)].type;
+  return GetItemAt(index)->type;
 }
 
 int LynxtronMenuModel::GetCommandIdAt(size_t index) const {
-  if (items_.empty()) {
-    return -1;
-  }
-  return items_[ValidateIndex(index)].command_id;
+  return GetItemAt(index)->command_id;
 }
 
 std::u16string LynxtronMenuModel::GetLabelAt(size_t index) const {
-  if (items_.empty()) {
-    return std::u16string();
+  const Item* item = GetItemAt(index);
+  if (delegate_ && item->type != TYPE_SEPARATOR) {
+    std::u16string label = delegate_->GetLabelForCommandId(item->command_id);
+    if (!label.empty()) {
+      return label;
+    }
   }
-  return items_[ValidateIndex(index)].label;
+  return item->label;
 }
 
 bool LynxtronMenuModel::IsItemCheckedAt(size_t index) const {
@@ -86,35 +89,29 @@ bool LynxtronMenuModel::IsVisibleAt(size_t index) const {
 }
 
 LynxtronMenuModel* LynxtronMenuModel::GetSubmenuModelAt(size_t index) const {
-  if (items_.empty()) {
-    return nullptr;
-  }
-  return items_[ValidateIndex(index)].submenu;
+  return GetItemAt(index)->submenu;
 }
 
 void LynxtronMenuModel::SetIcon(size_t index, const gfx::Image& image) {
-  if (items_.empty()) {
-    return;
-  }
-  items_[ValidateIndex(index)].icon = image;
+  GetItemAt(index)->icon = image;
 }
 
 gfx::Image LynxtronMenuModel::GetIconAt(size_t index) const {
-  if (items_.empty()) {
-    return gfx::Image();
+  const Item* item = GetItemAt(index);
+  if (delegate_ && item->type != TYPE_SEPARATOR) {
+    gfx::Image icon = delegate_->GetIconForCommandId(item->command_id);
+    if (!icon.IsEmpty()) {
+      return icon;
+    }
   }
-  return items_[ValidateIndex(index)].icon;
+  return item->icon;
 }
 
 void LynxtronMenuModel::ActivatedAt(size_t index, int event_flags) {
-  if (!delegate_ || items_.empty()) {
+  if (!delegate_) {
     return;
   }
-  size_t validated = ValidateIndex(index);
-  if (validated == std::numeric_limits<size_t>::max()) {
-    return;
-  }
-  delegate_->ExecuteCommand(items_[validated].command_id, event_flags);
+  delegate_->ExecuteCommand(GetItemAt(index)->command_id, event_flags);
 }
 
 void LynxtronMenuModel::InsertItemAt(size_t index,
@@ -157,49 +154,45 @@ void LynxtronMenuModel::Clear() {
 
 void LynxtronMenuModel::SetToolTip(size_t index,
                                    const std::u16string& toolTip) {
-  int command_id = GetCommandIdAt(index);
-  toolTips_[command_id] = toolTip;
+  GetItemAt(index)->tool_tip = toolTip;
 }
 
 std::u16string LynxtronMenuModel::GetToolTipAt(size_t index) const {
-  const int command_id = GetCommandIdAt(index);
-  const auto iter = toolTips_.find(command_id);
-  return iter == std::end(toolTips_) ? std::u16string() : iter->second;
+  return GetItemAt(index)->tool_tip;
 }
 
 void LynxtronMenuModel::SetCustomType(size_t index,
                                       const std::u16string& customType) {
-  int command_id = GetCommandIdAt(index);
-  customTypes_[command_id] = customType;
+  GetItemAt(index)->custom_type = customType;
 }
 
 std::u16string LynxtronMenuModel::GetCustomTypeAt(size_t index) const {
-  const int command_id = GetCommandIdAt(index);
-  const auto iter = customTypes_.find(command_id);
-  return iter == std::end(customTypes_) ? std::u16string() : iter->second;
+  return GetItemAt(index)->custom_type;
 }
 
 void LynxtronMenuModel::SetRole(size_t index, const std::u16string& role) {
-  int command_id = GetCommandIdAt(index);
-  roles_[command_id] = role;
+  GetItemAt(index)->role = role;
 }
 
 std::u16string LynxtronMenuModel::GetRoleAt(size_t index) const {
-  const int command_id = GetCommandIdAt(index);
-  const auto iter = roles_.find(command_id);
-  return iter == std::end(roles_) ? std::u16string() : iter->second;
+  return GetItemAt(index)->role;
 }
 
 void LynxtronMenuModel::SetSecondaryLabel(size_t index,
                                           const std::u16string& sublabel) {
-  int command_id = GetCommandIdAt(index);
-  sublabels_[command_id] = sublabel;
+  GetItemAt(index)->secondary_label = sublabel;
 }
 
 std::u16string LynxtronMenuModel::GetSecondaryLabelAt(size_t index) const {
-  int command_id = GetCommandIdAt(index);
-  const auto iter = sublabels_.find(command_id);
-  return iter == std::end(sublabels_) ? std::u16string() : iter->second;
+  const Item* item = GetItemAt(index);
+  if (delegate_ && item->type != TYPE_SEPARATOR) {
+    std::u16string label =
+        delegate_->GetSecondaryLabelForCommandId(item->command_id);
+    if (!label.empty()) {
+      return label;
+    }
+  }
+  return item->secondary_label;
 }
 
 bool LynxtronMenuModel::GetAcceleratorAtWithParams(
@@ -258,14 +251,15 @@ void LynxtronMenuModel::InsertItem(Item item, size_t index) {
                 std::move(item));
 }
 
-size_t LynxtronMenuModel::ValidateIndex(size_t index) const {
-  if (items_.empty()) {
-    return std::numeric_limits<size_t>::max();
-  }
-  if (index >= items_.size()) {
-    return items_.size() - 1;
-  }
-  return index;
+const LynxtronMenuModel::Item* LynxtronMenuModel::GetItemAt(
+    size_t index) const {
+  CHECK_LT(index, items_.size());
+  return &items_[index];
+}
+
+LynxtronMenuModel::Item* LynxtronMenuModel::GetItemAt(size_t index) {
+  CHECK_LT(index, items_.size());
+  return &items_[index];
 }
 
 std::optional<size_t> LynxtronMenuModel::GetIndexOfCommandId(

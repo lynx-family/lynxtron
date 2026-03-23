@@ -10,15 +10,43 @@
 
 #include <utility>
 
+#include "base/logging.h"
+#include "base/notimplemented.h"
 #include "build/build_config.h"
 #include "shell/api/api_base_window.h"
 #include "shell/app/javascript_environment.h"
 #include "shell/common/gin_converters/accelerator_converter.h"
 #include "shell/common/gin_converters/callback_converter.h"
+#include "shell/common/gin_converters/file_path_converter.h"
+#include "shell/common/gin_converters/gurl_converter.h"
 #include "shell/common/gin_converters/image_converter.h"
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/gin_helper/object_template_builder.h"
 #include "shell/common/node_includes.h"
+
+#if BUILDFLAG(IS_MAC)
+namespace gin {
+
+using SharingItem = lynxtron::LynxtronMenuModel::SharingItem;
+
+template <>
+struct Converter<SharingItem> {
+  static bool FromV8(v8::Isolate* isolate,
+                     v8::Local<v8::Value> val,
+                     SharingItem* out) {
+    gin_helper::Dictionary dict;
+    if (!ConvertFromV8(isolate, val, &dict)) {
+      return false;
+    }
+    dict.GetOptional("texts", &(out->texts));
+    dict.GetOptional("filePaths", &(out->file_paths));
+    dict.GetOptional("urls", &(out->urls));
+    return true;
+  }
+};
+
+}  // namespace gin
+#endif
 
 namespace lynxtron::api {
 
@@ -30,7 +58,12 @@ Menu::Menu(gin::Arguments* args)
 
 #if BUILDFLAG(IS_MAC)
   gin_helper::Dictionary options;
-  args->GetNext(&options);
+  if (args->GetNext(&options)) {
+    LynxtronMenuModel::SharingItem item;
+    if (options.Get("sharingItem", &item)) {
+      model_->SetSharingItem(std::move(item));
+    }
+  }
 #endif
 }
 
@@ -46,14 +79,29 @@ void Menu::RemoveModelObserver() {
 
 namespace {
 
+v8::Local<v8::Value> CallMenuMethod(v8::Isolate* isolate,
+                                    Menu* menu,
+                                    const char* method) {
+  return gin_helper::CallMethod(isolate, menu, method);
+}
+
+template <typename... Args>
+v8::Local<v8::Value> CallMenuMethod(v8::Isolate* isolate,
+                                    Menu* menu,
+                                    const char* method,
+                                    Args&&... args) {
+  return gin_helper::CallMethod(isolate, menu, method,
+                                std::forward<Args>(args)...);
+}
+
 bool InvokeBoolMethod(const Menu* menu,
                       const char* method,
                       int command_id,
                       bool default_value = false) {
   v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
   v8::HandleScope scope(isolate);
-  v8::Local<v8::Value> val = gin_helper::CallMethod(
-      isolate, const_cast<Menu*>(menu), method, command_id);
+  v8::Local<v8::Value> val =
+      CallMenuMethod(isolate, const_cast<Menu*>(menu), method, command_id);
   bool ret = false;
   return gin::ConvertFromV8(isolate, val, &ret) ? ret : default_value;
 }
@@ -66,6 +114,34 @@ bool Menu::IsCommandIdChecked(int command_id) const {
 
 bool Menu::IsCommandIdEnabled(int command_id) const {
   return InvokeBoolMethod(this, "_isCommandIdEnabled", command_id);
+}
+
+std::u16string Menu::GetLabelForCommandId(int command_id) const {
+  v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
+  v8::HandleScope scope(isolate);
+  v8::Local<v8::Value> val = CallMenuMethod(
+      isolate, const_cast<Menu*>(this), "_getLabelForCommandId", command_id);
+  std::u16string label;
+  return gin::ConvertFromV8(isolate, val, &label) ? label : std::u16string();
+}
+
+std::u16string Menu::GetSecondaryLabelForCommandId(int command_id) const {
+  v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
+  v8::HandleScope scope(isolate);
+  v8::Local<v8::Value> val =
+      CallMenuMethod(isolate, const_cast<Menu*>(this),
+                     "_getSecondaryLabelForCommandId", command_id);
+  std::u16string label;
+  return gin::ConvertFromV8(isolate, val, &label) ? label : std::u16string();
+}
+
+gfx::Image Menu::GetIconForCommandId(int command_id) const {
+  v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
+  v8::HandleScope scope(isolate);
+  v8::Local<v8::Value> val = CallMenuMethod(isolate, const_cast<Menu*>(this),
+                                            "_getIconForCommandId", command_id);
+  gfx::Image icon;
+  return gin::ConvertFromV8(isolate, val, &icon) ? icon : gfx::Image();
 }
 
 bool Menu::IsCommandIdVisible(int command_id) const {
@@ -82,7 +158,7 @@ bool Menu::GetAcceleratorForCommandIdWithParams(
     ui::Accelerator* accelerator) const {
   v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
   v8::HandleScope scope(isolate);
-  v8::Local<v8::Value> val = gin_helper::CallMethod(
+  v8::Local<v8::Value> val = CallMenuMethod(
       isolate, const_cast<Menu*>(this), "_getAcceleratorForCommandId",
       command_id, use_default_accelerator);
   return gin::ConvertFromV8(isolate, val, accelerator);
@@ -97,22 +173,29 @@ bool Menu::ShouldRegisterAcceleratorForCommandId(int command_id) const {
 bool Menu::GetSharingItemForCommandId(
     int command_id,
     LynxtronMenuModel::SharingItem* item) const {
-  return false;
+  v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
+  v8::HandleScope scope(isolate);
+  v8::Local<v8::Value> val =
+      CallMenuMethod(isolate, const_cast<Menu*>(this),
+                     "_getSharingItemForCommandId", command_id);
+  return gin::ConvertFromV8(isolate, val, item);
 }
 #endif
 
 void Menu::ExecuteCommand(int command_id, int event_flags) {
   v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
   v8::HandleScope scope(isolate);
-  v8::Local<v8::Value> event = v8::Undefined(isolate);
-  gin_helper::CallMethod(isolate, const_cast<Menu*>(this), "_executeCommand",
-                         event, command_id);
+  gin_helper::Dictionary event = gin_helper::Dictionary::CreateEmpty(isolate);
+  event.Set("flags", event_flags);
+  CallMenuMethod(isolate, const_cast<Menu*>(this), "_executeCommand", event,
+                 command_id);
 }
 
 void Menu::OnMenuWillShow() {
   v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
   v8::HandleScope scope(isolate);
-  gin_helper::CallMethod(isolate, const_cast<Menu*>(this), "_menuWillShow");
+  CallMenuMethod(isolate, const_cast<Menu*>(this), "_menuWillShow");
+  Emit("menu-will-show");
 }
 
 base::OnceClosure Menu::BindSelfToClosure(base::OnceClosure callback) {
@@ -235,9 +318,19 @@ void Menu::PopupAt(BaseWindow* window,
                    int x,
                    int y,
                    int positioning_item,
-                   base::OnceClosure callback) {}
+                   base::OnceClosure callback) {
+  (void)window;
+  (void)x;
+  (void)y;
+  (void)positioning_item;
+  (void)callback;
+  NOTIMPLEMENTED();
+}
 
-void Menu::ClosePopupAt(int32_t window_id) {}
+void Menu::ClosePopupAt(int32_t window_id) {
+  (void)window_id;
+  NOTIMPLEMENTED();
+}
 
 void Menu::FillObjectTemplate(v8::Isolate* isolate,
                               v8::Local<v8::ObjectTemplate> templ) {

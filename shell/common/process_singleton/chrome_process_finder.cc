@@ -29,8 +29,6 @@
 #include "base/win/scoped_handle.h"
 #include "base/win/win_util.h"
 #include "base/win/windows_version.h"
-// #include "chrome/common/chrome_constants.h"
-// #include "chrome/common/chrome_switches.h"
 
 namespace {
 // When rendezvousing with an existing process, used to indicate that the

@@ -8,13 +8,18 @@
 
 #include "shell/app/main_parts.h"
 
+#include <string>
+#include <utility>
+
 #include "app/application.h"
+#include "base/command_line.h"
 #include "base/feature_list.h"
 #include "base/path_service.h"
 #include "base/power_monitor/power_monitor.h"
 #include "base/power_monitor/power_monitor_device_source.h"
 #include "base/run_loop.h"
 #include "base/task/thread_pool/thread_pool_instance.h"
+#include "base/threading/hang_watcher.h"
 #include "build/build_config.h"
 #include "gin/v8_initializer.h"
 #include "main_parts_delegate.h"
@@ -23,6 +28,7 @@
 #include "shell/app/icon_manager.h"
 #include "shell/app/javascript_environment.h"
 #include "shell/common/global_thread.h"
+#include "shell/common/lynxtron_command_line.h"
 #include "shell/common/lynxtron_paths.h"
 #include "shell/common/node_bindings.h"
 #include "shell/common/node_includes.h"
@@ -33,6 +39,24 @@
 #endif
 
 namespace lynxtron {
+
+namespace {
+
+void InitializeFeatureList() {
+  // Initialize base::FeatureList with the command-line flags.
+  auto feature_list = std::make_unique<base::FeatureList>();
+
+  base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
+  std::string enable_features =
+      command_line->GetSwitchValueASCII("enable-features");
+  std::string disable_features =
+      command_line->GetSwitchValueASCII("disable-features");
+
+  feature_list->InitFromCommandLine(enable_features, disable_features);
+  base::FeatureList::SetInstance(std::move(feature_list));
+}
+
+}  // namespace
 
 // static
 MainParts* MainParts::self_ = nullptr;
@@ -91,8 +115,18 @@ void MainParts::Initialize() {
   com_initializer_ = std::make_unique<base::win::ScopedCOMInitializer>();
 #endif
 
-  // TODO(Guo Xi): initialize feature list
-  // InitializeFeatureList();
+  InitializeFeatureList();
+
+  base::HangWatcher::InitializeOnMainThread(
+      base::HangWatcher::ProcessType::kBrowserProcess,
+      /*emit_crashes=*/true);
+
+  if (base::HangWatcher::IsEnabled()) {
+    base::HangWatcher::CreateHangWatcherInstance();
+    hang_watcher_unregister_thread_closure_ = base::HangWatcher::RegisterThread(
+        base::HangWatcher::ThreadType::kMainThread);
+    base::HangWatcher::GetInstance()->Start();
+  }
 
   base::ThreadPoolInstance::CreateAndStartWithDefaultParams("lynxtron");
 #if BUILDFLAG(IS_MAC)
@@ -152,13 +186,6 @@ void MainParts::Initialize() {
   //   }
   // #endif
 
-  // std::vector<ui::ResourceScaleFactor> supported_scale_factors;
-  // // On platforms other than iOS, 100P is always a supported scale factor.
-  // supported_scale_factors.push_back(ui::k100Percent);
-  // supported_scale_factors.push_back(ui::k200Percent);
-  // TODO(Guo Xi): set supported scale factors
-  // SetSupportedResourceScaleFactors(supported_scale_factors);
-
   base::PowerMonitor::GetInstance()->Initialize(
       std::make_unique<base::PowerMonitorDeviceSource>());
 
@@ -205,7 +232,6 @@ void MainParts::PostMainMessageLoopRun() {
 }
 
 void MainParts::Shutdown() {
-  // content::BrowserTaskExecutor::Shutdown();
   if (main_parts_delegate_) {
     main_parts_delegate_->PreShutdown();
   }

@@ -8,6 +8,7 @@
 
 #include "shell/api/notifications/notification.h"
 
+#include "api/notifications/notification_delegate.h"
 #include "base/uuid.h"
 
 namespace lynxtron {

@@ -22,14 +22,11 @@
 #include "base/files/file_util.h"
 #include "base/mac/mac_util.h"
 #include "base/strings/sys_string_conversions.h"
-#include "shell/common/global_thread.h"
-// #include "content/public/browser/browser_task_traits.h"
-// #include "content/public/browser/browser_thread.h"
-// #include "electron/mas.h"
 #include "shell/app/native_window.h"
 #include "shell/common/gin_converters/file_path_converter.h"
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/gin_helper/promise.h"
+#include "shell/common/global_thread.h"
 #include "shell/common/thread_restrictions.h"
 
 @interface PopUpButtonHandler : NSObject

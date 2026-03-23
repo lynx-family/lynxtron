@@ -45,11 +45,15 @@ v8::Local<v8::Value> RunFunctionInNodeContext(v8::Isolate* v8_isolate,
   v8::TryCatch try_catch{v8_isolate};
   v8::Local<v8::Value> ret;
 
-  auto v8_script_str =
-      v8::String::NewFromUtf8(v8_isolate, script).ToLocalChecked();
+  v8::Local<v8::String> v8_script_str;
+  if (!v8::String::NewFromUtf8(v8_isolate, script).ToLocal(&v8_script_str)) {
+    return v8::Undefined(v8_isolate);
+  }
 
-  auto v8_script =
-      v8::Script::Compile(node_ctx, v8_script_str).ToLocalChecked();
+  v8::Local<v8::Script> v8_script;
+  if (!v8::Script::Compile(node_ctx, v8_script_str).ToLocal(&v8_script)) {
+    return v8::Undefined(v8_isolate);
+  }
 
   auto function_maybe = v8_script->Run(node_ctx);
   v8::Local<v8::Value> function_val;
@@ -65,10 +69,10 @@ v8::Local<v8::Value> RunFunctionInNodeContext(v8::Isolate* v8_isolate,
 
   if (try_catch.HasCaught()) {
     std::string msg = "no error message";
-    if (!try_catch.Message().IsEmpty()) {
-      msg = *v8::String::Utf8Value(
-          v8_isolate,
-          try_catch.Message()->Get()->ToString(node_ctx).ToLocalChecked());
+    v8::Local<v8::String> msg_str;
+    if (!try_catch.Message().IsEmpty() &&
+        try_catch.Message()->Get()->ToString(node_ctx).ToLocal(&msg_str)) {
+      msg = *v8::String::Utf8Value(v8_isolate, msg_str);
     } else if (try_catch.HasTerminated()) {
       msg = "script execution has been terminated";
     }
@@ -216,17 +220,22 @@ void LynxNodeModule::OnRuntimeAttach(
   v8::Context::Scope context_scope(node_ctx);
   node_context_ = v8::Global<v8::Context>(v8_isolate, node_ctx);
 
-  auto console = v8_context->Global()
-                     ->Get(v8_context, v8::String::NewFromUtf8Literal(
-                                           v8_isolate, "console"))
-                     .ToLocalChecked();
+  v8::Local<v8::Value> console;
+  if (!v8_context->Global()
+           ->Get(v8_context,
+                 v8::String::NewFromUtf8Literal(v8_isolate, "console"))
+           .ToLocal(&console)) {
+    console = v8::Undefined(v8_isolate);
+  }
 
   v8::Local<v8::Array> preload_paths = v8::Array::New(v8_isolate);
   for (size_t i = 0; i < module_data_->preload_paths.size(); ++i) {
-    auto path_str = v8::String::NewFromUtf8(
-                        v8_isolate, module_data_->preload_paths[i].c_str())
-                        .ToLocalChecked();
-    preload_paths->Set(node_ctx, i, path_str).Check();
+    v8::Local<v8::String> path_str;
+    if (v8::String::NewFromUtf8(v8_isolate,
+                                module_data_->preload_paths[i].c_str())
+            .ToLocal(&path_str)) {
+      [[maybe_unused]] auto _ = preload_paths->Set(node_ctx, i, path_str);
+    }
   }
 
   // init context bridge

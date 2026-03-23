@@ -97,17 +97,9 @@
 #include "base/timer/timer.h"
 #include "build/build_config.h"
 #include "build/chromeos_buildflags.h"
-#include "shell/common/process_singleton/process_singleton_internal.h"
-// #include "chrome/common/chrome_constants.h"
-#include "shell/common/process_singleton/process_singleton_lock_posix.h"
-// #include "chrome/grit/branded_strings.h"
-// #include "chrome/grit/generated_resources.h"
-// #include "content/public/browser/browser_task_traits.h"
-// #include "content/public/browser/browser_thread.h"
-// #include "net/base/network_interfaces.h"
-// #include "ui/base/l10n/l10n_util.h"
-// #include "ui/base/resource/scoped_startup_resource_bundle.h"
 #include "shell/common/global_thread.h"
+#include "shell/common/process_singleton/process_singleton_internal.h"
+#include "shell/common/process_singleton/process_singleton_lock_posix.h"
 
 #define FPL FILE_PATH_LITERAL
 namespace {

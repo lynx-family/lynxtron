@@ -12,6 +12,7 @@
 #include "base/containers/span.h"
 #include "base/memory/weak_ptr.h"
 #include "shell/api/lynx_view/lynx_view_client.h"
+#include "shell/api/lynx_view/lynx_view_impl.h"
 #include "shell/ui/gfx/geometry/rect.h"
 
 namespace lynxtron {
@@ -19,12 +20,11 @@ namespace api {
 class LynxWindow;
 }
 
-class LynxViewImpl;
-
 class LynxView {
  public:
   static std::unique_ptr<LynxView> Create(
       base::WeakPtr<api::LynxWindow> lynx_window);
+
   ~LynxView();
 
   static void SetNodePlatformEnv(void* platform);
@@ -34,7 +34,8 @@ class LynxView {
             float dpi,
             void* parent,
             const std::vector<std::string>& node_integration_preload);
-  void LoadTemplate(std::string_view template_url, base::span<uint8_t> content);
+  void LoadTemplate(std::string_view template_url,
+                    base::span<const uint8_t> content);
   void SetClient(base::WeakPtr<LynxViewClient> client);
   void SetBounds(const gfx::Rect& bounds);
   void Show();
@@ -48,10 +49,9 @@ class LynxView {
   void* GetNativeWindow();
 
  private:
-  LynxView(base::WeakPtr<api::LynxWindow> lynx_window);
-
+  explicit LynxView(base::WeakPtr<api::LynxWindow> lynx_window);
   base::WeakPtr<api::LynxWindow> lynx_window_;
-  std::shared_ptr<LynxViewImpl> impl_;
+  std::unique_ptr<LynxViewImpl> impl_;
 };
 
 }  // namespace lynxtron

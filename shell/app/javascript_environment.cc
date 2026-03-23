@@ -85,7 +85,6 @@ JavascriptEnvironment::JavascriptEnvironment(uv_loop_t* event_loop,
 
 JavascriptEnvironment::~JavascriptEnvironment() {
   DCHECK_NE(platform_, nullptr);
-
   {
     v8::HandleScope scope(isolate_);
     isolate_->GetCurrentContext()->Exit();
@@ -101,9 +100,6 @@ JavascriptEnvironment::~JavascriptEnvironment() {
 
   platform_->UnregisterIsolate(isolate_);
 
-  // TODO(Guo Xi):  Remove the following two lines cuasing crash when exit.
-  // v8::V8::Dispose();
-  // v8::V8::DisposePlatform();
 #if ENABLE_TRACE_PERFETTO
   lynxtron::trace::RuntimeProfileHelper::GetInstance()
       .RemoveV8RuntimeProfiler();

@@ -17,8 +17,6 @@
 #include "base/strings/string_number_conversions_win.h"
 #include "base/win/scoped_handle.h"
 #include "shell/common/nt_internals.h"
-// #include "sandbox/win/src/nt_internals.h"
-// #include "sandbox/win/src/win_utils.h"
 
 namespace relauncher::internal {
 

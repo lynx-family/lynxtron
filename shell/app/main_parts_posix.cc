@@ -22,9 +22,6 @@
 #include "base/posix/eintr_wrapper.h"
 #include "base/task/single_thread_task_runner.h"
 #include "base/threading/platform_thread.h"
-// #include "shell/browser/browser.h"
-// #include "shell/common/application_thread/application_task_traits.h"
-// #include "shell/common/application_thread/application_thread.h"
 
 namespace lynxtron {
 

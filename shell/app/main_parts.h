@@ -62,7 +62,15 @@ class MainParts {
   void InstallShutdownSignalHandlers(
       base::OnceCallback<void()> shutdown_callback,
       const scoped_refptr<base::SingleThreadTaskRunner>& task_runner);
+
+  void FreeAppDelegate();
+  void InitializeMacMainMessageLoop();
+  void RegisterURLHandler();
+  void InitializeMainNib();
+  void RegisterAtomCrApp();
 #endif
+
+  static MainParts* self_;
 
   // A place to remember the exit code once the message loop is ready.
   // Before then, we just exit() without any intermediate steps.
@@ -81,26 +89,12 @@ class MainParts {
   std::shared_ptr<node::Environment> node_env_;
   std::unique_ptr<LynxtronBindings> lynxtron_bindings_;
   std::unique_ptr<IconManager> icon_manager_;
+  base::ScopedClosureRunner hang_watcher_unregister_thread_closure_;
 
 #if BUILDFLAG(IS_MAC)
   std::unique_ptr<display::ScopedNativeScreen> scoped_native_screen_;
 #endif
 
-  static MainParts* self_;
-
-#if BUILDFLAG(IS_MAC)
-  void FreeAppDelegate();
-  void InitializeMacMainMessageLoop();
-  void RegisterURLHandler();
-  void InitializeMainNib();
-  void RegisterAtomCrApp();
-#endif
-
-#if defined(OS_MAC)
-  // Todo linshengwei only for test remove later
-  //  void TestLynxWindow();
-#endif
- private:
   std::unique_ptr<MainPartsDelegate> main_parts_delegate_;
 };
 

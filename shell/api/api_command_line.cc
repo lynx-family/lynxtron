@@ -6,15 +6,12 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
+#include <string>
+
 #include "base/command_line.h"
-// #include "base/files/file_path.h"
 #include "base/strings/string_util.h"
-// #include "services/network/public/cpp/network_switches.h"
-// #include "shell/common/gin_converters/base_converter.h"
-// #include "shell/common/gin_converters/file_path_converter.h"
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/node_includes.h"
-// #include "third_party/abseil-cpp/absl/strings/ascii.h"
 
 namespace {
 bool HasSwitch(const std::string& switch_string) {

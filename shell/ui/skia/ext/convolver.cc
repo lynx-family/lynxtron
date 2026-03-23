@@ -13,7 +13,6 @@
 #include "base/check_op.h"
 #include "base/notreached.h"
 #include "skia/ext/convolver_SSE2.h"
-#include "skia/ext/convolver_mips_dspr2.h"
 #include "skia/ext/convolver_neon.h"
 #include "third_party/skia/include/core/SkSize.h"
 #include "third_party/skia/include/core/SkTypes.h"
