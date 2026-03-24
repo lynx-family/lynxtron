@@ -2,14 +2,15 @@
   "name": "lynxtron-shell-demo",
   "author": "Lynxtron Authors",
   "version": "0.0.1",
+  "type": "module",
   "description": "A minimal Lynxtron application",
   "main": "main.js",
   "scripts": {
     "dev": "cross-env TARGET_ENV=desktop NODE_ENV=development concurrently -k --raw \"rspeedy dev\" \"dev-ready-rspeedy && rspack dev\"",
     "dev:web": "cross-env TARGET_ENV=web NODE_ENV=development concurrently -k --raw \"rspeedy dev\" \"rspack serve\"",
     "build": "rspeedy build && rspack build",
-    "start": "cross-env TARGET_ENV=desktop npm run build && lynxtron ./dist/desktop",
-    "start:web": "cross-env TARGET_ENV=web npm run build && npx serve ./dist/web",
+    "start": "cross-env TARGET_ENV=desktop npm run build && lynxtron dist/desktop",
+    "start:web": "cross-env TARGET_ENV=web npm run build && npx serve dist/web",
     "test": "vitest run",
     "pack": "npm run build && lynxtron-builder --publish never"
   },

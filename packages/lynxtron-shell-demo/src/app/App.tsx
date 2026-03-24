@@ -4,7 +4,7 @@
 
 import { useCallback } from '@lynx-js/react';
 import './App.css';
-import placeholder from '@assets/placeholder.png';
+import placeholder from '@assets/placeholder.png?inline';
 
 export function App() {
   const handleTap = useCallback(() => {

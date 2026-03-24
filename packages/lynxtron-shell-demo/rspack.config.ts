@@ -23,6 +23,7 @@ const desktopConfig = defineConfig({
   output: {
     path: path.resolve(__dirname, 'dist/desktop/'),
     filename: '[name].js',
+    module: true,
   },
   devServer: {
     devMiddleware: {
