@@ -19,6 +19,6 @@ void DemoView::OnPropertiesChanged(const lynx::pub::LynxValue& attrs,
 }  // namespace extension
 
 LYNX_EXTERN_C lynx_native_view_t* demo_view_create_view(void* opaque) {
-  auto* view = new extension::DemoView();
+  auto* view = new extension::DemoView(opaque);
   return view->native_view();
 }

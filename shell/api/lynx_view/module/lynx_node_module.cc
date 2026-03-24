@@ -15,8 +15,8 @@
 #include "shell/common/node_util.h"
 #include "third_party/napi/include/napi_env_v8.h"
 
-#ifdef USE_PRIMJS_NAPI
-#include "third_party/napi/include/primjs_napi_defines.h"
+#ifdef USE_WEAK_SUFFIX_NAPI
+#include "third_party/weak-node-api/headers/weak_napi_defines.h"
 #endif
 
 namespace lynxtron {
@@ -99,9 +99,11 @@ class LynxNodeModule : public lynx::pub::LynxExtensionModule {
   };
 
   void OnRuntimeAttach(
-      napi_env env,
+      Napi::Env env,
       std::unique_ptr<lynx::pub::VSyncObserver> vsync_observer) override;
-  void OnRuntimeReady(napi_env env, napi_value lynx, const char* url) override;
+  void OnRuntimeReady(Napi::Env env,
+                      Napi::Value lynx,
+                      const char* url) override;
 
  private:
   v8::Local<v8::Context> CreateNewNodeContext(v8::Isolate* v8_isolate);
@@ -150,9 +152,9 @@ lynx_extension_module_t* LynxNodeModule::CreateLynxNodeModule(void* opaque) {
           });
 
   module->SetCModule(c_module);
-  module->SetNapiModuleCreator([](napi_env env, napi_value exports,
+  module->SetNapiModuleCreator([](Napi::Env env, Napi::Value exports,
                                   const char* module_name,
-                                  void* opaque) { return exports; });
+                                  LynxNodeModule& module) { return exports; });
   return c_module;
 }
 
@@ -196,13 +198,14 @@ bool LynxNodeModule::CheckModuleData() {
 }
 
 void LynxNodeModule::OnRuntimeAttach(
-    napi_env env,
+    Napi::Env env,
     std::unique_ptr<lynx::pub::VSyncObserver> vsync_observer) {
   if (!CheckModuleData()) {
     return;
   }
-
-  auto v8_context = napi_get_env_context_v8(env);
+  napi_env c_env = static_cast<napi_env>(env);
+  auto v8_context =
+      napi_get_env_context_v8(reinterpret_cast<napi_env_primjs>(c_env));
   auto v8_isolate = v8_context->GetIsolate();
 
   v8::Locker locker(v8_isolate);
@@ -244,17 +247,19 @@ void LynxNodeModule::OnRuntimeAttach(
   node_exports_.Reset(v8_isolate, exportsData);
 }
 
-void LynxNodeModule::OnRuntimeReady(napi_env env,
-                                    napi_value lynx,
+void LynxNodeModule::OnRuntimeReady(Napi::Env env,
+                                    Napi::Value lynx,
                                     const char* url) {
   if (!CheckModuleData() || node_exports_.IsEmpty()) {
     LOG(ERROR) << "OnRuntimeReady: node_exports_ is empty, url: " << url;
     return;
   }
-  auto v8_context = napi_get_env_context_v8(env);
+  napi_env c_env = static_cast<napi_env>(env);
+  napi_env_primjs primjs_env = reinterpret_cast<napi_env_primjs>(c_env);
+  auto v8_context = napi_get_env_context_v8(primjs_env);
   auto v8_isolate = v8_context->GetIsolate();
-  napi_value napi_api =
-      napi_v8_value_to_js_value(env, node_exports_.Get(v8_isolate));
+  napi_value napi_api = reinterpret_cast<napi_value>(
+      napi_v8_value_to_js_value(primjs_env, node_exports_.Get(v8_isolate)));
 
   constexpr const char* kInitNodeNativeApi = R"(
     (lynx, api) => {
@@ -262,11 +267,13 @@ void LynxNodeModule::OnRuntimeReady(napi_env env,
     }
   )";
   napi_value test_func;
-  env->napi_run_script(env, kInitNodeNativeApi, strlen(kInitNodeNativeApi),
-                       nullptr, &test_func);
+  napi_value script_value;
+  napi_create_string_utf8(c_env, kInitNodeNativeApi, strlen(kInitNodeNativeApi),
+                          &script_value);
+  napi_run_script(c_env, script_value, &test_func);
 
   napi_value args[2] = {lynx, napi_api};
-  env->napi_call_function(env, test_func, test_func, 2, args, nullptr);
+  napi_call_function(c_env, test_func, test_func, 2, args, nullptr);
 }
 
 void RegisterLynxNodeModuleToLynxView(

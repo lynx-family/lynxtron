@@ -50,4 +50,5 @@ group("lynx_lib") {
       "//lynx/platform/windows:lynx_windows_group",
     ]
   }
+  public_configs = [ "//lynx/platform/embedder:public_api" ]
 }

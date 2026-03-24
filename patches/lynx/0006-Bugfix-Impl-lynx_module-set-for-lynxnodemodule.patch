@@ -1,18 +1,19 @@
-From 9bf89e8d7c03de264024810be19b4979da118743 Mon Sep 17 00:00:00 2001
-From: tangyongjie <80395553+yongjieTang@users.noreply.github.com>
-Date: Wed, 11 Feb 2026 15:45:37 +0800
-Subject: [PATCH] [Bugfix] Impl lynx_module set for lynxnodemodule.
+From 5a1c60478d03cc100c4c4d6cd915bf5d9ce6bb4a Mon Sep 17 00:00:00 2001
+From: RobinWu <46469310+RobinWuu@users.noreply.github.com>
+Date: Thu, 19 Mar 2026 15:43:50 +0800
+Subject: [PATCH] Impl lynx_module set for lynxnodemodule.
 
-Impl lynx_module set for lynxnodemodule.
+Patch-Dir: lynxtron/patches/lynx
+Patch-Filename: 0006-Bugfix-Impl-lynx_module-set-for-lynxnodemodule.patch
 ---
- core/runtime/js/bindings/modules/lynx_module.cc | 12 ++++++++++++
- core/runtime/js/bindings/modules/lynx_module.h  |  3 +++
+ lynx/core/runtime/js/bindings/modules/lynx_module.cc | 12 ++++++++++++
+ lynx/core/runtime/js/bindings/modules/lynx_module.h  |  3 +++
  2 files changed, 15 insertions(+)
 
-diff --git a/core/runtime/js/bindings/modules/lynx_module.cc b/core/runtime/js/bindings/modules/lynx_module.cc
-index 7667ec1ab..717d2b929 100644
---- a/core/runtime/js/bindings/modules/lynx_module.cc
-+++ b/core/runtime/js/bindings/modules/lynx_module.cc
+diff --git a/lynx/core/runtime/js/bindings/modules/lynx_module.cc b/lynx/core/runtime/js/bindings/modules/lynx_module.cc
+index 57da4ae56..e111452ca 100644
+--- a/lynx/core/runtime/js/bindings/modules/lynx_module.cc
++++ b/lynx/core/runtime/js/bindings/modules/lynx_module.cc
 @@ -103,6 +103,9 @@ Value LynxModule::get(Runtime* runtime, const PropNameID& prop) {
            return lock_module->invokeMethod(*(meta.get()), &rt, args, count);
          });
@@ -20,12 +21,12 @@ index 7667ec1ab..717d2b929 100644
 +    if (name_ == "nodejs" && propNameUtf8 == "getExposed") {
 +      return Value(*runtime, node_api_);
 +    }
-     // AllowList For Special Methods
-     // see issue: #1979
-     if (!MethodAllowList().count(propNameUtf8)) {
-@@ -119,6 +122,15 @@ Value LynxModule::get(Runtime* runtime, const PropNameID& prop) {
-   // removed.
-   return this->getAttributeValue(runtime, propNameUtf8);
+     auto attr = this->getAttributeValue(runtime, propNameUtf8);
+     if (!attr.isUndefined()) {
+       return attr;
+@@ -120,6 +123,15 @@ Value LynxModule::get(Runtime* runtime, const PropNameID& prop) {
+     return Value::undefined();
+   }
  }
 +
 +void LynxModule::set(Runtime* runtime, const PropNameID& prop, const Value& value) {
@@ -39,10 +40,10 @@ index 7667ec1ab..717d2b929 100644
  }  // namespace js
  }  // namespace runtime
  }  // namespace lynx
-diff --git a/core/runtime/js/bindings/modules/lynx_module.h b/core/runtime/js/bindings/modules/lynx_module.h
-index 4a5a89d37..00679ffe4 100644
---- a/core/runtime/js/bindings/modules/lynx_module.h
-+++ b/core/runtime/js/bindings/modules/lynx_module.h
+diff --git a/lynx/core/runtime/js/bindings/modules/lynx_module.h b/lynx/core/runtime/js/bindings/modules/lynx_module.h
+index 39d9763ad..b88c7d5ed 100644
+--- a/lynx/core/runtime/js/bindings/modules/lynx_module.h
++++ b/lynx/core/runtime/js/bindings/modules/lynx_module.h
 @@ -48,6 +48,8 @@ class LynxModule : public HostObject,
  
    Value get(Runtime* rt, const PropNameID& prop) override;
@@ -52,7 +53,7 @@ index 4a5a89d37..00679ffe4 100644
    const std::string name_;
    // Public for NetworkInterceptor. When Refactor network finished, protected
    // this.
-@@ -89,6 +91,7 @@ class LynxModule : public HostObject,
+@@ -87,6 +89,7 @@ class LynxModule : public HostObject,
  
   protected:
    std::unordered_map<std::string, std::shared_ptr<MethodMetadata>> methodMap_;

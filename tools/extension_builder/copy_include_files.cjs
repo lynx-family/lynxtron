@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const lynxRoot = path.resolve(__dirname, '../../../../src/lynx');
+const lynxRoot = path.resolve(__dirname, '../../../lynx');
 const targetDir = path.resolve(__dirname, 'include');
 
 if (!fs.existsSync(targetDir)) {
@@ -70,7 +70,7 @@ function copyDirectoryWithStructure(sourceDir, targetRoot) {
         fs.mkdirSync(targetSubDir, { recursive: true });
       }
       copyDirectoryWithStructure(sourcePath, targetSubDir);
-    } else {
+    } else if (file.endsWith('.h')) {
       const fileName = path.basename(sourcePath);
       const targetFile = path.join(targetRoot, fileName);
       fs.copyFileSync(sourcePath, targetFile);
@@ -87,22 +87,16 @@ if (fs.existsSync(embedderPublicDir)) {
   console.error(`Error: Directory not found: ${embedderPublicDir}`);
 }
 
-const napiIncludeDir = path.join(lynxRoot, 'third_party/napi/include');
-const napiFiles = [
-  'js_native_api_types.h',
-  'js_native_api.h',
-  'primjs_napi_defines.h',
-  'primjs_napi_undefs.h'
-];
+const napiIncludeDir = path.join(lynxRoot, 'third_party/weak-node-api/headers');
 
 if (fs.existsSync(napiIncludeDir)) {
-  console.log('\nCopying files from lynx/third_party/napi/include...');
-  napiFiles.forEach(file => {
+  console.log('\nCopying all files from lynx/third_party/weak-node-api/headers...');
+  const files = fs.readdirSync(napiIncludeDir);
+  files.forEach(file => {
     const sourceFile = path.join(napiIncludeDir, file);
-    if (fs.existsSync(sourceFile)) {
+    const stats = fs.statSync(sourceFile);
+    if (stats.isFile()) {
       copyFile(sourceFile, lynxRoot, targetDir);
-    } else {
-      console.error(`Error: File not found: ${sourceFile}`);
     }
   });
 } else {

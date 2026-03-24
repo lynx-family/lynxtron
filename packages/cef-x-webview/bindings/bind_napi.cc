@@ -6,9 +6,12 @@
 
 #include <napi.h>
 
-#include "lynx/platform/embedder/plugin/cef/include/cef_extension_module_creator.h"
-#include "lynx/platform/embedder/plugin/cef/src/cef_extension_module.h"
 #include "lynx/platform/embedder/public/capi/lynx_extension_module_types_capi.h"
+
+extern "C" lynx_extension_module_t*
+cef_extension_module_create_extension_module(void* opaque);
+
+extern "C" bool cef_extension_module_initialize();
 
 typedef struct lynx_extension_module_creator_api_t {
   extension_module_creator create_module_func;

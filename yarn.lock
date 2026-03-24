@@ -1154,6 +1154,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@lynx-js/extension-builder@workspace:tools/extension_builder":
+  version: 0.0.0-use.local
+  resolution: "@lynx-js/extension-builder@workspace:tools/extension_builder"
+  dependencies:
+    "@lynx-js/lynxtron": "workspace:*"
+    node-addon-api: "npm:^7.0.0"
+  languageName: unknown
+  linkType: soft
+
 "@lynx-js/lynx-core@npm:latest":
   version: 0.1.3
   resolution: "@lynx-js/lynx-core@npm:0.1.3"

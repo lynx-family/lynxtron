@@ -7,7 +7,8 @@
 
 #include "capi/lynx_export.h"
 #include "lynx_extension_module.h"
-#include "third_party/napi/include/primjs_napi_defines.h"
+#include "lynx_view.h"
+#include "third_party/weak-node-api/headers/napi.h"
 
 namespace extension {
 
@@ -20,9 +21,11 @@ class DemoExtensionModule : public lynx::pub::LynxExtensionModule {
   void OnLynxViewDestroy() override;
   void OnRuntimeInit() override;
   void OnRuntimeAttach(
-      napi_env env,
+      Napi::Env env,
       std::unique_ptr<lynx::pub::VSyncObserver> vsync_observer) override;
-  void OnRuntimeReady(napi_env env, napi_value lynx, const char* url) override;
+  void OnRuntimeReady(Napi::Env env,
+                      Napi::Value lynx,
+                      const char* url) override;
   void OnRuntimeDetach() override;
   void OnEnterForeground() override;
   void OnEnterBackground() override;
@@ -31,8 +34,6 @@ class DemoExtensionModule : public lynx::pub::LynxExtensionModule {
   // js test
   std::string CallByLynxJS();
 };
-
-#include "third_party/napi/include/primjs_napi_undefs.h"
 
 }  // namespace extension
 

@@ -322,7 +322,10 @@ source_set("lynxtron_lib") {
     "//third_party/node:node_external_config",
   ]
 
-  defines = [ "USE_PRIMJS_NAPI=1" ]
+  defines = [
+    "USE_PRIMJS_NAPI=1",
+    "USE_WEAK_SUFFIX_NAPI=1",
+  ]
 
   deps = [
     ":lynxtron_generate_node_defines",

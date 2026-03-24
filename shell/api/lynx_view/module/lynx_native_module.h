@@ -13,9 +13,10 @@
 
 #include "lynx/platform/embedder/public/capi/lynx_view_builder_capi.h"
 #include "shell/api/lynx_view/module/lynx_module_utils.h"
+#include "third_party/weak-node-api/headers/node_api.h"
 
-#ifdef USE_PRIMJS_NAPI
-#include "third_party/napi/include/primjs_napi_defines.h"
+#ifdef USE_WEAK_SUFFIX_NAPI
+#include "third_party/weak-node-api/headers/weak_napi_defines.h"
 #endif
 
 namespace v8 {
@@ -70,8 +71,8 @@ class LynxNativeModule {
   lynx_extension_module_t* c_module_ = nullptr;
 };
 
-#ifdef USE_PRIMJS_NAPI
-#include "third_party/napi/include/primjs_napi_undefs.h"
+#ifdef USE_WEAK_SUFFIX_NAPI
+#include "third_party/weak-node-api/headers/weak_napi_undefs.h"
 #endif
 
 }  // namespace lynxtron

@@ -4,46 +4,42 @@
 #include "module/demo_extension_module.h"
 
 #include "module/demo_view.h"
-#include "third_party/napi/include/primjs_napi_defines.h"
 
 namespace extension {
 namespace {
-#define NAPI_CREATE_FUNCTION(env, exports, function_name, function)           \
-  {                                                                           \
-    napi_value native_result;                                                 \
-    env->napi_create_function(env, function_name, strlen(function_name),      \
-                              function, nullptr, &native_result);             \
-    env->napi_set_named_property(env, exports, function_name, native_result); \
-  }
 
 const uint64_t kDemoExtensionModuleID =
     reinterpret_cast<uint64_t>(&kDemoExtensionModuleID);
 
-napi_value CallByLynxJS(napi_env env, napi_callback_info info) {
+Napi::Value CallByLynxJS(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
   void* data;
-  lynx_napi_get_instance_data(env, kDemoExtensionModuleID, &data);
+  lynx::pub::LynxExtensionModule::GetNapiInstanceData(
+      env, kDemoExtensionModuleID, &data);
   auto* module = reinterpret_cast<DemoExtensionModule*>(data);
 
   const std::string& module_result = module->CallByLynxJS();
 
-  napi_value result;
-  env->napi_create_string_utf8(env, module_result.c_str(),
-                               module_result.length(), &result);
-  return result;
+  return Napi::String::New(env, module_result.c_str(), module_result.length());
 }
 
-napi_value DemoExtensionModuleMethodsBinder(napi_env env,
-                                            napi_value exports,
-                                            const char* module_name,
-                                            void* opaque) {
-  NAPI_CREATE_FUNCTION(env, exports, "callByLynxJS", CallByLynxJS)
+Napi::Value DemoExtensionModuleMethodsBinder(Napi::Env env,
+                                             Napi::Value exports,
+                                             const char* module_name,
+                                             DemoExtensionModule& module) {
+  if (!exports.IsObject()) {
+    return exports;
+  }
+  Napi::Object exports_obj = exports.As<Napi::Object>();
+  exports_obj.Set("callByLynxJS",
+                  Napi::Function::New(env, CallByLynxJS, "callByLynxJS"));
   return exports;
 }
 }  // namespace
 
 void DemoExtensionModule::OnLynxViewCreate(lynx_view_t* lynx_view) {
   lynx_view_register_native_view(lynx_view, "demo-view", &demo_view_create_view,
-                                 lynx_view);
+                                 nullptr);
 }
 void DemoExtensionModule::OnLynxViewDestroy() {
   // do something
@@ -52,13 +48,14 @@ void DemoExtensionModule::OnRuntimeInit() {
   // do something
 }
 void DemoExtensionModule::OnRuntimeAttach(
-    napi_env env,
+    Napi::Env env,
     std::unique_ptr<lynx::pub::VSyncObserver> vsync_observer) {
-  lynx_napi_set_instance_data(env, kDemoExtensionModuleID, this, nullptr,
-                              nullptr);
+  lynx::pub::LynxExtensionModule::SetNapiInstanceData(
+      env, kDemoExtensionModuleID, this,
+      [](Napi::Env env, void* data, void* hint) {}, nullptr);
 }
-void DemoExtensionModule::OnRuntimeReady(napi_env env,
-                                         napi_value lynx,
+void DemoExtensionModule::OnRuntimeReady(Napi::Env env,
+                                         Napi::Value lynx,
                                          const char* url) {
   // do something
 }

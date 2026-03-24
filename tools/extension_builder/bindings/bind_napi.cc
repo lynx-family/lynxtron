@@ -4,7 +4,9 @@
 #include <napi.h>
 
 #include "capi/lynx_extension_module_types_capi.h"
-#include "module/demo_extension_module.h"
+
+extern "C" lynx_extension_module_t*
+demo_extension_module_create_extension_module(void* opaque);
 
 typedef struct lynx_extension_module_creator_api_t {
   extension_module_creator create_module_func;

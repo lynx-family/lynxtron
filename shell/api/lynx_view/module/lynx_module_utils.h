@@ -29,8 +29,4 @@ v8::Local<v8::Value> DeserializeValue(v8::Isolate* isolate,
 
 }  // namespace lynxtron
 
-#ifdef USE_PRIMJS_NAPI
-#include "third_party/napi/include/primjs_napi_undefs.h"
-#endif
-
 #endif  // LYNXTRON_SHELL_API_LYNX_VIEW_MODULE_LYNX_MODULE_UTILS_H_

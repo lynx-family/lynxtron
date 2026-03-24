@@ -37,8 +37,9 @@ let installationDir;
 const isLocalDependency = !__filename.includes('/node_modules/');
 
 if (isLocalDependency) {
-  // We're running as a local dependency, go up one level to reach the tools directory
-  installationDir = resolve(__dirname, '..', '..', '..');
+  // We're running as a local dependency, skip copying files
+  console.log('Skipping file copy for local dependency installation.');
+  process.exit(0);
 } else {
   // Normal npm installation, go up three levels: scripts -> extension-builder -> scope -> node_modules -> project root
   installationDir = resolve(__dirname, '..', '..', '..', '..');

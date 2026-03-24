@@ -12,8 +12,8 @@
 #include "third_party/napi/include/napi_env_v8.h"
 #include "v8.h"
 
-#ifdef USE_PRIMJS_NAPI
-#include "third_party/napi/include/primjs_napi_defines.h"
+#ifdef USE_WEAK_SUFFIX_NAPI
+#include "third_party/weak-node-api/headers/weak_napi_defines.h"
 #endif
 
 namespace lynxtron {
@@ -33,38 +33,40 @@ napi_threadsafe_function EncodeNapiCallBack(napi_env env,
                                             napi_value js_this,
                                             napi_value napi_callback) {
   auto* ctx = new CallbackContext();
-  env->napi_create_reference(env, napi_callback, 1, &ctx->func_ref);
-  env->napi_create_reference(env, js_this, 1, &ctx->this_ref);
+  napi_create_reference(env, napi_callback, 1, &ctx->func_ref);
+  napi_create_reference(env, js_this, 1, &ctx->this_ref);
 
   napi_threadsafe_function tsfn;
-  env->napi_create_threadsafe_function(
-      env, ctx,
+  napi_create_threadsafe_function(
+      env, nullptr, nullptr, nullptr, 10, 1, ctx,
       [](napi_env env, void* data, void* hint) {
         delete static_cast<CallbackContext*>(data);
       },
       ctx,
-      [](napi_env env, void* ctx_ptr, void* data_ptr) {
+      [](napi_env env, napi_value js_callback, void* ctx_ptr, void* data_ptr) {
         auto* ctx = static_cast<CallbackContext*>(ctx_ptr);
         auto* value = static_cast<JSBCallbackData*>(data_ptr);
-        v8::Local<v8::Context> context = napi_get_env_context_v8(env);
+        napi_env_primjs primjs_env = reinterpret_cast<napi_env_primjs>(env);
+        v8::Local<v8::Context> context = napi_get_env_context_v8(primjs_env);
         v8::Isolate* isolate = context->GetIsolate();
         v8::Isolate::Scope isolate_scope(isolate);
         v8::Context::Scope context_scope(context);
 
         napi_value func;
-        env->napi_get_reference_value(env, ctx->func_ref, &func);
+        napi_get_reference_value(env, ctx->func_ref, &func);
         napi_value js_this;
-        env->napi_get_reference_value(env, ctx->this_ref, &js_this);
+        napi_get_reference_value(env, ctx->this_ref, &js_this);
 
         v8::Local<v8::Value> js_value =
             DeserializeValue(isolate, context, value->data);
-        napi_value argv = napi_v8_value_to_js_value(env, js_value);
+        napi_value argv = reinterpret_cast<napi_value>(
+            napi_v8_value_to_js_value(primjs_env, js_value));
 
-        env->napi_call_function(env, js_this, func, 1, &argv, nullptr);
-        env->napi_delete_reference(env, ctx->func_ref);
-        env->napi_delete_reference(env, ctx->this_ref);
+        napi_call_function(env, js_this, func, 1, &argv, nullptr);
+        napi_delete_reference(env, ctx->func_ref);
+        napi_delete_reference(env, ctx->this_ref);
         delete value;
-        env->napi_delete_threadsafe_function(value->tsfn);
+        napi_release_threadsafe_function(value->tsfn, napi_tsfn_abort);
       },
       &tsfn);
 
@@ -123,25 +125,26 @@ napi_value LynxNativeModule::BindFunctionsToNapiModule(napi_env env,
     napi_value native_result;
 
     auto* method_invoker_data = new MethodInvokerData(*module_ptr, method_data);
-    env->napi_create_function(
+    napi_create_function(
         env, method_name.c_str(), method_name.length(),
         [](napi_env env, napi_callback_info info) -> napi_value {
           size_t napi_argc = 0;
           void* data = nullptr;
-          if (env->napi_get_cb_info(env, info, &napi_argc, nullptr, nullptr,
-                                    &data) != napi_ok) {
+          if (napi_get_cb_info(env, info, &napi_argc, nullptr, nullptr,
+                               &data) != napi_ok) {
             return nullptr;
           }
           const auto* method_data = static_cast<MethodInvokerData*>(data);
 
           napi_value js_this;
           napi_value napi_argv[napi_argc];
-          if (env->napi_get_cb_info(env, info, &napi_argc, napi_argv, &js_this,
-                                    nullptr) != napi_ok) {
+          if (napi_get_cb_info(env, info, &napi_argc, napi_argv, &js_this,
+                               nullptr) != napi_ok) {
             return nullptr;
           }
 
-          v8::Local<v8::Context> ctx = napi_get_env_context_v8(env);
+          napi_env_primjs primjs_env = reinterpret_cast<napi_env_primjs>(env);
+          v8::Local<v8::Context> ctx = napi_get_env_context_v8(primjs_env);
           v8::Isolate* isolate = ctx->GetIsolate();
 
           // Deserialize args.
@@ -150,7 +153,7 @@ napi_value LynxNativeModule::BindFunctionsToNapiModule(napi_env env,
           // Deserialize callback. index and callback functron.
           for (size_t index = 0; index < napi_argc; index++) {
             napi_valuetype type;
-            if (env->napi_typeof(env, napi_argv[index], &type) != napi_ok) {
+            if (napi_typeof(env, napi_argv[index], &type) != napi_ok) {
               return nullptr;
             }
 
@@ -160,7 +163,9 @@ napi_value LynxNativeModule::BindFunctionsToNapiModule(napi_env env,
             } else {
               v8_argvs[index] = SerializeValue(
                   isolate, ctx,
-                  napi_js_value_to_v8_value(env, napi_argv[index]));
+                  napi_js_value_to_v8_value(
+                      primjs_env,
+                      reinterpret_cast<napi_value_primjs>(napi_argv[index])));
             }
           }
 
@@ -181,14 +186,13 @@ napi_value LynxNativeModule::BindFunctionsToNapiModule(napi_env env,
           return nullptr;
         },
         method_invoker_data, &native_result);
-    env->napi_add_finalizer(
+    napi_add_finalizer(
         env, native_result, method_invoker_data,
         [](napi_env env, void* data, void* hint) {
           delete static_cast<MethodInvokerData*>(data);
         },
         nullptr, nullptr);
-    env->napi_set_named_property(env, exports, method_name.c_str(),
-                                 native_result);
+    napi_set_named_property(env, exports, method_name.c_str(), native_result);
   }
 
   return exports;
@@ -221,11 +225,11 @@ void LynxNativeModule::RunMethodInMainThread(
             auto value_ptr =
                 new JSBCallbackData{std::move(data), callback.tsfn};
 
-            auto status = callback.env->napi_call_threadsafe_function(
+            auto status = napi_call_threadsafe_function(
                 callback.tsfn, value_ptr, napi_tsfn_nonblocking);
             if (status != napi_ok) {
               delete value_ptr;
-              callback.env->napi_delete_threadsafe_function(callback.tsfn);
+              napi_release_threadsafe_function(callback.tsfn, napi_tsfn_abort);
             }
           }).ToV8();
       continue;

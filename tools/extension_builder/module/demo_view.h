@@ -7,6 +7,8 @@
 namespace extension {
 class DemoView : public lynx::pub::LynxNativeView {
  public:
+  explicit DemoView(void* user_data) {}
+
   bool IsSurfaceEnabled() override { return false; }
 
   void OnPropertiesChanged(const lynx::pub::LynxValue& attrs,
