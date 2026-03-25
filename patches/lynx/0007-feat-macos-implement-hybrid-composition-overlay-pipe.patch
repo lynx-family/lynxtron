@@ -1,13 +1,12 @@
-From 20925fab6d41ba75f015494811fcffef7467f22a Mon Sep 17 00:00:00 2001
+From 0440149f503497b173e26f7a83ae307ea7e36635 Mon Sep 17 00:00:00 2001
 From: zhixuan <201550585+icecreamx10@users.noreply.github.com>
-Date: Mon, 9 Mar 2026 15:03:20 +0800
-Subject: [PATCH] feat(macos): implement hybrid composition overlay pipeline
- (Phase 1+2)
+Date: Wed, 25 Mar 2026 14:04:46 +0800
+Subject: [PATCH] feat(macos): implement hybrid composition overlay
+ pipeline(Phase 1+2)
 
 Add macOS platform overlay and presenter services that allow Lynx/Skia
 UI layers to render on top of native NSViews (Scintilla, etc.) using
 CALayer-based overlay composition.
-
 Key changes:
 - Add LynxOverlayView (NSView + CAMetalLayer) as overlay surface
 - Add PlatformOverlayServiceMac / PresenterServiceMac implementations
@@ -17,7 +16,6 @@ Key changes:
   condition: macOS Create() returns non-null, causing FML_DCHECK abort
   when RegisterService is later called); use lazy re-query in SubmitFrame
 - Add service_manager_weak_ for lazy service resolution after init
-
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 ---
  .../native_view_service_desktop.cc            |   1 +
@@ -28,22 +26,22 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
  .../Source/platform_overlay_service_mac.mm    | 134 ++++++++++++++++++
  .../framework/Source/presenter_service_mac.h  |  48 +++++++
  .../framework/Source/presenter_service_mac.mm |  42 ++++++
- lynx/platform/darwin/macos/common/BUILD.gn    |   7 +
+ platform/darwin/macos/common/BUILD.gn    |   7 +
  .../darwin/macos/common/LynxOverlayView.h     |  31 ++++
  .../darwin/macos/common/LynxOverlayView.mm    |  82 +++++++++++
  .../darwin/macos/common/LynxUIRenderer.mm     |  75 ++++++++++
  12 files changed, 570 insertions(+), 7 deletions(-)
- create mode 100644 lynx/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h
- create mode 100644 lynx/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.mm
- create mode 100644 lynx/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.h
- create mode 100644 lynx/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.mm
- create mode 100644 lynx/platform/darwin/macos/common/LynxOverlayView.h
- create mode 100644 lynx/platform/darwin/macos/common/LynxOverlayView.mm
+ create mode 100644 clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h
+ create mode 100644 clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.mm
+ create mode 100644 clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.h
+ create mode 100644 clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.mm
+ create mode 100644 platform/darwin/macos/common/LynxOverlayView.h
+ create mode 100644 platform/darwin/macos/common/LynxOverlayView.mm
 
-diff --git a/lynx/clay/lynx_adaptor/native_view_service_desktop.cc b/lynx/clay/lynx_adaptor/native_view_service_desktop.cc
-index d348ce81a..8da660bed 100644
---- a/lynx/clay/lynx_adaptor/native_view_service_desktop.cc
-+++ b/lynx/clay/lynx_adaptor/native_view_service_desktop.cc
+diff --git a/clay/lynx_adaptor/native_view_service_desktop.cc b/clay/lynx_adaptor/native_view_service_desktop.cc
+index d348ce81a1..8da660bed7 100644
+--- a/clay/lynx_adaptor/native_view_service_desktop.cc
++++ b/clay/lynx_adaptor/native_view_service_desktop.cc
 @@ -74,6 +74,7 @@ class NativeViewPluginDesktop : public NativeViewPlugin {
    }
  
@@ -52,10 +50,10 @@ index d348ce81a..8da660bed 100644
    bool SupportScrolling() override {
      return native_platform_view_->SupportScrolling();
    }
-diff --git a/lynx/clay/shell/common/services/compositor/compositor_service.cc b/lynx/clay/shell/common/services/compositor/compositor_service.cc
-index 89e730a77..fba9982da 100644
---- a/lynx/clay/shell/common/services/compositor/compositor_service.cc
-+++ b/lynx/clay/shell/common/services/compositor/compositor_service.cc
+diff --git a/clay/shell/common/services/compositor/compositor_service.cc b/clay/shell/common/services/compositor/compositor_service.cc
+index 89e730a779..fba9982da3 100644
+--- a/clay/shell/common/services/compositor/compositor_service.cc
++++ b/clay/shell/common/services/compositor/compositor_service.cc
 @@ -30,6 +30,19 @@ bool CompositorService::SubmitFrame(
      return background_frame->Submit();
    }
@@ -169,10 +167,10 @@ index 89e730a77..fba9982da 100644
    compositor_surfaces_.clear();
  }
  
-diff --git a/lynx/clay/shell/common/services/compositor/compositor_service.h b/lynx/clay/shell/common/services/compositor/compositor_service.h
-index f5eba2ee3..68187658d 100644
---- a/lynx/clay/shell/common/services/compositor/compositor_service.h
-+++ b/lynx/clay/shell/common/services/compositor/compositor_service.h
+diff --git a/clay/shell/common/services/compositor/compositor_service.h b/clay/shell/common/services/compositor/compositor_service.h
+index f5eba2ee35..68187658d2 100644
+--- a/clay/shell/common/services/compositor/compositor_service.h
++++ b/clay/shell/common/services/compositor/compositor_service.h
 @@ -8,6 +8,7 @@
  #include <memory>
  #include <vector>
@@ -193,10 +191,10 @@ index f5eba2ee3..68187658d 100644
    // The index of the entry in the layers_ vector that determines the beginning
    // of the unused
    // layers. For example, consider the following vector:
-diff --git a/lynx/clay/shell/platform/darwin/macos/BUILD.gn b/lynx/clay/shell/platform/darwin/macos/BUILD.gn
-index e91e140af..bd292f3af 100644
---- a/lynx/clay/shell/platform/darwin/macos/BUILD.gn
-+++ b/lynx/clay/shell/platform/darwin/macos/BUILD.gn
+diff --git a/clay/shell/platform/darwin/macos/BUILD.gn b/clay/shell/platform/darwin/macos/BUILD.gn
+index e91e140aff..bd292f3afa 100644
+--- a/clay/shell/platform/darwin/macos/BUILD.gn
++++ b/clay/shell/platform/darwin/macos/BUILD.gn
 @@ -64,6 +64,10 @@ source_set("flutter_framework_source") {
      "framework/Source/FlutterViewEngineProvider.mm",
      "framework/Source/FlutterViewProvider.h",
@@ -208,11 +206,11 @@ index e91e140af..bd292f3af 100644
    ]
  
    sources += _flutter_framework_headers
-diff --git a/lynx/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h b/lynx/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h
+diff --git a/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h b/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h
 new file mode 100644
-index 000000000..f61e538f1
+index 0000000000..f61e538f1e
 --- /dev/null
-+++ b/lynx/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h
++++ b/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h
 @@ -0,0 +1,83 @@
 +// Copyright 2025 The Lynx Authors. All rights reserved.
 +// Licensed under the Apache License Version 2.0 that can be found in the
@@ -297,11 +295,11 @@ index 000000000..f61e538f1
 +}  // namespace clay
 +
 +#endif  // CLAY_SHELL_PLATFORM_DARWIN_MACOS_PLATFORM_OVERLAY_SERVICE_MAC_H_
-diff --git a/lynx/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.mm b/lynx/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.mm
+diff --git a/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.mm b/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.mm
 new file mode 100644
-index 000000000..338c81b22
+index 0000000000..338c81b227
 --- /dev/null
-+++ b/lynx/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.mm
++++ b/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.mm
 @@ -0,0 +1,134 @@
 +// Copyright 2025 The Lynx Authors. All rights reserved.
 +// Licensed under the Apache License Version 2.0 that can be found in the
@@ -437,11 +435,11 @@ index 000000000..338c81b22
 +}
 +
 +}  // namespace clay
-diff --git a/lynx/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.h b/lynx/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.h
+diff --git a/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.h b/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.h
 new file mode 100644
-index 000000000..13a801e9b
+index 0000000000..13a801e9bc
 --- /dev/null
-+++ b/lynx/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.h
++++ b/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.h
 @@ -0,0 +1,48 @@
 +// Copyright 2025 The Lynx Authors. All rights reserved.
 +// Licensed under the Apache License Version 2.0 that can be found in the
@@ -491,11 +489,11 @@ index 000000000..13a801e9b
 +}  // namespace clay
 +
 +#endif  // CLAY_SHELL_PLATFORM_DARWIN_MACOS_PRESENTER_SERVICE_MAC_H_
-diff --git a/lynx/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.mm b/lynx/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.mm
+diff --git a/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.mm b/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.mm
 new file mode 100644
-index 000000000..8cb67de7e
+index 0000000000..8cb67de7ef
 --- /dev/null
-+++ b/lynx/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.mm
++++ b/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.mm
 @@ -0,0 +1,42 @@
 +// Copyright 2025 The Lynx Authors. All rights reserved.
 +// Licensed under the Apache License Version 2.0 that can be found in the
@@ -539,10 +537,10 @@ index 000000000..8cb67de7e
 +}
 +
 +}  // namespace clay
-diff --git a/lynx/platform/darwin/macos/common/BUILD.gn b/lynx/platform/darwin/macos/common/BUILD.gn
-index f2606c564..5b21d7616 100644
---- a/lynx/platform/darwin/macos/common/BUILD.gn
-+++ b/lynx/platform/darwin/macos/common/BUILD.gn
+diff --git a/platform/darwin/macos/common/BUILD.gn b/platform/darwin/macos/common/BUILD.gn
+index 0d1850ab80..27c745d327 100644
+--- a/platform/darwin/macos/common/BUILD.gn
++++ b/platform/darwin/macos/common/BUILD.gn
 @@ -6,6 +6,8 @@ import("../../../../core/Lynx.gni")
  
  lynx_core_source_set("common") {
@@ -552,9 +550,9 @@ index f2606c564..5b21d7616 100644
      "LynxUIRenderer.h",
      "LynxUIRenderer.mm",
      "vsync_monitor_macos.h",
-@@ -21,4 +23,9 @@ lynx_core_source_set("common") {
-     "../../../../clay/ui:ui",
+@@ -22,4 +24,9 @@ lynx_core_source_set("common") {
      "../../../../third_party/rapidjson",
+     "../../../embedder:embedder",
    ]
 +
 +  frameworks = [
@@ -562,11 +560,11 @@ index f2606c564..5b21d7616 100644
 +    "QuartzCore.framework",
 +  ]
  }
-diff --git a/lynx/platform/darwin/macos/common/LynxOverlayView.h b/lynx/platform/darwin/macos/common/LynxOverlayView.h
+diff --git a/platform/darwin/macos/common/LynxOverlayView.h b/platform/darwin/macos/common/LynxOverlayView.h
 new file mode 100644
-index 000000000..929592237
+index 0000000000..9295922371
 --- /dev/null
-+++ b/lynx/platform/darwin/macos/common/LynxOverlayView.h
++++ b/platform/darwin/macos/common/LynxOverlayView.h
 @@ -0,0 +1,31 @@
 +// Copyright 2025 The Lynx Authors. All rights reserved.
 +// Licensed under the Apache License Version 2.0 that can be found in the
@@ -599,11 +597,11 @@ index 000000000..929592237
 +@end
 +
 +#endif  // PLATFORM_DARWIN_MACOS_COMMON_LYNX_OVERLAY_VIEW_H_
-diff --git a/lynx/platform/darwin/macos/common/LynxOverlayView.mm b/lynx/platform/darwin/macos/common/LynxOverlayView.mm
+diff --git a/platform/darwin/macos/common/LynxOverlayView.mm b/platform/darwin/macos/common/LynxOverlayView.mm
 new file mode 100644
-index 000000000..8e06e441e
+index 0000000000..8e06e441ec
 --- /dev/null
-+++ b/lynx/platform/darwin/macos/common/LynxOverlayView.mm
++++ b/platform/darwin/macos/common/LynxOverlayView.mm
 @@ -0,0 +1,82 @@
 +// Copyright 2025 The Lynx Authors. All rights reserved.
 +// Licensed under the Apache License Version 2.0 that can be found in the
@@ -687,10 +685,10 @@ index 000000000..8e06e441e
 +}
 +
 +@end
-diff --git a/lynx/platform/darwin/macos/common/LynxUIRenderer.mm b/lynx/platform/darwin/macos/common/LynxUIRenderer.mm
-index 7296fa844..508740f64 100644
---- a/lynx/platform/darwin/macos/common/LynxUIRenderer.mm
-+++ b/lynx/platform/darwin/macos/common/LynxUIRenderer.mm
+diff --git a/platform/darwin/macos/common/LynxUIRenderer.mm b/platform/darwin/macos/common/LynxUIRenderer.mm
+index 1c23a01567..a5145d9e9a 100644
+--- a/platform/darwin/macos/common/LynxUIRenderer.mm
++++ b/platform/darwin/macos/common/LynxUIRenderer.mm
 @@ -3,6 +3,8 @@
  // LICENSE file in the root directory of this source tree.
  
@@ -778,7 +776,7 @@ index 7296fa844..508740f64 100644
  }
  
  - (void)RegisterIMEHandler:(void*)handler arg:(void*)arg {
-@@ -198,6 +247,25 @@ LynxUIRendererImpl::LynxUIRendererImpl(lynx_view_builder_t* builder) {
+@@ -198,6 +247,25 @@ LynxUIRendererImpl::LynxUIRendererImpl(lynx_view_builder_t* builder) : LynxUIRen
    clay::NativeViewServiceDesktop::SetViewFactories(view_context,
                                                     std::move(builder->native_view_creators));
  
