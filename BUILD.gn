@@ -331,6 +331,7 @@ source_set("lynxtron_lib") {
     ":lynxtron_generate_node_defines",
     ":lynxtron_js2c",
     ":lynxtron_version_header",
+    "shell/legacy:legacy",
     "shell/ui/display",
     "shell/ui/gfx",
     "shell/ui/gfx/codec",
