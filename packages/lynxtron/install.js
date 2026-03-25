@@ -60,6 +60,43 @@ try {
   await extractZip(PACKAGE_PATH, { dir: PACKAGE_DIR_PATH });
   console.log('Unzip completed');
 
+  // Restore macOS framework symlinks (extract-zip expands symlinks into copies)
+  if (PLATFORM === 'darwin' || PLATFORM === 'mas') {
+    try {
+      const fwBase = path.join(PACKAGE_DIR_PATH, 'lynxtron.app', 'Contents', 'Frameworks', 'Lynxtron Framework.framework');
+      const versionsDir = path.join(fwBase, 'Versions');
+      // Find the actual version directory (e.g., "1.0")
+      const versions = fs.readdirSync(versionsDir).filter(v => v !== 'Current');
+      if (versions.length === 1) {
+        const ver = versions[0];
+        const verDir = path.join(versionsDir, ver);
+        const currentLink = path.join(versionsDir, 'Current');
+        const topBinary = path.join(fwBase, 'Lynxtron Framework');
+        const topResources = path.join(fwBase, 'Resources');
+
+        // Remove duplicates and create symlinks
+        if (fs.existsSync(currentLink) && !fs.lstatSync(currentLink).isSymbolicLink()) {
+          fs.rmSync(currentLink, { recursive: true });
+          fs.symlinkSync(ver, currentLink);
+          console.log(`Restored symlink: Versions/Current → ${ver}`);
+        }
+        if (fs.existsSync(topBinary) && !fs.lstatSync(topBinary).isSymbolicLink()) {
+          fs.unlinkSync(topBinary);
+          fs.symlinkSync(path.join('Versions', 'Current', 'Lynxtron Framework'), topBinary);
+          console.log('Restored symlink: Lynxtron Framework → Versions/Current/Lynxtron Framework');
+        }
+        if (fs.existsSync(topResources) && !fs.lstatSync(topResources).isSymbolicLink()) {
+          fs.rmSync(topResources, { recursive: true });
+          fs.symlinkSync(path.join('Versions', 'Current', 'Resources'), topResources);
+          console.log('Restored symlink: Resources → Versions/Current/Resources');
+        }
+      }
+    } catch (symlinkError) {
+      console.warn('Warning: Could not restore framework symlinks:', symlinkError.message);
+      // Non-fatal — app still works with copies, just wastes disk space
+    }
+  }
+
   // Delete original zip file after unzip to release space
   try {
     fs.unlinkSync(PACKAGE_PATH);
