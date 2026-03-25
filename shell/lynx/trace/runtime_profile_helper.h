@@ -19,12 +19,14 @@ class RuntimeProfileHelper {
   RuntimeProfileHelper() = default;
   ~RuntimeProfileHelper() = default;
 
-  static void SetV8RuntimeProfiler(v8::Isolate* isolate);
-  static void RemoveV8RuntimeProfiler();
+  static RuntimeProfileHelper& GetInstance();
+
+  void SetV8RuntimeProfiler(v8::Isolate* isolate);
+  void RemoveV8RuntimeProfiler();
 
  private:
-  static std::shared_ptr<lynx::runtime::profile::V8RuntimeProfiler>
-      runtime_profiler_;
+  std::shared_ptr<lynx::runtime::profile::V8RuntimeProfiler> runtime_profiler_ =
+      nullptr;
 };
 
 }  // namespace trace

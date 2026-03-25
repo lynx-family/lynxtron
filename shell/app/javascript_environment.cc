@@ -78,7 +78,8 @@ JavascriptEnvironment::JavascriptEnvironment(uv_loop_t* event_loop,
   context->Enter();
 
 #if ENABLE_TRACE_PERFETTO
-  lynxtron::trace::RuntimeProfileHelper::SetV8RuntimeProfiler(isolate_);
+  lynxtron::trace::RuntimeProfileHelper::GetInstance().SetV8RuntimeProfiler(
+      isolate_);
 #endif  // ENABLE_TRACE_PERFETTO
 }
 
@@ -104,7 +105,8 @@ JavascriptEnvironment::~JavascriptEnvironment() {
   // v8::V8::Dispose();
   // v8::V8::DisposePlatform();
 #if ENABLE_TRACE_PERFETTO
-  lynxtron::trace::RuntimeProfileHelper::RemoveV8RuntimeProfiler();
+  lynxtron::trace::RuntimeProfileHelper::GetInstance()
+      .RemoveV8RuntimeProfiler();
 #endif  // ENABLE_TRACE_PERFETTO
 }
 

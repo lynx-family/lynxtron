@@ -6,6 +6,7 @@
 
 #include "lynx/trace/runtime_profile_helper.h"
 
+#include "base/no_destructor.h"
 #include "lynx/core/runtime/js/jsi/v8/v8_isolate_wrapper.h"
 #include "lynx/core/runtime/profile/runtime_profiler_manager.h"
 #include "lynx/core/runtime/profile/v8/v8_runtime_profiler_wrapper_impl.h"
@@ -29,8 +30,10 @@ class LynxtronV8IsolateInstance : public lynx::runtime::js::V8IsolateInstance {
 };
 }  // namespace
 
-std::shared_ptr<lynx::runtime::profile::V8RuntimeProfiler>
-    RuntimeProfileHelper::runtime_profiler_ = nullptr;
+RuntimeProfileHelper& RuntimeProfileHelper::GetInstance() {
+  static base::NoDestructor<RuntimeProfileHelper> instance;
+  return *instance;
+}
 
 void RuntimeProfileHelper::SetV8RuntimeProfiler(v8::Isolate* isolate) {
   auto v8_profiler =
@@ -45,9 +48,11 @@ void RuntimeProfileHelper::SetV8RuntimeProfiler(v8::Isolate* isolate) {
       ->AddRuntimeProfiler(runtime_profiler_);
 }
 void RuntimeProfileHelper::RemoveV8RuntimeProfiler() {
+  if (!runtime_profiler_) {
+    return;
+  }
   lynx::runtime::profile::RuntimeProfilerManager::GetInstance()
       ->RemoveRuntimeProfiler(runtime_profiler_);
-  // runtime_profiler_.reset();
 }
 
 }  // namespace trace
