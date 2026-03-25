@@ -87,16 +87,29 @@ if (fs.existsSync(embedderPublicDir)) {
   console.error(`Error: Directory not found: ${embedderPublicDir}`);
 }
 
-const napiIncludeDir = path.join(lynxRoot, 'third_party/weak-node-api/headers');
+const weakNodeApiDir = path.join(lynxRoot, 'third_party/weak-node-api');
+if (fs.existsSync(weakNodeApiDir)) {
+  console.log(`\nRunning npm install in ${weakNodeApiDir}...`);
+  try {
+    require('child_process').execSync('npm install', { stdio: 'inherit', cwd: weakNodeApiDir });
+  } catch (error) {
+    console.error(`Error: Failed to run npm install in ${weakNodeApiDir}`);
+  }
+} else {
+  console.warn(`\nWarning: Directory not found: ${weakNodeApiDir}`);
+}
+
+const napiIncludeDir = path.join(lynxRoot, 'third_party/weak-node-api/node_modules/@lynx-js/weak-node-api/headers');
+const napiTargetDir = path.join(targetDir, 'third_party/weak-node-api/headers');
 
 if (fs.existsSync(napiIncludeDir)) {
-  console.log('\nCopying all files from lynx/third_party/weak-node-api/headers...');
+  console.log(`\nCopying all files from ${napiIncludeDir} to ${napiTargetDir}...`);
   const files = fs.readdirSync(napiIncludeDir);
   files.forEach(file => {
     const sourceFile = path.join(napiIncludeDir, file);
     const stats = fs.statSync(sourceFile);
     if (stats.isFile()) {
-      copyFile(sourceFile, lynxRoot, targetDir);
+      copyFile(sourceFile, napiIncludeDir, napiTargetDir);
     }
   });
 } else {
