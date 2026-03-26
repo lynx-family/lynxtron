@@ -447,9 +447,6 @@ source_set("lynxtron_lib") {
     "shell/common/asar/scoped_temporary_file.h",
     "shell/common/color_parser.cc",
     "shell/common/color_parser.h",
-
-    # "shell/common/color_util.cc",
-    # "shell/common/color_util.h",
     "shell/common/data_url.cc",
     "shell/common/data_url.h",
     "shell/common/global_delegate_registry.cc",
@@ -599,6 +596,8 @@ source_set("lynxtron_lib") {
       "shell/app/relauncher_win.cc",
       "shell/common/application_info_win.cc",
       "shell/common/asar/archive_win.cc",
+      "shell/common/node_addon_adapter.cc",
+      "shell/common/node_addon_adapter.h",
       "shell/common/node_bindings_win.cc",
       "shell/common/node_bindings_win.h",
       "shell/common/nt_internals.h",
@@ -833,10 +832,19 @@ if (is_win) {
 
     include_dirs = [ "." ]
 
-    sources = [
-      "shell/app/main_win.cc",
-      "shell/common/lynxtron_command_line.cc",
-      "shell/common/lynxtron_command_line.h",
+    sources = [ "shell/app/main_win.cc" ]
+
+    ldflags = [ "/DEF:" + rebase_path("build/lynxtron.def", root_build_dir) ]
+    inputs = [
+      "shell/app/resources/win/lynxtron.ico",
+      "build/lynxtron.def",
+    ]
+    data = [
+      "$root_out_dir/resources/default_app.asar",
+      "$root_out_dir/lynx_core.js",
+      "$root_out_dir/lynx_core_dev.js",
+      "$root_out_dir/icudtl.dat",
+      "$root_out_dir/parfait.dll",
     ]
   }
 
@@ -856,8 +864,60 @@ if (is_win) {
       "shlwapi.lib",
     ]
     lib_dirs = [ "//third_party/webview2/Microsoft.Web.WebView2.1.0.902.49/build/native/$current_cpu" ]
-    output_name = "lxtn"
+    output_name = "lynxtron"
   }
+}
+
+template("dist_zip") {
+  _runtime_deps_target = "${target_name}__deps"
+  _runtime_deps_file =
+      "$root_out_dir/gen.runtime/" + get_label_info(target_name, "dir") + "/" +
+      get_label_info(target_name, "name") + ".runtime_deps"
+
+  group(_runtime_deps_target) {
+    forward_variables_from(invoker,
+                           [
+                             "deps",
+                             "data_deps",
+                             "data",
+                             "testonly",
+                           ])
+    write_runtime_deps = _runtime_deps_file
+  }
+
+  action(target_name) {
+    script = "./build/zip.py"
+    deps = [ ":$_runtime_deps_target" ]
+    forward_variables_from(invoker,
+                           [
+                             "outputs",
+                             "testonly",
+                           ])
+    flatten = false
+    flatten_relative_to = false
+    if (defined(invoker.flatten)) {
+      flatten = invoker.flatten
+      if (defined(invoker.flatten_relative_to)) {
+        flatten_relative_to = invoker.flatten_relative_to
+      }
+    }
+    args = rebase_path(outputs + [ _runtime_deps_file ], root_build_dir) + [
+             target_cpu,
+             target_os,
+             "$flatten",
+             "$flatten_relative_to",
+           ]
+  }
+}
+
+dist_zip("lynxtron_dist_zip") {
+  data_deps = [
+    ":lynxtron_app",
+    # ":electron_version_file",
+    # ":licenses",
+  ]
+  deps = data_deps
+  outputs = [ "$root_build_dir/dist.zip" ]
 }
 
 test("lynxtron_unittests") {

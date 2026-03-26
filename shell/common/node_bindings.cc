@@ -43,6 +43,10 @@
 #include "third_party/node/src/debug_utils.h"
 #include "third_party/node/src/module_wrap.h"
 
+#if BUILDFLAG(IS_WIN)
+#include "shell/common/node_addon_adapter.h"
+#endif
+
 #define LYNXTRON_BROWSER_BINDINGS(V) \
   V(lynxtron_binding_app)            \
   V(lynxtron_binding_v8_util)        \
@@ -329,6 +333,10 @@ base::FilePath GetResourcesPath() {
 NodeBindings::NodeBindings() : uv_loop_{InitEventLoop(&worker_loop_)} {}
 
 NodeBindings::~NodeBindings() {
+#if BUILDFLAG(IS_WIN)
+  NodeAddonAdapter::Instance()->UnInit();
+#endif
+
   // Quit the embed thread.
   embed_closed_ = true;
   uv_sem_post(&embed_sem_);
@@ -458,6 +466,7 @@ void NodeBindings::Initialize(v8::Isolate* const isolate,
   }
 
 #if BUILDFLAG(IS_WIN)
+  NodeAddonAdapter::Instance()->Init();
   // uv_init overrides error mode to suppress the default crash dialog, bring
   // it back if user wants to show it.
   if (env->HasVar("ELECTRON_DEFAULT_ERROR_MODE")) {

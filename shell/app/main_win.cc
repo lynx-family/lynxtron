@@ -89,7 +89,7 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int) {
   }
 
   base::FilePath library_path =
-      exe_dir.AppendASCII(base::GetNativeLibraryName("lxtn"));
+      exe_dir.AppendASCII(base::GetNativeLibraryName("lynxtron"));
   if (!base::PathExists(library_path)) {
     LOG(ERROR) << "Library does not exist: " << library_path.value();
     return 1;
