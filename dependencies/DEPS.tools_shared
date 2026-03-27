@@ -20,6 +20,9 @@ def symlink_tools_shared():
         symlink_dir(src, dest)
 
 def symlink_dir(src, dest):
+    src = os.path.normpath(src)
+    dest = os.path.normpath(dest)
+    
     if os.path.exists(dest) or os.path.islink(dest):
         if os.path.islink(dest):
             os.unlink(dest)
@@ -31,9 +34,23 @@ def symlink_dir(src, dest):
     if dest_parent and not os.path.exists(dest_parent):
         os.makedirs(dest_parent, exist_ok=True)
     try:
-        os.symlink(src, dest)
-    except OSError as e:
-        raise
+        if system == "windows":
+            import subprocess
+            subprocess.run(
+                ["mklink", "/J", dest, src],
+                check=True,
+                shell=True
+            )
+        else:
+            os.symlink(src, dest)
+    except Exception as e:
+        if system == "windows":
+            try:
+                os.symlink(src, dest)
+            except Exception as e2:
+                raise
+        else:
+            raise
 
 deps = {
     "tools_shared": {
