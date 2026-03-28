@@ -4,10 +4,10 @@
 
 #include "shell/app/node_main.h"
 
-#include <cstdint>
 #include <iostream>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -22,14 +22,12 @@
 #include "base/task/thread_pool/thread_pool_instance.h"
 #include "build/buildflag.h"
 #include "gin/v8_initializer.h"
-#include "node.h"
-#include "node_internals.h"
-#include "node_options.h"
 #include "shell/app/javascript_environment.h"
 #include "shell/app/uv_stdio_fix.h"
 #include "shell/common/lynxtron_command_line.h"
 #include "shell/common/lynxtron_paths.h"
 #include "shell/common/node_bindings.h"
+#include "shell/common/node_includes.h"
 #include "shell/common/node_util.h"
 #include "shell/common/path_provider.h"
 #include "uv.h"

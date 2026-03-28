@@ -26,9 +26,9 @@
 #include "base/strings/string_split.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/single_thread_task_runner.h"
-#include "base/trace_event/trace_event.h"
 #include "gin/function_template.h"
 #include "lynxtron/lynxtron_version.h"
+#include "shell/api/api_app.h"
 #include "shell/app/application.h"
 #include "shell/common/gin_converters/callback_converter.h"
 #include "shell/common/gin_converters/file_path_converter.h"
@@ -88,13 +88,6 @@ bool g_is_initialized = false;
 
 void V8FatalErrorCallback(const char* location, const char* message) {
   LOG(ERROR) << "Fatal error in V8: " << location << " " << message;
-
-  // #if !IS_MAS_BUILD()
-  //   electron::crash_keys::SetCrashKey("electron.v8-fatal.message", message);
-  //   electron::crash_keys::SetCrashKey("electron.v8-fatal.location",
-  //   location);
-  // #endif
-
   volatile int* zero = nullptr;
   *zero = 0;
 }
@@ -111,20 +104,6 @@ void V8OOMErrorCallback(const char* location, const v8::OOMDetails& details) {
   if (details.detail) {
     LOG(ERROR) << "OOM detail: " << details.detail;
   }
-
-  // #if !IS_MAS_BUILD()
-  //   electron::crash_keys::SetCrashKey("electron.v8-oom.is_heap_oom",
-  //                                     std::to_string(details.is_heap_oom));
-  //   if (location) {
-  //     electron::crash_keys::SetCrashKey("electron.v8-oom.location",
-  //     location);
-  //   }
-  //   if (details.detail) {
-  //     electron::crash_keys::SetCrashKey("electron.v8-oom.detail",
-  //     details.detail);
-  //   }
-  // #endif
-
   OOM_CRASH(0);
 }
 
@@ -182,31 +161,31 @@ v8::ModifyCodeGenerationFromStringsResult ModifyCodeGenerationFromStrings(
   return node::ModifyCodeGenerationFromStrings(context, source, is_code_like);
 }
 
-// void ErrorMessageListener(v8::Local<v8::Message> message,
-//                           v8::Local<v8::Value> data) {
-//   v8::Isolate* isolate = v8::Isolate::GetCurrent();
-//   node::Environment* env = node::Environment::GetCurrent(isolate);
-//   if (env) {
-//     v8::MicrotasksScope microtasks_scope(
-//         env->context(), v8::MicrotasksScope::kDoNotRunMicrotasks);
-//     // Emit the after() hooks now that the exception has been handled.
-//     // Analogous to node/lib/internal/process/execution.js#L176-L180
-//     if (env->async_hooks()->fields()[node::AsyncHooks::kAfter]) {
-//       while (env->async_hooks()->fields()[node::AsyncHooks::kStackLength]) {
-//         double id = env->execution_async_id();
-//         // Do not call EmitAfter for asyncId 0.
-//         if (id != 0) {
-//           node::AsyncWrap::EmitAfter(env, id);
-//         }
-//         env->async_hooks()->pop_async_context(id);
-//       }
-//     }
+void ErrorMessageListener(v8::Local<v8::Message> message,
+                          v8::Local<v8::Value> data) {
+  v8::Isolate* isolate = v8::Isolate::GetCurrent();
+  node::Environment* env = node::Environment::GetCurrent(isolate);
+  if (env) {
+    v8::MicrotasksScope microtasks_scope(
+        env->context(), v8::MicrotasksScope::kDoNotRunMicrotasks);
+    // Emit the after() hooks now that the exception has been handled.
+    // Analogous to node/lib/internal/process/execution.js#L176-L180
+    if (env->async_hooks()->fields()[node::AsyncHooks::kAfter]) {
+      while (env->async_hooks()->fields()[node::AsyncHooks::kStackLength]) {
+        double id = env->execution_async_id();
+        // Do not call EmitAfter for asyncId 0.
+        if (id != 0) {
+          node::AsyncWrap::EmitAfter(env, id);
+        }
+        env->async_hooks()->pop_async_context(id);
+      }
+    }
 
-//     // Ensure that the async id stack is properly cleared so the async
-//     // hook stack does not become corrupted.
-//     env->async_hooks()->clear_async_id_stack();
-//   }
-// }
+    // Ensure that the async id stack is properly cleared so the async
+    // hook stack does not become corrupted.
+    env->async_hooks()->clear_async_id_stack();
+  }
+}
 
 // Only allow a specific subset of options in non-LYNXTRON_RUN_AS_NODE mode.
 // If node CLI inspect support is disabled, allow no debug options.
@@ -236,9 +215,7 @@ bool IsAllowedOption(const std::string_view option) {
   });
 
   if (debug_options.contains(option)) {
-    // TODO(Guo Xi): fuse
     return true;
-    // return electron::fuses::IsNodeCliInspectEnabled();
   }
 
   return options.contains(option);
@@ -248,66 +225,66 @@ bool IsAllowedOption(const std::string_view option) {
 // See https://nodejs.org/api/cli.html#cli_node_options_options
 void SetNodeOptions(base::Environment* env) {
   // Options that are expressly disallowed
-  // static constexpr auto disallowed =
-  // base::MakeFixedFlatSet<std::string_view>({
-  //     "--enable-fips",
-  //     "--experimental-policy",
-  //     "--force-fips",
-  //     "--openssl-config",
-  //     "--use-bundled-ca",
-  //     "--use-openssl-ca",
-  // });
+  static constexpr auto disallowed = base::MakeFixedFlatSet<std::string_view>({
+      "--enable-fips",
+      "--experimental-policy",
+      "--force-fips",
+      "--openssl-config",
+      "--use-bundled-ca",
+      "--use-openssl-ca",
+  });
 
-  // static constexpr auto pkg_opts = base::MakeFixedFlatSet<std::string_view>({
-  //     "--http-parser",
-  //     "--max-http-header-size",
-  // });
+  static constexpr auto pkg_opts = base::MakeFixedFlatSet<std::string_view>({
+      "--http-parser",
+      "--max-http-header-size",
+  });
 
-  // if (env->HasVar("NODE_EXTRA_CA_CERTS")) {
-  //   if (!electron::fuses::IsNodeOptionsEnabled()) {
-  //     LOG(WARNING) << "NODE_OPTIONS ignored due to disabled nodeOptions
-  //     fuse."; env->UnSetVar("NODE_EXTRA_CA_CERTS");
-  //   }
-  // }
+  // TODO(Guo Xi): fuses::IsNodeOptionsEnabled()
+  bool is_node_options_enabled = true;
 
-  // TODO(Guo Xi): NODE_OPTIONS
-  // if (env->HasVar("NODE_OPTIONS")) {
-  //   if (electron::fuses::IsNodeOptionsEnabled()) {
-  //     std::string result_options;
-  //     std::string options = env->GetVar("NODE_OPTIONS").value();
-  //     const std::vector<std::string_view> parts = base::SplitStringPiece(
-  //         options, " ", base::TRIM_WHITESPACE, base::SPLIT_WANT_NONEMPTY);
+  if (env->HasVar("NODE_EXTRA_CA_CERTS")) {
+    if (!is_node_options_enabled) {
+      LOG(WARNING) << "NODE_OPTIONS ignored due to disabled nodeOptions fuse.";
+      env->UnSetVar("NODE_EXTRA_CA_CERTS");
+    }
+  }
 
-  //     bool is_packaged_app = electron::api::App::IsPackaged();
+  if (env->HasVar("NODE_OPTIONS")) {
+    if (is_node_options_enabled) {
+      std::string result_options;
+      std::string options = env->GetVar("NODE_OPTIONS").value();
+      const std::vector<std::string_view> parts = base::SplitStringPiece(
+          options, " ", base::TRIM_WHITESPACE, base::SPLIT_WANT_NONEMPTY);
 
-  //     for (const std::string_view part : parts) {
-  //       // Strip off values passed to individual NODE_OPTIONs
-  //       const std::string_view option = part.substr(0, part.find('='));
+      bool is_packaged_app = lynxtron::api::App::IsPackaged();
 
-  //       if (is_packaged_app && !pkg_opts.contains(option)) {
-  //         // Explicitly disallow majority of NODE_OPTIONS in packaged apps
-  //         LOG(ERROR) << "Most NODE_OPTIONs are not supported in packaged
-  //         apps."
-  //                    << " See documentation for more details.";
-  //         continue;
-  //       } else if (disallowed.contains(option)) {
-  //         // Remove NODE_OPTIONS specifically disallowed for use in Node.js
-  //         // through Electron owing to constraints like BoringSSL.
-  //         LOG(ERROR) << "The NODE_OPTION " << option
-  //                    << " is not supported in Electron";
-  //         continue;
-  //       }
-  //       result_options.append(part);
-  //       result_options.append(" ");
-  //     }
+      for (const std::string_view part : parts) {
+        // Strip off values passed to individual NODE_OPTIONs
+        const std::string_view option = part.substr(0, part.find('='));
 
-  //     // overwrite new NODE_OPTIONS without unsupported variables
-  //     env->SetVar("NODE_OPTIONS", result_options);
-  //   } else {
-  //     LOG(WARNING) << "NODE_OPTIONS ignored due to disabled nodeOptions
-  //     fuse."; env->UnSetVar("NODE_OPTIONS");
-  //   }
-  // }
+        if (is_packaged_app && !pkg_opts.contains(option)) {
+          // Explicitly disallow majority of NODE_OPTIONS in packaged apps
+          LOG(ERROR) << "Most NODE_OPTIONs are not supported in packaged apps."
+                     << " See documentation for more details.";
+          continue;
+        } else if (disallowed.contains(option)) {
+          // Remove NODE_OPTIONS specifically disallowed for use in Node.js
+          // through Electron owing to constraints like BoringSSL.
+          LOG(ERROR) << "The NODE_OPTION " << option
+                     << " is not supported in Electron";
+          continue;
+        }
+        result_options.append(part);
+        result_options.append(" ");
+      }
+
+      // overwrite new NODE_OPTIONS without unsupported variables
+      env->SetVar("NODE_OPTIONS", result_options);
+    } else {
+      LOG(WARNING) << "NODE_OPTIONS ignored due to disabled nodeOptions fuse.";
+      env->UnSetVar("NODE_OPTIONS");
+    }
+  }
 }
 
 }  // namespace
@@ -403,8 +380,7 @@ std::vector<std::string> NodeBindings::ParseNodeCliFlags() {
   // redundant and so should be refactored upstream.
   args.reserve(argv.size() + 1);
 
-  // TODO(Guo Xi): electron
-  args.emplace_back("electron");
+  args.emplace_back("lynxtron");
 
   for (const auto& arg : argv) {
 #if BUILDFLAG(IS_WIN)
@@ -424,8 +400,9 @@ std::vector<std::string> NodeBindings::ParseNodeCliFlags() {
 
 void NodeBindings::Initialize(v8::Isolate* const isolate,
                               v8::Local<v8::Context> context) {
-  TRACE_EVENT0("electron", "NodeBindings::Initialize");
   // Open node's error reporting system for browser process.
+  isolate->AddMessageListenerWithErrorLevel(
+      ErrorMessageListener, v8::Isolate::MessageErrorLevel::kMessageError);
 
   // Explicitly register electron's builtin bindings.
   RegisterBuiltinBindings();
@@ -446,11 +423,11 @@ void NodeBindings::Initialize(v8::Isolate* const isolate,
       node::ProcessInitializationFlags::kNoInitializeNodeV8Platform |
       node::ProcessInitializationFlags::kEnableStdioInheritance;
 
-  // TODO(Guo Xi): fuses::IsNodeOptionsEnabled
-  // if (!fuses::IsNodeOptionsEnabled()) {
-  //   process_flags |=
-  //   node::ProcessInitializationFlags::kDisableNodeOptionsEnv;
-  // }
+  // TODO(Guo Xi): fuses::IsNodeOptionsEnabled()
+  bool is_node_options_enabled = true;
+  if (!is_node_options_enabled) {
+    process_flags |= node::ProcessInitializationFlags::kDisableNodeOptionsEnv;
+  }
 
   std::shared_ptr<node::InitializationResult> result =
       node::InitializeOncePerProcess(
@@ -494,30 +471,25 @@ std::shared_ptr<node::Environment> NodeBindings::CreateEnvironment(
   const std::vector<std::string> search_paths = {"app.asar", "app",
                                                  "default_app.asar"};
   const std::vector<std::string> app_asar_search_paths = {"app.asar"};
+
+  // TODO(Guo Xi): electron::fuses::IsOnlyLoadAppFromAsarEnabled()
+  bool is_only_load_app_from_asar_enabled = false;
+
   context->Global()->SetPrivate(
       context,
       v8::Private::ForApi(
           isolate,
           gin::ConvertToV8(isolate, "appSearchPaths").As<v8::String>()),
-      // TODO(Guo Xi)
-      // gin::ConvertToV8(isolate,
-      // electron::fuses::IsOnlyLoadAppFromAsarEnabled()
-      //                               ? app_asar_search_paths
-      //                               : search_paths));
-
-      gin::ConvertToV8(isolate, search_paths));
+      gin::ConvertToV8(isolate, is_only_load_app_from_asar_enabled
+                                    ? app_asar_search_paths
+                                    : search_paths));
   context->Global()->SetPrivate(
       context,
       v8::Private::ForApi(
           isolate, gin::ConvertToV8(isolate, "appSearchPathsOnlyLoadASAR")
                        .As<v8::String>()),
-      // TODO(Guo Xi) : electron::fuses::IsOnlyLoadAppFromAsarEnabled()
-      // gin::ConvertToV8(isolate,
-      //                  electron::fuses::IsOnlyLoadAppFromAsarEnabled()));
-      gin::ConvertToV8(isolate, false));
+      gin::ConvertToV8(isolate, is_only_load_app_from_asar_enabled));
 
-  // TODO(Guo Xi): don't need process_type
-  // std::string init_script = "electron/js2c/" + process_type + "_init";
   std::string init_script = "lynxtron/js2c/browser_init";
 
   args.insert(args.begin() + 1, init_script);
@@ -532,12 +504,13 @@ std::shared_ptr<node::Environment> NodeBindings::CreateEnvironment(
                        node::EnvironmentFlags::kNoGlobalSearchPaths |
                        node::EnvironmentFlags::kNoRegisterESMLoader;
 
-  // TODO(Guo Xi): fuse
-  // if (!electron::fuses::IsNodeCliInspectEnabled()) {
-  //   // If --inspect and friends are disabled we also shouldn't listen for
-  //   // SIGUSR1
-  //   env_flags |= node::EnvironmentFlags::kNoStartDebugSignalHandler;
-  // }
+  bool is_node_cli_inspect_enabled =
+      true;  // TODO(Guo Xi): fuses::IsNodeCliInspectEnabled()
+  if (!is_node_cli_inspect_enabled) {
+    // If --inspect and friends are disabled we also shouldn't listen for
+    // SIGUSR1
+    env_flags |= node::EnvironmentFlags::kNoStartDebugSignalHandler;
+  }
 
   node::Environment* env = util::CreateEnvironment(
       isolate, static_cast<node::IsolateData*>(isolate_data), context, args,
@@ -579,7 +552,7 @@ std::shared_ptr<node::Environment> NodeBindings::CreateEnvironment(
       HostInitializeImportMetaObject);
 
   gin_helper::Dictionary process(isolate, env->process_object());
-  // process.SetReadOnly("type", process_type);
+  process.SetReadOnly("type", "browser");
 
   if (on_app_code_ready) {
     process.SetMethod("appCodeLoaded", std::move(*on_app_code_ready));
@@ -760,9 +733,6 @@ void OnNodePreload(node::Environment* env,
   // Set custom process properties.
   gin_helper::Dictionary dict(env->isolate(), process.As<v8::Object>());
   dict.SetReadOnly("resourcesPath", GetResourcesPath());
-  // base::FilePath helper_exec_path;  // path to the helper app.
-  // base::PathService::Get(content::CHILD_PROCESS_EXE, &helper_exec_path);
-  // dict.SetReadOnly("helperExecPath", helper_exec_path);
   gin_helper::Dictionary versions;
   if (dict.Get("versions", &versions)) {
     versions.SetReadOnly(LYNXTRON_PROJECT_NAME, LYNXTRON_VERSION_STRING);
