@@ -65,8 +65,8 @@ napi_threadsafe_function EncodeNapiCallBack(napi_env env,
         napi_call_function(env, js_this, func, 1, &argv, nullptr);
         napi_delete_reference(env, ctx->func_ref);
         napi_delete_reference(env, ctx->this_ref);
-        delete value;
         napi_release_threadsafe_function(value->tsfn, napi_tsfn_abort);
+        delete value;
       },
       &tsfn);
 
