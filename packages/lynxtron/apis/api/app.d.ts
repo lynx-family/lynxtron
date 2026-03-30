@@ -830,7 +830,8 @@ export interface App extends EventEmitter {
   /**
    * Emitted when the user wants to open a URL with the application. Your
    * application's `Info.plist` file must define the URL scheme within the
-   * `CFBundleURLTypes` key, and set `NSPrincipalClass` to `AtomApplication`.
+   * `CFBundleURLTypes` key, and set `NSPrincipalClass` to
+   * `LynxtronApplication`.
    *
    * As with the `open-file` event, be sure to register a listener for the `open-url`
    * event early in your application startup to detect if the application is being

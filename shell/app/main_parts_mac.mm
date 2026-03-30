@@ -49,6 +49,9 @@ void MainParts::InitializeMainNib() {
 
   auto principalClass =
       NSClassFromString([infoDictionary objectForKey:@"NSPrincipalClass"]);
+  if (!principalClass) {
+    principalClass = [LynxtronApplication class];
+  }
   auto application = [principalClass sharedApplication];
 
   NSString* mainNibName = [infoDictionary objectForKey:@"NSMainNibFile"];

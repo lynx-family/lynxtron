@@ -27,7 +27,7 @@
     <key>NSMainNibFile</key>
     <string>MainMenu</string>
     <key>NSPrincipalClass</key>
-    <string>AtomApplication</string>
+    <string>LynxtronApplication</string>
     <key>NSAppTransportSecurity</key>
     <dict>
       <key>NSAllowsArbitraryLoads</key>
