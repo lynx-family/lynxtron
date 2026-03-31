@@ -159,7 +159,22 @@ lynx_extension_module_t* LynxNodeModule::CreateLynxNodeModule(void* opaque) {
   module->SetCModule(c_module);
   module->SetNapiModuleCreator([](Napi::Env env, Napi::Value exports,
                                   const char* module_name,
-                                  LynxNodeModule& module) { return exports; });
+                                  LynxNodeModule& module) {
+    if (!module.node_exports_.IsEmpty()) {
+      napi_env c_env = static_cast<napi_env>(env);
+      napi_env_primjs primjs_env = reinterpret_cast<napi_env_primjs>(c_env);
+      auto v8_context = napi_get_env_context_v8(primjs_env);
+      auto v8_isolate = v8_context->GetIsolate();
+      napi_value napi_api =
+          reinterpret_cast<napi_value>(napi_v8_value_to_js_value(
+              primjs_env, module.node_exports_.Get(v8_isolate)));
+
+      exports.As<Napi::Object>().Set("exposed", Napi::Value(env, napi_api));
+    } else {
+      LOG(ERROR) << "NapiModuleCreator: node_exports_ is empty";
+    }
+    return exports;
+  });
   return c_module;
 }
 
@@ -259,32 +274,7 @@ void LynxNodeModule::OnRuntimeAttach(
 
 void LynxNodeModule::OnRuntimeReady(Napi::Env env,
                                     Napi::Value lynx,
-                                    const char* url) {
-  if (!CheckModuleData() || node_exports_.IsEmpty()) {
-    LOG(ERROR) << "OnRuntimeReady: node_exports_ is empty, url: " << url;
-    return;
-  }
-  napi_env c_env = static_cast<napi_env>(env);
-  napi_env_primjs primjs_env = reinterpret_cast<napi_env_primjs>(c_env);
-  auto v8_context = napi_get_env_context_v8(primjs_env);
-  auto v8_isolate = v8_context->GetIsolate();
-  napi_value napi_api = reinterpret_cast<napi_value>(
-      napi_v8_value_to_js_value(primjs_env, node_exports_.Get(v8_isolate)));
-
-  constexpr const char* kInitNodeNativeApi = R"(
-    (lynx, api) => {
-      lynx.getNativeApp().nativeModuleProxy.nodejs.getExposed = () => api;
-    }
-  )";
-  napi_value test_func;
-  napi_value script_value;
-  napi_create_string_utf8(c_env, kInitNodeNativeApi, strlen(kInitNodeNativeApi),
-                          &script_value);
-  napi_run_script(c_env, script_value, &test_func);
-
-  napi_value args[2] = {lynx, napi_api};
-  napi_call_function(c_env, test_func, test_func, 2, args, nullptr);
-}
+                                    const char* url) {}
 
 void LynxNodeModule::OnRuntimeDetach() {
   if (env_) {

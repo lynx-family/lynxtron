@@ -46,9 +46,9 @@ Always use the unified `NativeModules` API to ensure cross-platform compatibilit
 NativeModules.bridge.request({ method: 'showDialog', params: { message: 'Hi' } });
 
 // Background logic (runs in the same JS thread as Lynx logic)
-// Use getExposed() to access capabilities exported by host preload scripts
-NativeModules.nodejs.getExposed().echo('Hello', (res) => {
-  console.log(res);
+// Use exposed to access capabilities exported by host preload scripts
+NativeModules.nodejs.exposed.echo('Hello', (res) => {
+  console.log(res); // Hello
 });
 ```
 

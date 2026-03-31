@@ -137,11 +137,11 @@ export function App() {
   };
 
   const handleHideTap = useCallback(() => {
-    // console.log('[App] handleHideTap triggered', NativeModules.nodejs.getExposed());
+    // console.log('[App] handleHideTap triggered', NativeModules.nodejs.exposed);
     NativeModules.bridge.call(
       'hideWindow',
       {
-        // message: NativeModules.nodejs.getExposed().echo('Hello from Lynxtron!'),
+        // message: NativeModules.nodejs.exposed.echo('Hello from Lynxtron!'),
       },
       () => {
         console.log('[App] bridge.request callback fired');
@@ -150,12 +150,12 @@ export function App() {
   }, []);
 
   const handleFullScreenTap = useCallback(() => {
-    // console.log('[App] handleFullScreenTap triggered', NativeModules.nodejs.getExposed());
+    // console.log('[App] handleFullScreenTap triggered', NativeModules.nodejs.exposed);
     console.log('[App] handleFullScreenTap triggered', selectedTabId);
     NativeModules.bridge.call(
       'fullScreenWindow',
       {
-        // message: NativeModules.nodejs.getExposed().echo('Hello from Lynxtron!'),
+        // message: NativeModules.nodejs.exposed.echo('Hello from Lynxtron!'),
       },
       () => {
         console.log('[App] bridge.request callback fired');
@@ -164,12 +164,12 @@ export function App() {
   }, []);
 
   const handleMaximizeTap = useCallback(() => {
-    // console.log('[App] handleMaximizeTap triggered', NativeModules.nodejs.getExposed());
+    // console.log('[App] handleMaximizeTap triggered', NativeModules.nodejs.exposed);
     console.log('[App] handleMaximizeTap triggered', selectedTabId);
     NativeModules.bridge.call(
       'maximizeWindow',
       {
-        // message: NativeModules.nodejs.getExposed().echo('Hello from Lynxtron!'),
+        // message: NativeModules.nodejs.exposed.echo('Hello from Lynxtron!'),
       },
       () => {
         console.log('[App] bridge.request callback fired');
@@ -178,11 +178,11 @@ export function App() {
   }, []);
 
   const handleCloseTap = useCallback(() => {
-    // console.log('[App] handleCloseTap triggered', NativeModules.nodejs.getExposed());
+    // console.log('[App] handleCloseTap triggered', NativeModules.nodejs.exposed);
     NativeModules.bridge.call(
       'closeWindow',
       {
-        // message: NativeModules.nodejs.getExposed().echo('Hello from Lynxtron!'),
+        // message: NativeModules.nodejs.exposed.echo('Hello from Lynxtron!'),
       },
       () => {
         console.log('[App] bridge.request callback fired');

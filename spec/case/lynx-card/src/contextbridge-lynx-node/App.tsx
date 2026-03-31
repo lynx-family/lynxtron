@@ -8,7 +8,7 @@ export default function App() {
   useEffect(() => {
     const emitter = lynx.getJSModule('GlobalEventEmitter') as any;
     const handler = (params: any) => {
-      const api = (NativeModules as any).nodejs.getExposed();
+      const api = (NativeModules as any).nodejs.exposed;
       const result = api.get(JSON.stringify(params));
       const bridge = (NativeModules as any).bridge as any;
       bridge.send('nodejs_event', result);

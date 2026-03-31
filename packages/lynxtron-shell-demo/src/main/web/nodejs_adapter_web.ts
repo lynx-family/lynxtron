@@ -9,7 +9,7 @@
 import { contextBridge } from '@lynx-js/lynxtron/context-bridge';
 
 contextBridge.exposeInLynxBTS({
-  // Adapt to desktop's getExposed pattern
+  // Adapt to desktop's exposed pattern
   echo(message: string) {
     return `Echo from Web BG Thread: ${message}`;
   },

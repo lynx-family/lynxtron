@@ -8,11 +8,11 @@ import placeholder from '@assets/placeholder.png?inline';
 
 export function App() {
   const handleTap = useCallback(() => {
-    console.log('[App] handleTap triggered', NativeModules.nodejs.getExposed());
+    console.log('[App] handleTap triggered', NativeModules.nodejs.exposed);
     NativeModules.bridge.call(
       'showDialog',
       {
-        message: NativeModules.nodejs.getExposed().echo('Hello from Lynxtron!'),
+        message: NativeModules.nodejs.exposed.echo('Hello from Lynxtron!'),
       },
       () => {
         console.log('[App] bridge.request callback fired');

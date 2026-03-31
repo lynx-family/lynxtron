@@ -76,7 +76,7 @@ export function setupSymmetricHost(lynxView, config = {}) {
           console.log('[Lynxtron Web] Discovered exports:',exports);
           
           return {
-            getExposed: () => exports,
+            exposed: exports,
           };
         } catch (err) {
           console.error('[Lynxtron Web] Failed to inject nodejs module:', err);

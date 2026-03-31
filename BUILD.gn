@@ -325,6 +325,9 @@ source_set("lynxtron_lib") {
   defines = [
     "USE_PRIMJS_NAPI=1",
     "USE_WEAK_SUFFIX_NAPI=1",
+    "NAPI_DISABLE_CPP_EXCEPTIONS",
+    "NAPI_DISABLE_CPP_RTTI",
+    "NAPI_CPP_CUSTOM_NAMESPACE=lynxtron",
   ]
 
   deps = [
