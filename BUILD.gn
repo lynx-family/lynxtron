@@ -473,6 +473,8 @@ source_set("lynxtron_lib") {
     "shell/common/process_singleton/process_singleton.h",
     "shell/common/process_singleton/process_singleton_internal.cc",
     "shell/common/process_singleton/process_singleton_internal.h",
+    "shell/common/process_type_registry.cc",
+    "shell/common/process_type_registry.h",
     "shell/common/size_constraints.cc",
     "shell/common/size_constraints.h",
     "shell/common/skia_util.cc",

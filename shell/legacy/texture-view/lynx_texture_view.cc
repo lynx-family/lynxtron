@@ -23,7 +23,7 @@ namespace lynxtron {
 namespace legacy {
 
 LynxTextureView::LynxTextureView() {
-  //   LynxPluginModuleManager::RegisterSurfaceOperationCallabck(
+  //   LynxPluginModuleManager::RegisterSurfaceOperationCallback(
   //       [this] { OnSwapBuffer(); },
   //       [this](int32_t& pid, int64_t& surface_id, int32_t& width,
   //              int32_t& height) {
@@ -33,7 +33,7 @@ LynxTextureView::LynxTextureView() {
 
 LynxTextureView::~LynxTextureView() {
   LOG(ERROR) << "LynxTextureView::~LynxTextureView";
-  //   LynxPluginModuleManager::UnRegisterSurfaceOperationCallabck();
+  //   LynxPluginModuleManager::UnRegisterSurfaceOperationCallback();
 }
 
 void LynxTextureView::OnSwapBuffer() {

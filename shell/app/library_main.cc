@@ -61,6 +61,7 @@ void InstallConsoleControlHandler() {
 const char kProcessType[] = "type";
 
 #include "shell/app/node_main.h"
+#include "shell/common/process_type_registry.h"
 
 namespace {
 
@@ -123,6 +124,13 @@ int LynxtronMain(int argc, char* argv[]) {
     return relauncher::RelauncherMain();
   }
 
+  if (!process_type.empty()) {
+    auto& registry = lynxtron::GetProcessTypeRegistry();
+    auto it = registry.find(process_type);
+    if (it != registry.end()) {
+      return it->second.Run(*command_line);
+    }
+  }
   auto runner = lynxtron::MainRunner::Create();
   int exit_code = runner->Initialize();
   if (exit_code == 0) {
