@@ -241,6 +241,8 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
 
   base::WeakPtrFactory<LynxWindow> weak_factory_{this};
   std::unique_ptr<LynxViewMonitorDelegate> lynx_view_monitor_delegate_;
+  std::optional<std::string> data_str_ = std::nullopt;
+  std::optional<std::string> global_props_ = std::nullopt;
 };
 
 }  // namespace lynxtron::api

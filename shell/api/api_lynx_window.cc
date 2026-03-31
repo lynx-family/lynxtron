@@ -5,6 +5,7 @@
 #include "shell/api/api_lynx_window.h"
 
 #include <string_view>
+#include <utility>
 
 #include "base/files/file_path.h"
 #include "base/files/file_util.h"
@@ -378,6 +379,11 @@ void LynxWindow::CreateLynxView(const std::string& local_url,
 
   lynx_view_->Init(width, height, device_pixel_ratio,
                    window_->GetNativeWindowHandle(), node_integration_preload_);
+  if (data_str_.has_value() && global_props_.has_value()) {
+    lynx_view_->UpdateData(data_str_.value(), global_props_.value());
+    data_str_.reset();
+    global_props_.reset();
+  }
   lynx_view_->LoadTemplate(local_url, source);
   lynx_view_->SetClient(weak_factory_.GetWeakPtr());
 }
@@ -497,10 +503,6 @@ bool LynxWindow::ReloadTemplate(const gin_helper::Dictionary& data,
 
 bool LynxWindow::UpdateData(const gin_helper::Dictionary& data,
                             const gin_helper::Dictionary& global_props) {
-  if (!lynx_view_) {
-    return false;
-  }
-
   auto data_string = ConvertDictionaryToJsonString(data);
   if (!data_string.has_value()) {
     return false;
@@ -511,7 +513,12 @@ bool LynxWindow::UpdateData(const gin_helper::Dictionary& data,
     return false;
   }
 
-  lynx_view_->UpdateData(data_string.value(), global_props_string.value());
+  if (!lynx_view_) {
+    data_str_ = std::move(data_string);
+    global_props_ = std::move(global_props_string);
+  } else {
+    lynx_view_->UpdateData(data_string.value(), global_props_string.value());
+  }
   return true;
 }
 
