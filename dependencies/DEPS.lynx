@@ -9,7 +9,7 @@ deps = {
     '../lynx': {
         'type': 'solution',
         'url': 'git@github.com:lynx-family/lynx.git',
-        'commit': 'cd93c45f29599221cc3c8378f0fbb5e552f796a6',
+        'commit': '4ac049a665854266d46c44908d992f5e301b8afa',
         "deps_file": "dependencies/DEPS.lynxtron",
         "ignore_in_git": True,
     },

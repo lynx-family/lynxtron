@@ -1,7 +1,7 @@
-From 0440149f503497b173e26f7a83ae307ea7e36635 Mon Sep 17 00:00:00 2001
+From 52a4fd6563821bb64d64560605fa1130e1fa1054 Mon Sep 17 00:00:00 2001
 From: zhixuan <201550585+icecreamx10@users.noreply.github.com>
-Date: Wed, 25 Mar 2026 14:04:46 +0800
-Subject: [PATCH] feat(macos): implement hybrid composition overlay
+Date: Tue, 31 Mar 2026 13:55:20 +0800
+Subject: [PATCH] feat(macos): implement hybrid composition overlay 
  pipeline(Phase 1+2)
 
 Add macOS platform overlay and presenter services that allow Lynx/Skia
@@ -26,20 +26,20 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
  .../Source/platform_overlay_service_mac.mm    | 134 ++++++++++++++++++
  .../framework/Source/presenter_service_mac.h  |  48 +++++++
  .../framework/Source/presenter_service_mac.mm |  42 ++++++
- platform/darwin/macos/common/BUILD.gn    |   7 +
+ lynx/platform/darwin/macos/common/BUILD.gn    |   7 +
  .../darwin/macos/common/LynxOverlayView.h     |  31 ++++
  .../darwin/macos/common/LynxOverlayView.mm    |  82 +++++++++++
  .../darwin/macos/common/LynxUIRenderer.mm     |  75 ++++++++++
  12 files changed, 570 insertions(+), 7 deletions(-)
- create mode 100644 clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h
- create mode 100644 clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.mm
- create mode 100644 clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.h
- create mode 100644 clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.mm
- create mode 100644 platform/darwin/macos/common/LynxOverlayView.h
- create mode 100644 platform/darwin/macos/common/LynxOverlayView.mm
+ create mode 100644 lynx/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h
+ create mode 100644 lynx/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.mm
+ create mode 100644 lynx/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.h
+ create mode 100644 lynx/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.mm
+ create mode 100644 lynx/platform/darwin/macos/common/LynxOverlayView.h
+ create mode 100644 lynx/platform/darwin/macos/common/LynxOverlayView.mm
 
 diff --git a/clay/lynx_adaptor/native_view_service_desktop.cc b/clay/lynx_adaptor/native_view_service_desktop.cc
-index d348ce81a1..8da660bed7 100644
+index d348ce81a..8da660bed 100644
 --- a/clay/lynx_adaptor/native_view_service_desktop.cc
 +++ b/clay/lynx_adaptor/native_view_service_desktop.cc
 @@ -74,6 +74,7 @@ class NativeViewPluginDesktop : public NativeViewPlugin {
@@ -51,7 +51,7 @@ index d348ce81a1..8da660bed7 100644
      return native_platform_view_->SupportScrolling();
    }
 diff --git a/clay/shell/common/services/compositor/compositor_service.cc b/clay/shell/common/services/compositor/compositor_service.cc
-index 89e730a779..fba9982da3 100644
+index 89e730a77..fba9982da 100644
 --- a/clay/shell/common/services/compositor/compositor_service.cc
 +++ b/clay/shell/common/services/compositor/compositor_service.cc
 @@ -30,6 +30,19 @@ bool CompositorService::SubmitFrame(
@@ -168,7 +168,7 @@ index 89e730a779..fba9982da3 100644
  }
  
 diff --git a/clay/shell/common/services/compositor/compositor_service.h b/clay/shell/common/services/compositor/compositor_service.h
-index f5eba2ee35..68187658d2 100644
+index f5eba2ee3..68187658d 100644
 --- a/clay/shell/common/services/compositor/compositor_service.h
 +++ b/clay/shell/common/services/compositor/compositor_service.h
 @@ -8,6 +8,7 @@
@@ -192,7 +192,7 @@ index f5eba2ee35..68187658d2 100644
    // of the unused
    // layers. For example, consider the following vector:
 diff --git a/clay/shell/platform/darwin/macos/BUILD.gn b/clay/shell/platform/darwin/macos/BUILD.gn
-index e91e140aff..bd292f3afa 100644
+index e91e140af..bd292f3af 100644
 --- a/clay/shell/platform/darwin/macos/BUILD.gn
 +++ b/clay/shell/platform/darwin/macos/BUILD.gn
 @@ -64,6 +64,10 @@ source_set("flutter_framework_source") {
@@ -208,7 +208,7 @@ index e91e140aff..bd292f3afa 100644
    sources += _flutter_framework_headers
 diff --git a/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h b/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h
 new file mode 100644
-index 0000000000..f61e538f1e
+index 000000000..f61e538f1
 --- /dev/null
 +++ b/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h
 @@ -0,0 +1,83 @@
@@ -297,7 +297,7 @@ index 0000000000..f61e538f1e
 +#endif  // CLAY_SHELL_PLATFORM_DARWIN_MACOS_PLATFORM_OVERLAY_SERVICE_MAC_H_
 diff --git a/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.mm b/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.mm
 new file mode 100644
-index 0000000000..338c81b227
+index 000000000..338c81b22
 --- /dev/null
 +++ b/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.mm
 @@ -0,0 +1,134 @@
@@ -437,7 +437,7 @@ index 0000000000..338c81b227
 +}  // namespace clay
 diff --git a/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.h b/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.h
 new file mode 100644
-index 0000000000..13a801e9bc
+index 000000000..13a801e9b
 --- /dev/null
 +++ b/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.h
 @@ -0,0 +1,48 @@
@@ -491,7 +491,7 @@ index 0000000000..13a801e9bc
 +#endif  // CLAY_SHELL_PLATFORM_DARWIN_MACOS_PRESENTER_SERVICE_MAC_H_
 diff --git a/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.mm b/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.mm
 new file mode 100644
-index 0000000000..8cb67de7ef
+index 000000000..8cb67de7e
 --- /dev/null
 +++ b/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.mm
 @@ -0,0 +1,42 @@
@@ -538,7 +538,7 @@ index 0000000000..8cb67de7ef
 +
 +}  // namespace clay
 diff --git a/platform/darwin/macos/common/BUILD.gn b/platform/darwin/macos/common/BUILD.gn
-index 0d1850ab80..27c745d327 100644
+index 0d1850ab8..27c745d32 100644
 --- a/platform/darwin/macos/common/BUILD.gn
 +++ b/platform/darwin/macos/common/BUILD.gn
 @@ -6,6 +6,8 @@ import("../../../../core/Lynx.gni")
@@ -562,7 +562,7 @@ index 0d1850ab80..27c745d327 100644
  }
 diff --git a/platform/darwin/macos/common/LynxOverlayView.h b/platform/darwin/macos/common/LynxOverlayView.h
 new file mode 100644
-index 0000000000..9295922371
+index 000000000..929592237
 --- /dev/null
 +++ b/platform/darwin/macos/common/LynxOverlayView.h
 @@ -0,0 +1,31 @@
@@ -599,7 +599,7 @@ index 0000000000..9295922371
 +#endif  // PLATFORM_DARWIN_MACOS_COMMON_LYNX_OVERLAY_VIEW_H_
 diff --git a/platform/darwin/macos/common/LynxOverlayView.mm b/platform/darwin/macos/common/LynxOverlayView.mm
 new file mode 100644
-index 0000000000..8e06e441ec
+index 000000000..8e06e441e
 --- /dev/null
 +++ b/platform/darwin/macos/common/LynxOverlayView.mm
 @@ -0,0 +1,82 @@
@@ -686,7 +686,7 @@ index 0000000000..8e06e441ec
 +
 +@end
 diff --git a/platform/darwin/macos/common/LynxUIRenderer.mm b/platform/darwin/macos/common/LynxUIRenderer.mm
-index 1c23a01567..a5145d9e9a 100644
+index 8c1cfbe07..c76ebfbbf 100644
 --- a/platform/darwin/macos/common/LynxUIRenderer.mm
 +++ b/platform/darwin/macos/common/LynxUIRenderer.mm
 @@ -3,6 +3,8 @@
@@ -698,19 +698,17 @@ index 1c23a01567..a5145d9e9a 100644
  #include "clay/common/service/service_manager.h"
  #include "clay/lynx_adaptor/native_module/lynx_module_factory.h"
  #include "clay/lynx_adaptor/native_platform_view.h"
-@@ -10,8 +12,11 @@
- #include "clay/lynx_adaptor/resource_loader_embedder.h"
+@@ -11,6 +13,9 @@
  #include "clay/net/loader/resource_loader_creator_service.h"
+ #include "clay/shell/common/services/instrumentation_service.h"
  #include "clay/shell/platform/darwin/macos/framework/Headers/ClayViewProvider.h"
 +#include "clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h"
 +#include "clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.h"
++#import "clay/shell/platform/darwin/macos/framework/Source/FlutterEngine_Internal.h"
  #include "clay/ui/component/view_context.h"
  #include "core/base/threading/task_runner_manufactor.h"
-+#import "clay/shell/platform/darwin/macos/framework/Source/FlutterEngine_Internal.h"
- #if ENABLE_TESTBENCH_REPLAY
- #include "third_party/rapidjson/document.h"
- #include "third_party/rapidjson/error/en.h"
-@@ -23,6 +28,7 @@
+ #include "platform/embedder/lynx_view_clients.h"
+@@ -25,6 +30,7 @@
  @interface LynxUIRendererMac : NSObject
  
  @property(nonatomic) ClayViewProvider* clayViewProvider;
@@ -718,7 +716,7 @@ index 1c23a01567..a5145d9e9a 100644
  
  @end
  
-@@ -51,14 +57,57 @@
+@@ -53,14 +59,57 @@
  
  - (void)setFrame:(CGRect)frame {
    _clayViewProvider.flutterView.frame = frame;
@@ -776,7 +774,7 @@ index 1c23a01567..a5145d9e9a 100644
  }
  
  - (void)RegisterIMEHandler:(void*)handler arg:(void*)arg {
-@@ -198,6 +247,25 @@ LynxUIRendererImpl::LynxUIRendererImpl(lynx_view_builder_t* builder) : LynxUIRen
+@@ -201,6 +250,25 @@ LynxUIRendererImpl::LynxUIRendererImpl(lynx_view_builder_t* builder)
    clay::NativeViewServiceDesktop::SetViewFactories(view_context,
                                                     std::move(builder->native_view_creators));
  
@@ -802,7 +800,7 @@ index 1c23a01567..a5145d9e9a 100644
    if (builder->generic_fetcher) {
      auto fetcher_holder = std::make_shared<LynxResourceFetcherHolder>(builder->generic_fetcher);
      view_context->GetServiceManager()->RegisterService<clay::ResourceLoaderCreatorService>(
-@@ -315,6 +383,13 @@ void LynxUIRendererImpl::RegisterNativeView(const char* name, lynx_native_view_c
+@@ -328,6 +396,13 @@ void LynxUIRendererImpl::RegisterNativeView(const char* name, lynx_native_view_c
    auto* view_context =
        reinterpret_cast<clay::ViewContext*>(lynx_ui_renderer.clayViewProvider.clayViewContext);
    clay::NativeViewServiceDesktop::AddViewFactory(view_context, name, creator, opaque);
