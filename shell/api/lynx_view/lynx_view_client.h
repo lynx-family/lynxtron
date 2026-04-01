@@ -25,6 +25,9 @@ class LynxViewClient {
                               std::string_view update_flag) = 0;
   virtual void OnEnterForeground() = 0;
   virtual void OnEnterBackground() = 0;
+
+  virtual void OnFrameTiming(int64_t frame_start_time_in_ns,
+                             int64_t frame_finish_time_in_ns) = 0;
 };
 
 }  // namespace lynxtron

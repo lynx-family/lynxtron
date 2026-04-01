@@ -4,6 +4,7 @@
 
 #include "shell/api/api_lynx_window.h"
 
+#include <initializer_list>
 #include <string_view>
 #include <utility>
 
@@ -583,6 +584,15 @@ void LynxWindow::OnEnterForeground() {
 
 void LynxWindow::OnEnterBackground() {
   // Emit("on-enter-background");
+}
+
+void LynxWindow::OnFrameTiming(int64_t frame_start_time_in_ns,
+                               int64_t frame_finish_time_in_ns) {
+  if (!enable_fps_monitor_) {
+    return;
+  }
+  last_frame_timings_.emplace_back(std::initializer_list<int64_t>{
+      frame_start_time_in_ns, frame_finish_time_in_ns});
 }
 
 void LynxWindow::OnDataUpdated() {

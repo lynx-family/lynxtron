@@ -135,6 +135,8 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
 
   void OnEnterForeground() override;
   void OnEnterBackground() override;
+  void OnFrameTiming(int64_t frame_start_time_in_ns,
+                     int64_t frame_finish_time_in_ns) override;
 
   // void onLoadSuccess(LynxView* lynx_view_holder) override;
 

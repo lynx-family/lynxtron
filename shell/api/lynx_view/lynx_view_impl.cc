@@ -317,4 +317,12 @@ void LynxViewImpl::OnEnterBackground() {
   }
 }
 
+void LynxViewImpl::OnFrameTiming(int64_t frame_start_time_in_ns,
+                                 int64_t frame_finish_time_in_ns) {
+  if (lynx_view_client_) {
+    lynx_view_client_->OnFrameTiming(frame_start_time_in_ns,
+                                     frame_finish_time_in_ns);
+  }
+}
+
 }  // namespace lynxtron

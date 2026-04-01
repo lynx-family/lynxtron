@@ -67,6 +67,8 @@ class LynxViewImpl : public lynx::pub::LynxViewClient {
                       const char* update_flag) override;
   void OnEnterForeground() override;
   void OnEnterBackground() override;
+  void OnFrameTiming(int64_t frame_start_time_in_ns,
+                     int64_t frame_finish_time_in_ns) override;
 
  private:
   std::unique_ptr<lynx::pub::LynxView> lynx_view_;
