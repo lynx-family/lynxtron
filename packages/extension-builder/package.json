@@ -4,8 +4,11 @@
   "version": "0.0.1",
   "type": "module",
   "description": "Lynx extension builder utils",
+  "bin": "./scripts/scaffold.cjs",
   "scripts": {
-    "postinstall": "node scripts/prepare.js"
+    "prepublishOnly": "node scripts/prepublish.cjs",
+    "postinstall": "node scripts/prepare.js",
+    "scaffold": "node scripts/scaffold.cjs"
   },
   "keywords": [
     "lynx",
@@ -26,6 +29,7 @@
   },
   "dependencies": {
     "@lynx-js/lynxtron": "workspace:*",
+    "@lynx-js/weak-node-api": "0.0.2",
     "node-addon-api": "^7.0.0"
   }
 }

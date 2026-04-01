@@ -1154,12 +1154,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@lynx-js/extension-builder@workspace:tools/extension_builder":
+"@lynx-js/extension-builder@workspace:packages/extension-builder":
   version: 0.0.0-use.local
-  resolution: "@lynx-js/extension-builder@workspace:tools/extension_builder"
+  resolution: "@lynx-js/extension-builder@workspace:packages/extension-builder"
   dependencies:
     "@lynx-js/lynxtron": "workspace:*"
+    "@lynx-js/weak-node-api": "npm:0.0.2"
     node-addon-api: "npm:^7.0.0"
+  bin:
+    extension-builder: ./scripts/scaffold.cjs
   languageName: unknown
   linkType: soft
 
@@ -1445,6 +1448,16 @@ __metadata:
   peerDependencies:
     "@lynx-js/react": "*"
   checksum: 266e5eb95e60d643b38ed8d39e20f4a93fa28198e053e43d15be22afe434c519e820b8bf068d7db20f7ab05beb33a207c7d70126077d2deda60f793a774ed4dc
+  languageName: node
+  linkType: hard
+
+"@lynx-js/weak-node-api@npm:0.0.2":
+  version: 0.0.2
+  resolution: "@lynx-js/weak-node-api@npm:0.0.2"
+  dependencies:
+    node-addon-api: "npm:7.1.0"
+    weak-node-api: "npm:0.1.1"
+  checksum: 6368a01d6acac1d18486349861ac73110d2996e5d280e1beb30f6a088488a55528e69a71f4f9f11c4ef16bb46ce89a217ed92fa4254c372b08ecfe2ed76e3ea0
   languageName: node
   linkType: hard
 
@@ -8803,6 +8816,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"node-addon-api@npm:7.1.0":
+  version: 7.1.0
+  resolution: "node-addon-api@npm:7.1.0"
+  dependencies:
+    node-gyp: "npm:latest"
+  checksum: 2e096ab079e3c46d33b0e252386e9c239c352f7cc6d75363d9a3c00bdff34c1a5da170da861917512843f213c32d024ced9dc9552b968029786480d18727ec66
+  languageName: node
+  linkType: hard
+
 "node-addon-api@npm:^1.6.3":
   version: 1.7.2
   resolution: "node-addon-api@npm:1.7.2"
@@ -8818,6 +8840,13 @@ __metadata:
   dependencies:
     node-gyp: "npm:latest"
   checksum: fb32a206276d608037fa1bcd7e9921e177fe992fc610d098aa3128baca3c0050fc1e014fa007e9b3874cf865ddb4f5bd9f43ccb7cbbbe4efaff6a83e920b17e9
+  languageName: node
+  linkType: hard
+
+"node-api-headers@npm:^1.5.0":
+  version: 1.8.0
+  resolution: "node-api-headers@npm:1.8.0"
+  checksum: 544f1d55756dcd7536b4c61b78fd2c2553d87a228dfa35729540466966e73b551edf9611785c8ada706e7ef4737b3ed55a3f735678a8f989a7bc9a45f296049c
   languageName: node
   linkType: hard
 
@@ -12227,6 +12256,15 @@ __metadata:
   dependencies:
     defaults: "npm:^1.0.3"
   checksum: 5b61ca583a95e2dd85d7078400190efd452e05751a64accb8c06ce4db65d7e0b0cde9917d705e826a2e05cc2548f61efde115ffa374c3e436d04be45c889e5b4
+  languageName: node
+  linkType: hard
+
+"weak-node-api@npm:0.1.1":
+  version: 0.1.1
+  resolution: "weak-node-api@npm:0.1.1"
+  dependencies:
+    node-api-headers: "npm:^1.5.0"
+  checksum: 578690be57c3df5c32d57c8d1c2cbbe321eca9023c9ab6af78c7e8c0fcd3ee97bca7515d0ee423ffb705e9ffaaeb123efe738543996421cb2ce771fdb082e410
   languageName: node
   linkType: hard
 

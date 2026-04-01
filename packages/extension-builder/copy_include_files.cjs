@@ -3,8 +3,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const lynxRoot = path.resolve(__dirname, '../../../lynx');
-const targetDir = path.resolve(__dirname, 'include');
+// packages/extension-builder → packages → lynxtron → lynxtron_oss_ws → lynx
+const lynxRoot = process.env.LYNX_SOURCE_ROOT || path.resolve(__dirname, '../../../lynx');
+// Namespace under include/lynxtron/ to avoid conflicts with consumer files
+const targetDir = path.resolve(__dirname, 'include/lynxtron');
 
 if (!fs.existsSync(targetDir)) {
   fs.mkdirSync(targetDir, { recursive: true });
@@ -79,27 +81,30 @@ function copyDirectoryWithStructure(sourceDir, targetRoot) {
   });
 }
 
+function resolveWeakNodeApiHeadersDir() {
+  try {
+    const weakNodeApiPkg = require.resolve('@lynx-js/weak-node-api/package.json', {
+      paths: [__dirname],
+    });
+    const weakNodeApiRoot = path.dirname(weakNodeApiPkg);
+    return path.join(weakNodeApiRoot, 'headers');
+  } catch (error) {
+    console.error('Error: Failed to resolve @lynx-js/weak-node-api from extension-builder dependencies.');
+    console.error('Install dependencies before running this script.');
+    process.exit(1);
+  }
+}
+
 const embedderPublicDir = path.join(lynxRoot, 'platform/embedder/public');
 if (fs.existsSync(embedderPublicDir)) {
   console.log('\nCopying files from lynx/platform/embedder/public...');
   copyDirectoryWithStructure(embedderPublicDir, targetDir);
 } else {
   console.error(`Error: Directory not found: ${embedderPublicDir}`);
+  process.exit(1);
 }
 
-const weakNodeApiDir = path.join(lynxRoot, 'third_party/weak-node-api');
-if (fs.existsSync(weakNodeApiDir)) {
-  console.log(`\nRunning npm install in ${weakNodeApiDir}...`);
-  try {
-    require('child_process').execSync('npm install', { stdio: 'inherit', cwd: weakNodeApiDir });
-  } catch (error) {
-    console.error(`Error: Failed to run npm install in ${weakNodeApiDir}`);
-  }
-} else {
-  console.warn(`\nWarning: Directory not found: ${weakNodeApiDir}`);
-}
-
-const napiIncludeDir = path.join(lynxRoot, 'third_party/weak-node-api/node_modules/@lynx-js/weak-node-api/headers');
+const napiIncludeDir = resolveWeakNodeApiHeadersDir();
 const napiTargetDir = path.join(targetDir, 'third_party/weak-node-api/headers');
 
 if (fs.existsSync(napiIncludeDir)) {
@@ -114,6 +119,7 @@ if (fs.existsSync(napiIncludeDir)) {
   });
 } else {
   console.error(`Error: Directory not found: ${napiIncludeDir}`);
+  process.exit(1);
 }
 
 const valueIncludeDir = path.join(lynxRoot, 'base/include/value');
@@ -135,6 +141,7 @@ if (fs.existsSync(valueIncludeDir)) {
   });
 } else {
   console.error(`Error: Directory not found: ${valueIncludeDir}`);
+  process.exit(1);
 }
 
 console.log('\n✅ All files copied successfully!');
