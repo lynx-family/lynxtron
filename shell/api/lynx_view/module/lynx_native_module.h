@@ -5,6 +5,7 @@
 #ifndef LYNXTRON_SHELL_API_LYNX_VIEW_MODULE_LYNX_NATIVE_MODULE_H_
 #define LYNXTRON_SHELL_API_LYNX_VIEW_MODULE_LYNX_NATIVE_MODULE_H_
 
+#include <atomic>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -42,6 +43,7 @@ class LynxNativeModule {
   struct JSBCallBack {
     napi_env env;
     napi_threadsafe_function tsfn;
+    std::shared_ptr<std::atomic_bool> released;
   };
 
   // bind the module to napi and return cmodule pointer.

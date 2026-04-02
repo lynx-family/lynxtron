@@ -20,8 +20,8 @@ namespace lynxtron {
 namespace {
 
 struct CallbackContext {
-  napi_ref func_ref;
-  napi_ref this_ref;
+  napi_ref func_ref = nullptr;
+  napi_ref this_ref = nullptr;
 };
 
 struct JSBCallbackData {
@@ -40,7 +40,16 @@ napi_threadsafe_function EncodeNapiCallBack(napi_env env,
   napi_create_threadsafe_function(
       env, nullptr, nullptr, nullptr, 10, 1, ctx,
       [](napi_env env, void* data, void* hint) {
-        delete static_cast<CallbackContext*>(data);
+        auto* ctx = static_cast<CallbackContext*>(data);
+        if (ctx->func_ref) {
+          napi_delete_reference(env, ctx->func_ref);
+          ctx->func_ref = nullptr;
+        }
+        if (ctx->this_ref) {
+          napi_delete_reference(env, ctx->this_ref);
+          ctx->this_ref = nullptr;
+        }
+        delete ctx;
       },
       ctx,
       [](napi_env env, napi_value js_callback, void* ctx_ptr, void* data_ptr) {
@@ -63,9 +72,6 @@ napi_threadsafe_function EncodeNapiCallBack(napi_env env,
             napi_v8_value_to_js_value(primjs_env, js_value));
 
         napi_call_function(env, js_this, func, 1, &argv, nullptr);
-        napi_delete_reference(env, ctx->func_ref);
-        napi_delete_reference(env, ctx->this_ref);
-        napi_release_threadsafe_function(value->tsfn, napi_tsfn_abort);
         delete value;
       },
       &tsfn);
@@ -159,7 +165,9 @@ napi_value LynxNativeModule::BindFunctionsToNapiModule(napi_env env,
 
             if (type == napi_function) {
               auto tsfn = EncodeNapiCallBack(env, js_this, napi_argv[index]);
-              callbacks.insert({index, {env, tsfn}});
+              callbacks.insert(
+                  {index,
+                   {env, tsfn, std::make_shared<std::atomic_bool>(false)}});
             } else {
               v8_argvs[index] = SerializeValue(
                   isolate, ctx,
@@ -229,7 +237,15 @@ void LynxNativeModule::RunMethodInMainThread(
                 callback.tsfn, value_ptr, napi_tsfn_nonblocking);
             if (status != napi_ok) {
               delete value_ptr;
-              napi_release_threadsafe_function(callback.tsfn, napi_tsfn_abort);
+              if (callback.released && !callback.released->exchange(true)) {
+                napi_release_threadsafe_function(callback.tsfn,
+                                                 napi_tsfn_abort);
+              }
+              return;
+            }
+            if (callback.released && !callback.released->exchange(true)) {
+              napi_release_threadsafe_function(callback.tsfn,
+                                               napi_tsfn_release);
             }
           }).ToV8();
       continue;
