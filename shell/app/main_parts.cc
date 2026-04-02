@@ -36,6 +36,7 @@
 
 #if BUILDFLAG(IS_WIN)
 #include "base/win/scoped_com_initializer.h"
+#include "shell/ui/display/desktop_screen.h"
 #endif
 
 namespace lynxtron {
@@ -180,11 +181,11 @@ void MainParts::Initialize() {
 
   LynxView::SetNodePlatformEnv(js_env_->platform());
 
-  // #if defined(OS_WIN)
-  //   if (!display::Screen::GetScreen()) {
-  //     screen_ = views::CreateDesktopScreen();
-  //   }
-  // #endif
+#if BUILDFLAG(IS_WIN)
+  if (!display::Screen::Get()) {
+    screen_ = views::CreateDesktopScreen();
+  }
+#endif
 
   base::PowerMonitor::GetInstance()->Initialize(
       std::make_unique<base::PowerMonitorDeviceSource>());
@@ -239,6 +240,7 @@ void MainParts::Shutdown() {
   base::ThreadPoolInstance::Get()->Shutdown();
 
 #if BUILDFLAG(IS_WIN)
+  screen_.reset();
   com_initializer_.reset();
 #endif
 }

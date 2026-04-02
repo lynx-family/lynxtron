@@ -11,7 +11,7 @@
 #include "build/build_config.h"
 #include "shell/app/application.h"
 #include "shell/app/main_parts_delegate.h"
-#include "ui/display/screen.h"
+#include "shell/ui/display/screen.h"
 
 namespace node {
 class Environment;
@@ -78,6 +78,7 @@ class MainParts {
 
 #if BUILDFLAG(IS_WIN)
   std::unique_ptr<base::win::ScopedCOMInitializer> com_initializer_;
+  std::unique_ptr<display::Screen> screen_;
 #endif
 
   std::unique_ptr<GlobalThread> global_thread_;
