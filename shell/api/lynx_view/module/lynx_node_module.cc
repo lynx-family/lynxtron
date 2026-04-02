@@ -24,7 +24,6 @@ namespace {
 static void* v8_platform_ = nullptr;
 
 const uint64_t kInitNodeEnvflags =
-    node::EnvironmentFlags::kNoBrowserGlobals |
     node::EnvironmentFlags::kHideConsoleWindows |
     node::EnvironmentFlags::kNoStartDebugSignalHandler |
     node::EnvironmentFlags::kNoCreateInspector |
