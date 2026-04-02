@@ -4,17 +4,19 @@
 
 #include "shell/legacy/texture-view/lynx_texture_view.h"
 
-#include <utility>  // for std::move
+#include <utility>
 
 #include "base/logging.h"
 #include "build/build_config.h"
 #include "platform/embedder/public/lynx_value.h"
+#include "shell/plugin/lynx_plugin_module_manager.h"
 
 #if BUILDFLAG(IS_WIN)
 #include <windows.h>
 #elif BUILDFLAG(IS_MAC)
 #include <IOSurface/IOSurface.h>
 #include <mach/mach.h>
+#include <unistd.h>
 #endif
 
 using lynx::pub::LynxValue;
@@ -23,17 +25,17 @@ namespace lynxtron {
 namespace legacy {
 
 LynxTextureView::LynxTextureView() {
-  //   LynxPluginModuleManager::RegisterSurfaceOperationCallback(
-  //       [this] { OnSwapBuffer(); },
-  //       [this](int32_t& pid, int64_t& surface_id, int32_t& width,
-  //              int32_t& height) {
-  //         OnSurfaceAcquire(pid, surface_id, width, height);
-  //       });
+  LynxPluginModuleManager::RegisterSurfaceOperationCallback(
+      [this]() { OnSwapBuffer(); },
+      [this](int32_t& pid, int64_t& surface_id, int32_t& width,
+             int32_t& height) {
+        OnSurfaceAcquire(pid, surface_id, width, height);
+      });
 }
 
 LynxTextureView::~LynxTextureView() {
   LOG(ERROR) << "LynxTextureView::~LynxTextureView";
-  //   LynxPluginModuleManager::UnRegisterSurfaceOperationCallback();
+  LynxPluginModuleManager::UnRegisterSurfaceOperationCallback();
 }
 
 void LynxTextureView::OnSwapBuffer() {

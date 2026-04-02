@@ -26,10 +26,12 @@
 #endif
 
 #include "build/build_config.h"
+#include "lynx/platform/embedder/public/capi/lynx_view_builder_capi.h"
 #include "lynx/platform/embedder/public/lynx_view.h"
 #include "shell/api/lynx_view/module/lynx_bridge_module.h"
 #include "shell/api/lynx_view/module/lynx_hybrid_monitor_module.h"
 #include "shell/api/lynx_view/module/lynx_node_module.h"
+#include "shell/legacy/texture-view/lynx_texture_view.h"
 #include "shell/lynx/resource_fetcher/lynx_generic_resource_fetcher_factory.h"
 
 namespace {
@@ -160,6 +162,13 @@ void LynxViewImpl::Init(
       .SetParent(parent);
   // .SetGenericResourceFetcher(
   //     LynxGenericResourceFetcherFactory::Create(lynx_window));
+  lynx_view_builder_register_native_view(
+      builder.Impl(), "x-texture-view",
+      [](void* opaque) -> lynx_native_view_t* {
+        (void)opaque;
+        return (new legacy::LynxTextureView())->native_view();
+      },
+      nullptr);
 
   if (!node_integration_preload.empty()) {
     RegisterLynxNodeModuleToLynxView(builder.Impl(), node_integration_preload);
