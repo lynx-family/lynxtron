@@ -28,6 +28,7 @@
 #include "build/build_config.h"
 #include "lynx/platform/embedder/public/lynx_view.h"
 #include "shell/api/lynx_view/module/lynx_bridge_module.h"
+#include "shell/api/lynx_view/module/lynx_hybrid_monitor_module.h"
 #include "shell/api/lynx_view/module/lynx_node_module.h"
 #include "shell/lynx/resource_fetcher/lynx_generic_resource_fetcher_factory.h"
 
@@ -164,6 +165,7 @@ void LynxViewImpl::Init(
     RegisterLynxNodeModuleToLynxView(builder.Impl(), node_integration_preload);
   }
   RegisterLynxBridgeModuleToLynxView(builder.Impl(), lynx_window);
+  RegisterLynxHybridMonitorModuleToLynxView(builder.Impl(), lynx_window);
 
   lynx_view_ = builder.Build();
 #if BUILDFLAG(IS_WIN)
