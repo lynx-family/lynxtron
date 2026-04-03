@@ -108,6 +108,8 @@ class LynxNodeModule : public lynx::pub::LynxExtensionModule {
                       Napi::Value lynx,
                       const char* url) override;
 
+  void OnRuntimeDetach() override;
+
  private:
   v8::Local<v8::Context> CreateNewNodeContext(v8::Isolate* v8_isolate);
   bool CheckModuleData();
@@ -135,11 +137,11 @@ LynxNodeModule::~LynxNodeModule() {
     delete module_data_;
   }
 
-  if (isolate_data_) {
-    node::FreeIsolateData(isolate_data_);
-  }
   if (env_) {
     node::FreeEnvironment(env_);
+  }
+  if (isolate_data_) {
+    node::FreeIsolateData(isolate_data_);
   }
 }
 
@@ -282,6 +284,17 @@ void LynxNodeModule::OnRuntimeReady(Napi::Env env,
 
   napi_value args[2] = {lynx, napi_api};
   napi_call_function(c_env, test_func, test_func, 2, args, nullptr);
+}
+
+void LynxNodeModule::OnRuntimeDetach() {
+  if (env_) {
+    node::FreeEnvironment(env_);
+    env_ = nullptr;
+  }
+  if (isolate_data_) {
+    node::FreeIsolateData(isolate_data_);
+    isolate_data_ = nullptr;
+  }
 }
 
 void RegisterLynxNodeModuleToLynxView(
