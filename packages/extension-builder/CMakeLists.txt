@@ -17,7 +17,7 @@ target_include_directories(bindings_lib PRIVATE
   ${CMAKE_SOURCE_DIR}
   ${NODE_ADDON_API_DIR}
   node_modules/@lynx-js/extension-builder/include/
-  include/
+  node_modules/@lynx-js/extension-builder/include/lynxtron/
 )
 # Bindings do NOT use weak-node-api namespace remapping
 
@@ -32,7 +32,7 @@ target_include_directories(module_lib PRIVATE
   ${CMAKE_JS_INC}
   ${CMAKE_SOURCE_DIR}
   node_modules/@lynx-js/extension-builder/include/
-  include/
+  node_modules/@lynx-js/extension-builder/include/lynxtron/
 )
 # Module uses weak-node-api namespace remapping
 target_compile_definitions(module_lib PRIVATE

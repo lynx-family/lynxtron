@@ -4,7 +4,7 @@
 
 #include "module/demo_view.h"
 
-#include "capi/lynx_log_capi.h"
+#include "lynxtron/capi/lynx_log_capi.h"
 
 namespace extension {
 

@@ -1159,7 +1159,7 @@ __metadata:
   resolution: "@lynx-js/extension-builder@workspace:packages/extension-builder"
   dependencies:
     "@lynx-js/lynxtron": "workspace:*"
-    "@lynx-js/weak-node-api": "npm:0.0.2"
+    "@lynx-js/weak-node-api": "npm:0.0.3"
     node-addon-api: "npm:^7.0.0"
   bin:
     extension-builder: ./scripts/scaffold.cjs
@@ -1451,13 +1451,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@lynx-js/weak-node-api@npm:0.0.2":
-  version: 0.0.2
-  resolution: "@lynx-js/weak-node-api@npm:0.0.2"
+"@lynx-js/weak-node-api@npm:0.0.3":
+  version: 0.0.3
+  resolution: "@lynx-js/weak-node-api@npm:0.0.3"
   dependencies:
     node-addon-api: "npm:7.1.0"
     weak-node-api: "npm:0.1.1"
-  checksum: 6368a01d6acac1d18486349861ac73110d2996e5d280e1beb30f6a088488a55528e69a71f4f9f11c4ef16bb46ce89a217ed92fa4254c372b08ecfe2ed76e3ea0
+  checksum: 37078c70cdfe5a80b3cfd1990017379e83e7cd655bb376373a709241e7f1a5ec47b8b0a38149debf2c11eac6591c845c7a79e0e7a24fb77c8072ddd81025aa89
   languageName: node
   linkType: hard
 

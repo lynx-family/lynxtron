@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 
-// packages/extension-builder → packages → lynxtron → lynxtron_oss_ws → lynx
+// packages/extension-builder → packages → lynxtron → src → lynx
 const lynxRoot = process.env.LYNX_SOURCE_ROOT || path.resolve(__dirname, '../../../lynx');
 // Namespace under include/lynxtron/ to avoid conflicts with consumer files
 const targetDir = path.resolve(__dirname, 'include/lynxtron');

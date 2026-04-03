@@ -3,7 +3,7 @@
 // LICENSE file in the root directory of this source tree.
 #include <napi.h>
 
-#include "capi/lynx_extension_module_types_capi.h"
+#include "lynxtron/capi/lynx_extension_module_types_capi.h"
 
 extern "C" lynx_extension_module_t*
 demo_extension_module_create_extension_module(void* opaque);

@@ -13,7 +13,9 @@ const fs = require('fs');
 const path = require('path');
 
 const rootDir = path.resolve(__dirname, '..');
-const targetDir = process.argv[2] ? path.resolve(process.argv[2]) : process.cwd();
+const targetDir = process.argv[2]
+  ? path.resolve(process.argv[2])
+  : (process.env.INIT_CWD ? path.resolve(process.env.INIT_CWD) : process.cwd());
 
 console.log(`[extension-builder] Scaffolding into: ${targetDir}\n`);
 

@@ -2,7 +2,7 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#include "lynx_native_view.h"
+#include "lynxtron/lynx_native_view.h"
 
 namespace extension {
 class DemoView : public lynx::pub::LynxNativeView {

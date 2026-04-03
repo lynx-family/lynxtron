@@ -5,10 +5,10 @@
 #include <memory>
 #include <string>
 
-#include "capi/lynx_export.h"
-#include "lynx_extension_module.h"
-#include "lynx_view.h"
-#include "third_party/weak-node-api/headers/napi.h"
+#include "lynxtron/capi/lynx_export.h"
+#include "lynxtron/lynx_extension_module.h"
+#include "lynxtron/lynx_view.h"
+#include "lynxtron/third_party/weak-node-api/headers/napi.h"
 
 namespace extension {
 
