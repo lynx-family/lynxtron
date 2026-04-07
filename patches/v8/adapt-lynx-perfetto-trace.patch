@@ -4,7 +4,7 @@ Date: Tue, 3 Mar 2026 17:14:15 +0800
 Subject: [PATCH] adapt lynx perfetto trace
 
 ---
- BUILD.gn                               | 30 ++++++++++++++++-
+ BUILD.gn                               | 31 +++++++++++++++++-
  gni/v8.gni                             |  2 +-
  src/base/platform/time.cc              | 34 +++++++++++--------
  src/ic/ic-stats.cc                     |  2 +-
@@ -14,10 +14,10 @@ Subject: [PATCH] adapt lynx perfetto trace
  src/tracing/trace-event.h              | 45 ++++++++++++++++++++++++--
  src/tracing/traced-value.cc            | 12 ++++++-
  src/tracing/traced-value.h             | 11 +++++--
- 10 files changed, 121 insertions(+), 29 deletions(-)
+ 10 files changed, 122 insertions(+), 29 deletions(-)
 
 diff --git a/BUILD.gn b/BUILD.gn
-index 8dda88f8..27efb1c3 100644
+index 8dda88f8..031798e2 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -13,6 +13,7 @@ import("//build/config/rust.gni")
@@ -46,7 +46,7 @@ index 8dda88f8..27efb1c3 100644
      include_dirs = [
        "//third_party/perfetto/include",
        "$root_gen_dir/third_party/perfetto",
-@@ -7433,6 +7443,21 @@ if (current_toolchain == v8_generator_toolchain) {
+@@ -7433,6 +7443,22 @@ if (current_toolchain == v8_generator_toolchain) {
  }
  
  if (current_toolchain == v8_snapshot_toolchain) {
@@ -56,6 +56,7 @@ index 8dda88f8..27efb1c3 100644
 +      deps = [
 +        "//lynx/base/trace/darwin:LynxTrace",
 +        "//lynx/base/src:base_group",
++        "//third_party/node/deps/uv:uv",
 +      ]
 +    } else if (is_win) {
 +      deps = [
@@ -68,7 +69,7 @@ index 8dda88f8..27efb1c3 100644
    v8_executable("mksnapshot") {
      sources = [
        "src/snapshot/builtins-effects-dummy.cc",
-@@ -7474,6 +7499,9 @@ if (current_toolchain == v8_snapshot_toolchain) {
+@@ -7474,6 +7500,9 @@ if (current_toolchain == v8_snapshot_toolchain) {
        ":v8_tracing",
        "//build/win:default_exe_manifest",
      ]
