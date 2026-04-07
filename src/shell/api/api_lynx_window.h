@@ -11,6 +11,7 @@
 #include <string_view>
 #include <vector>
 
+#include "base/files/file_path.h"
 #include "shell/api/api_base_window.h"
 #include "shell/api/lynx_view/lynx_view.h"
 #include "shell/api/lynx_view/lynx_view_client.h"
@@ -34,6 +35,7 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
                                    NativeWindow* native_window);
 
   base::WeakPtr<LynxWindow> GetWeakPtr() { return weak_factory_.GetWeakPtr(); }
+  std::string ResolveResourceUrl(const std::string& resource_url) const;
 
   bool OpenScheme(const std::string& url, gin::Arguments* args);
   void OpenOnlineScheme(const std::string& pc_open_type,
@@ -140,6 +142,8 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
 
   void StartFpsMonitorTask();
   void EmitFpsEvent();
+  void SetTemplateResourceBaseFromFile(const base::FilePath& path);
+  void SetTemplateResourceBaseFromUrl(const std::string& url);
 
 #if defined(OS_WIN)
   friend class LynxNativeModule;
@@ -159,6 +163,8 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
   std::unique_ptr<LynxViewMonitorDelegate> lynx_view_monitor_delegate_;
   std::optional<std::string> data_str_ = std::nullopt;
   std::optional<std::string> global_props_ = std::nullopt;
+  std::optional<std::string> current_resource_base_url_ = std::nullopt;
+  bool current_resource_base_is_file_ = false;
 };
 
 }  // namespace lynxtron::api

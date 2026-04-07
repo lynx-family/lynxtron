@@ -4,6 +4,7 @@
 
 #include "shell/api/api_lynx_window.h"
 
+#include <algorithm>
 #include <initializer_list>
 #include <memory>
 #include <string_view>
@@ -34,6 +35,7 @@
 #include "shell/common/node_includes.h"
 #include "shell/common/options_switches.h"
 #include "shell/common/thread_restrictions.h"
+#include "url/gurl.h"
 
 #if BUILDFLAG(IS_WIN)
 #include <windows.h>
@@ -133,6 +135,24 @@ bool ExtractTemplateDataObject(v8::Isolate* isolate,
   }
   *out = obj;
   return true;
+}
+
+std::string ToFileUrl(const base::FilePath& path) {
+  std::string normalized = path.AsUTF8Unsafe();
+  std::replace(normalized.begin(), normalized.end(), '\\', '/');
+#if BUILDFLAG(IS_WIN)
+  return "file:///" + normalized;
+#else
+  return "file://" + normalized;
+#endif
+}
+
+std::string ToDirectoryFileUrl(const base::FilePath& path) {
+  std::string directory_url = ToFileUrl(path.DirName());
+  if (!directory_url.empty() && directory_url.back() != '/') {
+    directory_url.push_back('/');
+  }
+  return directory_url;
 }
 
 #if BUILDFLAG(IS_WIN)
@@ -510,6 +530,7 @@ bool LynxWindow::LoadFile(const std::string& path, gin::Arguments* args) {
     return false;
   }
 
+  SetTemplateResourceBaseFromFile(local_path);
   lynx_view_->LoadFile(local_path.AsUTF8Unsafe(), data_json.value(),
                        global_props.IsEmptyObject() ? "" : props_json.value());
   return true;
@@ -533,6 +554,7 @@ bool LynxWindow::LoadUrl(const std::string& url, gin::Arguments* args) {
     return false;
   }
 
+  SetTemplateResourceBaseFromUrl(url);
   lynx_view_->LoadURL(url, data_json.value(),
                       global_props.IsEmpty() ? "" : props_json.value());
   return true;
@@ -565,9 +587,52 @@ bool LynxWindow::LoadBundle(gin::Arguments* args) {
     return false;
   }
 
+  current_resource_base_url_.reset();
+  current_resource_base_is_file_ = false;
   lynx_view_->LoadBundle(wrapper->GetImpl(), data_json.value(),
                          global_props.IsEmpty() ? "" : props_json.value());
   return true;
+}
+
+std::string LynxWindow::ResolveResourceUrl(
+    const std::string& resource_url) const {
+  if (resource_url.empty()) {
+    return resource_url;
+  }
+
+  GURL resource(resource_url);
+  if (resource.is_valid() && resource.has_scheme()) {
+    return resource.spec();
+  }
+
+  if (!current_resource_base_url_.has_value()) {
+    return resource_url;
+  }
+
+  GURL base_url(current_resource_base_url_.value());
+  if (!base_url.is_valid()) {
+    return resource_url;
+  }
+
+  std::string relative = resource_url;
+  if (current_resource_base_is_file_) {
+    while (!relative.empty() && relative.front() == '/') {
+      relative.erase(relative.begin());
+    }
+  }
+
+  GURL resolved = base_url.Resolve(relative);
+  return resolved.is_valid() ? resolved.spec() : resource_url;
+}
+
+void LynxWindow::SetTemplateResourceBaseFromFile(const base::FilePath& path) {
+  current_resource_base_url_ = ToDirectoryFileUrl(path);
+  current_resource_base_is_file_ = true;
+}
+
+void LynxWindow::SetTemplateResourceBaseFromUrl(const std::string& url) {
+  current_resource_base_url_ = url;
+  current_resource_base_is_file_ = false;
 }
 
 bool LynxWindow::ReloadTemplate(const gin_helper::Dictionary& data,

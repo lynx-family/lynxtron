@@ -4,6 +4,7 @@
 
 #include "shell/api/lynx_view/lynx_view_impl.h"
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -55,6 +56,16 @@ std::vector<uint8_t> LoadFileData(std::string_view path) {
   size_t size = file_contents.size();
   std::vector<uint8_t> buf(file_contents.data(), file_contents.data() + size);
   return buf;
+}
+
+std::string ToFileUrl(const base::FilePath& path) {
+  std::string normalized = path.AsUTF8Unsafe();
+  std::replace(normalized.begin(), normalized.end(), '\\', '/');
+#if BUILDFLAG(IS_WIN)
+  return "file:///" + normalized;
+#else
+  return "file://" + normalized;
+#endif
 }
 
 #if BUILDFLAG(IS_WIN)
@@ -166,12 +177,13 @@ void LynxViewImpl::LoadFile(const std::string& path,
                             const std::string& data,
                             const std::string& global_props) {
   auto meta = std::make_shared<lynx::pub::LynxLoadMeta>();
+  base::FilePath local_path = base::FilePath::FromUTF8Unsafe(path);
   auto source = LoadFileData(path);
   if (source.empty()) {
     return;
   }
 
-  meta->SetUrl(path);
+  meta->SetUrl(ToFileUrl(local_path));
   meta->SetBinaryData(source);
   if (!data.empty()) {
     meta->SetInitialData(std::make_shared<lynx::pub::LynxTemplateData>(data));

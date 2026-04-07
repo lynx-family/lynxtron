@@ -4,10 +4,14 @@
 
 #include "shell/lynx/resource_fetcher/lynx_generic_resource_fetcher_impl.h"
 
+#include <cstring>
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "node_buffer.h"
+#include "platform/embedder/public/capi/lynx_generic_resource_fetcher_capi.h"
+#include "platform/embedder/public/capi/lynx_memory_capi.h"
 #include "shell/api/api_lynx_window.h"
 #include "shell/api/lynx_view/module/lynx_emit_event.h"
 #include "shell/app/javascript_environment.h"
@@ -87,6 +91,14 @@ LynxGenericResourceFetcherImpl::LynxGenericResourceFetcherImpl(
     base::WeakPtr<api::LynxWindow> lynx_window)
     : lynx_window_(lynx_window) {}
 
+std::string LynxGenericResourceFetcherImpl::InterceptUrl(
+    const std::string& url) const {
+  if (!lynx_window_) {
+    return url;
+  }
+  return lynx_window_->ResolveResourceUrl(url);
+}
+
 void LynxGenericResourceFetcherImpl::FetchResource(
     std::shared_ptr<lynx::pub::resource::LynxResourceRequest> request,
     std::shared_ptr<lynx::pub::resource::LynxResourceResponse> response) {
@@ -145,7 +157,25 @@ void LynxGenericResourceFetcherImpl::FetchResourcePath(
 std::shared_ptr<lynx::pub::LynxGenericResourceFetcher>
 LynxGenericResourceFetcherFactory::Create(
     base::WeakPtr<api::LynxWindow> lynx_window) {
-  return std::make_shared<LynxGenericResourceFetcherImpl>(lynx_window);
+  auto fetcher = std::make_shared<LynxGenericResourceFetcherImpl>(lynx_window);
+  fetcher->InitIfNeeded();
+  lynx_generic_resource_fetcher_bind_intercept_func(
+      fetcher->Impl(),
+      [](const char* url, bool /*should_decode*/, void* user_data) -> char* {
+        auto* weak_ptr =
+            reinterpret_cast<std::weak_ptr<lynx::pub::LynxGenericResourceFetcher>*>(
+                user_data);
+        auto shared_fetcher = weak_ptr ? weak_ptr->lock() : nullptr;
+        auto impl =
+            std::static_pointer_cast<LynxGenericResourceFetcherImpl>(
+                shared_fetcher);
+        if (!impl || !url) {
+          return lynx_strdup(url ? url : "");
+        }
+        std::string intercepted = impl->InterceptUrl(url);
+        return lynx_strdup(intercepted.c_str());
+      });
+  return fetcher;
 }
 
 }  // namespace lynxtron

@@ -6,6 +6,7 @@
 #define LYNXTRON_SHELL_LYNX_RESOURCE_FETCHER_LYNX_GENERIC_RESOURCE_FETCHER_IMPL_H_
 
 #include <memory>
+#include <string>
 
 #include "base/memory/weak_ptr.h"
 #include "platform/embedder/public/lynx_generic_resource_fetcher.h"
@@ -21,6 +22,8 @@ class LynxGenericResourceFetcherImpl
   explicit LynxGenericResourceFetcherImpl(
       base::WeakPtr<api::LynxWindow> lynx_window);
   ~LynxGenericResourceFetcherImpl() override = default;
+
+  std::string InterceptUrl(const std::string& url) const;
 
   void FetchResource(
       std::shared_ptr<lynx::pub::resource::LynxResourceRequest> request,
