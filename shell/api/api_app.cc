@@ -642,9 +642,9 @@ bool App::IsPackaged() {
       base::ToLowerASCII(exe_path.BaseName().value());
 
 #if BUILDFLAG(IS_WIN)
-  return base_name != FILE_PATH_LITERAL("electron.exe");
+  return base_name != FILE_PATH_LITERAL("lynxtron.exe");
 #else
-  return base_name != FILE_PATH_LITERAL("electron");
+  return base_name != FILE_PATH_LITERAL("lynxtron");
 #endif
 }
 
