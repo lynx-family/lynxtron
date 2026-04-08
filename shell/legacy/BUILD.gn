@@ -9,7 +9,10 @@ source_set("legacy") {
   ]
 
   include_dirs = [
+    "//",
+    "//lynxtron",
     "//lynxtron/lynxtron",
+    "//lynx",
     "//lynx/lynx",
     "$root_gen_dir/lynxtron",
     "$target_gen_dir",
