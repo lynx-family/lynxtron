@@ -159,9 +159,9 @@ void LynxViewImpl::Init(
   lynx::pub::LynxView::Builder builder;
   builder.SetScreenSize(width, height, dpi)
       .SetFrame(0, 0, width, height)
-      .SetParent(parent);
-  // .SetGenericResourceFetcher(
-  //     LynxGenericResourceFetcherFactory::Create(lynx_window));
+      .SetParent(parent)
+      .SetGenericResourceFetcher(
+          LynxGenericResourceFetcherFactory::Create(lynx_window));
   lynx_view_builder_register_native_view(
       builder.Impl(), "x-texture-view",
       [](void* opaque) -> lynx_native_view_t* {
