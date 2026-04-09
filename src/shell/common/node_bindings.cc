@@ -27,7 +27,7 @@
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/single_thread_task_runner.h"
 #include "gin/function_template.h"
-#include "lynxtron/lynxtron_version.h"
+#include "lynxtron/src/lynxtron_version.h"
 #include "shell/api/api_app.h"
 #include "shell/app/application.h"
 #include "shell/common/fuses.h"

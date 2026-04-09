@@ -10,7 +10,7 @@ deps = {
         "type": "action",
         "cwd": os.path.join(root_dir, '..'),
         "commands": [
-            "python3 lynxtron/script/apply_all_patches.py lynxtron/patches/config.json",
+            "python3 lynxtron/src/script/apply_all_patches.py lynxtron/src/patches/config.json",
         ],
         "require": ["../base", "../build", "../third_party/node", "../url", "../tools", "../v8"],
     },

@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <string_view>
 
-#include "lynxtron/shell/common/global_delegate_registry.h"
+#include "src/shell/common/global_delegate_registry.h"
 
 namespace lynxtron {
 

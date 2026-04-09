@@ -20,7 +20,7 @@
 
 // TODO(Guo Xi) : what is this define for?
 // clang-format off
-#include "lynxtron/push_and_undef_node_defines.h"
+#include "lynxtron/src/push_and_undef_node_defines.h"
 #include "env-inl.h"
 #include "env.h"
 #include "node.h"
@@ -34,7 +34,7 @@
 #include "node_platform.h"
 #include "node_report.h"
 #include "tracing/agent.h"
-#include "lynxtron/pop_node_defines.h"
+#include "lynxtron/src/pop_node_defines.h"
 // clang-format on
 
 // Alternative to NODE_BINDING_CONTEXT_AWARE_X.

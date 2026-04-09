@@ -23,7 +23,6 @@
 #include "base/win/registry.h"
 #include "base/win/shlwapi.h"  // NOLINT(build/include_order)
 #include "base/win/windows_version.h"
-#include "lynxtron/lynxtron_version.h"
 #include "shell/api/ui/win/jump_list.h"
 #include "shell/app/application.h"
 #include "shell/app/javascript_environment.h"
@@ -32,6 +31,7 @@
 #include "shell/common/gin_converters/login_item_settings_converter.h"
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/thread_restrictions.h"
+#include "src/lynxtron_version.h"
 
 namespace lynxtron {
 

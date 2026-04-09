@@ -35,7 +35,7 @@ runs:
       uses: lynx-infra/cache@5c6160a6a4c7fca80a2f3057bb9dfc9513fcb732
       with:
         path: ~/.habitat_cache
-        key: hab${{ inputs.cache-key-prefix }}-${{ runner.os }}-${{ hashFiles('src/lynxtron/.habitat', 'src/lynxtron/dependencies/DEPS') }}
+        key: hab${{ inputs.cache-key-prefix }}-${{ runner.os }}-${{ hashFiles('src/lynxtron/.habitat', 'src/lynxtron/src/dependencies/DEPS') }}
         restore-keys: |
           hab${{ inputs.cache-key-prefix }}-${{ runner.os }}-
 
@@ -44,7 +44,7 @@ runs:
       uses: actions/cache@v4
       with:
         path: ~/.habitat_cache
-        key: hab${{ inputs.cache-key-prefix }}-${{ runner.os }}-${{ hashFiles('src/lynxtron/.habitat', 'src/lynxtron/dependencies/DEPS') }}
+        key: hab${{ inputs.cache-key-prefix }}-${{ runner.os }}-${{ hashFiles('src/lynxtron/.habitat', 'src/lynxtron/src/dependencies/DEPS') }}
         restore-keys: |
           hab${{ inputs.cache-key-prefix }}-${{ runner.os }}-
 
