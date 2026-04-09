@@ -1,0 +1,31 @@
+# Copyright 2024 The Chromium Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+source_set("header") {
+  sources = [ "simdutf.h" ]
+}
+
+config("simdutf_config") {
+  include_dirs = [ "." ]
+}
+
+source_set("simdutf") {
+  sources = [ "simdutf.cpp" ]
+  public_deps = [ ":header" ]
+  public_configs = [ ":simdutf_config" ]
+  cflags_cc = [
+    "-Wno-unused-const-variable",
+    "-Wno-unused-function",
+  ]
+  if (is_win) {
+    # Supress dllexports when included in chrome.exe.
+    defines = [ "SIMDUTF_DLLIMPORTEXPORT=" ]
+  }
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [ "//build/config/compiler:no_chromium_code" ]
+  if (!is_debug) {
+    configs -= [ "//build/config/compiler:default_optimization" ]
+    configs += [ "//build/config/compiler:optimize_speed" ]
+  }
+}

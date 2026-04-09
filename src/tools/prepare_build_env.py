@@ -15,10 +15,12 @@ COLORED_PRINT_END = '\033[0m'
 current_dir = os.path.dirname(os.path.realpath(__file__))
 # Get the root directory
 root_dir = os.path.abspath(os.path.join(current_dir, '..'))
+print(f"root_dir: {root_dir}")
 sys.path.append(root_dir)
 from script.abort_am_sessions import abort_am_sessions
 
 def main():
+    start_cwd = os.getcwd()
     system = platform.system().lower()
     if system == "windows":
         hab = os.path.join(os.path.dirname(__file__), "hab.ps1")
@@ -36,6 +38,7 @@ def main():
     print(f"{COLORED_GREEN_MSG}abort am sessions............{COLORED_PRINT_END}")
     abort_am_sessions()
     print(f"{COLORED_YELLOW_MSG}sync lynxtron dependencies............{COLORED_PRINT_END}")
+    os.chdir(root_dir)
     if system == "windows":
         return_code = os.system(f"powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File \"{hab}\" sync . -f --no-history --target lynxtron")
     else:
@@ -77,12 +80,12 @@ def main():
     original_dir = os.getcwd()
     try:
         os.chdir("..")
-        return_code = os.system(f"{python3} lynxtron/script/apply_all_patches.py lynxtron/patches/lynx/config.json")
+        return_code = os.system(f"{python3} src/script/apply_all_patches.py src/patches/lynx/config.json")
         if return_code != 0:
             print(f"{COLORED_RED_MSG}apply_all_patches.py failed, exit{COLORED_PRINT_END}")
             return return_code
     finally:
-        os.chdir(original_dir)
+        os.chdir(start_cwd)
    
     print(f"{COLORED_RED_MSG}Warning: One final step remains for the build environment, please run the following command manually:{COLORED_PRINT_END}")
     print(f"{COLORED_GREEN_MSG}{envsetup}{COLORED_PRINT_END}")

@@ -365,7 +365,6 @@ source_set("lynxtron_lib") {
     "//base:i18n",
     "//crypto",
     "//gin",
-    "//lynxtron/shell/lynx:lynx_lib",
     "//third_party/libxml:xml_writer",
     "//third_party/node:libnode",
     "//third_party/re2",
@@ -777,7 +776,7 @@ if (is_mac) {
       "shell/app/resources/mac/lynxtron.icns",
     ]
 
-    public_deps += [ "//lynxtron/shell/lynx:lynx_resources" ]
+    public_deps += lynxtron_app_resources_deps
     outputs = [ "{{bundle_resources_dir}}/{{source_file_part}}" ]
   }
 
@@ -826,9 +825,8 @@ if (is_mac) {
     outputs = [ "$root_out_dir/.copied_to_package_$target_cpu" ]
     args = [
       rebase_path("$root_out_dir/lynxtron.app", root_build_dir),
-      rebase_path(
-          "//lynxtron/lynxtron/src/packages/lynxtron/dist/darwin/$target_cpu",
-          root_build_dir),
+      rebase_path("//src/packages/lynxtron/dist/darwin/$target_cpu",
+                  root_build_dir),
       rebase_path("$root_out_dir/.copied_to_package_$target_cpu",
                   root_build_dir),
     ]

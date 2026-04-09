@@ -303,7 +303,7 @@ index da565473f1ae96b4d009935f7733e6ab15ea9de2..519168b36310c088fcd58b51a7bbc6a2
      public_deps = [
        "deps/ada",
        "deps/uv",
-+      "//lynxtron/src:lynxtron_js2c",
++      "//src:lynxtron_js2c",
        "deps/simdjson",
        "$node_v8_path",
      ]
@@ -424,7 +424,7 @@ index da565473f1ae96b4d009935f7733e6ab15ea9de2..519168b36310c088fcd58b51a7bbc6a2
 +  }
 +
 +  action("node_js2c_original_fs") {
-+    script = "//lynxtron/script/node/generate_original_fs.py"
++    script = "//src/script/node/generate_original_fs.py"
 +    inputs = fs_files
 +    deps = [ ":node_js2c_inputs" ]
 +
@@ -438,7 +438,7 @@ index da565473f1ae96b4d009935f7733e6ab15ea9de2..519168b36310c088fcd58b51a7bbc6a2
  
    action("run_node_js2c") {
 -    script = "$node_v8_path/tools/run.py"
-+    script = "//lynxtron/build/run-in-dir.py"
++    script = "//src/build/run-in-dir.py"
      deps = [
 +      ":node_js2c_original_fs",
        ":node_js2c($host_toolchain)",

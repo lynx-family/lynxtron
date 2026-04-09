@@ -50,8 +50,38 @@ deps = {
             "windows-x86_64": "https://nodejs.org/dist/v22.18.0/node-v22.18.0-win-x64.zip"
         }.get(f"{system}-{machine}", None),
         "ignore_in_git": True,
-        "condition": system in ['darwin'],
+        "condition": system in ['darwin', 'windows'],
          "require": ["../buildtools"]
+    },
+    '../buildtools/corepack/pnpm/7.33.6': {
+        "type": "http",
+        "url": "https://registry.npmjs.org/pnpm/-/pnpm-7.33.6.tgz",
+        "sha256": "f0c52b41f8128da92160f6826b53a105aad31c6c7cdc00b907fde507c5ca09b5",
+        "ignore_in_git": True
+    },
+    # setup corepack and pnpm
+    # see: https://github.com/nodejs/corepack#offline-workflow
+    'setup_corepack_pnpm': {
+        "type": "action",
+        "cwd": root_dir,
+        "env": {
+            'NODE_CHANNEL_FD': '1' if not system == 'windows' else '',
+            'COREPACK_HOME': os.path.join(root_dir, '..', 'buildtools', 'corepack'),
+            # Windows does not have `node/bin` dir
+            # And it also use `;` as separator of PATH
+            'PATH': f"{os.path.join(root_dir, '..', 'buildtools', 'node')};{os.environ.get('PATH')}"
+               if system == "windows"
+               else f"{os.path.join(root_dir, '..', 'buildtools', 'node', 'bin')}:{os.environ.get('PATH')}"
+        },
+        "commands": [
+            "corepack prepare pnpm@7.33.6 --activate",
+            "corepack enable",
+        ],
+        "require": [
+            "../buildtools/node",
+            "../buildtools/corepack/pnpm/7.33.6",
+        ],
+        "condition": system in [ 'darwin', 'windows' ]
     },
     'change_executable_permission': {
         "type": "action",

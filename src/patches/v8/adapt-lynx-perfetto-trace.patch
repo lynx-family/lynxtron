@@ -35,7 +35,7 @@ index 8dda88f8..031798e2 100644
 -  if (v8_use_perfetto) {
 +  if (enable_trace == "perfetto") {
 +    include_dirs = [
-+      "//lynxtron",
++      "//src",
 +      "//",
 +    ]
 +    defines = [

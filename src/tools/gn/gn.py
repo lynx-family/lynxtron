@@ -25,9 +25,9 @@ def get_current_os():
 def get_default_gn_args(is_debug):
   gn_args = ''
   if is_debug:
-    gn_args += 'import("//lynxtron/build/args/debug.gn") '
+    gn_args += 'import("//src/build/args/debug.gn") '
   else:
-    gn_args += 'import("//lynxtron/build/args/release.gn") '
+    gn_args += 'import("//src/build/args/release.gn") '
   gn_args += 'desktop_enable_embedder_layer=true '
   gn_args += 'enable_clay_standalone=true '
   gn_args += 'disable_visibility_hidden=true '

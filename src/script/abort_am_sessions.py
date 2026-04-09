@@ -14,9 +14,7 @@ def runCommand(cmd):
   return p.stdout.readlines()
 
 # The git command returns bytes, so we decode it to a string
-REPO_DIR = runCommand('git rev-parse --show-toplevel')[0].strip().decode('utf-8')
-print(f'REPO_DIR: {REPO_DIR}')
-BASE_DIR = os.path.abspath(os.path.join(REPO_DIR, '..'))
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 print(f'BASE_DIR: {BASE_DIR}')
 
 # Directories to check, relative to BASE_DIR

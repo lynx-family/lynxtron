@@ -20,7 +20,6 @@ component("codec") {
   ]
 
   deps = [
-    # "//lynxtron/shell/ui/gfx:gfx_skia",
     "../../skia:skia_ext",
     "../geometry",
   ]

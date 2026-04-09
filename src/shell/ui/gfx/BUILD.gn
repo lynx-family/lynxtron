@@ -13,8 +13,6 @@ config("gfx_config") {
     "..",
     "../..",
     "../../..",
-
-    # "//lynxtron/shell/ui",
   ]
 }
 

@@ -27,7 +27,6 @@
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/single_thread_task_runner.h"
 #include "gin/function_template.h"
-#include "lynxtron/src/lynxtron_version.h"
 #include "shell/api/api_app.h"
 #include "shell/app/application.h"
 #include "shell/common/fuses.h"
@@ -41,6 +40,7 @@
 #include "shell/common/mac/main_application_bundle.h"
 #include "shell/common/node_includes.h"
 #include "shell/common/node_util.h"
+#include "src/lynxtron_version.h"
 #include "third_party/node/src/debug_utils.h"
 #include "third_party/node/src/module_wrap.h"
 
