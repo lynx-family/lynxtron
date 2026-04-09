@@ -30,7 +30,6 @@
 #include "shell/common/asar/asar_util.h"
 #include "shell/common/global_thread.h"
 #include "shell/common/thread_restrictions.h"
-#include "shell/legacy/texture-view/lynx_texture_view.h"
 #include "shell/lynx/resource_fetcher/lynx_generic_resource_fetcher_factory.h"
 #include "shell/ui/gfx/geometry/rect.h"
 

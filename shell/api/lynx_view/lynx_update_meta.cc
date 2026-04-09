@@ -6,8 +6,8 @@
 
 #include <memory>
 
-#include "lynx/lynx/platform/embedder/public/lynx_template_data.h"
-#include "lynx/lynx/platform/embedder/public/lynx_update_meta.h"
+#include "lynx/platform/embedder/public/lynx_template_data.h"
+#include "lynx/platform/embedder/public/lynx_update_meta.h"
 
 namespace lynxtron {
 

@@ -8,7 +8,7 @@
 #include <string>
 #include <utility>
 
-#include "lynx/lynx/platform/embedder/public/lynx_template_bundle.h"
+#include "lynx/platform/embedder/public/lynx_template_bundle.h"
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/gin_helper/error_thrower.h"
 #include "shell/common/gin_helper/object_template_builder.h"
