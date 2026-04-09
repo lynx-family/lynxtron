@@ -56,6 +56,31 @@ describe('LynxWindow module', () => {
       w.destroy();
     });
 
+    ifdescribe(process.platform === 'darwin')('native tabs', () => {
+      afterEach(closeAllWindows);
+
+      it('exposes native tab methods', () => {
+        const w1 = new LynxWindow({
+          show: false,
+          tabbingIdentifier: 'tab-group',
+        });
+        const w2 = new LynxWindow({
+          show: false,
+          tabbingIdentifier: 'tab-group',
+        });
+
+        expect(() => {
+          w1.addTabbedWindow(w2);
+          w1.selectNextTab();
+          w1.selectPreviousTab();
+          w1.mergeAllWindows();
+          w1.moveTabToNewWindow();
+          w1.toggleTabBar();
+          w1.showAllTabs();
+        }).not.to.throw();
+      });
+    });
+
     it('does not crash or throw when passed an invalid icon', async () => {
       expect(() => {
         const w = new LynxWindow({
@@ -63,6 +88,32 @@ describe('LynxWindow module', () => {
         } as any);
         w.destroy();
       }).not.to.throw();
+    });
+  });
+
+  describe('background color', () => {
+    it('applies backgroundColor from constructor and can be read back', async () => {
+      const w = new LynxWindow({
+        show: false,
+        backgroundColor: '#FF0000',
+      } as any);
+      try {
+        const hex = w.getBackgroundColor();
+        expect(hex).to.equal('#FF0000');
+      } finally {
+        w.destroy();
+      }
+    });
+
+    it('setBackgroundColor updates getBackgroundColor at runtime', async () => {
+      const w = new LynxWindow({ show: false } as any);
+      try {
+        w.setBackgroundColor('#00FF00');
+        const hex = w.getBackgroundColor();
+        expect(hex).to.equal('#00FF00');
+      } finally {
+        w.destroy();
+      }
     });
   });
 
@@ -523,14 +574,26 @@ describe('LynxWindow module', () => {
           w.show();
           await shown;
 
-          const enterFullScreen = once(w, 'enter-full-screen');
-          w.fullScreen = true;
-          await enterFullScreen;
+          {
+            const events: string[] = [];
+            w.once('will-enter-full-screen', () => events.push('will-enter'));
+            w.once('enter-full-screen', () => events.push('enter'));
+            w.fullScreen = true;
+            await waitUntil(() => events.length === 2);
+            expect(events).to.deep.equal(['will-enter', 'enter']);
+          }
+
           expect(w.fullScreen).to.equal(true);
 
-          const leaveFullScreen = once(w, 'leave-full-screen');
-          w.fullScreen = false;
-          await leaveFullScreen;
+          {
+            const events: string[] = [];
+            w.once('will-leave-full-screen', () => events.push('will-leave'));
+            w.once('leave-full-screen', () => events.push('leave'));
+            w.fullScreen = false;
+            await waitUntil(() => events.length === 2);
+            expect(events).to.deep.equal(['will-leave', 'leave']);
+          }
+
           expect(w.fullScreen).to.equal(false);
         });
 
@@ -721,6 +784,53 @@ describe('LynxWindow module', () => {
         }
       );
 
+      ifdescribe(process.platform === 'darwin' || process.platform === 'win32')(
+        'LynxWindow move events',
+        () => {
+          afterEach(closeAllWindows);
+
+          it('emits move when the window position changes', async () => {
+            const w = new LynxWindow({ show: false });
+            const shown = once(w, 'show');
+            w.show();
+            await shown;
+
+            const [x, y] = w.getPosition();
+            const move = once(w, 'move');
+            w.setPosition(x + 20, y + 20);
+            await move;
+
+            await waitUntil(() => {
+              const [nextX, nextY] = w.getPosition();
+              return nextX === x + 20 && nextY === y + 20;
+            });
+          });
+
+          it('emits moved after move when the window position changes', async () => {
+            const w = new LynxWindow({ show: false });
+            const shown = once(w, 'show');
+            w.show();
+            await shown;
+
+            const events: string[] = [];
+            const move = once(w, 'move').then(() => {
+              events.push('move');
+            });
+            const moved = once(w, 'moved').then(() => {
+              events.push('moved');
+            });
+
+            const [x, y] = w.getPosition();
+            w.setPosition(x + 40, y + 40);
+
+            await move;
+            await moved;
+
+            expect(events).to.deep.equal(['move', 'moved']);
+          });
+        }
+      );
+
       describe('LynxWindow.moveTop()', () => {
         afterEach(closeAllWindows);
 
@@ -800,6 +910,36 @@ describe('LynxWindow module', () => {
           expect(parent.getChildWindows()).to.not.include(child);
         });
       });
+
+      ifdescribe(process.platform === 'darwin')(
+        'LynxWindow modal sheets',
+        () => {
+          afterEach(closeAllWindows);
+
+          it('does not close a modal sheet when re-enabling the parent window', async () => {
+            const parent = new LynxWindow({ show: false });
+            parent.show();
+            await once(parent, 'show');
+
+            const child = new LynxWindow({
+              show: false,
+              parent,
+              modal: true,
+            });
+
+            const sheetBegin = once(parent, 'sheet-begin');
+            child.show();
+            await sheetBegin;
+            await waitUntil(() => !parent.isEnabled());
+
+            parent.setEnabled(true);
+
+            await setTimeout(50);
+            expect(child.isVisible()).to.equal(true);
+            expect(parent.isEnabled()).to.equal(false);
+          });
+        }
+      );
 
       ifdescribe(process.platform === 'win32')(
         'LynxWindow modal parent enable state',
@@ -1004,6 +1144,9 @@ describe('LynxWindow module', () => {
           // Content size should be smaller than window size when frame is present
           expect(contentSize[0]).to.be.at.most(windowSize[0]);
           expect(contentSize[1]).to.be.at.most(windowSize[1]);
+          if (process.platform === 'darwin') {
+            expect(contentSize[1]).to.be.lessThan(windowSize[1]);
+          }
           await closeWindow(wWithFrame, { assertNotWindows: false });
         });
 
@@ -1020,6 +1163,21 @@ describe('LynxWindow module', () => {
           expect(contentSize[0]).to.equal(windowSize[0]);
           expect(contentSize[1]).to.equal(windowSize[1]);
           await closeWindow(wFrameless, { assertNotWindows: false });
+        });
+
+        describe('LynxWindow will-resize event', () => {
+          it('does not emit on programmatic resize', async () => {
+            const w2 = new LynxWindow({ show: false, width: 300, height: 200 });
+
+            w2.once('will-resize', () => {
+              expect.fail('will-resize event should not be emitted');
+            });
+
+            const resize = once(w2, 'resize');
+            w2.setSize(320, 220);
+            await resize;
+            await closeWindow(w2, { assertNotWindows: false });
+          });
         });
 
         ifit(process.platform === 'win32')(

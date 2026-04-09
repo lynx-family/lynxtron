@@ -79,6 +79,8 @@ class NativeWindowMac : public NativeWindow {
   bool IsExcludedFromShownWindowsMenu() override;
   void SetSimpleFullScreen(bool simple_fullscreen) override;
   bool IsSimpleFullScreen() override;
+  void SetBackgroundColor(SkColor background_color) override;
+  SkColor GetBackgroundColor() const override;
   void SetHasShadow(bool has_shadow) override;
   bool HasShadow() override;
   void SetOpacity(const double opacity) override;
@@ -98,6 +100,13 @@ class NativeWindowMac : public NativeWindow {
 
   bool IsVisibleOnAllWorkspaces() override;
   void SetAutoHideCursor(bool auto_hide) override;
+  void AddTabbedWindow(NativeWindow* window) override;
+  void SelectPreviousTab() override;
+  void SelectNextTab() override;
+  void ShowAllTabs() override;
+  void MergeAllWindows() override;
+  void MoveTabToNewWindow() override;
+  void ToggleTabBar() override;
 
   void SetWindowButtonVisibility(bool visible) override;
   bool GetWindowButtonVisibility() const override;
@@ -134,6 +143,7 @@ class NativeWindowMac : public NativeWindow {
     return fullscreen_transition_state_;
   }
   void HandlePendingFullscreenTransitions();
+  bool HandleDeferredClose();
 
   NSRect default_frame_for_zoom() const { return default_frame_for_zoom_; }
   void set_default_frame_for_zoom(NSRect frame) {
@@ -147,10 +157,19 @@ class NativeWindowMac : public NativeWindow {
 
   void SetBorderless(bool borderless);
 
+  // Helpers for macOS window state transitions (aligned with Electron
+  // behavior). Used to avoid AppKit quirks during minimize/restore and
+  // visibility changes.
+  void DetachChildren();
+  void AttachChildren();
+  void HideTrafficLights();
+  void RestoreTrafficLights();
+
  protected:
   std::queue<bool> pending_transitions_;
   FullScreenTransitionState fullscreen_transition_state_ =
       FullScreenTransitionState::NONE;
+  bool deferred_close_ = false;
 
  private:
   enum class TitleBarStyle {
@@ -160,8 +179,11 @@ class NativeWindowMac : public NativeWindow {
     kCustomButtonsOnHover,
   };
 
+  void CloseDisableOverlay();
+  void CloseAttachedSheets();
   void InternalSetParentWindow(NativeWindow* parent, bool attach);
   void InternalSetWindowButtonVisibility(bool visible);
+  void PerformTabAction(SEL selector);
 
   LynxNSWindow* __strong window_;
   LynxNSWindowDelegate* __strong window_delegate_;
@@ -172,6 +194,11 @@ class NativeWindowMac : public NativeWindow {
 
   // Controls the position and visibility of window buttons.
   WindowButtonsProxy* __strong buttons_proxy_ = nil;
+  bool traffic_lights_hidden_ = false;
+
+  // Children that were visible prior to miniaturize and were ordered out in
+  // DetachChildren(). Stored so they can be shown again on restore.
+  std::vector<NSWindow*> minimized_visible_children_;
 
   NSWindow* __strong disabled_window_ = nil;
 

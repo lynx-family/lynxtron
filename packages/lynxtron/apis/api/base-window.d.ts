@@ -608,6 +608,35 @@ export declare class BaseWindow extends EventEmitter {
    */
   removeListener(event: 'sheet-end', listener: () => void): this;
   /**
+   * Emitted when the user clicks the native macOS new tab button. The new tab button
+   * is only visible if the current window has a `tabbingIdentifier`.
+   *
+   * @platform darwin
+   */
+  on(event: 'new-window-for-tab', listener: (event: Event) => void): this;
+  /**
+   * @platform darwin
+   */
+  off(event: 'new-window-for-tab', listener: (event: Event) => void): this;
+  /**
+   * @platform darwin
+   */
+  once(event: 'new-window-for-tab', listener: (event: Event) => void): this;
+  /**
+   * @platform darwin
+   */
+  addListener(
+    event: 'new-window-for-tab',
+    listener: (event: Event) => void
+  ): this;
+  /**
+   * @platform darwin
+   */
+  removeListener(
+    event: 'new-window-for-tab',
+    listener: (event: Event) => void
+  ): this;
+  /**
    * Emitted when the window is shown.
    */
   on(event: 'show', listener: () => void): this;
@@ -1055,6 +1084,12 @@ export declare class BaseWindow extends EventEmitter {
    */
   isFocusable(): boolean;
   /**
+   * Adds `window` as a tab on this window, after the tab for the current window.
+   *
+   * @platform darwin
+   */
+  addTabbedWindow(window: BaseWindow): void;
+  /**
    * Whether the window is focused.
    */
   isFocused(): boolean;
@@ -1209,6 +1244,20 @@ export declare class BaseWindow extends EventEmitter {
    */
   setAutoHideCursor(autoHide: boolean): void;
   /**
+   * Selects the previous tab when native tabs are enabled and there are other tabs
+   * in the window.
+   *
+   * @platform darwin
+   */
+  selectPreviousTab(): void;
+  /**
+   * Selects the next tab when native tabs are enabled and there are other tabs in
+   * the window.
+   *
+   * @platform darwin
+   */
+  selectNextTab(): void;
+  /**
    * Sets whether the window menu bar should hide itself automatically. Once set the
    * menu bar will only show when users press the single `Alt` key.
    *
@@ -1289,9 +1338,22 @@ export declare class BaseWindow extends EventEmitter {
   setFullScreenable(fullscreenable: boolean): void;
   setHiddenInMissionControl(hidden: boolean): void;
   /**
+   * Shows or hides the tab overview when native tabs are enabled.
+   *
+   * @platform darwin
+   */
+  showAllTabs(): void;
+  /**
    * Sets whether the window should have a shadow.
    */
   setHasShadow(hasShadow: boolean): void;
+  /**
+   * Merges all windows into one window with multiple tabs when native tabs are
+   * enabled and there is more than one open window.
+   *
+   * @platform darwin
+   */
+  mergeAllWindows(): void;
   /**
    * Sets whether the window can be manually maximized by user.
    *
@@ -1318,6 +1380,13 @@ export declare class BaseWindow extends EventEmitter {
    * @platform darwin,win32
    */
   setMovable(movable: boolean): void;
+  /**
+   * Moves the current tab into a new window if native tabs are enabled and there is
+   * more than one tab in the current window.
+   *
+   * @platform darwin
+   */
+  moveTabToNewWindow(): void;
   /**
    * Sets the opacity of the window. Out of bound number
    * values are clamped to the [0, 1] range.
@@ -1409,6 +1478,13 @@ export declare class BaseWindow extends EventEmitter {
    * Changes the title of native window to `title`.
    */
   setTitle(title: string): void;
+  /**
+   * Toggles the visibility of the tab bar if native tabs are enabled and there is
+   * only one tab in the current window.
+   *
+   * @platform darwin
+   */
+  toggleTabBar(): void;
   /**
    * Adds a vibrancy effect to the window. Passing `null` or an empty string will
    * remove the vibrancy effect on the window.

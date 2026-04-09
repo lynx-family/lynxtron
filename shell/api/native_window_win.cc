@@ -18,6 +18,7 @@
 #include "shell/app/window_list.h"
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/options_switches.h"
+#include "shell/ui/skia/ext/skia_utils_win.h"
 #include "ui/display/display.h"
 #include "ui/display/screen.h"
 #include "ui/gfx/geometry/size_f.h"
@@ -121,6 +122,8 @@ NativeWindowWin::NativeWindowWin(const gin_helper::Dictionary& options,
   if (is_modal() && NativeWindow::parent() && !minimizable) {
     SetMinimizable(false);
   }
+
+  SetBackgroundColor(NativeWindow::GetBackgroundColor());
 }
 
 NativeWindowWin::~NativeWindowWin() = default;
@@ -179,7 +182,6 @@ void NativeWindowWin::ShowInactive() {
 
 void NativeWindowWin::Hide() {
   if (is_modal() && NativeWindow::parent()) {
-    // static_cast<NativeWindowWin*>(parent())->DecrementChildModals();
     parent()->DecrementChildModals();
   }
 
@@ -556,28 +558,25 @@ bool NativeWindowWin::IsSimpleFullScreen() {
   return IsFullscreen();
 }
 
-// TODO(Guo Xi): continue reviewing the code from here.
-// SkColor NativeWindowWin::GetBackgroundColor() {
-//  auto* background = root_view_->background();
-//  if (!background)
-//    return SK_ColorTRANSPARENT;
-//  return background->get_color();
-//}
-//
-// void NativeWindowWin::SetBackgroundColor(SkColor background_color) {
-//  // web views' background color.
-//  root_view_->SetBackground(views::CreateSolidBackground(background_color));
-//
-//  // Set the background color of native window.
-//  HBRUSH brush =
-//  CreateSolidBrush(skia::SkColorToCOLORREF(background_color)); ULONG_PTR
-//  previous_brush =
-//      SetClassLongPtr(GetAcceleratedWidget(), GCLP_HBRBACKGROUND,
-//                      reinterpret_cast<LONG_PTR>(brush));
-//  if (previous_brush)
-//    DeleteObject((HBRUSH)previous_brush);
-//  InvalidateRect(GetAcceleratedWidget(), NULL, 1);
-//}
+void NativeWindowWin::SetBackgroundColor(SkColor background_color) {
+  NativeWindow::SetBackgroundColor(background_color);
+
+  HWND hwnd = GetNativeWindowHandle();
+  if (!hwnd) {
+    return;
+  }
+
+  background_brush_ = base::win::ScopedGDIObject<HBRUSH>(
+      ::CreateSolidBrush(skia::SkColorToCOLORREF(background_color)));
+  SetClassLongPtr(hwnd, GCLP_HBRBACKGROUND,
+                  reinterpret_cast<LONG_PTR>(background_brush_.get()));
+
+  ::RedrawWindow(hwnd, nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN);
+}
+
+SkColor NativeWindowWin::GetBackgroundColor() const {
+  return NativeWindow::GetBackgroundColor();
+}
 
 void NativeWindowWin::SetHasShadow(bool has_shadow) {
   // wm::SetShadowElevation(GetNativeWindow(),
@@ -845,9 +844,14 @@ void NativeWindowWin::HandleDestroying() {}
 
 void NativeWindowWin::HandleDisplayChange() {}
 
-void NativeWindowWin::HandleBeginWMSizeMove() {}
+void NativeWindowWin::HandleBeginWMSizeMove() {
+  set_is_in_size_move(true);
+}
 
-void NativeWindowWin::HandleEndWMSizeMove() {}
+void NativeWindowWin::HandleEndWMSizeMove() {
+  set_is_in_size_move(false);
+  NotifyWindowResized();
+}
 
 void NativeWindowWin::HandleWorkAreaChanged() {}
 
@@ -943,6 +947,10 @@ void NativeWindowWin::HandleMove() {
   NotifyWindowMove();
 }
 
+void NativeWindowWin::HandleMoved() {
+  NotifyWindowMoved();
+}
+
 bool NativeWindowWin::HandleMoving(RECT* rect) {
   is_moving_ = true;
   bool prevent_default = false;
@@ -952,14 +960,9 @@ bool NativeWindowWin::HandleMoving(RECT* rect) {
   NotifyWindowWillMove(dpi_bounds, prevent_default);
   if (!movable_ || prevent_default) {
     ::GetWindowRect(hwnd, rect);
-    return true;  // Tells Windows that the Move is handled. If not
-    // true,
-    // frameless windows can be moved using
-    // -webkit-app-region: drag elements.
+    return true;
   }
   return false;
-  // NotifyWindowMove();
-  // return true;
 }
 
 void NativeWindowWin::HandleClientSizeChanged(const gfx::Size& new_size) {
@@ -991,6 +994,7 @@ bool NativeWindowWin::PreHandleMSG(UINT message,
                                    LPARAM l_param,
                                    LRESULT* result) {
   NotifyWindowMessage(message, w_param, l_param);
+
   return false;
 }
 

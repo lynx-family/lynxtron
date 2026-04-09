@@ -43,10 +43,13 @@ class MenuMac : public Menu {
   friend class Menu;
 
   void ClosePopupOnUI(int32_t window_id);
-  void OnClosed(int32_t window_id, base::OnceClosure callback);
+  void OnClosed(int32_t window_id, uint64_t popup_serial);
 
   LynxtronMenuController* __strong menu_controller_;
   std::map<int32_t, LynxtronMenuController*> popup_controllers_;
+  std::map<int32_t, base::OnceClosure> popup_close_callbacks_;
+  std::map<int32_t, uint64_t> popup_serials_;
+  uint64_t next_popup_serial_ = 0;
 
   base::WeakPtrFactory<MenuMac> weak_factory_{this};
 };

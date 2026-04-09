@@ -30,6 +30,7 @@
 #include "lynxtron/lynxtron_version.h"
 #include "shell/api/api_app.h"
 #include "shell/app/application.h"
+#include "shell/common/fuses.h"
 #include "shell/common/gin_converters/callback_converter.h"
 #include "shell/common/gin_converters/file_path_converter.h"
 #include "shell/common/gin_helper/dictionary.h"
@@ -62,7 +63,8 @@
   V(lynxtron_binding_native_image)   \
   V(lynxtron_binding_notification)   \
   V(lynxtron_binding_screen)         \
-  V(lynxtron_binding_dialog)
+  V(lynxtron_binding_dialog)         \
+  V(lynxtron_binding_lynx_template_bundle)
 
 #define ELECTRON_TESTING_BINDINGS(V) V(lynxtron_binding_testing)
 
@@ -239,8 +241,7 @@ void SetNodeOptions(base::Environment* env) {
       "--max-http-header-size",
   });
 
-  // TODO(Guo Xi): fuses::IsNodeOptionsEnabled()
-  bool is_node_options_enabled = true;
+  const bool is_node_options_enabled = lynxtron::fuses::IsNodeOptionsEnabled();
 
   if (env->HasVar("NODE_EXTRA_CA_CERTS")) {
     if (!is_node_options_enabled) {
@@ -423,8 +424,7 @@ void NodeBindings::Initialize(v8::Isolate* const isolate,
       node::ProcessInitializationFlags::kNoInitializeNodeV8Platform |
       node::ProcessInitializationFlags::kEnableStdioInheritance;
 
-  // TODO(Guo Xi): fuses::IsNodeOptionsEnabled()
-  bool is_node_options_enabled = true;
+  const bool is_node_options_enabled = fuses::IsNodeOptionsEnabled();
   if (!is_node_options_enabled) {
     process_flags |= node::ProcessInitializationFlags::kDisableNodeOptionsEnv;
   }
@@ -472,8 +472,8 @@ std::shared_ptr<node::Environment> NodeBindings::CreateEnvironment(
                                                  "default_app.asar"};
   const std::vector<std::string> app_asar_search_paths = {"app.asar"};
 
-  // TODO(Guo Xi): electron::fuses::IsOnlyLoadAppFromAsarEnabled()
-  bool is_only_load_app_from_asar_enabled = false;
+  const bool is_only_load_app_from_asar_enabled =
+      fuses::IsOnlyLoadAppFromAsarEnabled();
 
   context->Global()->SetPrivate(
       context,
@@ -504,8 +504,7 @@ std::shared_ptr<node::Environment> NodeBindings::CreateEnvironment(
                        node::EnvironmentFlags::kNoGlobalSearchPaths |
                        node::EnvironmentFlags::kNoRegisterESMLoader;
 
-  bool is_node_cli_inspect_enabled =
-      true;  // TODO(Guo Xi): fuses::IsNodeCliInspectEnabled()
+  const bool is_node_cli_inspect_enabled = fuses::IsNodeCliInspectEnabled();
   if (!is_node_cli_inspect_enabled) {
     // If --inspect and friends are disabled we also shouldn't listen for
     // SIGUSR1

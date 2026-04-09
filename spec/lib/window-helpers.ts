@@ -5,10 +5,14 @@
 import { BaseWindow } from 'lynxtron';
 
 import { expect } from 'chai';
+import { once } from 'node:events';
+import { setTimeout as delay } from 'node:timers/promises';
 
 async function ensureWindowIsClosed(window: BaseWindow | null) {
   if (window && !window.isDestroyed()) {
+    const closed = once(window, 'closed');
     window.destroy();
+    await closed;
   }
 }
 
@@ -21,17 +25,16 @@ export const closeWindow = async (
   if (assertNotWindows) {
     let windows = BaseWindow.getAllWindows() as BaseWindow[];
     if (windows.length > 0) {
-      setTimeout(async () => {
-        // Wait until next tick to assert that all windows have been closed.
-        windows = BaseWindow.getAllWindows() as BaseWindow[];
-        try {
-          expect(windows).to.have.lengthOf(0);
-        } finally {
-          for (const win of windows) {
-            await ensureWindowIsClosed(win);
-          }
+      // Wait until next tick to assert that all windows have been closed.
+      await delay(0);
+      windows = BaseWindow.getAllWindows() as BaseWindow[];
+      try {
+        expect(windows).to.have.lengthOf(0);
+      } finally {
+        for (const win of windows) {
+          await ensureWindowIsClosed(win);
         }
-      });
+      }
     }
   }
 };

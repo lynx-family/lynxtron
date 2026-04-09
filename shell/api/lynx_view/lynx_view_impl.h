@@ -7,10 +7,8 @@
 
 #include <memory>
 #include <string>
-#include <string_view>
 #include <vector>
 
-#include "base/containers/span.h"
 #include "base/memory/weak_ptr.h"
 #include "lynx/platform/embedder/public/lynx_view_client.h"
 #include "shell/api/lynx_view/lynx_view_client.h"
@@ -19,10 +17,14 @@
 namespace lynx {
 namespace pub {
 class LynxView;
+class LynxTemplateBundle;
 }  // namespace pub
 }  // namespace lynx
 
 namespace lynxtron {
+class LynxViewBuilder;
+class LynxUpdateMeta;
+
 namespace api {
 class LynxWindow;
 }
@@ -32,25 +34,29 @@ class LynxViewImpl : public lynx::pub::LynxViewClient {
   LynxViewImpl() = default;
   ~LynxViewImpl() override;
 
-  void Init(double width,
-            double height,
-            float dpi,
-            void* parent,
-            const std::vector<std::string>& node_integration_preload,
-            base::WeakPtr<api::LynxWindow> lynx_window);
-  void LoadTemplate(std::string_view template_url,
-                    base::span<const uint8_t> content);
+  void Initialize(std::unique_ptr<lynx::pub::LynxView> core_view);
+  void LoadFile(const std::string& path,
+                const std::string& data,
+                const std::string& global_props);
+  void LoadURL(const std::string& url,
+               const std::string& data,
+               const std::string& global_props);
+  void LoadBundle(std::shared_ptr<lynx::pub::LynxTemplateBundle> bundle,
+                  const std::string& data,
+                  const std::string& global_props);
   void SetClient(base::WeakPtr<lynxtron::LynxViewClient> client);
   void SetBounds(const gfx::Rect& bounds);
   void SendGlobalEvent(const std::string& event, const std::string& json);
   void ReloadTemplate(const std::string& data, const std::string& global_props);
+  void UpdateData(std::shared_ptr<LynxUpdateMeta> meta);
   void UpdateData(const std::string& data, const std::string& global_props);
   void UpdateScreenMetrics(float width, float height, float device_pixel_ratio);
   void SetFrame(float x, float y, float width, float height);
   void* GetNativeWindow();
-  void Show();
-  void Hide();
+  void Focus();
   void Close();
+  void EnterForeground();
+  void EnterBackground();
 
   // lynx::pub::LynxViewClient overrides
   void OnPageStart(const char* url) override;
@@ -73,6 +79,7 @@ class LynxViewImpl : public lynx::pub::LynxViewClient {
  private:
   std::unique_ptr<lynx::pub::LynxView> lynx_view_;
   base::WeakPtr<lynxtron::LynxViewClient> lynx_view_client_;
+  std::shared_ptr<LynxViewImpl> self_shared_ptr_;
 };
 
 }  // namespace lynxtron

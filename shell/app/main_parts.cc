@@ -215,7 +215,7 @@ void MainParts::WillRunMainMessageLoop(
   // js_env_->OnMessageLoopCreated();
   Application::Get()->SetMainMessageLoopQuitClosure(
       run_loop->QuitWhenIdleClosure());
-#if BUILDFLAG(IS_MAC)
+#if !BUILDFLAG(IS_WIN)
   InstallShutdownSignalHandlers(
       base::BindOnce(&Application::Quit, base::Unretained(Application::Get())),
       GetUIThreadTaskRunner());

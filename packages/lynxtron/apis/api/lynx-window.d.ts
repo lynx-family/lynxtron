@@ -4,6 +4,8 @@
 
 import { NativeImage } from './native-image';
 import { BaseWindow } from './base-window';
+import { LynxTemplateBundle } from './lynx-template-bundle';
+import { LynxUpdateMeta } from './lynx-update-meta';
 import { Point } from '../structures/point';
 
 export interface LynxWindowConstructorOptions {
@@ -278,17 +280,61 @@ export declare class LynxWindow extends BaseWindow {
   moveAbove(mediaSourceId: string): void;
   getMediaSourceId(): string;
   /**
-   * Load bundle data for the window.
+   * Starts loading a Lynx bundle from a local file path.
+   *
+   * Returns `true` when the request is accepted synchronously. Final load
+   * completion is reported asynchronously via window events such as
+   * `ready-to-show` and `--lynx-error`.
    */
-  loadFile(path: string): boolean;
+  loadFile(
+    filePath: string,
+    options?: {
+      data?: Object;
+      globalProps?: Object;
+    }
+  ): boolean;
   /**
-   * Load bundle url for the window, eg: 'http://localhost:3000/main.lynx.bundle'
+   * Load a Lynx bundle from a URL.
+   *
+   * Supported URLs include remote URLs such as `https://...` and local file
+   * URLs such as `file:///abs/path/to/main.lynx.bundle`.
+   *
+   * Returns `true` when the request is accepted synchronously. Final load
+   * completion is reported asynchronously via window events such as
+   * `ready-to-show` and `--lynx-error`.
    */
-  loadURL(url: string): boolean;
+  loadURL(
+    url: string,
+    options?: {
+      data?: Object;
+      globalProps?: Object;
+    }
+  ): boolean;
   /**
-   * Update bundle data for the window.
+   * Load a pre-decoded Lynx template bundle.
+   *
+   * Returns `true` when the request is accepted synchronously. Final load
+   * completion is reported asynchronously via window events such as
+   * `ready-to-show` and `--lynx-error`.
    */
-  updateData(data: Object, globalProps: Object): boolean;
+  loadBundle(
+    templateBundle: LynxTemplateBundle,
+    options?: {
+      data?: Object;
+      globalProps?: Object;
+    }
+  ): boolean;
+  /**
+   * Updates the Lynx view with new template data.
+   *
+   * This is the primary entry point for triggering template data updates on the client side.
+   *
+   * - `meta.updateData`: Template data content used to update the page.
+   * - `meta.globalProps`: Global props content used to update the page.
+   *
+   * When called before the first template load, updates are cached and applied after the view is created and the first load finishes.
+   */
+  updateMetaData(meta: LynxUpdateMeta): void;
   /**
    * Send global event to the window.
    */

@@ -413,15 +413,21 @@ void OpenDialogCompletion(int chosen,
                           gin_helper::Promise<gin_helper::Dictionary> promise) {
   v8::HandleScope scope(promise.isolate());
   auto dict = gin_helper::Dictionary::CreateEmpty(promise.isolate());
+  std::vector<base::FilePath> paths;
+
   if (chosen == NSModalResponseCancel) {
     dict.Set("canceled", true);
-    dict.Set("filePaths", std::vector<base::FilePath>());
   } else {
-    std::vector<base::FilePath> paths;
     dict.Set("canceled", false);
-    ReadDialogPaths(dialog, &paths);
-    dict.Set("filePaths", paths);
+    if (security_scoped_bookmarks) {
+      std::vector<std::string> bookmarks;
+      ReadDialogPathsWithBookmarks(dialog, &paths, &bookmarks);
+      dict.Set("bookmarks", bookmarks);
+    } else {
+      ReadDialogPaths(dialog, &paths);
+    }
   }
+  dict.Set("filePaths", paths);
   ResolvePromiseInNextTick(promise.As<v8::Local<v8::Value>>(),
                            dict.GetHandle());
 }
@@ -485,6 +491,9 @@ void SaveDialogCompletion(int chosen,
     std::string path = base::SysNSStringToUTF8([[dialog URL] path]);
     dict.Set("filePath", base::FilePath(path));
     dict.Set("canceled", false);
+    if (security_scoped_bookmarks) {
+      dict.Set("bookmark", GetBookmarkDataFromNSURL([dialog URL]));
+    }
   }
   ResolvePromiseInNextTick(promise.As<v8::Local<v8::Value>>(),
                            dict.GetHandle());

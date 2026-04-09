@@ -822,19 +822,22 @@ describe('Menu module', function () {
     let w: LynxWindow;
     let menu: any;
 
-    beforeEach(() => {
-      w = new LynxWindow({ show: false, width: 200, height: 200 });
+    beforeEach(async () => {
+      w = new LynxWindow({ show: true, width: 200, height: 200 });
       menu = Menu.buildFromTemplate([
         { label: '1' },
         { label: '2' },
         { label: '3' },
       ]);
+      await setTimeout(250);
     });
 
     afterEach(async () => {
       menu.closePopup();
       menu.closePopup(w);
+      await setTimeout(250);
       await closeWindow(w);
+      await setTimeout(250);
       w = (null as unknown) as LynxWindow;
     });
 
@@ -844,10 +847,24 @@ describe('Menu module', function () {
       }).to.throw(/Options must be an object/);
     });
 
-    it('allows for options to be optional', () => {
+    it('allows for options to be optional', async () => {
+      let resolvePopupClosed!: () => void;
+      const popupClosed = new Promise<void>((resolve) => {
+        resolvePopupClosed = resolve;
+      });
+
       expect(() => {
-        menu.popup({});
+        menu.popup({
+          window: w,
+          x: 100,
+          y: 100,
+          callback: () => resolvePopupClosed(),
+        });
       }).to.not.throw();
+
+      await setTimeout(250);
+      menu.closePopup(w);
+      await popupClosed;
     });
 
     it.skip('should emit menu-will-show event', async () => {
@@ -857,14 +874,35 @@ describe('Menu module', function () {
     });
 
     it('should emit menu-will-close event', async () => {
+      let resolvePopupClosed!: () => void;
+      const popupClosed = new Promise<void>((resolve) => {
+        resolvePopupClosed = resolve;
+      });
+
       const menuWillClose = once(menu, 'menu-will-close');
-      menu.popup({ window: w });
-      menu.closePopup();
-      await menuWillClose;
+      menu.popup({
+        window: w,
+        x: 100,
+        y: 100,
+        callback: () => resolvePopupClosed(),
+      });
+      await setTimeout(250);
+      menu.closePopup(w);
+      await Promise.all([menuWillClose, popupClosed]);
     });
 
-    it('returns immediately', () => {
-      const input = { window: w, x: 100, y: 101 };
+    it('returns immediately', async () => {
+      let resolvePopupClosed!: () => void;
+      const popupClosed = new Promise<void>((resolve) => {
+        resolvePopupClosed = resolve;
+      });
+
+      const input = {
+        window: w,
+        x: 100,
+        y: 101,
+        callback: () => resolvePopupClosed(),
+      };
       const output = (menu.popup(input) as unknown) as {
         x: number;
         y: number;
@@ -873,35 +911,69 @@ describe('Menu module', function () {
       expect(output.x).to.equal(input.x);
       expect(output.y).to.equal(input.y);
       expect(output.lynxWindow).to.equal(input.window);
+
+      await setTimeout(250);
+      menu.closePopup(w);
+      await popupClosed;
     });
 
-    it('works without a given LynxWindow and options', () => {
+    it('works without a given LynxWindow and options', async () => {
+      let resolvePopupClosed!: () => void;
+      const popupClosed = new Promise<void>((resolve) => {
+        resolvePopupClosed = resolve;
+      });
+
       const { lynxWindow, x, y } = (menu.popup({
         x: 100,
         y: 101,
+        callback: () => resolvePopupClosed(),
       }) as unknown) as { x: number; y: number; lynxWindow: LynxWindow };
 
       expect(lynxWindow.constructor.name).to.equal('LynxWindow');
       expect(x).to.equal(100);
       expect(y).to.equal(101);
+
+      await setTimeout(250);
+      menu.closePopup();
+      await popupClosed;
     });
 
-    it('works with a given LynxWindow, options and callback', (done) => {
+    it('works with a given LynxWindow, options and callback', async () => {
+      let resolvePopupClosed!: () => void;
+      const popupClosed = new Promise<void>((resolve) => {
+        resolvePopupClosed = resolve;
+      });
+
       const { x, y } = (menu.popup({
         window: w,
         x: 100,
         y: 101,
-        callback: () => done(),
+        callback: () => resolvePopupClosed(),
       }) as unknown) as { x: number; y: number };
 
       expect(x).to.equal(100);
       expect(y).to.equal(101);
-      menu.closePopup();
+
+      await setTimeout(250);
+      menu.closePopup(w);
+      await popupClosed;
     });
 
-    it('works with a given LynxWindow, no options, and a callback', (done) => {
-      menu.popup({ window: w, callback: () => done() });
-      menu.closePopup();
+    it('works with a given LynxWindow, no options, and a callback', async () => {
+      let resolvePopupClosed!: () => void;
+      const popupClosed = new Promise<void>((resolve) => {
+        resolvePopupClosed = resolve;
+      });
+
+      menu.popup({
+        window: w,
+        x: 100,
+        y: 100,
+        callback: () => resolvePopupClosed(),
+      });
+      await setTimeout(250);
+      menu.closePopup(w);
+      await popupClosed;
     });
 
     it('prevents menu from getting garbage-collected when popuping', async () => {

@@ -13,10 +13,11 @@ template("templated_file") {
                            [
                              "deps",
                              "public_deps",
-                             "inputs",
-                             "outputs",
                            ])
     inputs = [ invoker.template ]
+    if (defined(invoker.inputs)) {
+      inputs += invoker.inputs
+    }
     outputs = [ invoker.output ]
     script = generate_template_script
     args = [

@@ -5,25 +5,28 @@
 #include "shell/api/api_lynx_window.h"
 
 #include <initializer_list>
+#include <memory>
 #include <string_view>
 #include <utility>
 
 #include "base/files/file_path.h"
 #include "base/files/file_util.h"
-#include "base/json/json_writer.h"
 #include "base/logging.h"
 #include "base/path_service.h"
+#include "base/task/single_thread_task_runner.h"
 #include "gin/converter.h"
 #include "lynx/platform/embedder/public/capi/lynx_env_capi.h"
 #include "shell/api/api_app.h"
+#include "shell/api/api_lynx_template_bundle.h"
+#include "shell/api/lynx_view/lynx_update_meta.h"
 #include "shell/api/lynx_view/lynx_view.h"
+#include "shell/api/lynx_view/lynx_view_builder.h"
 #include "shell/api/lynx_view_monitor_delegate.h"
 #include "shell/api/lynx_window_manager.h"
 #include "shell/app/application.h"
 #include "shell/app/window_list.h"
 #include "shell/common/asar/archive.h"
 #include "shell/common/asar/asar_util.h"
-#include "shell/common/gin_converters/value_converter.h"
 #include "shell/common/gin_helper/constructor.h"
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/gin_helper/object_template_builder.h"
@@ -43,29 +46,93 @@ namespace {
 
 std::optional<std::string> ConvertDictionaryToJsonString(
     const gin_helper::Dictionary& json) {
-  base::Value::Dict dict;
-  if (!gin::ConvertFromV8(json.isolate(), json.GetHandle(), &dict)) {
+  v8::Isolate* isolate = json.isolate();
+  v8::Local<v8::Context> context = isolate->GetCurrentContext();
+  v8::Local<v8::String> json_string;
+  if (!v8::JSON::Stringify(context, json.GetHandle()).ToLocal(&json_string)) {
     return std::nullopt;
   }
-  std::string json_string;
-  if (!base::JSONWriter::Write(dict, &json_string)) {
-    return std::nullopt;
-  }
-  return json_string;
+  return gin::V8ToString(isolate, json_string);
 }
 
-std::vector<uint8_t> LoadFileData(std::string_view path) {
-  base::FilePath in_file_name = base::FilePath::FromUTF8Unsafe(path);
-  std::string file_contents;
-  {
-    ScopedAllowBlockingForLynxtron allow_blocking;
-    if (!asar::ReadFileToString(in_file_name, &file_contents)) {
-      return {};
-    }
+bool ExtractOptionalDictionary(v8::Isolate* isolate,
+                               const gin_helper::Dictionary& options,
+                               std::string_view key,
+                               gin_helper::Dictionary* out) {
+  v8::Local<v8::Value> value;
+  if (!options.Get(key, &value) || value->IsUndefined() || value->IsNull()) {
+    return false;
   }
-  size_t size = file_contents.size();
-  std::vector<uint8_t> buf(file_contents.data(), file_contents.data() + size);
-  return buf;
+  if (!value->IsObject()) {
+    return false;
+  }
+  *out = gin_helper::Dictionary(isolate, value.As<v8::Object>());
+  return true;
+}
+
+bool ExtractLoadDataOptions(gin::Arguments* args,
+                            gin_helper::Dictionary* data,
+                            gin_helper::Dictionary* global_props) {
+  v8::Isolate* isolate = args->isolate();
+  *data = gin::Dictionary::CreateEmpty(isolate);
+  *global_props = gin::Dictionary::CreateEmpty(isolate);
+
+  if (args->Length() <= 0) {
+    return true;
+  }
+
+  v8::Local<v8::Value> options_value;
+  if (!args->GetNext(&options_value)) {
+    return true;
+  }
+  if (options_value->IsUndefined() || options_value->IsNull()) {
+    return true;
+  }
+  if (!options_value->IsObject()) {
+    args->ThrowTypeError("options must be an object");
+    return false;
+  }
+
+  gin_helper::Dictionary options(isolate, options_value.As<v8::Object>());
+  if (!ExtractOptionalDictionary(isolate, options, "data", data) &&
+      options.Has("data")) {
+    args->ThrowTypeError("options.data must be an object");
+    return false;
+  }
+  if (!ExtractOptionalDictionary(isolate, options, "globalProps",
+                                 global_props) &&
+      options.Has("globalProps")) {
+    args->ThrowTypeError("options.globalProps must be an object");
+    return false;
+  }
+  return true;
+}
+
+bool ExtractTemplateDataObject(v8::Isolate* isolate,
+                               v8::Local<v8::Value> value,
+                               v8::Local<v8::Object>* out) {
+  if (!value->IsObject()) {
+    return false;
+  }
+  v8::Local<v8::Object> obj = value.As<v8::Object>();
+  v8::Local<v8::Context> context = isolate->GetCurrentContext();
+  v8::Local<v8::String> key =
+      v8::String::NewFromUtf8(isolate, "toObject").ToLocalChecked();
+  v8::Local<v8::Value> to_object;
+  if (obj->Get(context, key).ToLocal(&to_object) && to_object->IsFunction()) {
+    v8::Local<v8::Function> fn = to_object.As<v8::Function>();
+    v8::Local<v8::Value> result;
+    if (!fn->Call(context, obj, 0, nullptr).ToLocal(&result)) {
+      return false;
+    }
+    if (!result->IsObject()) {
+      return false;
+    }
+    *out = result.As<v8::Object>();
+    return true;
+  }
+  *out = obj;
+  return true;
 }
 
 #if BUILDFLAG(IS_WIN)
@@ -157,37 +224,14 @@ LynxWindow::~LynxWindow() {
   LynxWindowManager::GetInstance()->UnregisterLynxWindow(GetWeakPtr());
 }
 
-// void LynxWindow::OnCloseRequested(bool& prevent_default) {
-//   // When user tries to close the window by clicking the close button, we do
-//   // not close the window immediately, instead we try to close the web page
-//   // first, and when the web page is closed the window will also be closed.
-//   prevent_default = true;
-
-//   // Assume the window is not responding if it doesn't cancel the close and
-//   is
-//   // not closed in 5s, in this way we can quickly show the unresponsive
-//   // dialog when the window is busy executing some script without waiting for
-//   // the unresponsive timeout.
-//   // if (window_unresponsive_closure_.IsCancelled()) {
-//   //   ScheduleUnresponsiveEvent(5000);
-//   // }
-//   GlobalThread::GetUIThreadTaskRunner()->PostTask(
-//       FROM_HERE, base::BindOnce(
-//                      [](base::WeakPtr<LynxWindow> window) {
-//                        if (window) {
-//                          window->CloseImmediately();
-//                        }
-//                      },
-//                      GetWeakPtr()));
-
-// }  // namespace api
-
 void LynxWindow::OnWindowBlur() {
   BaseWindow::OnWindowBlur();
 }
 
 void LynxWindow::OnWindowFocus() {
-  FocusLynxView();
+  if (lynx_view_) {
+    lynx_view_->Focus();
+  }
   BaseWindow::OnWindowFocus();
 }
 
@@ -205,61 +249,73 @@ void LynxWindow::OnWindowResize() {
   if (lynx_view_) {
     HWND lynx_hwnd = reinterpret_cast<HWND>(lynx_view_->GetNativeWindow());
     if (lynx_hwnd) {
-      MoveWindow(lynx_hwnd, win_rect.left, win_rect.top,
-                 win_rect.right - win_rect.left, win_rect.bottom - win_rect.top,
-                 TRUE);
+      const int w = win_rect.right - win_rect.left;
+      const int h = win_rect.bottom - win_rect.top;
+      MoveWindow(lynx_hwnd, win_rect.left, win_rect.top, w, h, FALSE);
     }
   }
 #endif
 
-  // Update LynxView layout and screen parameters
   if (lynx_view_) {
-    float width = window_->GetSize().width();
-    float height = window_->GetSize().height();
+    float width = window_->GetContentSize().width();
+    float height = window_->GetContentSize().height();
     const float device_pixel_ratio = window_->GetDevicePixelRatio();
 #if BUILDFLAG(IS_WIN)
-    // Use client area size instead of window size to avoid being covered by
-    // window borders
-    RECT win_rect{};
-    ::GetClientRect(window_->GetNativeWindowHandle(), &win_rect);
-    width =
-        static_cast<float>(win_rect.right - win_rect.left) / device_pixel_ratio;
-    height =
-        static_cast<float>(win_rect.bottom - win_rect.top) / device_pixel_ratio;
+    RECT cr{};
+    ::GetClientRect(window_->GetNativeWindowHandle(), &cr);
+    width = static_cast<float>(cr.right - cr.left) / device_pixel_ratio;
+    height = static_cast<float>(cr.bottom - cr.top) / device_pixel_ratio;
 #endif
-
-    lynx_view_->UpdateScreenMetrics(
-        width, height,
-        device_pixel_ratio);  // Update screen size and device pixel
-                              // ratio
-    lynx_view_->SetFrame(
-        0, 0, width, height);  // Set view position and size in parent container
+    // During sizing, only adjust frame to keep visual coverage; defer metrics.
+    lynx_view_->SetFrame(0, 0, width, height);
+#if BUILDFLAG(IS_WIN)
+    if (HWND lynx_hwnd =
+            reinterpret_cast<HWND>(lynx_view_->GetNativeWindow())) {
+      ::InvalidateRect(lynx_hwnd, nullptr, FALSE);
+    }
+#endif
+    if (!window_->IsInSizeMove()) {
+      lynx_view_->UpdateScreenMetrics(width, height, device_pixel_ratio);
+    }
   }
   BaseWindow::OnWindowResize();
 }
 
 void LynxWindow::OnWindowResized() {
-  FocusLynxView();
+  if (lynx_view_) {
+    const float dpr = window_->GetDevicePixelRatio();
+    float width = window_->GetContentSize().width();
+    float height = window_->GetContentSize().height();
+#if BUILDFLAG(IS_WIN)
+    RECT cr{};
+    ::GetClientRect(window_->GetNativeWindowHandle(), &cr);
+    width = static_cast<float>(cr.right - cr.left) / dpr;
+    height = static_cast<float>(cr.bottom - cr.top) / dpr;
+#endif
+    lynx_view_->UpdateScreenMetrics(width, height, dpr);
+    lynx_view_->SetFrame(0, 0, width, height);
+#if BUILDFLAG(IS_WIN)
+    if (HWND lynx_hwnd =
+            reinterpret_cast<HWND>(lynx_view_->GetNativeWindow())) {
+      ::InvalidateRect(lynx_hwnd, nullptr, FALSE);
+    }
+#endif
+    lynx_view_->Focus();
+  }
   BaseWindow::OnWindowResized();
 }
 
 void LynxWindow::OnWindowRestore() {
-  // #if BUILDFLAG(IS_WIN)
-  //   if (CurrentLynxViewHolder()) {
-  //     CurrentLynxViewHolder()->SetFocus();
-  //     CurrentLynxViewHolder()->OnEnterForeground();
-  //   }
-  // #endif
-
+  if (lynx_view_) {
+    lynx_view_->EnterForeground();
+  }
   BaseWindow::OnWindowRestore();
 }
 
 void LynxWindow::OnWindowMinimize() {
-  // #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_NODE_LYNX)
-  //   if (CurrentLynxViewHolder()) {
-  //     CurrentLynxViewHolder()->OnEnterBackground();
-  //   }
-  // #endif
+  if (lynx_view_) {
+    lynx_view_->EnterBackground();
+  }
   BaseWindow::OnWindowMinimize();
 }
 
@@ -311,19 +367,22 @@ void LynxWindow::CloseImmediately() {
       child->window()->CloseImmediately();
     }
   }
-  lynx_view_ = nullptr;
-  // Close all lynx view before closing current window.
-  // if (lynx_view_holder_group_) {
-  //   lynx_view_holder_group_->Clear();
-  // }
-
+  auto lynx_view = std::move(lynx_view_);
   BaseWindow::CloseImmediately();
+
+  if (lynx_view) {
+    base::SingleThreadTaskRunner::GetCurrentDefault()->DeleteSoon(
+        FROM_HERE, lynx_view.release());
+  }
 
   // Do not sent "unresponsive" event after window is closed.
   // window_unresponsive_closure_.Cancel();
 }
 
 void LynxWindow::Focus() {
+  if (lynx_view_) {
+    lynx_view_->Focus();
+  }
   BaseWindow::Focus();
 }
 
@@ -331,43 +390,13 @@ void LynxWindow::Blur() {
   BaseWindow::Blur();
 }
 
-// TODO(Guo Xi): whether support background color
-void LynxWindow::SetBackgroundColor(const std::string& color_name) {
-  BaseWindow::SetBackgroundColor(color_name);
-}
-
-// void LynxWindow::ScheduleUnresponsiveEvent(int ms) {
-//   if (!window_unresponsive_closure_.IsCancelled())
-//     return;
-
-//   window_unresponsive_closure_.Reset(
-//       base::BindRepeating(&LynxWindow::NotifyWindowUnresponsive,
-//       GetWeakPtr()));
-//   base::ThreadTaskRunnerHandle::Get()->PostDelayedTask(
-//       FROM_HERE, window_unresponsive_closure_.callback(),
-//       base::Milliseconds<int>(ms));
-// }
-
-// void LynxWindow::NotifyWindowUnresponsive() {
-//   window_unresponsive_closure_.Cancel();
-//   if (!window_->IsClosed() && window_->IsEnabled()) {
-//     Emit("unresponsive");
-//   }
-// }
-
-void LynxWindow::CreateLynxView(const std::string& local_url,
-                                const std::string& global_props,
-                                const std::string& initial_props,
-                                const std::string& group_name,
-                                const std::string& channel_name,
-                                const std::string& scheme) {
+void LynxWindow::EnsureLynxView() {
   if (lynx_view_) {
     return;
   }
-  lynx_view_ = LynxView::Create(GetWeakPtr());
-  auto source = LoadFileData(local_url);
-  float width = window_->GetSize().width();
-  float height = window_->GetSize().height();
+
+  float width = window_->GetContentSize().width();
+  float height = window_->GetContentSize().height();
   float device_pixel_ratio = window_->GetDevicePixelRatio();
 #if BUILDFLAG(IS_WIN)
   RECT win_rect{};
@@ -378,28 +407,21 @@ void LynxWindow::CreateLynxView(const std::string& local_url,
       static_cast<float>(win_rect.bottom - win_rect.top) / device_pixel_ratio;
 #endif
 
-  lynx_view_->Init(width, height, device_pixel_ratio,
-                   window_->GetNativeWindowHandle(), node_integration_preload_);
+  LynxViewBuilder builder;
+  builder.SetScreenSize(width, height, device_pixel_ratio)
+      .SetFrame(0, 0, width, height)
+      .SetParent(window_->GetNativeWindowHandle())
+      .SetNodeIntegrationPreload(node_integration_preload_)
+      .SetLynxWindow(GetWeakPtr());
+
+  lynx_view_ = builder.Build();
+  lynx_view_->SetClient(weak_factory_.GetWeakPtr());
+
   if (data_str_.has_value() && global_props_.has_value()) {
     lynx_view_->UpdateData(data_str_.value(), global_props_.value());
     data_str_.reset();
     global_props_.reset();
   }
-  lynx_view_->LoadTemplate(local_url, source);
-  lynx_view_->SetClient(weak_factory_.GetWeakPtr());
-}
-
-void LynxWindow::CloseLynxView() {
-  if (!lynx_view_) {
-    return;
-  }
-  lynx_view_->Close();
-}
-
-void LynxWindow::FocusLynxView() {
-  // if (CurrentLynxViewHolder() && CurrentLynxViewHolder()->IsShow()) {
-  //   CurrentLynxViewHolder()->SetFocus();
-  // }
 }
 
 void LynxWindow::SetFpsMonitorEnabled(bool enabled,
@@ -442,14 +464,14 @@ void LynxWindow::EmitFpsEvent() {
 
 void LynxWindow::OnWindowShow() {
   if (lynx_view_) {
-    lynx_view_->Show();
+    lynx_view_->EnterForeground();
   }
   BaseWindow::OnWindowShow();
 }
 
 void LynxWindow::OnWindowHide() {
   if (lynx_view_) {
-    lynx_view_->Hide();
+    lynx_view_->EnterBackground();
   }
   BaseWindow::OnWindowHide();
 }
@@ -472,13 +494,79 @@ bool LynxWindow::LoadFile(const std::string& path, gin::Arguments* args) {
     }
   }
 
-  CreateLynxView(local_path.AsUTF8Unsafe(), local_path.AsUTF8Unsafe(), "", "",
-                 "", "");
+  gin_helper::Dictionary data;
+  gin_helper::Dictionary global_props;
+  if (!ExtractLoadDataOptions(args, &data, &global_props)) {
+    return false;
+  }
+
+  EnsureLynxView();
+  auto data_json = ConvertDictionaryToJsonString(data);
+  if (!data_json.has_value()) {
+    return false;
+  }
+  auto props_json = ConvertDictionaryToJsonString(global_props);
+  if (!props_json.has_value()) {
+    return false;
+  }
+
+  lynx_view_->LoadFile(local_path.AsUTF8Unsafe(), data_json.value(),
+                       global_props.IsEmpty() ? "" : props_json.value());
   return true;
 }
 
-bool LynxWindow::LoadUrl(const std::string& url) {
-  CreateLynxView(url, "", "", "", "", "");
+bool LynxWindow::LoadUrl(const std::string& url, gin::Arguments* args) {
+  gin_helper::Dictionary data;
+  gin_helper::Dictionary global_props;
+  if (!ExtractLoadDataOptions(args, &data, &global_props)) {
+    return false;
+  }
+
+  EnsureLynxView();
+
+  auto data_json = ConvertDictionaryToJsonString(data);
+  if (!data_json.has_value()) {
+    return false;
+  }
+  auto props_json = ConvertDictionaryToJsonString(global_props);
+  if (!props_json.has_value()) {
+    return false;
+  }
+
+  lynx_view_->LoadURL(url, data_json.value(),
+                      global_props.IsEmpty() ? "" : props_json.value());
+  return true;
+}
+
+bool LynxWindow::LoadBundle(gin::Arguments* args) {
+  v8::Isolate* isolate = args->isolate();
+  v8::HandleScope handle_scope(isolate);
+
+  api::LynxTemplateBundle* wrapper = nullptr;
+  if (!args->GetNext(&wrapper) || wrapper == nullptr) {
+    args->ThrowTypeError("loadBundle requires a LynxTemplateBundle instance");
+    return false;
+  }
+
+  gin_helper::Dictionary data;
+  gin_helper::Dictionary global_props;
+  if (!ExtractLoadDataOptions(args, &data, &global_props)) {
+    return false;
+  }
+
+  EnsureLynxView();
+
+  auto data_json = ConvertDictionaryToJsonString(data);
+  if (!data_json.has_value()) {
+    return false;
+  }
+  auto props_json = ConvertDictionaryToJsonString(global_props);
+  if (!props_json.has_value()) {
+    return false;
+  }
+
+  lynx_view_->LoadBundle(wrapper->GetImpl(), data_json.value(),
+                         global_props.IsEmpty() ? "" : props_json.value());
   return true;
 }
 
@@ -523,6 +611,69 @@ bool LynxWindow::UpdateData(const gin_helper::Dictionary& data,
   return true;
 }
 
+bool LynxWindow::UpdateMetaData(gin::Arguments* args) {
+  v8::Isolate* isolate = args->isolate();
+  v8::HandleScope handle_scope(isolate);
+
+  gin_helper::Dictionary meta;
+  if (!args->GetNext(&meta)) {
+    args->ThrowTypeError("updateMetaData requires a LynxUpdateMeta instance");
+    return false;
+  }
+
+  v8::Local<v8::Value> update_data_value;
+  if (!meta.Get("updateData", &update_data_value)) {
+    args->ThrowTypeError("updateMetaData requires meta.updateData");
+    return false;
+  }
+  v8::Local<v8::Value> global_props_value;
+  if (!meta.Get("globalProps", &global_props_value)) {
+    args->ThrowTypeError("updateMetaData requires meta.globalProps");
+    return false;
+  }
+
+  v8::Local<v8::Object> update_data_object;
+  if (!ExtractTemplateDataObject(isolate, update_data_value,
+                                 &update_data_object)) {
+    args->ThrowTypeError(
+        "updateMetaData requires meta.updateData as an object");
+    return false;
+  }
+  v8::Local<v8::Object> global_props_object;
+  if (!ExtractTemplateDataObject(isolate, global_props_value,
+                                 &global_props_object)) {
+    args->ThrowTypeError(
+        "updateMetaData requires meta.globalProps as an object");
+    return false;
+  }
+
+  gin_helper::Dictionary update_data_dict(isolate, update_data_object);
+  gin_helper::Dictionary global_props_dict(isolate, global_props_object);
+  auto update_data_json = ConvertDictionaryToJsonString(update_data_dict);
+  if (!update_data_json.has_value()) {
+    return false;
+  }
+  auto global_props_json = ConvertDictionaryToJsonString(global_props_dict);
+  if (!global_props_json.has_value()) {
+    return false;
+  }
+
+  std::string data_json = std::move(update_data_json).value();
+  std::string props_json = std::move(global_props_json).value();
+  auto impl = std::make_shared<lynxtron::LynxUpdateMeta>();
+  impl->SetUpdateData(data_json);
+  impl->SetGlobalProps(props_json);
+
+  if (!lynx_view_) {
+    data_str_ = std::move(data_json);
+    global_props_ = std::move(props_json);
+    return true;
+  }
+
+  lynx_view_->UpdateData(std::move(impl));
+  return true;
+}
+
 void LynxWindow::OnPageStart(std::string_view url) {
   // Emit("on-page-start", url);
   if (lynx_view_monitor_delegate_) {
@@ -536,7 +687,7 @@ void LynxWindow::OnPageStart(std::string_view url) {
  * page load success
  */
 void LynxWindow::OnLoadSuccess() {
-  Emit("on-load-success");
+  Emit("ready-to-show");
 }
 
 /**
@@ -546,15 +697,7 @@ void LynxWindow::OnFirstScreen() {
   Emit("on-first-screen");
 }
 
-void LynxWindow::OnDestroy() {
-  // auto* event_center = EventCenter::GetDefault();
-  // event_center->UnregisterSubscriber(std::make_unique<LynxSubscriber>(
-  //     0, static_cast<lynx::LynxView*>(lynx_view_holder->GetLynxView()),
-  //     GetWeakPtr()));
-  // if (lynx_monitor_) {
-  //   lynx_monitor_->OnDestroy(lynx_view_holder);
-  // }
-}
+void LynxWindow::OnDestroy() {}
 
 /**
  * notify JS Runtime initialization complete
@@ -637,10 +780,10 @@ bool LynxWindow::SendGlobalEvent(const std::string& name,
 // static
 gin_helper::WrappableBase* LynxWindow::New(gin_helper::ErrorThrower thrower,
                                            gin::Arguments* args) {
-  // if (!Browser::Get()->is_ready()) {
-  //   thrower.ThrowError("Cannot create BrowserWindow before app is ready");
-  //   return nullptr;
-  // }
+  if (!Application::Get()->is_ready()) {
+    thrower.ThrowError("Cannot create LynxWindow before app is ready");
+    return nullptr;
+  }
 
   if (args->Length() > 1) {
     args->ThrowError();
@@ -662,7 +805,8 @@ void LynxWindow::BuildPrototype(v8::Isolate* isolate,
   gin_helper::ObjectTemplateBuilder(isolate, prototype->PrototypeTemplate())
       .SetMethod("loadFile", &LynxWindow::LoadFile)
       .SetMethod("loadURL", &LynxWindow::LoadUrl)
-      .SetMethod("updateData", &LynxWindow::UpdateData)
+      .SetMethod("loadBundle", &LynxWindow::LoadBundle)
+      .SetMethod("updateMetaData", &LynxWindow::UpdateMetaData)
       .SetMethod("sendGlobalEvent", &LynxWindow::SendGlobalEvent);
 }
 

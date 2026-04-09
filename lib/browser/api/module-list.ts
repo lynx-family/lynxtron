@@ -10,6 +10,12 @@ export const lynxtronModuleList: LynxtronInternal.ModuleEntry[] = [
   { name: 'BaseWindow', loader: () => require('./base-window') },
   { name: 'dialog', loader: () => require('./dialog') },
   { name: 'LynxWindow', loader: () => require('./lynx-window') },
+  {
+    name: 'LynxTemplateBundle',
+    loader: () => require('./lynx-template-bundle'),
+  },
+  { name: 'LynxTemplateData', loader: () => require('./lynx-template-data') },
+  { name: 'LynxUpdateMeta', loader: () => require('./lynx-update-meta') },
   { name: 'Menu', loader: () => require('./menu') },
   { name: 'MenuItem', loader: () => require('./menu-item') },
   { name: 'nativeImage', loader: () => require('./native-image') },

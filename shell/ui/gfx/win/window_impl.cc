@@ -24,7 +24,6 @@
 #include "base/win/resource_exhaustion.h"
 #include "base/win/win_util.h"
 #include "base/win/wrapped_window_proc.h"
-// #include "shell/ui/gfx/win/crash_id_helper.h"
 #include "shell/ui/gfx/win/hwnd_util.h"
 
 namespace gfx {

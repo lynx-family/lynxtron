@@ -5,7 +5,10 @@
   "type": "module",
   "types": "./apis/lynxtron.d.ts",
   "main": "lynxtron.js",
-  "bin": "cli.js",
+  "bin": {
+    "lynxtron": "cli.js",
+    "lynxtron-fuses": "fuses-cli.js"
+  },
   "scripts": {
     "postinstall": "node install.js",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -26,6 +29,8 @@
     "apis",
     "utils",
     "cli.js",
+    "fuses.js",
+    "fuses-cli.js",
     "install.js",
     "lynxtron.js",
     "lynxtron_bin.js",
@@ -37,6 +42,7 @@
   ],
   "exports": {
     ".": "./lynxtron.js",
+    "./fuses": "./fuses.js",
     "./context-bridge": {
       "browser": "./web-worker.js",
       "default": "./context-bridge.js"

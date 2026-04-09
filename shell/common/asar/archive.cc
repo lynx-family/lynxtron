@@ -24,6 +24,7 @@
 #include "base/values.h"
 #include "shell/common/asar/asar_util.h"
 #include "shell/common/asar/scoped_temporary_file.h"
+#include "shell/common/fuses.h"
 #include "shell/common/thread_restrictions.h"
 
 #if BUILDFLAG(IS_WIN)
@@ -40,10 +41,8 @@ const char kSeparators[] = "\\/";
 const char kSeparators[] = "/";
 #endif
 
-// TODO(Guo Xi): temporarily disable integrity validation, search in electron
-// code for several places
 bool IsEmbeddedAsarIntegrityValidationEnabled() {
-  return false;
+  return lynxtron::fuses::IsEmbeddedAsarIntegrityValidationEnabled();
 }
 
 const base::Value::Dict* GetNodeFromPath(std::string path,

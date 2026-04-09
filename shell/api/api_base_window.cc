@@ -12,10 +12,12 @@
 #include <utility>
 #include <vector>
 
+#include "base/strings/stringprintf.h"
 #include "base/task/single_thread_task_runner.h"
 #include "gin/dictionary.h"
 #include "shell/api/api_native_image.h"
 #include "shell/app/javascript_environment.h"
+#include "shell/common/color_parser.h"
 #include "shell/common/gin_converters/callback_converter.h"
 #include "shell/common/gin_converters/file_path_converter.h"
 #include "shell/common/gin_converters/gfx_converter.h"
@@ -212,6 +214,14 @@ void BaseWindow::OnWindowMoved() {
   Emit("moved");
 }
 
+void BaseWindow::OnWindowWillEnterFullScreen() {
+  Emit("will-enter-full-screen");
+}
+
+void BaseWindow::OnWindowWillLeaveFullScreen() {
+  Emit("will-leave-full-screen");
+}
+
 void BaseWindow::OnWindowEnterFullScreen() {
   Emit("enter-full-screen");
 }
@@ -258,9 +268,9 @@ void BaseWindow::OnTouchBarItemResult(const std::string& item_id,
   Emit("-touch-bar-interaction", item_id, details);
 }
 
-// void BaseWindow::OnNewWindowForTab() {
-//  Emit("new-window-for-tab");
-//}
+void BaseWindow::OnNewWindowForTab() {
+  Emit("new-window-for-tab");
+}
 
 void BaseWindow::OnSystemContextMenu(int x, int y, bool& prevent_default) {
   if (Emit("system-context-menu", gfx::Point(x, y))) {
@@ -594,13 +604,18 @@ bool BaseWindow::IsSimpleFullScreen() const {
 }
 
 void BaseWindow::SetBackgroundColor(const std::string& color_name) {
-  // SkColor color = ParseHexColor(color_name);
-  // window_->SetBackgroundColor(color);
+  SkColor color = window_->GetBackgroundColor();
+  if (!content::ParseCssColorString(color_name, &color)) {
+    return;
+  }
+
+  window_->SetBackgroundColor(color);
 }
 
 std::string BaseWindow::GetBackgroundColor() const {
-  // return ToRGBHex(window_->GetBackgroundColor());
-  return "";
+  const SkColor color = window_->GetBackgroundColor();
+  return base::StringPrintf("#%02X%02X%02X", SkColorGetR(color),
+                            SkColorGetG(color), SkColorGetB(color));
 }
 
 void BaseWindow::SetHasShadow(bool has_shadow) {
@@ -773,6 +788,41 @@ v8::Local<v8::Value> BaseWindow::GetTabbingIdentifier() const {
   }
   return gin::StringToV8(isolate(), tabbing_identifier.value());
 }
+
+void BaseWindow::AddTabbedWindow(v8::Local<v8::Value> value,
+                                 gin_helper::Arguments* args) {
+  gin_helper::Handle<BaseWindow> window;
+  if (!gin::ConvertFromV8(isolate(), value, &window) || window.IsEmpty()) {
+    args->ThrowError("Must pass BaseWindow instance");
+    return;
+  }
+
+  window_->AddTabbedWindow(window->window());
+}
+
+void BaseWindow::SelectPreviousTab() {
+  window_->SelectPreviousTab();
+}
+
+void BaseWindow::SelectNextTab() {
+  window_->SelectNextTab();
+}
+
+void BaseWindow::ShowAllTabs() {
+  window_->ShowAllTabs();
+}
+
+void BaseWindow::MergeAllWindows() {
+  window_->MergeAllWindows();
+}
+
+void BaseWindow::MoveTabToNewWindow() {
+  window_->MoveTabToNewWindow();
+}
+
+void BaseWindow::ToggleTabBar() {
+  window_->ToggleTabBar();
+}
 #endif
 
 void BaseWindow::SetTouchBar(
@@ -837,7 +887,7 @@ int32_t BaseWindow::GetID() const {
 }
 
 void BaseWindow::RemoveFromParentChildWindows() {
-  if (parent_window_.IsEmpty()) {
+  if (!parent_window_.IsEmpty()) {
     gin_helper::Handle<BaseWindow> parent;
     if (!gin::ConvertFromV8(isolate(), GetParentWindow(), &parent) ||
         parent.IsEmpty()) {
@@ -947,6 +997,13 @@ void BaseWindow::BuildPrototype(v8::Isolate* isolate,
                  &BaseWindow::IsHiddenInMissionControl)
       .SetMethod("setHiddenInMissionControl",
                  &BaseWindow::SetHiddenInMissionControl)
+      .SetMethod("addTabbedWindow", &BaseWindow::AddTabbedWindow)
+      .SetMethod("selectPreviousTab", &BaseWindow::SelectPreviousTab)
+      .SetMethod("selectNextTab", &BaseWindow::SelectNextTab)
+      .SetMethod("showAllTabs", &BaseWindow::ShowAllTabs)
+      .SetMethod("mergeAllWindows", &BaseWindow::MergeAllWindows)
+      .SetMethod("moveTabToNewWindow", &BaseWindow::MoveTabToNewWindow)
+      .SetMethod("toggleTabBar", &BaseWindow::ToggleTabBar)
 #endif
       .SetMethod("setVibrancy", &BaseWindow::SetVibrancy)
 #if BUILDFLAG(IS_MAC)

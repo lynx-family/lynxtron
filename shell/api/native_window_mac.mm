@@ -19,6 +19,7 @@
 #include "shell/common/node_util.h"
 #include "shell/common/options_switches.h"
 #include "shell/ui/cocoa/window_buttons_proxy.h"
+#include "shell/ui/skia/ext/skia_utils_mac.h"
 
 @interface LynxtronProgressBar : NSProgressIndicator
 @end
@@ -64,11 +65,12 @@ namespace lynxtron {
 NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
                                  NativeWindow* parent)
     : NativeWindow(options, parent) {
+  bool hidden_in_mission_control = false;
+  const bool has_hidden_in_mission_control =
+      options.Get(options::kHiddenInMissionControl, &hidden_in_mission_control);
+
   if (std::string val; options.Get(options::kVibrancyType, &val)) {
     SetVibrancy(val, 0);
-  }
-  if (bool val; options.Get(options::kHiddenInMissionControl, &val)) {
-    SetHiddenInMissionControl(val);
   }
 
   std::string title_bar_style;
@@ -150,6 +152,10 @@ NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
   window_delegate_ = [[LynxNSWindowDelegate alloc] initWithShell:this];
   [window_ setDelegate:window_delegate_];
 
+  if (has_hidden_in_mission_control) {
+    SetHiddenInMissionControl(hidden_in_mission_control);
+  }
+
   // Only use native parent window for non-modal windows.
   if (parent && !is_modal()) {
     SetParentWindow(parent);
@@ -216,7 +222,35 @@ NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
   original_level_ = [window_ level];
 }
 
-NativeWindowMac::~NativeWindowMac() = default;
+NativeWindowMac::~NativeWindowMac() {
+  if (window_delegate_) {
+    [window_delegate_ cleanup];
+  }
+  if (window_) {
+    [window_ cleanup];
+    [window_ setDelegate:nil];
+  }
+  buttons_proxy_ = nil;
+  disabled_window_ = nil;
+  window_delegate_ = nil;
+  window_ = nil;
+}
+
+void NativeWindowMac::CloseDisableOverlay() {
+  if (!disabled_window_) {
+    return;
+  }
+
+  [window_ endSheet:disabled_window_];
+  [disabled_window_ orderOut:nil];
+  disabled_window_ = nil;
+}
+
+void NativeWindowMac::CloseAttachedSheets() {
+  while ([window_ attachedSheet]) {
+    [window_ endSheet:[window_ attachedSheet]];
+  }
+}
 
 void NativeWindowMac::Close() {
   if (!IsClosable()) {
@@ -224,7 +258,8 @@ void NativeWindowMac::Close() {
     return;
   }
 
-  SetEnabled(true);
+  CloseDisableOverlay();
+  CloseAttachedSheets();
 
   // window_ could be nil after performClose.
   bool should_notify = is_modal() && parent() && IsVisible();
@@ -240,7 +275,14 @@ void NativeWindowMac::Close() {
 }
 
 void NativeWindowMac::CloseImmediately() {
-  SetEnabled(true);
+  // Defer close requests during fullscreen transitions. The actual close will
+  // be performed after the transition finishes by the window delegate.
+  if (fullscreen_transition_state() != FullScreenTransitionState::NONE) {
+    deferred_close_ = true;
+    return;
+  }
+  CloseDisableOverlay();
+  CloseAttachedSheets();
   [window_ close];
 }
 
@@ -295,7 +337,8 @@ void NativeWindowMac::Hide() {
   // If a sheet is attached to the window when we call [window_
   // orderOut:nil], the sheet won't be able to show again on the same window.
   // Ensure it's closed before calling [window_ orderOut:nil].
-  SetEnabled(true);
+  CloseDisableOverlay();
+  CloseAttachedSheets();
 
   if (is_modal() && parent()) {
     [window_ orderOut:nil];
@@ -320,12 +363,68 @@ void NativeWindowMac::Hide() {
   [window_ orderOut:nil];
 }
 
-bool NativeWindowMac::IsVisible() {
-  bool occluded = !([window_ occlusionState] & NSWindowOcclusionStateVisible);
+void NativeWindowMac::DetachChildren() {
+  minimized_visible_children_.clear();
 
-  // For a window to be visible, it must be visible to the user in the
-  // foreground of the app, which means that it should not be minimized or
-  return [window_ isVisible] && !occluded && !IsMinimized();
+  // Hide all children before hiding/minimizing the window.
+  // components/remote_cocoa/app_shim/native_widget_ns_window_bridge.mm expects
+  // this when window visibility changes.
+  NSArray<NSWindow*>* children = [window_ childWindows];
+  if (!children) {
+    return;
+  }
+
+  for (NSWindow* child in children) {
+    if ([child isVisible] && ![child isMiniaturized]) {
+      minimized_visible_children_.push_back(child);
+    }
+    [child orderOut:nil];
+  }
+}
+
+void NativeWindowMac::AttachChildren() {
+  if (minimized_visible_children_.empty()) {
+    return;
+  }
+
+  // Restore ordering for children that were visible before we minimized.
+  for (NSWindow* child : minimized_visible_children_) {
+    if (!child) {
+      continue;
+    }
+    // Only restore for windows that are still children of this window.
+    if ([child parentWindow] != window_) {
+      continue;
+    }
+    [child orderWindow:NSWindowAbove relativeTo:[window_ windowNumber]];
+  }
+  minimized_visible_children_.clear();
+}
+
+void NativeWindowMac::HideTrafficLights() {
+  if (!buttons_proxy_ || traffic_lights_hidden_) {
+    return;
+  }
+  traffic_lights_hidden_ = true;
+  [buttons_proxy_ setVisible:NO];
+}
+
+void NativeWindowMac::RestoreTrafficLights() {
+  if (!buttons_proxy_ || !traffic_lights_hidden_) {
+    return;
+  }
+  traffic_lights_hidden_ = false;
+  // Reposition and show the container again. redraw also ensures the buttons
+  // are not momentarily rendered at the default position during restore.
+  [buttons_proxy_ redraw];
+  [buttons_proxy_ setVisible:YES];
+}
+
+bool NativeWindowMac::IsVisible() {
+  // `occlusionState` lags behind show/restore notifications on macOS, which
+  // makes immediate `isVisible()` checks return false right after the window
+  // has been shown. Use the window's ordered visibility instead.
+  return [window_ isVisible] && !IsMinimized();
 }
 
 bool NativeWindowMac::IsEnabled() {
@@ -356,15 +455,7 @@ void NativeWindowMac::SetEnabled(bool enable) {
     return;
   }
 
-  if (disabled_window_) {
-    [window_ endSheet:disabled_window_];
-    [disabled_window_ orderOut:nil];
-    disabled_window_ = nil;
-  }
-
-  while ([window_ attachedSheet]) {
-    [window_ endSheet:[window_ attachedSheet]];
-  }
+  CloseDisableOverlay();
 }
 
 void NativeWindowMac::Maximize() {
@@ -500,6 +591,15 @@ void NativeWindowMac::HandlePendingFullscreenTransitions() {
   SetFullScreen(next_transition);
 }
 
+bool NativeWindowMac::HandleDeferredClose() {
+  if (!deferred_close_) {
+    return false;
+  }
+  deferred_close_ = false;
+  CloseImmediately();
+  return true;
+}
+
 bool NativeWindowMac::IsFullscreen() const {
   return HasStyleMask(NSWindowStyleMaskFullScreen);
 }
@@ -509,6 +609,8 @@ void NativeWindowMac::SetBounds(const gfx::Rect& bounds, bool animate) {
   if (IsFullscreen()) {
     return;
   }
+
+  const gfx::Point old_position = GetPosition();
 
   // Check size constraints since setFrame does not check it.
   gfx::Size size = bounds.size();
@@ -524,6 +626,12 @@ void NativeWindowMac::SetBounds(const gfx::Rect& bounds, bool animate) {
   cocoa_bounds.origin.y = NSHeight([screen frame]) - size.height() - bounds.y();
 
   [window_ setFrame:cocoa_bounds display:YES animate:animate];
+
+  if (old_position != bounds.origin()) {
+    NotifyWindowMove();
+    NotifyWindowMoved();
+  }
+
   user_set_bounds_maximized_ = IsMaximized() ? true : false;
   UpdateWindowOriginalFrame();
 }
@@ -537,13 +645,7 @@ gfx::Rect NativeWindowMac::GetBounds() const {
 }
 
 gfx::Size NativeWindowMac::GetSize() const {
-  NSView* content_view = [window_ contentView];
-  if (content_view) {
-    NSSize client_size = [content_view bounds].size;
-    return gfx::Size(static_cast<int>(client_size.width),
-                     static_cast<int>(client_size.height));
-  }
-  return gfx::Size();
+  return GetBounds().size();
 }
 
 float NativeWindowMac::GetDevicePixelRatio() const {
@@ -763,6 +865,15 @@ bool NativeWindowMac::IsSimpleFullScreen() {
   return is_simple_fullscreen_;
 }
 
+void NativeWindowMac::SetBackgroundColor(SkColor background_color) {
+  NativeWindow::SetBackgroundColor(background_color);
+  [window_ setBackgroundColor:skia::SkColorToSRGBNSColor(background_color)];
+}
+
+SkColor NativeWindowMac::GetBackgroundColor() const {
+  return NativeWindow::GetBackgroundColor();
+}
+
 void NativeWindowMac::SetHasShadow(bool has_shadow) {
   [window_ setHasShadow:has_shadow];
 }
@@ -816,6 +927,44 @@ bool NativeWindowMac::IsVisibleOnAllWorkspaces() {
 
 void NativeWindowMac::SetAutoHideCursor(bool auto_hide) {
   [window_ setDisableAutoHideCursor:!auto_hide];
+}
+
+void NativeWindowMac::AddTabbedWindow(NativeWindow* window) {
+  if (!window || window == this) {
+    return;
+  }
+
+  if (@available(macOS 10.12, *)) {
+    NSWindow* tabbed_window = window->GetNativeWindow().GetNativeNSWindow();
+    if (!tabbed_window || tabbed_window == window_) {
+      return;
+    }
+    [window_ addTabbedWindow:tabbed_window ordered:NSWindowAbove];
+  }
+}
+
+void NativeWindowMac::SelectPreviousTab() {
+  PerformTabAction(@selector(selectPreviousTab:));
+}
+
+void NativeWindowMac::SelectNextTab() {
+  PerformTabAction(@selector(selectNextTab:));
+}
+
+void NativeWindowMac::ShowAllTabs() {
+  PerformTabAction(@selector(toggleTabOverview:));
+}
+
+void NativeWindowMac::MergeAllWindows() {
+  PerformTabAction(@selector(mergeAllWindows:));
+}
+
+void NativeWindowMac::MoveTabToNewWindow() {
+  PerformTabAction(@selector(moveTabToNewWindow:));
+}
+
+void NativeWindowMac::ToggleTabBar() {
+  PerformTabAction(@selector(toggleTabBar:));
 }
 
 NativeWindowHandle NativeWindowMac::GetNativeWindowHandle() const {
@@ -945,6 +1094,16 @@ void NativeWindowMac::InternalSetWindowButtonVisibility(bool visible) {
   [[window_ standardWindowButton:NSWindowCloseButton] setHidden:!visible];
   [[window_ standardWindowButton:NSWindowMiniaturizeButton] setHidden:!visible];
   [[window_ standardWindowButton:NSWindowZoomButton] setHidden:!visible];
+}
+
+void NativeWindowMac::PerformTabAction(SEL selector) {
+  if (!window_) {
+    return;
+  }
+
+  if (@available(macOS 10.12, *)) {
+    [NSApp sendAction:selector to:window_ from:nil];
+  }
 }
 
 std::string NativeWindowMac::GetAlwaysOnTopLevel() {

@@ -8,6 +8,8 @@
 
 #include "shell/common/logging.h"
 
+#include <cstdio>
+#include <cstring>
 #include <optional>
 #include <string>
 #include <utility>
@@ -15,10 +17,14 @@
 #include "base/command_line.h"
 #include "base/environment.h"
 #include "base/files/file_path.h"
+#include "base/files/file_util.h"
+#include "base/immediate_crash.h"
 #include "base/logging.h"
 #include "base/path_service.h"
 #include "base/strings/cstring_view.h"
 #include "base/strings/string_number_conversions.h"
+#include "base/synchronization/lock.h"
+#include "lynx/platform/embedder/public/capi/lynx_log_capi.h"
 #include "shell/common/lynxtron_paths.h"
 #include "shell/common/path_provider.h"
 
@@ -70,6 +76,105 @@ base::win::ScopedHandle GetLogInheritedHandle(
 #endif
 
 namespace {
+
+::logging::LoggingDestination g_lynx_callback_logging_dest =
+    ::logging::LOG_NONE;
+std::optional<base::FilePath> g_lynx_callback_log_file_path;
+base::Lock g_lynx_callback_log_lock;
+
+bool ShouldWriteLynxCallbackToStderr(::logging::LogSeverity severity) {
+  if ((g_lynx_callback_logging_dest & ::logging::LOG_TO_STDERR) != 0) {
+    return true;
+  }
+
+#if BUILDFLAG(IS_FUCHSIA)
+  return false;
+#else
+  if (severity >= ::logging::LOGGING_ERROR) {
+    return (g_lynx_callback_logging_dest & ~::logging::LOG_TO_FILE) ==
+           ::logging::LOG_NONE;
+  }
+  return false;
+#endif
+}
+
+void WriteLynxCallbackLog(::logging::LogSeverity severity,
+                          const char* tag,
+                          const char* msg) {
+  if (!::logging::ShouldCreateLogMessage(severity) &&
+      severity != ::logging::LOGGING_FATAL) {
+    return;
+  }
+
+  const char* t = tag ? tag : "Lynx";
+  const char* m = msg ? msg : "";
+
+  std::string line;
+  line.reserve(strlen(t) + strlen(m) + 5);
+  line.push_back('[');
+  line.append(t);
+  line.append("] ");
+  line.append(m);
+  line.push_back('\n');
+
+#if BUILDFLAG(IS_WIN)
+  if ((g_lynx_callback_logging_dest & ::logging::LOG_TO_SYSTEM_DEBUG_LOG) !=
+      0) {
+    OutputDebugStringA(line.c_str());
+  }
+#endif
+
+  if (ShouldWriteLynxCallbackToStderr(severity)) {
+    static_cast<void>(std::fwrite(line.data(), line.size(), 1, stderr));
+    std::fflush(stderr);
+  }
+
+  if ((g_lynx_callback_logging_dest & ::logging::LOG_TO_FILE) != 0 &&
+      g_lynx_callback_log_file_path) {
+    base::AutoLock auto_lock(g_lynx_callback_log_lock);
+    base::AppendToFile(*g_lynx_callback_log_file_path, line);
+  }
+
+  if (severity == ::logging::LOGGING_FATAL) {
+    base::ImmediateCrash();
+  }
+}
+
+#define LYNX_CALLBACK_LOG(severity, tag, msg) \
+  WriteLynxCallbackLog(::logging::LOGGING_##severity, tag, msg)
+
+lynx_log_level_e ToLynxMinLevel(int level) {
+  if (level <= 0) {
+    return LYNX_LOG_INFO;
+  }
+  if (level == 1) {
+    return LYNX_LOG_WARNING;
+  }
+  if (level == 2) {
+    return LYNX_LOG_ERROR;
+  }
+  return LYNX_LOG_FATAL;
+}
+
+void LynxLogCallback(lynx_log_level_e level, const char* tag, const char* msg) {
+  switch (level) {
+    case LYNX_LOG_FATAL:
+      LYNX_CALLBACK_LOG(FATAL, tag, msg);
+      break;
+    case LYNX_LOG_ERROR:
+      // LYNX_CALLBACK_LOG(ERROR, tag, msg);
+      break;
+    case LYNX_LOG_WARNING:
+      LYNX_CALLBACK_LOG(WARNING, tag, msg);
+      break;
+    case LYNX_LOG_INFO:
+    case LYNX_LOG_DEBUG:
+    case LYNX_LOG_VERBOSE:
+    default:
+      LYNX_CALLBACK_LOG(INFO, tag, msg);
+      break;
+  }
+}
 
 std::string GetExplicitLogFileValue(const base::CommandLine& command_line,
                                     base::Environment& env) {
@@ -235,6 +340,16 @@ void InitLogging(const base::CommandLine& command_line, bool is_preinit) {
   }
 
   ::logging::SetLogItems(true /* pid */, false, true /* timestamp */, false);
+
+  g_lynx_callback_logging_dest = logging_dest;
+  if ((logging_dest & ::logging::LOG_TO_FILE) != 0 && !filename_is_handle) {
+    g_lynx_callback_log_file_path = log_path;
+  } else {
+    g_lynx_callback_log_file_path.reset();
+  }
+
+  lynx_log_set_minimum_level(ToLynxMinLevel(::logging::GetMinLogLevel()));
+  lynx_log_init(&LynxLogCallback);
 }
 
 }  // namespace lynxtron

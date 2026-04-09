@@ -6,51 +6,57 @@
 
 #include <memory>
 #include <string>
-#include <string_view>
 #include <vector>
 
-#include "base/containers/span.h"
 #include "base/memory/weak_ptr.h"
 #include "shell/api/lynx_view/lynx_view_client.h"
-#include "shell/api/lynx_view/lynx_view_impl.h"
 #include "shell/ui/gfx/geometry/rect.h"
 
+namespace lynx {
+namespace pub {
+class LynxTemplateBundle;
+}  // namespace pub
+}  // namespace lynx
+
 namespace lynxtron {
-namespace api {
-class LynxWindow;
-}
+class LynxViewBuilder;
+class LynxViewImpl;
+class LynxUpdateMeta;
 
 class LynxView {
  public:
-  static std::unique_ptr<LynxView> Create(
-      base::WeakPtr<api::LynxWindow> lynx_window);
-
   ~LynxView();
 
   static void SetNodePlatformEnv(void* platform);
-
-  void Init(double width,
-            double height,
-            float dpi,
-            void* parent,
-            const std::vector<std::string>& node_integration_preload);
-  void LoadTemplate(std::string_view template_url,
-                    base::span<const uint8_t> content);
+  void LoadFile(const std::string& path,
+                const std::string& data,
+                const std::string& global_props);
+  void LoadURL(const std::string& url,
+               const std::string& data,
+               const std::string& global_props);
+  void LoadBundle(std::shared_ptr<lynx::pub::LynxTemplateBundle> bundle,
+                  const std::string& data,
+                  const std::string& global_props);
   void SetClient(base::WeakPtr<LynxViewClient> client);
   void SetBounds(const gfx::Rect& bounds);
-  void Show();
-  void Hide();
+  void Focus();
   void Close();
   void SendGlobalEvent(const std::string& event, const std::string& json);
+  void UpdateData(std::shared_ptr<LynxUpdateMeta> meta);
   void UpdateData(const std::string& data, const std::string& global_props);
   void ReloadTemplate(const std::string& data, const std::string& global_props);
   void UpdateScreenMetrics(float width, float height, float device_pixel_ratio);
   void SetFrame(float x, float y, float width, float height);
   void* GetNativeWindow();
+  void EnterForeground();
+  void EnterBackground();
 
  private:
-  explicit LynxView(base::WeakPtr<api::LynxWindow> lynx_window);
-  base::WeakPtr<api::LynxWindow> lynx_window_;
+  friend class LynxViewBuilder;
+
+  LynxView();
+  static std::unique_ptr<LynxView> Create(std::unique_ptr<LynxViewImpl> impl);
+
   std::unique_ptr<LynxViewImpl> impl_;
 };
 

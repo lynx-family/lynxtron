@@ -4,73 +4,78 @@
 
 #include "shell/api/lynx_view/lynx_view_impl.h"
 
-#include <algorithm>
-#include <cstdint>
 #include <memory>
 #include <string>
 #include <string_view>
-#include <vector>
+#include <utility>
 
-#include "api/lynx_view/lynx_view_client.h"
 #include "base/containers/span.h"
+#include "base/files/file_path.h"
+#include "base/functional/bind.h"
 #include "base/memory/weak_ptr.h"
-#include "gfx/geometry/rect.h"
-#include "platform/embedder/public/lynx_load_meta.h"
+#include "build/build_config.h"
+#include "lynx/platform/embedder/public/capi/lynx_view_builder_capi.h"
+#include "lynx/platform/embedder/public/lynx_load_meta.h"
+#include "lynx/platform/embedder/public/lynx_template_bundle.h"
+#include "lynx/platform/embedder/public/lynx_view.h"
 #include "platform/embedder/public/lynx_template_data.h"
 #include "platform/embedder/public/lynx_update_meta.h"
+#include "shell/api/lynx_view/lynx_update_meta.h"
+#include "shell/api/lynx_view/lynx_view_builder.h"
+#include "shell/api/lynx_view/lynx_view_client.h"
+#include "shell/api/lynx_view/module/lynx_bridge_module.h"
+#include "shell/api/lynx_view/module/lynx_hybrid_monitor_module.h"
+#include "shell/api/lynx_view/module/lynx_node_module.h"
+#include "shell/common/asar/archive.h"
+#include "shell/common/asar/asar_util.h"
+#include "shell/common/global_thread.h"
+#include "shell/common/thread_restrictions.h"
+#include "shell/legacy/texture-view/lynx_texture_view.h"
+#include "shell/lynx/resource_fetcher/lynx_generic_resource_fetcher_factory.h"
+#include "shell/ui/gfx/geometry/rect.h"
 
 #if BUILDFLAG(IS_WIN)
 #include <windows.h>
 
 #include <windowsx.h>
+
+#include "shell/ui/gfx/win/hwnd_util.h"
 #endif
 
-#include "build/build_config.h"
-#include "lynx/platform/embedder/public/capi/lynx_view_builder_capi.h"
-#include "lynx/platform/embedder/public/lynx_view.h"
-#include "shell/api/lynx_view/module/lynx_bridge_module.h"
-#include "shell/api/lynx_view/module/lynx_hybrid_monitor_module.h"
-#include "shell/api/lynx_view/module/lynx_node_module.h"
-#include "shell/legacy/texture-view/lynx_texture_view.h"
-#include "shell/lynx/resource_fetcher/lynx_generic_resource_fetcher_factory.h"
-
 namespace {
+
+std::vector<uint8_t> LoadFileData(std::string_view path) {
+  base::FilePath in_file_name = base::FilePath::FromUTF8Unsafe(path);
+  std::string file_contents;
+  {
+    lynxtron::ScopedAllowBlockingForLynxtron allow_blocking;
+    if (!asar::ReadFileToString(in_file_name, &file_contents)) {
+      return {};
+    }
+  }
+  size_t size = file_contents.size();
+  std::vector<uint8_t> buf(file_contents.data(), file_contents.data() + size);
+  return buf;
+}
 
 #if BUILDFLAG(IS_WIN)
 constexpr wchar_t kLynxViewHitTestOldWndProcProp[] =
     L"LynxtronLynxViewHitTestOldWndProc";
 
-using GetDpiForWindowPtr = decltype(::GetDpiForWindow)*;
-using GetSystemMetricsForDpiPtr = decltype(::GetSystemMetricsForDpi)*;
-
-void* GetUser32FunctionPointer(const char* function_name) {
-  static HMODULE user32_module = ::GetModuleHandleW(L"user32.dll");
-  if (!user32_module) {
-    user32_module = ::LoadLibraryW(L"user32.dll");
+bool IsResizeHitTest(LRESULT hit) {
+  switch (hit) {
+    case HTLEFT:
+    case HTRIGHT:
+    case HTTOP:
+    case HTTOPLEFT:
+    case HTTOPRIGHT:
+    case HTBOTTOM:
+    case HTBOTTOMLEFT:
+    case HTBOTTOMRIGHT:
+      return true;
+    default:
+      return false;
   }
-  return user32_module ? reinterpret_cast<void*>(
-                             ::GetProcAddress(user32_module, function_name))
-                       : nullptr;
-}
-
-int GetFrameThicknessForDpi(UINT dpi) {
-  static const auto get_system_metrics_for_dpi_func =
-      reinterpret_cast<GetSystemMetricsForDpiPtr>(
-          GetUser32FunctionPointer("GetSystemMetricsForDpi"));
-  if (get_system_metrics_for_dpi_func) {
-    return get_system_metrics_for_dpi_func(SM_CXSIZEFRAME, dpi) +
-           get_system_metrics_for_dpi_func(SM_CXPADDEDBORDER, dpi);
-  }
-  return ::GetSystemMetrics(SM_CXSIZEFRAME) +
-         ::GetSystemMetrics(SM_CXPADDEDBORDER);
-}
-
-int GetFrameThicknessForHwnd(HWND hwnd) {
-  static const auto get_dpi_for_window_func =
-      reinterpret_cast<GetDpiForWindowPtr>(
-          GetUser32FunctionPointer("GetDpiForWindow"));
-  const UINT dpi = get_dpi_for_window_func ? get_dpi_for_window_func(hwnd) : 96;
-  return GetFrameThicknessForDpi(dpi);
 }
 
 LRESULT CALLBACK LynxViewHitTestWndProc(HWND hwnd,
@@ -86,13 +91,11 @@ LRESULT CALLBACK LynxViewHitTestWndProc(HWND hwnd,
   if (message == WM_NCHITTEST) {
     LRESULT hit = ::CallWindowProcW(old_proc, hwnd, message, wparam, lparam);
     if (hit == HTCLIENT) {
-      const POINT pt{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
-      RECT rect{};
-      if (::GetWindowRect(hwnd, &rect)) {
-        const int thickness = std::max(1, GetFrameThicknessForHwnd(hwnd));
-        RECT inner = rect;
-        ::InflateRect(&inner, -thickness, -thickness);
-        if (!::PtInRect(&inner, pt)) {
+      HWND top_level = ::GetAncestor(hwnd, GA_ROOT);
+      if (::IsWindow(top_level) && top_level != hwnd) {
+        const LRESULT top_level_hit =
+            ::SendMessageW(top_level, WM_NCHITTEST, wparam, lparam);
+        if (IsResizeHitTest(top_level_hit)) {
           return HTTRANSPARENT;
         }
       }
@@ -102,8 +105,7 @@ LRESULT CALLBACK LynxViewHitTestWndProc(HWND hwnd,
 
   if (message == WM_NCDESTROY) {
     ::RemovePropW(hwnd, kLynxViewHitTestOldWndProcProp);
-    ::SetWindowLongPtrW(hwnd, GWLP_WNDPROC,
-                        reinterpret_cast<LONG_PTR>(old_proc));
+    gfx::SetWindowProc(hwnd, old_proc);
     return ::CallWindowProcW(old_proc, hwnd, message, wparam, lparam);
   }
 
@@ -130,10 +132,8 @@ void InstallLynxViewHitTestHook(HWND hwnd) {
     return;
   }
 
-  ::SetLastError(0);
-  auto old_proc = reinterpret_cast<WNDPROC>(::SetWindowLongPtrW(
-      hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&LynxViewHitTestWndProc)));
-  if (!old_proc && ::GetLastError() != 0) {
+  auto old_proc = gfx::SetWindowProc(hwnd, &LynxViewHitTestWndProc);
+  if (!old_proc) {
     return;
   }
   ::SetPropW(hwnd, kLynxViewHitTestOldWndProcProp,
@@ -149,54 +149,71 @@ LynxViewImpl::~LynxViewImpl() {
   Close();
 }
 
-void LynxViewImpl::Init(
-    double width,
-    double height,
-    float dpi,
-    void* parent,
-    const std::vector<std::string>& node_integration_preload,
-    base::WeakPtr<api::LynxWindow> lynx_window) {
-  lynx::pub::LynxView::Builder builder;
-  builder.SetScreenSize(width, height, dpi)
-      .SetFrame(0, 0, width, height)
-      .SetParent(parent)
-      .SetGenericResourceFetcher(
-          LynxGenericResourceFetcherFactory::Create(lynx_window));
-  lynx_view_builder_register_native_view(
-      builder.Impl(), "x-texture-view",
-      [](void* opaque) -> lynx_native_view_t* {
-        (void)opaque;
-        return (new legacy::LynxTextureView())->native_view();
-      },
-      nullptr);
-
-  if (!node_integration_preload.empty()) {
-    RegisterLynxNodeModuleToLynxView(builder.Impl(), node_integration_preload);
-  }
-  RegisterLynxBridgeModuleToLynxView(builder.Impl(), lynx_window);
-  RegisterLynxHybridMonitorModuleToLynxView(builder.Impl(), lynx_window);
-
-  lynx_view_ = builder.Build();
+void LynxViewImpl::Initialize(std::unique_ptr<lynx::pub::LynxView> core_view) {
+  lynx_view_ = std::move(core_view);
 #if BUILDFLAG(IS_WIN)
   // Hook the Lynx render child HWND: return HTTRANSPARENT near the edge so
   // hit-testing continues to the parent (which handles resize/caption logic).
   InstallLynxViewHitTestHook(
       reinterpret_cast<HWND>(lynx_view_->GetNativeWindow()));
 #endif
-  // Create a shared_ptr alias that doesn't manage the memory
-  // This is safe as long as lynx_view_ doesn't outlive LynxViewImpl
-  lynx_view_->AddClient(
-      std::shared_ptr<LynxViewImpl>(std::shared_ptr<LynxViewImpl>(), this));
+  // Create a shared_ptr with a no-op deleter to provide a valid control block
+  // without managing the memory of 'this', and keep it alive as a member.
+  self_shared_ptr_ = std::shared_ptr<LynxViewImpl>(this, [](LynxViewImpl*) {});
+  lynx_view_->AddClient(self_shared_ptr_);
 }
 
-void LynxViewImpl::LoadTemplate(std::string_view template_url,
-                                base::span<const uint8_t> content) {
-  auto meta_data = std::make_shared<lynx::pub::LynxLoadMeta>();
-  meta_data->SetUrl(std::string(template_url));
+void LynxViewImpl::LoadFile(const std::string& path,
+                            const std::string& data,
+                            const std::string& global_props) {
+  auto meta = std::make_shared<lynx::pub::LynxLoadMeta>();
+  auto source = LoadFileData(path);
+  if (source.empty()) {
+    return;
+  }
 
-  meta_data->SetBinaryData(const_cast<uint8_t*>(content.data()),
-                           content.size());
-  lynx_view_->LoadTemplate(meta_data);
+  meta->SetUrl(path);
+  meta->SetBinaryData(source);
+  if (!data.empty()) {
+    meta->SetInitialData(std::make_shared<lynx::pub::LynxTemplateData>(data));
+  }
+  if (!global_props.empty()) {
+    meta->SetGlobalProps(
+        std::make_shared<lynx::pub::LynxTemplateData>(global_props));
+  }
+  lynx_view_->LoadTemplate(std::move(meta));
+}
+
+void LynxViewImpl::LoadURL(const std::string& url,
+                           const std::string& data,
+                           const std::string& global_props) {
+  auto meta = std::make_shared<lynx::pub::LynxLoadMeta>();
+  meta->SetUrl(url);
+  if (!data.empty()) {
+    meta->SetInitialData(std::make_shared<lynx::pub::LynxTemplateData>(data));
+  }
+  if (!global_props.empty()) {
+    meta->SetGlobalProps(
+        std::make_shared<lynx::pub::LynxTemplateData>(global_props));
+  }
+  lynx_view_->LoadTemplate(std::move(meta));
+}
+
+void LynxViewImpl::LoadBundle(
+    std::shared_ptr<lynx::pub::LynxTemplateBundle> bundle,
+    const std::string& data,
+    const std::string& global_props) {
+  auto meta = std::make_shared<lynx::pub::LynxLoadMeta>();
+  meta->SetUrl("bundle://local");
+  meta->SetTemplateBundle(std::move(bundle));
+  if (!data.empty()) {
+    meta->SetInitialData(std::make_shared<lynx::pub::LynxTemplateData>(data));
+  }
+  if (!global_props.empty()) {
+    meta->SetGlobalProps(
+        std::make_shared<lynx::pub::LynxTemplateData>(global_props));
+  }
+  lynx_view_->LoadTemplate(std::move(meta));
 }
 
 void LynxViewImpl::SetClient(base::WeakPtr<lynxtron::LynxViewClient> client) {
@@ -219,6 +236,13 @@ void LynxViewImpl::ReloadTemplate(const std::string& data,
       std::make_shared<lynx::pub::LynxTemplateData>(global_props));
 }
 
+void LynxViewImpl::UpdateData(std::shared_ptr<LynxUpdateMeta> meta) {
+  if (!meta) {
+    return;
+  }
+  lynx_view_->UpdateData(meta->BuildCore());
+}
+
 void LynxViewImpl::UpdateData(const std::string& data,
                               const std::string& global_props) {
   auto meta_data = std::make_shared<lynx::pub::LynxUpdateMeta>();
@@ -239,101 +263,190 @@ void LynxViewImpl::SetFrame(float x, float y, float width, float height) {
 }
 
 void* LynxViewImpl::GetNativeWindow() {
-  return lynx_view_ ? lynx_view_->GetNativeWindow() : nullptr;
+  return lynx_view_->GetNativeWindow();
 }
 
-void LynxViewImpl::Show() {}
-
-void LynxViewImpl::Hide() {}
+void LynxViewImpl::Focus() {
+#if BUILDFLAG(IS_WIN)
+  ::SetFocus(reinterpret_cast<HWND>(lynx_view_->GetNativeWindow()));
+#endif
+}
 
 void LynxViewImpl::Close() {
-  if (lynx_view_) {
-    lynx_view_->RemoveClient(
-        std::shared_ptr<LynxViewImpl>(std::shared_ptr<LynxViewImpl>(), this));
-    lynx_view_.reset();
+  if (self_shared_ptr_) {
+    lynx_view_->RemoveClient(self_shared_ptr_);
+    self_shared_ptr_.reset();
   }
+  // lynx_view_.reset();
+}
+
+void LynxViewImpl::EnterForeground() {
+  lynx_view_->OnEnterForeground();
+}
+
+void LynxViewImpl::EnterBackground() {
+  lynx_view_->OnEnterBackground();
 }
 
 void LynxViewImpl::OnPageStart(const char* url) {
-  if (lynx_view_client_) {
-    lynx_view_client_->OnPageStart(url);
-  }
+  std::string url_str = url ? url : "";
+  lynxtron::GlobalThread::GetUIThreadTaskRunner()->PostTask(
+      FROM_HERE,
+      base::BindOnce(
+          [](base::WeakPtr<lynxtron::LynxViewClient> client, std::string url) {
+            if (client) {
+              client->OnPageStart(url);
+            }
+          },
+          lynx_view_client_, std::move(url_str)));
 }
 
 void LynxViewImpl::OnLoadSuccess() {
-  if (lynx_view_client_) {
-    lynx_view_client_->OnLoadSuccess();
-  }
+  lynxtron::GlobalThread::GetUIThreadTaskRunner()->PostTask(
+      FROM_HERE, base::BindOnce(
+                     [](base::WeakPtr<lynxtron::LynxViewClient> client) {
+                       if (client) {
+                         client->OnLoadSuccess();
+                       }
+                     },
+                     lynx_view_client_));
 }
 
 void LynxViewImpl::OnFirstScreen() {
-  if (lynx_view_client_) {
-    lynx_view_client_->OnFirstScreen();
-  }
+  lynxtron::GlobalThread::GetUIThreadTaskRunner()->PostTask(
+      FROM_HERE, base::BindOnce(
+                     [](base::WeakPtr<lynxtron::LynxViewClient> client) {
+                       if (client) {
+                         client->OnFirstScreen();
+                       }
+                     },
+                     lynx_view_client_));
 }
 
 void LynxViewImpl::OnPageUpdated() {
-  if (lynx_view_client_) {
-    lynx_view_client_->OnPageUpdated();
-  }
+  lynxtron::GlobalThread::GetUIThreadTaskRunner()->PostTask(
+      FROM_HERE, base::BindOnce(
+                     [](base::WeakPtr<lynxtron::LynxViewClient> client) {
+                       if (client) {
+                         client->OnPageUpdated();
+                       }
+                     },
+                     lynx_view_client_));
 }
 
 void LynxViewImpl::OnDataUpdated() {
-  if (lynx_view_client_) {
-    lynx_view_client_->OnDataUpdated();
-  }
+  lynxtron::GlobalThread::GetUIThreadTaskRunner()->PostTask(
+      FROM_HERE, base::BindOnce(
+                     [](base::WeakPtr<lynxtron::LynxViewClient> client) {
+                       if (client) {
+                         client->OnDataUpdated();
+                       }
+                     },
+                     lynx_view_client_));
 }
 
 void LynxViewImpl::OnDestroy() {
-  if (lynx_view_client_) {
-    lynx_view_client_->OnDestroy();
-  }
+  lynxtron::GlobalThread::GetUIThreadTaskRunner()->PostTask(
+      FROM_HERE, base::BindOnce(
+                     [](base::WeakPtr<lynxtron::LynxViewClient> client) {
+                       if (client) {
+                         client->OnDestroy();
+                       }
+                     },
+                     lynx_view_client_));
 }
 
 void LynxViewImpl::OnRuntimeReady() {
-  if (lynx_view_client_) {
-    lynx_view_client_->OnRuntimeReady();
-  }
+  lynxtron::GlobalThread::GetUIThreadTaskRunner()->PostTask(
+      FROM_HERE, base::BindOnce(
+                     [](base::WeakPtr<lynxtron::LynxViewClient> client) {
+                       if (client) {
+                         client->OnRuntimeReady();
+                       }
+                     },
+                     lynx_view_client_));
 }
 
 void LynxViewImpl::OnReceivedError(int error_code, const char* message) {
-  if (lynx_view_client_) {
-    lynx_view_client_->OnReceivedError(error_code, message);
-  }
+  std::string msg_str = message ? message : "";
+  lynxtron::GlobalThread::GetUIThreadTaskRunner()->PostTask(
+      FROM_HERE, base::BindOnce(
+                     [](base::WeakPtr<lynxtron::LynxViewClient> client,
+                        int error_code, std::string message) {
+                       if (client) {
+                         client->OnReceivedError(error_code, message);
+                       }
+                     },
+                     lynx_view_client_, error_code, std::move(msg_str)));
 }
 
 void LynxViewImpl::OnTimingSetup(const char* timing_info) {
-  if (lynx_view_client_) {
-    lynx_view_client_->OnTimingSetup(timing_info);
-  }
+  std::string info_str = timing_info ? timing_info : "";
+  lynxtron::GlobalThread::GetUIThreadTaskRunner()->PostTask(
+      FROM_HERE, base::BindOnce(
+                     [](base::WeakPtr<lynxtron::LynxViewClient> client,
+                        std::string timing_info) {
+                       if (client) {
+                         client->OnTimingSetup(timing_info);
+                       }
+                     },
+                     lynx_view_client_, std::move(info_str)));
 }
 
 void LynxViewImpl::OnTimingUpdate(const char* timing_info,
                                   const char* update_timing,
                                   const char* update_flag) {
-  if (lynx_view_client_) {
-    lynx_view_client_->OnTimingUpdate(timing_info, update_timing, update_flag);
-  }
+  std::string info_str = timing_info ? timing_info : "";
+  std::string timing_str = update_timing ? update_timing : "";
+  std::string flag_str = update_flag ? update_flag : "";
+  lynxtron::GlobalThread::GetUIThreadTaskRunner()->PostTask(
+      FROM_HERE,
+      base::BindOnce(
+          [](base::WeakPtr<lynxtron::LynxViewClient> client,
+             std::string timing_info, std::string update_timing,
+             std::string update_flag) {
+            if (client) {
+              client->OnTimingUpdate(timing_info, update_timing, update_flag);
+            }
+          },
+          lynx_view_client_, std::move(info_str), std::move(timing_str),
+          std::move(flag_str)));
 }
 
 void LynxViewImpl::OnEnterForeground() {
-  if (lynx_view_client_) {
-    lynx_view_client_->OnEnterForeground();
-  }
+  lynxtron::GlobalThread::GetUIThreadTaskRunner()->PostTask(
+      FROM_HERE, base::BindOnce(
+                     [](base::WeakPtr<lynxtron::LynxViewClient> client) {
+                       if (client) {
+                         client->OnEnterForeground();
+                       }
+                     },
+                     lynx_view_client_));
 }
 
 void LynxViewImpl::OnEnterBackground() {
-  if (lynx_view_client_) {
-    lynx_view_client_->OnEnterBackground();
-  }
+  lynxtron::GlobalThread::GetUIThreadTaskRunner()->PostTask(
+      FROM_HERE, base::BindOnce(
+                     [](base::WeakPtr<lynxtron::LynxViewClient> client) {
+                       if (client) {
+                         client->OnEnterBackground();
+                       }
+                     },
+                     lynx_view_client_));
 }
 
 void LynxViewImpl::OnFrameTiming(int64_t frame_start_time_in_ns,
                                  int64_t frame_finish_time_in_ns) {
-  if (lynx_view_client_) {
-    lynx_view_client_->OnFrameTiming(frame_start_time_in_ns,
-                                     frame_finish_time_in_ns);
-  }
+  lynxtron::GlobalThread::GetUIThreadTaskRunner()->PostTask(
+      FROM_HERE,
+      base::BindOnce(
+          [](base::WeakPtr<lynxtron::LynxViewClient> client, int64_t start,
+             int64_t finish) {
+            if (client) {
+              client->OnFrameTiming(start, finish);
+            }
+          },
+          lynx_view_client_, frame_start_time_in_ns, frame_finish_time_in_ns));
 }
 
 }  // namespace lynxtron

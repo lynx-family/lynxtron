@@ -19,6 +19,8 @@ import { Shell as LynxtronShell } from '../packages/lynxtron/apis/api/shell';
 import { MenuItem as LynxtronMenuItem } from '../packages/lynxtron/apis/api/menu';
 import { Tray as LynxtronTray } from '../packages/lynxtron/apis/api/tray';
 import { utilityProcess as LynxtronUtilityProcess } from '../packages/lynxtron/apis/api/utility-process';
+import { LynxUpdateMeta as LynxtronLynxUpdateMeta } from '../packages/lynxtron/apis/api/lynx-update-meta';
+import { LynxTemplateData as LynxtronLynxTemplateData } from '../packages/lynxtron/apis/api/lynx-template-data';
 
 import {
   TouchBar as LynxtronTouchBar,
@@ -104,19 +106,23 @@ declare module 'lynxtron' {
   export const app: LynxtronApp;
   export const BaseWindow: typeof BaseWindowInternal;
   export const LynxWindow: typeof LynxWindowInternal;
+  export const LynxUpdateMeta: typeof LynxtronLynxUpdateMeta;
   export const Menu: typeof LynxtronMenu;
   export const MenuItem: typeof LynxtronMenuItem;
   export const nativeImage: typeof LynxtronNativeImage;
   export const screen: LynxtronScreen;
   export const shell: LynxtronShell;
+  export const LynxTemplateData: typeof LynxtronLynxTemplateData;
   export const Tray: typeof LynxtronTray;
   export const utilityProcess: typeof LynxtronUtilityProcess;
 
   export type BaseWindow = BaseWindowInternal;
   export type LynxWindow = LynxWindowInternal;
+  export type LynxUpdateMeta = LynxtronLynxUpdateMeta;
   export type NativeImage = LynxtronNativeImage;
   export type Screen = LynxtronScreen;
   export type Shell = LynxtronShell;
+  export type LynxTemplateData = LynxtronLynxTemplateData;
   export type Tray = LynxtronTray;
   export type OpenDialogOptions = LynxtronOpenDialogOptions;
   export type OpenDialogReturnValue = LynxtronOpenDialogReturnValue;

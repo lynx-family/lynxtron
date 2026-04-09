@@ -159,6 +159,7 @@ class HWNDMessageHandlerDelegate {
 
   // Called when the window's position changed.
   virtual void HandleMove() = 0;
+  virtual void HandleMoved() = 0;
 
   // Called when the window is being moved. |rect| holds the new position.
   // Returns true if the move should be allowed.

@@ -51,6 +51,10 @@ namespace lynxtron::api {
 MenuMac::MenuMac(gin::Arguments* args) : Menu{args} {}
 
 MenuMac::~MenuMac() {
+  weak_factory_.InvalidateWeakPtrs();
+  popup_controllers_.clear();
+  popup_close_callbacks_.clear();
+  popup_serials_.clear();
   RemoveModelObserver();
 }
 
@@ -121,9 +125,7 @@ void MenuMac::PopupOnUI(const base::WeakPtr<NativeWindow>& native_window,
     return;
   }
 
-  base::OnceClosure close_callback =
-      base::BindOnce(&MenuMac::OnClosed, weak_factory_.GetWeakPtr(), window_id,
-                     std::move(callback));
+  uint64_t popup_serial = ++next_popup_serial_;
 
   // Check if a controller for this window_id already exists to avoid memory
   // leak
@@ -131,11 +133,15 @@ void MenuMac::PopupOnUI(const base::WeakPtr<NativeWindow>& native_window,
   if (existing_controller != popup_controllers_.end()) {
     [existing_controller->second cancel];
     popup_controllers_.erase(window_id);
+    popup_close_callbacks_.erase(window_id);
+    popup_serials_.erase(window_id);
   }
 
   popup_controllers_[window_id] =
       [[LynxtronMenuController alloc] initWithModel:model()
                               useDefaultAccelerator:NO];
+  popup_close_callbacks_[window_id] = std::move(callback);
+  popup_serials_[window_id] = popup_serial;
   NSMenu* menu = [popup_controllers_[window_id] menu];
   NSView* view = [nswindow contentView];
 
@@ -170,7 +176,9 @@ void MenuMac::PopupOnUI(const base::WeakPtr<NativeWindow>& native_window,
   }
 
   [popup_controllers_[window_id]
-      setPopupCloseCallback:std::move(close_callback)];
+      setPopupCloseCallback:base::BindOnce(&MenuMac::OnClosed,
+                                           weak_factory_.GetWeakPtr(),
+                                           window_id, popup_serial)];
 
   base::CurrentThread::ScopedAllowApplicationTasksInNativeNestedLoop allow;
   base::mac::ScopedSendingEvent sendingEventScoper;
@@ -236,8 +244,22 @@ void MenuMac::ClosePopupOnUI(int32_t window_id) {
   }
 }
 
-void MenuMac::OnClosed(int32_t window_id, base::OnceClosure callback) {
+void MenuMac::OnClosed(int32_t window_id, uint64_t popup_serial) {
+  auto serial_it = popup_serials_.find(window_id);
+  if (serial_it == popup_serials_.end() || serial_it->second != popup_serial) {
+    return;
+  }
+
   popup_controllers_.erase(window_id);
+  popup_serials_.erase(serial_it);
+
+  auto callback_it = popup_close_callbacks_.find(window_id);
+  if (callback_it == popup_close_callbacks_.end()) {
+    return;
+  }
+
+  base::OnceClosure callback = std::move(callback_it->second);
+  popup_close_callbacks_.erase(callback_it);
   std::move(callback).Run();
 }
 

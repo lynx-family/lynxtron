@@ -13,6 +13,7 @@
 
 #include "base/memory/raw_ptr.h"
 #include "shell/api/native_window_mac.h"
+#include "shell/ui/gfx/geometry/resize_utils.h"
 
 namespace lynxtron {
 class NativeWindowMac;
@@ -26,11 +27,13 @@ class NativeWindowMac;
   bool is_resizable_;
 
   // Only valid during a live resize.
-  // Used to keep track of whether a resize is happening horizontally or
-  // vertically, even if physically the user is resizing in both directions.
+  // Used to keep track of which edge is being resized, and to derive whether a
+  // corner resize is primarily horizontal or vertical.
+  std::optional<gfx::ResizeEdge> resizing_edge_;
   std::optional<bool> resizingHorizontally_;
 }
 - (id)initWithShell:(lynxtron::NativeWindowMac*)shell;
+- (void)cleanup;
 @end
 
 #endif  // LYNXTRON_SHELL_API_UI_MAC_LYNX_NS_WINDOW_DELEGATE_H_

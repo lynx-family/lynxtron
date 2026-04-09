@@ -135,10 +135,6 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   // Updates the window style to reflect whether it can be resized or maximized.
   void SizeConstraintsChanged();
 
-  // Returns true if content is rendered to a child window instead of directly
-  // to this window.
-  // bool HasChildRenderingWindow();
-
   void set_is_translucent(bool is_translucent) {
     is_translucent_ = is_translucent;
   }
@@ -152,13 +148,10 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   // Overridden from WindowImpl:
   LRESULT OnWndProc(UINT message, WPARAM w_param, LPARAM l_param) override;
 
-  // Returns the auto-hide edges of the appbar. See
-  // ViewsDelegate::GetAppbarAutohideEdges() for details. If the edges change,
-  // OnAppbarAutohideEdgesChanged() is called.
+  // Returns a bitmask of auto-hide taskbar edges for |monitor|.
   int GetAppbarAutohideEdges(HMONITOR monitor);
 
-  // Callback if the autohide edges have changed. See
-  // ViewsDelegate::GetAppbarAutohideEdges() for details.
+  // Callback when the auto-hide taskbar edges may have changed.
   void OnAppbarAutohideEdgesChanged();
 
   // Can be called after the delegate has had the opportunity to set focus and
@@ -193,11 +186,6 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   // HWND, so it must be passed in explicitly (see HWNDMessageHandler::
   // OnNCCalcSize for more details).
   bool GetClientAreaInsets(gfx::Insets* insets, HMONITOR monitor) const;
-
-  // Resets the window region for the current widget bounds if necessary.
-  // If |force| is true, the window region is reset to NULL even for native
-  // frame windows.
-  // void ResetWindowRegion(bool force, bool redraw);
 
   // Calls DefWindowProc, safely wrapping the call in a ScopedRedrawLock to
   // prevent frame flicker. DefWindowProc handling can otherwise render the
@@ -323,16 +311,6 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   // Updates DWM frame to extend into client area if needed.
   void UpdateDwmFrame();
 
-  // Generates a touch event and adds it to the |touch_events| parameter.
-  // |point| is the point where the touch was initiated.
-  // |id| is the event id associated with the touch event.
-  // |time_stamp| is the time stamp associated with the message.
-  // void GenerateTouchEvent(ui::EventType event_type,
-  //                        const gfx::Point& point,
-  //                        size_t id,
-  //                        base::TimeTicks time_stamp,
-  //                        TouchEvents* touch_events);
-
   // Handles WM_NCLBUTTONDOWN and WM_NCMOUSEMOVE messages on the caption.
 
   // Helper function for setting the bounds of the HWND. For more information
@@ -350,11 +328,6 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   // px on activation loss to a window on the same monitor.
   void OnBackgroundFullscreen();
 
-  // Deletes the system caret used for accessibility. This will result in any
-  // clients that are still holding onto its |IAccessible| to get a failure code
-  // if they request its location.
-  // void DestroyAXSystemCaret();
-
   // Updates |rect| to adhere to the |aspect_ratio| of the window. |param|
   // refers to the edge of the window being sized.
   void SizeWindowToAspectRatio(UINT param, gfx::Rect* rect);
@@ -368,9 +341,6 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   // Whether all ancestors have been enabled. This is only used if is_modal_ is
   // true.
   bool restored_enabled_;
-
-  // The current cursor.
-  // scoped_refptr<ui::WinCursor> current_cursor_;
 
   // The aspect ratio for the window. This is only used for sizing operations
   // for the non-client area.
@@ -415,29 +385,8 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   // True the first time nccalc is called on a sizable widget
   bool is_first_nccalc_;
 
-  // Copy of custom window region specified via SetRegion(), if any.
-  // base::win::ScopedGDIObject<HRGN> custom_window_region_;
-
   // If > 0 indicates a menu is running (we're showing a native menu).
   int menu_depth_;
-
-  // Generates touch-ids for touch-events.
-  // ui::SequentialIDGenerator id_generator_;
-
-  // PenEventProcessor pen_processor_;
-
-  // Stores a pointer to the WindowEventTarget interface implemented by this
-  // class. Allows callers to retrieve the interface pointer.
-  // std::unique_ptr<ui::ViewProp> prop_window_target_;
-
-  // Number of active touch down contexts. This is incremented on touch down
-  // events and decremented later using a delayed task.
-  // We need this to ignore WM_MOUSEACTIVATE messages generated in response to
-  // touch input. This is fine because activation still works correctly via
-  // native SetFocus calls invoked in the views code.
-  // int touch_down_contexts_;
-
-  // Time the last touch or pen message was received.
 
   // Is DWM composition currently enabled?
   // Note: According to MSDN docs for DwmIsCompositionEnabled(), this is always
@@ -451,15 +400,6 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   // This is used to keep track of whether a WM_WINDOWPOSCHANGED has
   // been received after the WM_WINDOWPOSCHANGING.
   uint32_t current_window_size_message_ = 0;
-
-  //// Manages observation of Windows Session Change messages.
-  // std::unique_ptr<ui::SessionChangeObserver> session_change_observer_;
-
-  //// Some assistive software need to track the location of the caret.
-  // std::unique_ptr<ui::AXSystemCaretWin> ax_system_caret_;
-
-  //// Implements IRawElementProviderFragmentRoot when UIA is enabled.
-  // std::unique_ptr<ui::AXFragmentRootWin> ax_fragment_root_;
 
   // Set to true when we return a UIA object. Determines whether we need to
   // call UIA to clean up object references on window destruction.
@@ -510,12 +450,6 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   // Used to fill the newly exposed pixels black in OnPaint() before the
   // browser compositor is able to redraw at the new window size.
   gfx::Size exposed_pixels_;
-
-  // Populated if the cursor position is being mocked for testing purposes.
-  // absl::optional<gfx::Point> mock_cursor_position_;
-
-  // base::ScopedObservation<ui::InputMethod, ui::InputMethodObserver>
-  //     observation_{this};
 
   // The WeakPtrFactories below (one inside the
   // CR_MSG_MAP_CLASS_DECLARATIONS macro and autohide_factory_) must

@@ -5,13 +5,12 @@
 #ifndef LYNXTRON_SHELL_API_API_LYNX_WINDOW_H_
 #define LYNXTRON_SHELL_API_API_LYNX_WINDOW_H_
 
-#include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
 
-#include "base/cancelable_callback.h"
 #include "shell/api/api_base_window.h"
 #include "shell/api/lynx_view/lynx_view.h"
 #include "shell/api/lynx_view/lynx_view_client.h"
@@ -23,8 +22,6 @@ class LynxViewMonitorDelegate;
 }
 
 namespace lynxtron::api {
-std::map<std::string, std::string> GetQueryKeyValueMap(const std::string& spec);
-
 class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
  public:
   static gin_helper::WrappableBase* New(gin_helper::ErrorThrower thrower,
@@ -33,7 +30,6 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
   static void BuildPrototype(v8::Isolate* isolate,
                              v8::Local<v8::FunctionTemplate> prototype);
 
-  // Returns the BrowserWindow object from |native_window|.
   static v8::Local<v8::Value> From(v8::Isolate* isolate,
                                    NativeWindow* native_window);
 
@@ -52,10 +48,6 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
                              const std::string& name,
                              const std::string& json_params);
 
-  // bool CloseByLynxBridge(const LynxView* lynx_view,
-  //                        const std::string& animation_type,
-  //                        const lynx::EncodableList& container_list);
-
   bool ReportJSError(const LynxView* lynx_view, const std::string& error_info);
   bool ConfigJSBase(const LynxView* lynx_view, const std::string& bid);
   bool CustomReport(const LynxView* lynx_view, const std::string& custom_data);
@@ -69,58 +61,49 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
   LynxWindow& operator=(const LynxWindow&) = delete;
   ~LynxWindow() override;
 
-  // NativeWindowObserver:
-  // void OnCloseRequested(bool& prevent_default) override;
-  void OnWindowIsKeyChanged(bool is_key) override;
+  void CloseImmediately() override;
+  void Focus() override;
+  void Blur() override;
+
   void OnWindowClosed() override;
+  void OnWindowBlur() override;
+  void OnWindowFocus() override;
+  void OnWindowIsKeyChanged(bool is_key) override;
+  void OnWindowShow() override;
+  void OnWindowHide() override;
+  void OnWindowMinimize() override;
+  void OnWindowRestore() override;
+
+  void OnWindowResize() override;
+  void OnWindowResized() override;
+  void OnWindowWillMove(const gfx::Rect& new_bounds,
+                        bool& prevent_default) override;
+  void OnWindowMove() override;
+  void OnWindowLeaveFullScreen() override;
 #if defined(OS_WIN)
   void OnWindowMessage(UINT message, WPARAM w_param, LPARAM l_param) override;
 #endif
 
-  // BaseWindow:
-  void OnWindowBlur() override;
-  void OnWindowFocus() override;
-  void OnWindowResize() override;
-  void OnWindowResized() override;
-  void OnWindowRestore() override;
-  void OnWindowMinimize() override;
-  void OnWindowMove() override;
-  void OnWindowWillMove(const gfx::Rect& new_bounds,
-                        bool& prevent_default) override;
-  void OnWindowLeaveFullScreen() override;
-  void CloseImmediately() override;
-  void Focus() override;
-  void Blur() override;
-  void SetBackgroundColor(const std::string& color_name) override;
-  void OnWindowShow() override;
-  void OnWindowHide() override;
-
-  // Lynx
   bool RequestLayoutWhenSafepointEnable();
-  bool LoadFile(const std::string& url, gin::Arguments* args);
-  bool LoadUrl(const std::string& url);
-  bool SendGlobalEvent(const std::string& name,
-                       const gin_helper::Dictionary& json);
-  // bool SetGlobalProp(v8::Isolate* isolate, v8::Local<v8::Value> value);
+  bool LoadUrl(const std::string& url, gin::Arguments* args);
+  bool LoadFile(const std::string& path, gin::Arguments* args);
+  bool LoadBundle(gin::Arguments* args);
+  bool UpdateMetaData(gin::Arguments* args);
   bool UpdateData(const gin_helper::Dictionary& data,
                   const gin_helper::Dictionary& global_props);
+  bool SendGlobalEvent(const std::string& name,
+                       const gin_helper::Dictionary& json);
   bool ReloadTemplate(const gin_helper::Dictionary& data,
                       const gin_helper::Dictionary& global_props);
 
   bool CheckLynxViewExit(const LynxView* lynx_view);
-  // LynxViewHolder* CurrentLynxViewHolder();
   void ReportErrorToNode(const std::string& error_type,
                          const int32_t error_code,
                          const std::string& message);
-  // bool SendGlobalEvent(const std::string& event, const std::string& json);
 
  private:
-  // impl of LynxViewHolderGroupClient
-  // void OnPageStart(LynxView* lynx_view_holder,
-  //                  const std::string& url) override;
-
+  void EnsureLynxView();
   void OnPageStart(std::string_view url) override;
-
   void OnLoadSuccess() override;
   void OnFirstScreen() override;
   void OnPageUpdated() override;
@@ -132,54 +115,19 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
   void OnTimingUpdate(std::string_view timing_info,
                       std::string_view update_timing,
                       std::string_view update_flag) override;
-
   void OnEnterForeground() override;
   void OnEnterBackground() override;
   void OnFrameTiming(int64_t frame_start_time_in_ns,
                      int64_t frame_finish_time_in_ns) override;
 
-  // void onLoadSuccess(LynxView* lynx_view_holder) override;
-
-  // void onFirstScreen(LynxView* lynx_view_holder) override;
-
-  // void OnDestroy(LynxView* lynx_view_holder) override;
-
-  // void OnRuntimeReady(LynxView* lynx_view_holder) override;
-
-  // void onErrorOccurred(LynxView* lynx_view_holder,
-  //                      int32_t error_code,
-  //                      std::string_view message) override;
-
-  // void OnReceivedError(int error_code, std::string_view message) override;
-
-  // void OnFirstLoadPerfReady(
-  //     LynxView* lynx_view_holder,
-  //     const std::unordered_map<int32_t, double>& perf,
-  //     const std::unordered_map<int32_t, std::string>& perf_timing) override;
-
-  // Schedule a notification unresponsive event.
   void ScheduleUnresponsiveEvent(int ms);
-
-  // Dispatch unresponsive event to observers.
   void NotifyWindowUnresponsive();
 
   void Send(const std::string& channel, gin::Arguments* arguments);
 
-  void CreateLynxView(const std::string& local_url,
-                      const std::string& global_props = "",
-                      const std::string& initial_props = "",
-                      const std::string& group_name = "",
-                      const std::string& channel_name = "",
-                      const std::string& scheme = "");
-
   void LynxViewInit(const std::string& key,
                     const std::string& global_props = "",
                     const std::string& group_name = "");
-
-  void LoadTemplate(const std::string& key,
-                    const std::string& initial_props,
-                    const std::string& channel_name,
-                    const std::string& scheme);
 
   void OpenLynxWithType(const std::string& pc_open_type,
                         const std::string& key,
@@ -189,30 +137,9 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
                         const std::string& group_name = "",
                         const std::string& channel_name = "",
                         const std::string& scheme = "");
-  void CloseLynxView();
-  void FocusLynxView();
 
   void StartFpsMonitorTask();
   void EmitFpsEvent();
-
-  // void CheckLynxValidation(const std::vector<uint8_t>& source,
-  //                          const std::string& channel_name,
-  //                          const std::string& scheme,
-  //                          base::RepeatingCallback<void(bool)> callback);
-  // void LynxVerify(const std::vector<uint8_t>& source,
-  //                 const std::string& scheme,
-  //                 int lynx_verify_mode,
-  //                 const std::string& public_key,
-  //                 base::RepeatingCallback<void(bool)> callback);
-
-  // Closure that would be called when window is unresponsive when closing,
-  // it should be cancelled when we can prove that the window is responsive.
-  // base::CancelableRepeatingClosure window_unresponsive_closure_;
-
-  // std::vector<mojom::DraggableRegionPtr> draggable_regions_;
-
-  // std::unique_ptr<lynx::LynxViewHolderGroup> lynx_view_holder_group_ =
-  //     std::make_unique<lynx::LynxViewHolderGroup>();
 
 #if defined(OS_WIN)
   friend class LynxNativeModule;
@@ -220,27 +147,14 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
   std::shared_ptr<LynxNativeModule> lynx_bridge_;
   std::shared_ptr<HybridMonitorModule> hybrid_monitor_;
 #endif
-  // std::unique_ptr<lynx::LynxResourceProvider> js_resource_provider_;
-  // std::unique_ptr<lynx::LynxResourceProvider> dynamic_component_provider_;
 
-  // std::unordered_map<int, std::shared_ptr<httpclient::HttpClient>>
-  //     http_clients_;
-
-  // std::shared_ptr<LynxMonitor> lynx_monitor_ =
-  // std::make_shared<LynxMonitor>();
-
-  // lynx::EncodableMap global_props_;
   bool software_render_ = true;
-
   std::vector<std::string> node_integration_preload_ = {};
-
   std::unique_ptr<LynxView> lynx_view_;
   static bool lynx_global_init_;
-
   bool enable_fps_monitor_ = false;
-  int sample_interval_millis_ = 1000;  // default 1000ms
+  int sample_interval_millis_ = 1000;
   std::vector<std::vector<int64_t>> last_frame_timings_;
-
   base::WeakPtrFactory<LynxWindow> weak_factory_{this};
   std::unique_ptr<LynxViewMonitorDelegate> lynx_view_monitor_delegate_;
   std::optional<std::string> data_str_ = std::nullopt;

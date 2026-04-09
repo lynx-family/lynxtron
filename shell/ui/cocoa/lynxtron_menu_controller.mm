@@ -225,6 +225,8 @@ int EventFlagsFromCurrentEvent() {
   if ((self = [super init])) {
     model_ = model->GetWeakPtr();
     isMenuOpen_ = NO;
+    isClosing_ = NO;
+    pendingClose_ = NO;
     openMenuCount_ = 0;
     useDefaultAccelerator_ = use;
     [self menu];
@@ -266,14 +268,27 @@ int EventFlagsFromCurrentEvent() {
 }
 
 - (void)cancel {
-  if (openMenuCount_ > 0) {
+  if (isMenuOpen_) {
+    if (isClosing_) {
+      return;
+    }
+
+    isClosing_ = YES;
+    pendingClose_ = NO;
     [menu_ cancelTracking];
-    openMenuCount_ = 0;
     isMenuOpen_ = NO;
+
     if (model_) {
       model_->MenuWillClose();
     }
-    [self finalizeTrackingIfNeeded];
+
+    if (!popupCloseCallback.is_null()) {
+      base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+          FROM_HERE, std::move(popupCloseCallback));
+    }
+  } else if (!popupCloseCallback.is_null()) {
+    pendingClose_ = YES;
+    [menu_ cancelTracking];
   }
 }
 
@@ -617,9 +632,7 @@ int EventFlagsFromCurrentEvent() {
 }
 
 - (void)menuWillOpen:(NSMenu*)menu {
-  if (openMenuCount_++ == 0) {
-    isMenuOpen_ = YES;
-  }
+  isMenuOpen_ = YES;
 
   lynxtron::LynxtronMenuModel* model = [self modelForMenu:menu];
   if (model) {
@@ -628,22 +641,41 @@ int EventFlagsFromCurrentEvent() {
     model->MenuWillShow();
   }
   [self refreshMenuTree:menu];
+
+  if (pendingClose_) {
+    pendingClose_ = NO;
+    [self cancel];
+  }
 }
 
 - (void)menuDidClose:(NSMenu*)menu {
-  if (openMenuCount_ <= 0) {
+  if (!isMenuOpen_) {
     return;
   }
+
+  bool has_close_cb = !popupCloseCallback.is_null();
+  bool should_emit_close = true;
+  if (menu != menu_) {
+    should_emit_close = !has_close_cb && menu.supermenu == menu_;
+  }
+
+  [self refreshMenuTree:menu];
+
+  if (!should_emit_close) {
+    return;
+  }
+
+  isClosing_ = NO;
+  isMenuOpen_ = NO;
 
   lynxtron::LynxtronMenuModel* model = [self modelForMenu:menu];
   if (model) {
     model->MenuWillClose();
   }
 
-  openMenuCount_--;
-  if (openMenuCount_ == 0) {
-    isMenuOpen_ = NO;
-    [self finalizeTrackingIfNeeded];
+  if (has_close_cb) {
+    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+        FROM_HERE, std::move(popupCloseCallback));
   }
 }
 

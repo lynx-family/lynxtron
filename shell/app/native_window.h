@@ -9,6 +9,8 @@
 #ifndef LYNXTRON_SHELL_APP_NATIVE_WINDOW_H_
 #define LYNXTRON_SHELL_APP_NATIVE_WINDOW_H_
 
+#include <stdint.h>
+
 #include <list>
 #include <memory>
 #include <optional>
@@ -24,6 +26,8 @@
 #include "shell/ui/base/ui_base_types.h"
 #include "shell/ui/gfx/geometry/rect.h"
 #include "shell/ui/gfx/native_ui_types.h"
+
+typedef uint32_t SkColor;
 
 namespace base {
 class DictionaryValue;
@@ -165,6 +169,9 @@ class NativeWindow : public base::SupportsUserData {
   virtual bool IsExcludedFromShownWindowsMenu() = 0;
   virtual void SetSimpleFullScreen(bool simple_fullscreen) = 0;
   virtual bool IsSimpleFullScreen() = 0;
+  virtual void SetBackgroundColor(SkColor background_color);
+  virtual SkColor GetBackgroundColor() const;
+  [[nodiscard]] bool IsInSizeMove() const { return is_in_size_move_; }
   virtual void SetHasShadow(bool has_shadow) = 0;
   virtual bool HasShadow() = 0;
   virtual void SetOpacity(const double opacity) = 0;
@@ -203,6 +210,13 @@ class NativeWindow : public base::SupportsUserData {
 
   // Traffic Light API
 #if BUILDFLAG(IS_MAC)
+  virtual void AddTabbedWindow(NativeWindow* window) {}
+  virtual void SelectPreviousTab() {}
+  virtual void SelectNextTab() {}
+  virtual void ShowAllTabs() {}
+  virtual void MergeAllWindows() {}
+  virtual void MoveTabToNewWindow() {}
+  virtual void ToggleTabBar() {}
   virtual void SetWindowButtonVisibility(bool visible) = 0;
   virtual bool GetWindowButtonVisibility() const = 0;
   virtual void SetTrafficLightPosition(std::optional<gfx::Point> position) = 0;
@@ -259,12 +273,15 @@ class NativeWindow : public base::SupportsUserData {
   void NotifyWindowRotateGesture(float rotation);
   void NotifyWindowSheetBegin();
   void NotifyWindowSheetEnd();
+  void NotifyWindowWillEnterFullScreen();
+  void NotifyWindowWillLeaveFullScreen();
   virtual void NotifyWindowEnterFullScreen();
   virtual void NotifyWindowLeaveFullScreen();
   void NotifyWindowAlwaysOnTopChanged();
   void NotifyWindowExecuteAppCommand(const std::string& command);
   void NotifyTouchBarItemInteraction(const std::string& item_id,
                                      const base::Value::Dict& details);
+  void NotifyWindowNewWindowForTab();
   void NotifyWindowSystemContextMenu(int x, int y, bool& prevent_default);
 
   void AddObserver(NativeWindowObserver* obs) { observers_.AddObserver(obs); }
@@ -293,6 +310,9 @@ class NativeWindow : public base::SupportsUserData {
   void set_minimizable(bool minimizable) { minimizable_ = minimizable; }
   void set_maximizable(bool maximizable) { maximizable_ = maximizable; }
   void set_closable(bool closable) { closable_ = closable; }
+  void set_is_in_size_move(bool is_in_size_move) {
+    is_in_size_move_ = is_in_size_move;
+  }
   int width_ = 0;
   int height_ = 0;
   bool use_content_size_ = false;
@@ -325,6 +345,10 @@ class NativeWindow : public base::SupportsUserData {
   bool transparent_ = false;
 
   bool resizable_ = true;
+
+  SkColor background_color_ = 0xFFFFFFFFu;
+
+  bool is_in_size_move_ = false;
 
   // The windows has been closed.
   bool is_closed_ = false;

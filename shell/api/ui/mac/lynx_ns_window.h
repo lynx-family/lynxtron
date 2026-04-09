@@ -18,20 +18,25 @@ class NativeWindowMac;
 @interface LynxNSWindow : NSWindow {
  @private
   raw_ptr<lynxtron::NativeWindowMac> shell_;
+  // Used to make will-move cancellable for user-initiated drags.
+  bool suppress_set_frame_origin_;
+  bool has_last_allowed_origin_;
+  NSPoint last_allowed_origin_;
+  bool in_move_drag_;
+  bool cached_move_prevent_default_;
 }
 @property BOOL enableLargerThanScreen;
 @property BOOL disableAutoHideCursor;
 @property BOOL disableKeyOrMainWindow;
 @property BOOL customButtonsOnHover;
 @property(nonatomic, retain) NSVisualEffectView* vibrantView;
-@property(nonatomic, retain) NSImage* cornerMask;
 - (id)initWithShell:(lynxtron::NativeWindowMac*)shell
           styleMask:(NSUInteger)styleMask;
+- (void)cleanup;
 - (lynxtron::NativeWindowMac*)shell;
 //- (id)accessibilityFocusedUIElement;
 - (NSRect)originalContentRectForFrameRect:(NSRect)frameRect;
 - (void)toggleFullScreenMode:(id)sender;
-- (NSImage*)_cornerMask;
 @end
 
 #endif  // LYNXTRON_SHELL_API_UI_MAC_LYNX_NS_WINDOW_H_

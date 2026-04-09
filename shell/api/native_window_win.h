@@ -82,6 +82,8 @@ class NativeWindowWin : public NativeWindow,
   bool IsExcludedFromShownWindowsMenu() override;
   void SetSimpleFullScreen(bool simple_fullscreen) override;
   bool IsSimpleFullScreen() override;
+  void SetBackgroundColor(SkColor background_color) override;
+  SkColor GetBackgroundColor() const override;
   void SetHasShadow(bool has_shadow) override;
   bool HasShadow() override;
   void SetOpacity(const double opacity) override;
@@ -133,6 +135,7 @@ class NativeWindowWin : public NativeWindow,
   void HandleBeginWMSizeMove() override;
   void HandleEndWMSizeMove() override;
   void HandleMove() override;
+  void HandleMoved() override;
   bool HandleMoving(RECT* rect) override;
   void HandleWorkAreaChanged() override;
   void HandleVisibilityChanged(bool visible) override;
@@ -172,6 +175,7 @@ class NativeWindowWin : public NativeWindow,
   // The icons of window and taskbar.
   base::win::ScopedGDIObject<HICON> window_icon_;
   base::win::ScopedGDIObject<HICON> app_icon_;
+  base::win::ScopedGDIObject<HBRUSH> background_brush_;
   bool layered_ = false;
   // Set to true if the window is always on top and behind the task bar.
   bool behind_task_bar_ = false;

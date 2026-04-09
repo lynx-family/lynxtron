@@ -12,6 +12,69 @@ const { LynxWindow } = process._linkedBinding('lynxtron_lynx_window') as {
 
 Object.setPrototypeOf(LynxWindow.prototype, BaseWindow.prototype);
 
+const nativeLoadFile = LynxWindow.prototype.loadFile;
+const nativeLoadURL = LynxWindow.prototype.loadURL;
+const nativeLoadBundle = LynxWindow.prototype.loadBundle;
+const nativeUpdateMetaData = LynxWindow.prototype.updateMetaData;
+
+// The native layer returns `false` only for synchronous input validation or
+// request setup failures. Actual template load completion remains event-driven.
+const normalizeLoadOptions = (method: string, options?: any) => {
+  if (options == null) {
+    return undefined;
+  }
+  if (typeof options !== 'object') {
+    throw new TypeError(`${method} options must be an object`);
+  }
+  return options;
+};
+
+LynxWindow.prototype.loadFile = function (
+  this: LWT,
+  filePath: string,
+  options?: any
+): boolean {
+  return (
+    nativeLoadFile.call(
+      this,
+      filePath,
+      normalizeLoadOptions('loadFile', options)
+    ) !== false
+  );
+};
+
+LynxWindow.prototype.loadURL = function (
+  this: LWT,
+  url: string,
+  options?: any
+): boolean {
+  return (
+    nativeLoadURL.call(this, url, normalizeLoadOptions('loadURL', options)) !==
+    false
+  );
+};
+
+LynxWindow.prototype.loadBundle = function (
+  this: LWT,
+  templateBundle: any,
+  options?: any
+): boolean {
+  return (
+    nativeLoadBundle.call(
+      this,
+      templateBundle,
+      normalizeLoadOptions('loadBundle', options)
+    ) !== false
+  );
+};
+
+LynxWindow.prototype.updateMetaData = function (this: LWT, meta: any): void {
+  if (!meta || typeof meta !== 'object') {
+    throw new TypeError('updateMetaData requires a LynxUpdateMeta instance');
+  }
+  nativeUpdateMetaData.call(this, meta);
+};
+
 LynxWindow.prototype._init = function (this: LWT) {
   // Call parent class's _init.
   BaseWindow.prototype._init.call(this);

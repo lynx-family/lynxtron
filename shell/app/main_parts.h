@@ -56,18 +56,20 @@ class MainParts {
   void Shutdown();
 
  private:
-#if BUILDFLAG(IS_MAC)
+#if !BUILDFLAG(IS_WIN)
   // Set signal handlers.
   void HandleSIGCHLD();
   void InstallShutdownSignalHandlers(
       base::OnceCallback<void()> shutdown_callback,
       const scoped_refptr<base::SingleThreadTaskRunner>& task_runner);
 
+#if BUILDFLAG(IS_MAC)
   void FreeAppDelegate();
   void InitializeMacMainMessageLoop();
   void RegisterURLHandler();
   void InitializeMainNib();
   void RegisterAtomCrApp();
+#endif
 #endif
 
   static MainParts* self_;

@@ -74,6 +74,9 @@ inline constexpr std::string_view kHasShadow = "hasShadow";
 // Browser window opacity
 inline constexpr std::string_view kOpacity = "opacity";
 
+// The window's background color, supports CSS-like color strings.
+inline constexpr std::string_view kBackgroundColor = "backgroundColor";
+
 // Whether the window can be activated.
 inline constexpr std::string_view kFocusable = "focusable";
 

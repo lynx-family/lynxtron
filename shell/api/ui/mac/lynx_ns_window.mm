@@ -4,6 +4,7 @@
 #include "shell/api/ui/mac/lynx_ns_window.h"
 
 #include "base/strings/sys_string_conversions.h"
+#include "shell/ui/gfx/mac/coordinate_conversion.h"
 
 namespace {
 
@@ -12,10 +13,6 @@ inline constexpr NSRect kWindowSizeDeterminedLater = {{0, 0}, {1, 1}};
 
 }  // namespace
 
-@interface NSWindow (PrivateAPI)
-- (NSImage*)_cornerMask;
-@end
-
 @implementation LynxNSWindow
 
 @synthesize enableLargerThanScreen;
@@ -23,7 +20,6 @@ inline constexpr NSRect kWindowSizeDeterminedLater = {{0, 0}, {1, 1}};
 @synthesize disableKeyOrMainWindow;
 @synthesize customButtonsOnHover;
 @synthesize vibrantView;
-@synthesize cornerMask;
 
 - (id)initWithShell:(lynxtron::NativeWindowMac*)shell
           styleMask:(NSUInteger)styleMask {
@@ -32,6 +28,11 @@ inline constexpr NSRect kWindowSizeDeterminedLater = {{0, 0}, {1, 1}};
                                 backing:NSBackingStoreBuffered
                                   defer:NO]) {
     shell_ = shell;
+    suppress_set_frame_origin_ = false;
+    has_last_allowed_origin_ = false;
+    last_allowed_origin_ = NSMakePoint(0, 0);
+    in_move_drag_ = false;
+    cached_move_prevent_default_ = false;
   }
 
   return self;
@@ -41,28 +42,22 @@ inline constexpr NSRect kWindowSizeDeterminedLater = {{0, 0}, {1, 1}};
   return shell_;
 }
 
-// - (id)accessibilityFocusedUIElement {
-//   views::Widget* widget = shell_->widget();
-//   id superFocus = [super accessibilityFocusedUIElement];
-//   if (!widget || shell_->IsFocused())
-//     return superFocus;
-//   return nil;
-// }
+- (void)cleanup {
+  shell_ = nullptr;
+}
 
 - (NSRect)originalContentRectForFrameRect:(NSRect)frameRect {
   return [super contentRectForFrameRect:frameRect];
 }
 
-// - (NSTouchBar*)makeTouchBar {
-//   if (shell_->touch_bar())
-//     return [shell_->touch_bar() makeTouchBar];
-//   else
-//     return nil;
-// }
-
 // NSWindow overrides.
 
 - (void)sendEvent:(NSEvent*)event {
+  if (event.type == NSEventTypeLeftMouseUp) {
+    in_move_drag_ = false;
+    cached_move_prevent_default_ = false;
+    has_last_allowed_origin_ = false;
+  }
   [super sendEvent:event];
   if (self.disableAutoHideCursor) {
     return;
@@ -83,7 +78,55 @@ inline constexpr NSRect kWindowSizeDeterminedLater = {{0, 0}, {1, 1}};
   [NSCursor setHiddenUntilMouseMoves:YES];
 }
 
+- (void)setFrameOrigin:(NSPoint)newOrigin {
+  if (!shell_ || suppress_set_frame_origin_ || self.inLiveResize) {
+    [super setFrameOrigin:newOrigin];
+    return;
+  }
+
+  // Only attempt to make will-move cancellable for user-initiated drags.
+  NSEvent* event = [NSApp currentEvent];
+  const bool user_dragging = event && event.window == self &&
+                             event.type == NSEventTypeLeftMouseDragged;
+  if (!user_dragging) {
+    [super setFrameOrigin:newOrigin];
+    return;
+  }
+
+  if (!in_move_drag_) {
+    in_move_drag_ = true;
+    cached_move_prevent_default_ = false;
+    has_last_allowed_origin_ = true;
+    last_allowed_origin_ = [self frame].origin;
+
+    NSSize size = [[self contentView] frame].size;
+    NSRect new_bounds =
+        NSMakeRect(newOrigin.x, newOrigin.y, size.width, size.height);
+    bool prevent_default = false;
+    shell_->NotifyWindowWillMove(gfx::ScreenRectFromNSRect(new_bounds),
+                                 prevent_default);
+    cached_move_prevent_default_ = prevent_default;
+  }
+
+  if (cached_move_prevent_default_) {
+    suppress_set_frame_origin_ = true;
+    [super setFrameOrigin:last_allowed_origin_];
+    suppress_set_frame_origin_ = false;
+    return;
+  }
+
+  NSSize size = [[self contentView] frame].size;
+  NSRect new_bounds =
+      NSMakeRect(newOrigin.x, newOrigin.y, size.width, size.height);
+  has_last_allowed_origin_ = true;
+  last_allowed_origin_ = newOrigin;
+  [super setFrameOrigin:newOrigin];
+}
+
 - (void)swipeWithEvent:(NSEvent*)event {
+  if (!shell_) {
+    return;
+  }
   if (event.deltaY == 1.0) {
     shell_->NotifyWindowSwipe("up");
   } else if (event.deltaX == -1.0) {
@@ -96,47 +139,34 @@ inline constexpr NSRect kWindowSizeDeterminedLater = {{0, 0}, {1, 1}};
 }
 
 - (void)rotateWithEvent:(NSEvent*)event {
+  if (!shell_) {
+    return;
+  }
   shell_->NotifyWindowRotateGesture(event.rotation);
 }
 
 - (NSRect)contentRectForFrameRect:(NSRect)frameRect {
-  if (shell_->frame()) {
+  if (shell_ && shell_->frame()) {
     return [super contentRectForFrameRect:frameRect];
   } else {
     return frameRect;
   }
 }
 
-// - (NSRect)constrainFrameRect:(NSRect)frameRect toScreen:(NSScreen*)screen {
-//   // Resizing is disabled.
-//   if (electron::ScopedDisableResize::IsResizeDisabled())
-//     return [self frame];
+- (NSRect)constrainFrameRect:(NSRect)frameRect toScreen:(NSScreen*)screen {
+  NSRect result = [super constrainFrameRect:frameRect toScreen:screen];
+  if ([self enableLargerThanScreen]) {
+    // Frameless windows should keep the exact requested bounds, while framed
+    // windows still need to remain in a draggable/resizable position.
+    if (shell_ && shell_->frame()) {
+      result.size = frameRect.size;
+    } else {
+      result = frameRect;
+    }
+  }
 
-//   NSRect result = [super constrainFrameRect:frameRect toScreen:screen];
-//   // Enable the window to be larger than screen.
-//   if ([self enableLargerThanScreen]) {
-//     // If we have a frame, ensure that we only position the window
-//     // somewhere where the user can move or resize it (and not
-//     // behind the menu bar, for instance)
-//     //
-//     // If there's no frame, put the window wherever the developer
-//     // wanted it to go
-//     if (shell_->frame()) {
-//       result.size = frameRect.size;
-//     } else {
-//       result = frameRect;
-//     }
-//   }
-
-//   return result;
-// }
-
-//- (void)setFrame:(NSRect)windowFrame display:(BOOL)displayViews {
-// constrainFrameRect is not called on hidden windows so disable adjusting
-// the frame directly when resize is disabled
-// if (!electron::ScopedDisableResize::IsResizeDisabled())
-//    [super setFrame:windowFrame display:displayViews];
-//}
+  return result;
+}
 
 - (id)accessibilityAttributeValue:(NSString*)attribute {
   if ([attribute isEqual:NSAccessibilityEnabledAttribute]) {
@@ -165,7 +195,7 @@ inline constexpr NSRect kWindowSizeDeterminedLater = {{0, 0}, {1, 1}};
 }
 
 - (NSString*)accessibilityTitle {
-  return base::SysUTF8ToNSString(shell_->GetTitle());
+  return base::SysUTF8ToNSString(shell_ ? shell_->GetTitle() : "");
 }
 
 - (BOOL)canBecomeMainWindow {
@@ -185,7 +215,7 @@ inline constexpr NSRect kWindowSizeDeterminedLater = {{0, 0}, {1, 1}};
   // support closing a window without title we need to manually do menu item
   // validation. This code path is used by the "roundedCorners" option.
   if ([item action] == @selector(performClose:)) {
-    return shell_->IsClosable();
+    return shell_ && shell_->IsClosable();
   }
   return [super validateUserInterfaceItem:item];
 }
@@ -221,65 +251,10 @@ inline constexpr NSRect kWindowSizeDeterminedLater = {{0, 0}, {1, 1}};
   [super performClose:sender];
 }
 
-// By overriding this built-in method the corners of the vibrant view (if set)
-// will be smooth.
-- (NSImage*)_cornerMask {
-  if (self.vibrantView != nil) {
-    return [self cornerMask];
-  } else {
-    return [super _cornerMask];
-  }
-}
-
-// Quicklook methods
-
-// - (BOOL)acceptsPreviewPanelControl:(QLPreviewPanel*)panel {
-//   return YES;
-// }
-
-// - (void)beginPreviewPanelControl:(QLPreviewPanel*)panel {
-//   panel.delegate = [self delegate];
-//   panel.dataSource = static_cast<id<QLPreviewPanelDataSource>>([self
-//   delegate]);
-// }
-
-// - (void)endPreviewPanelControl:(QLPreviewPanel*)panel {
-//   panel.delegate = nil;
-//   panel.dataSource = nil;
-// }
-
-// // Custom window button methods
-
-// - (BOOL)windowShouldClose:(id)sender {
-//   return YES;
-// }
-
-// - (void)performClose:(id)sender {
-//   if (shell_->title_bar_style() ==
-//       electron::NativeWindowMac::TitleBarStyle::kCustomButtonsOnHover) {
-//     [[self delegate] windowShouldClose:self];
-//   } else if (!([self styleMask] & NSWindowStyleMaskTitled)) {
-//     // performClose does not work for windows without title, so we have to
-//     // emulate its behavior. This code path is used by "simpleFullscreen" and
-//     // "roundedCorners" options.
-//     if ([[self delegate] respondsToSelector:@selector(windowShouldClose:)]) {
-//       if (![[self delegate] windowShouldClose:self])
-//         return;
-//     } else if ([self respondsToSelector:@selector(windowShouldClose:)]) {
-//       if (![self windowShouldClose:self])
-//         return;
-//     }
-//     [self close];
-//   } else if (shell_->is_modal() && shell_->parent() && shell_->IsVisible()) {
-//     // We don't want to actually call [window close] here since
-//     // we've already called endSheet on the modal sheet.
-//     return;
-//   } else {
-//     [super performClose:sender];
-//   }
-// }
-
 - (void)toggleFullScreenMode:(id)sender {
+  if (!shell_) {
+    return;
+  }
   bool is_simple_fs = shell_->IsSimpleFullScreen();
   bool always_simple_fs = shell_->always_simple_fullscreen();
 
@@ -313,12 +288,12 @@ inline constexpr NSRect kWindowSizeDeterminedLater = {{0, 0}, {1, 1}};
   }
 }
 
-// - (void)performMiniaturize:(id)sender {
-//   if (shell_->title_bar_style() ==
-//       electron::NativeWindowMac::TitleBarStyle::kCustomButtonsOnHover)
-//     [self miniaturize:self];
-//   else
-//     [super performMiniaturize:sender];
-// }
+- (void)performMiniaturize:(id)sender {
+  if (self.customButtonsOnHover) {
+    [self miniaturize:self];
+  } else {
+    [super performMiniaturize:sender];
+  }
+}
 
 @end

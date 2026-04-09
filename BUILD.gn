@@ -80,15 +80,6 @@ templated_file("lynxtron_version_header") {
   args_files = get_target_outputs(":lynxtron_version_args")
 }
 
-templated_file("lynxtron_win_rc") {
-  deps = [ ":lynxtron_version_args" ]
-
-  template = "build/templates/lynxtron_rc.tmpl"
-  output = "$target_gen_dir/win-resources/lynxtron.rc"
-
-  args_files = get_target_outputs(":lynxtron_version_args")
-}
-
 copy("lynxtron_win_resource_files") {
   sources = [
     "shell/app/resources/win/lynxtron.ico",
@@ -125,6 +116,9 @@ browser_bundle_deps = [
   "lib/browser/api/base-window.ts",
   "lib/browser/api/dialog.ts",
   "lib/browser/api/exports/lynxtron.ts",
+  "lib/browser/api/lynx-template-bundle.ts",
+  "lib/browser/api/lynx-template-data.ts",
+  "lib/browser/api/lynx-update-meta.ts",
   "lib/browser/api/lynx-window.ts",
   "lib/browser/api/menu-item-roles.ts",
   "lib/browser/api/menu-item.ts",
@@ -253,6 +247,34 @@ asar("default_app_asar") {
   outputs = [ "$root_out_dir/resources/default_app.asar" ]
 }
 
+node_action("default_app_asar_win_integrity") {
+  hash_files = get_target_outputs(":default_app_asar_header_hash")
+
+  deps = [ ":default_app_asar_header_hash" ]
+  inputs = hash_files
+  outputs = [ "$target_gen_dir/win-resources/default_app.asar.integrity.json" ]
+
+  script = "script/gn-win-asar-integrity.js"
+  args = [
+    "resources/default_app.asar",
+    rebase_path(hash_files[0]),
+    rebase_path(outputs[0]),
+  ]
+}
+
+templated_file("lynxtron_win_rc") {
+  deps = [
+    ":default_app_asar_win_integrity",
+    ":lynxtron_version_args",
+  ]
+
+  template = "build/templates/lynxtron_rc.tmpl"
+  output = "$target_gen_dir/win-resources/lynxtron.rc"
+
+  inputs = get_target_outputs(":default_app_asar_win_integrity")
+  args_files = get_target_outputs(":lynxtron_version_args")
+}
+
 gin_helper_sources = [
   "shell/common/gin_helper/arguments.cc",
   "shell/common/gin_helper/arguments.h",
@@ -374,6 +396,8 @@ source_set("lynxtron_lib") {
     "shell/api/api_event_emitter.cc",
     "shell/api/api_event_emitter.h",
     "shell/api/api_lynx_extension_utils.cc",
+    "shell/api/api_lynx_template_bundle.cc",
+    "shell/api/api_lynx_template_bundle.h",
     "shell/api/api_lynx_window.cc",
     "shell/api/api_lynx_window.h",
     "shell/api/api_menu.cc",
@@ -389,8 +413,12 @@ source_set("lynxtron_lib") {
     "shell/api/api_tray.h",
     "shell/api/api_v8_util.cc",
     "shell/api/api_v8_util.h",
+    "shell/api/lynx_view/lynx_update_meta.cc",
+    "shell/api/lynx_view/lynx_update_meta.h",
     "shell/api/lynx_view/lynx_view.cc",
     "shell/api/lynx_view/lynx_view.h",
+    "shell/api/lynx_view/lynx_view_builder.cc",
+    "shell/api/lynx_view/lynx_view_builder.h",
     "shell/api/lynx_view/lynx_view_client.h",
     "shell/api/lynx_view/lynx_view_extension_register.cc",
     "shell/api/lynx_view/lynx_view_extension_register.h",
@@ -454,6 +482,10 @@ source_set("lynxtron_lib") {
     "shell/common/color_parser.h",
     "shell/common/data_url.cc",
     "shell/common/data_url.h",
+    "shell/common/file_url_util.cc",
+    "shell/common/file_url_util.h",
+    "shell/common/fuses.cc",
+    "shell/common/fuses.h",
     "shell/common/global_delegate_registry.cc",
     "shell/common/global_delegate_registry.h",
     "shell/common/global_thread.cc",

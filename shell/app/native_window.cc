@@ -17,6 +17,7 @@
 #include "base/values.h"
 #include "shell/app/application.h"
 #include "shell/app/window_list.h"
+#include "shell/common/color_parser.h"
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/gin_helper/persistent_dictionary.h"
 #include "shell/common/options_switches.h"
@@ -102,6 +103,14 @@ void NativeWindow::InitFromOptions(const gin_helper::Dictionary& options) {
     SetOpacity(val);
   }
 
+  if (std::string background_color;
+      options.Get(options::kBackgroundColor, &background_color)) {
+    SkColor color = background_color_;
+    if (content::ParseCssColorString(background_color, &color)) {
+      SetBackgroundColor(color);
+    }
+  }
+
   if (bool val; options.Get(options::kAlwaysOnTop, &val) && val) {
     SetAlwaysOnTop(ui::ZOrderLevel::kFloatingWindow);
   }
@@ -141,6 +150,14 @@ void NativeWindow::InitFromOptions(const gin_helper::Dictionary& options) {
 
 bool NativeWindow::IsClosed() const {
   return is_closed_;
+}
+
+void NativeWindow::SetBackgroundColor(SkColor background_color) {
+  background_color_ = background_color;
+}
+
+SkColor NativeWindow::GetBackgroundColor() const {
+  return background_color_;
 }
 
 gfx::Size NativeWindow::GetSize() const {
@@ -445,6 +462,14 @@ void NativeWindow::NotifyWindowSheetEnd() {
   observers_.Notify(&NativeWindowObserver::OnWindowSheetEnd);
 }
 
+void NativeWindow::NotifyWindowWillEnterFullScreen() {
+  observers_.Notify(&NativeWindowObserver::OnWindowWillEnterFullScreen);
+}
+
+void NativeWindow::NotifyWindowWillLeaveFullScreen() {
+  observers_.Notify(&NativeWindowObserver::OnWindowWillLeaveFullScreen);
+}
+
 void NativeWindow::NotifyWindowLeaveFullScreen() {
   observers_.Notify(&NativeWindowObserver::OnWindowLeaveFullScreen);
 }
@@ -462,6 +487,10 @@ void NativeWindow::NotifyTouchBarItemInteraction(
     const base::Value::Dict& details) {
   observers_.Notify(&NativeWindowObserver::OnTouchBarItemResult, item_id,
                     details);
+}
+
+void NativeWindow::NotifyWindowNewWindowForTab() {
+  observers_.Notify(&NativeWindowObserver::OnNewWindowForTab);
 }
 
 void NativeWindow::NotifyWindowSystemContextMenu(int x,

@@ -8,6 +8,13 @@
 
 #include "base/include/fml/message_loop.h"
 #include "base/include/fml/platform/node/message_loop_node.h"
+#include "node.h"
+
+// base_export.h might be included by lynx/lynx/base headers and redefine
+// BASE_EXPORT. We undefine it here to avoid a redefinition warning from
+// chromium base/logging.h.
+#undef BASE_EXPORT
+
 #include "base/logging.h"
 #include "lynx/platform/embedder/public/capi/lynx_env_capi.h"
 #include "platform/embedder/public/lynx_extension_module.h"

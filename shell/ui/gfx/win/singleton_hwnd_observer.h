@@ -19,8 +19,6 @@ class SingletonHwnd;
 
 // Singleton lifetime management is tricky. This observer handles the correct
 // cleanup if either the SingletonHwnd or forwarded object is destroyed first.
-// Note that if you want to register a hot key on the SingletonHwnd, you need to
-// use a SingletonHwndHotKeyObserver instead for each hot key.
 class SingletonHwndObserver {
  public:
   using WndProc = base::RepeatingCallback<void(HWND, UINT, WPARAM, LPARAM)>;

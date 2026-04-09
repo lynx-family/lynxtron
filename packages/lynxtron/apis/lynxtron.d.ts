@@ -26,6 +26,9 @@ export * from './api/shell';
 export * from './api/lynx-extension-utils';
 export * from './api/environment';
 export * from './api/utility-process';
+export * from './api/lynx-template-bundle';
+export * from './api/lynx-update-meta';
+export * from './api/lynx-template-data';
 
 // structures
 export * from './structures/point';

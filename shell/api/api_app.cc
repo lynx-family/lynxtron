@@ -504,7 +504,6 @@ void App::OnOpenFile(bool* prevent_default, const std::string& file_path) {
   }
 }
 
-// TODO(Guo Xi): need verify open-url event in packaged application
 void App::OnOpenURL(const std::string& url) {
   Emit("open-url", url);
 }

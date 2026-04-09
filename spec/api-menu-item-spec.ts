@@ -543,7 +543,15 @@ describe('MenuItems', () => {
       const item = new MenuItem({ role: 'viewMenu' });
 
       expect(item.label).to.equal('View');
-      expect(item.submenu!.items[0].role).to.equal('togglefullscreen');
+      expect(item.submenu!.items[0].role).to.equal('reload');
+      expect(item.submenu!.items[1].role).to.equal('forcereload');
+      expect(item.submenu!.items[2].role).to.equal('toggledevtools');
+      expect(item.submenu!.items[3].type).to.equal('separator');
+      expect(item.submenu!.items[4].role).to.equal('resetzoom');
+      expect(item.submenu!.items[5].role).to.equal('zoomin');
+      expect(item.submenu!.items[6].role).to.equal('zoomout');
+      expect(item.submenu!.items[7].type).to.equal('separator');
+      expect(item.submenu!.items[8].role).to.equal('togglefullscreen');
     });
 
     it('overrides default layout when submenu is specified', () => {

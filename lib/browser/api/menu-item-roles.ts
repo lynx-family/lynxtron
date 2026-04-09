@@ -15,6 +15,7 @@ type RoleId =
   | 'copy'
   | 'cut'
   | 'delete'
+  | 'forcereload'
   | 'front'
   | 'help'
   | 'hide'
@@ -24,14 +25,18 @@ type RoleId =
   | 'pasteandmatchstyle'
   | 'quit'
   | 'redo'
+  | 'reload'
+  | 'resetzoom'
   | 'selectall'
   | 'services'
   | 'recentdocuments'
   | 'clearrecentdocuments'
   | 'showsubstitutions'
+  | 'togglespellchecker'
   | 'togglesmartquotes'
   | 'togglesmartdashes'
   | 'toggletextreplacement'
+  | 'toggledevtools'
   | 'startspeaking'
   | 'stopspeaking'
   | 'togglefullscreen'
@@ -39,6 +44,8 @@ type RoleId =
   | 'unhide'
   | 'window'
   | 'zoom'
+  | 'zoomin'
+  | 'zoomout'
   | 'appmenu'
   | 'filemenu'
   | 'editmenu'
@@ -81,6 +88,10 @@ export const roleList: Record<RoleId, Role> = {
   },
   delete: {
     label: 'Delete',
+  },
+  forcereload: {
+    label: 'Force Reload',
+    accelerator: 'Shift+CmdOrCtrl+R',
   },
   front: {
     label: 'Bring All to Front',
@@ -131,6 +142,14 @@ export const roleList: Record<RoleId, Role> = {
     label: 'Redo',
     accelerator: isWindows ? 'Control+Y' : 'Shift+CommandOrControl+Z',
   },
+  reload: {
+    label: 'Reload',
+    accelerator: 'CmdOrCtrl+R',
+  },
+  resetzoom: {
+    label: 'Actual Size',
+    accelerator: 'CommandOrControl+0',
+  },
   selectall: {
     label: 'Select All',
     accelerator: 'CommandOrControl+A',
@@ -147,11 +166,18 @@ export const roleList: Record<RoleId, Role> = {
   showsubstitutions: {
     label: 'Show Substitutions',
   },
+  togglespellchecker: {
+    label: 'Check Spelling While Typing',
+  },
   togglesmartquotes: {
     label: 'Smart Quotes',
   },
   togglesmartdashes: {
     label: 'Smart Dashes',
+  },
+  toggledevtools: {
+    label: 'Toggle Developer Tools',
+    accelerator: isMac ? 'Alt+Command+I' : 'Ctrl+Shift+I',
   },
   toggletextreplacement: {
     label: 'Text Replacement',
@@ -188,6 +214,14 @@ export const roleList: Record<RoleId, Role> = {
         window.maximize();
       }
     },
+  },
+  zoomin: {
+    label: 'Zoom In',
+    accelerator: 'CommandOrControl+Plus',
+  },
+  zoomout: {
+    label: 'Zoom Out',
+    accelerator: 'CommandOrControl+-',
   },
   appmenu: {
     get label() {
@@ -248,7 +282,17 @@ export const roleList: Record<RoleId, Role> = {
   },
   viewmenu: {
     label: 'View',
-    submenu: [{ role: 'togglefullscreen' }],
+    submenu: [
+      { role: 'reload' },
+      { role: 'forceReload' },
+      { role: 'toggleDevTools' },
+      { type: 'separator' },
+      { role: 'resetZoom' },
+      { role: 'zoomIn' },
+      { role: 'zoomOut' },
+      { type: 'separator' },
+      { role: 'togglefullscreen' },
+    ],
   },
   windowmenu: {
     label: 'Window',

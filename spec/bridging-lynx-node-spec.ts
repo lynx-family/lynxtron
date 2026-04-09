@@ -38,7 +38,7 @@ describe('communication between node and lynx', () => {
       './case/lynx-card/dist/bridging-lynx-node.lynx.bundle'
     );
     expect(fs.existsSync(bundlePath)).to.equal(true);
-    const started = w.loadFile(bundlePath);
+    const started = (w as any).loadURL('file://' + bundlePath);
 
     expect(started).to.equal(true);
 
@@ -90,7 +90,7 @@ describe('communication between node and lynx', () => {
       './case/lynx-card/dist/contextbridge-lynx-node.lynx.bundle'
     );
     expect(fs.existsSync(bundlePath)).to.equal(true);
-    const started = await w.loadFile(bundlePath);
+    const started = await (w as any).loadURL('file://' + bundlePath);
 
     expect(started).to.equal(true);
 

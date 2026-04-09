@@ -931,15 +931,14 @@ describe('app module', () => {
   // TODO(Guo Xi): configureHostResolver is not supported
 
   describe('about panel', () => {
-    it('app.setAboutPanelOptions() does not crash', () => {
-      app.setAboutPanelOptions({
-        applicationName: 'electron!!',
-        version: '1.2.3',
-      });
+    it('app.setAboutPanelOptions() does not crash', async () => {
+      const didRun = await runTestApp('about-panel', '--set-options');
+      expect(didRun).to.equal(true);
     });
 
-    it('app.showAboutPanel() does not crash & runs asynchronously', () => {
-      app.showAboutPanel();
+    it('app.showAboutPanel() does not crash & runs asynchronously', async () => {
+      const didRun = await runTestApp('about-panel', '--show-panel');
+      expect(didRun).to.equal(true);
     });
   });
 });

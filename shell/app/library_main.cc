@@ -17,6 +17,7 @@
 #endif
 #include "shell/app/main_runner.h"
 #include "shell/app/relauncher.h"
+#include "shell/common/fuses.h"
 #include "shell/common/logging.h"
 #include "shell/common/lynxtron_command_line.h"
 
@@ -69,7 +70,7 @@ constexpr char kRunAsNodeEnv[] = "LYNXTRON_RUN_AS_NODE";
 
 bool IsRunAsNode() {
   auto env = base::Environment::Create();
-  return env->HasVar(kRunAsNodeEnv);
+  return lynxtron::fuses::IsRunAsNodeEnabled() && env->HasVar(kRunAsNodeEnv);
 }
 
 }  // namespace

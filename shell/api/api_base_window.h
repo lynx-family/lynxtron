@@ -72,9 +72,12 @@ class BaseWindow : public gin_helper::TrackableObject<BaseWindow>,
   void OnWindowRotateGesture(float rotation) override;
   void OnWindowSheetBegin() override;
   void OnWindowSheetEnd() override;
+  void OnWindowWillEnterFullScreen() override;
+  void OnWindowWillLeaveFullScreen() override;
   void OnWindowEnterFullScreen() override;
   void OnWindowLeaveFullScreen() override;
   void OnWindowAlwaysOnTopChanged() override;
+  void OnNewWindowForTab() override;
   void OnExecuteAppCommand(std::string_view command_name) override;
   void OnTouchBarItemResult(const std::string& item_id,
                             const base::Value::Dict& details) override;
@@ -180,16 +183,18 @@ class BaseWindow : public gin_helper::TrackableObject<BaseWindow>,
   v8::Local<v8::Value> GetTabbingIdentifier() const;
   bool IsHiddenInMissionControl() const;
   void SetHiddenInMissionControl(bool hidden);
+  void AddTabbedWindow(v8::Local<v8::Value> value, gin_helper::Arguments* args);
+  void SelectPreviousTab();
+  void SelectNextTab();
+  void ShowAllTabs();
+  void MergeAllWindows();
+  void MoveTabToNewWindow();
+  void ToggleTabBar();
 #endif
 
   void SetTouchBar(std::vector<gin_helper::PersistentDictionary> items);
   void RefreshTouchBarItem(const std::string& item_id);
   void SetEscapeTouchBarItem(gin_helper::PersistentDictionary item);
-  // void SelectPreviousTab();
-  // void SelectNextTab();
-  // void MergeAllWindows();
-  // void MoveTabToNewWindow();
-  // void ToggleTabBar();
   void SetAspectRatio(double aspect_ratio, gin_helper::Arguments* args);
   // void SetGTKDarkThemeEnabled(bool use_dark_theme);
 

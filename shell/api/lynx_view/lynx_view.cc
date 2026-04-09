@@ -4,53 +4,53 @@
 
 #include "shell/api/lynx_view/lynx_view.h"
 
-#include <cstdint>
 #include <memory>
 #include <string>
-#include <string_view>
-#include <vector>
+#include <utility>
 
 #include "api/lynx_view/lynx_view_client.h"
-#include "base/containers/span.h"
-#include "base/memory/ptr_util.h"
 #include "base/memory/weak_ptr.h"
 #include "gfx/geometry/rect.h"
 #include "lynx/platform/embedder/public/capi/lynx_env_capi.h"
-#include "lynx/platform/embedder/public/lynx_view.h"
+#include "lynx/platform/embedder/public/lynx_template_bundle.h"
+#include "shell/api/lynx_view/lynx_update_meta.h"
 #include "shell/api/lynx_view/lynx_view_impl.h"
 #include "shell/api/lynx_view/module/lynx_node_module.h"
 
-// TODO(Guo Xi): review lynx view destroy process
 namespace lynxtron {
 
-LynxView::LynxView(base::WeakPtr<api::LynxWindow> lynx_window)
-    : lynx_window_(lynx_window), impl_(std::make_unique<LynxViewImpl>()) {}
+LynxView::LynxView() = default;
+
+// static
+std::unique_ptr<LynxView> LynxView::Create(std::unique_ptr<LynxViewImpl> impl) {
+  auto view = std::unique_ptr<LynxView>(new LynxView());
+  view->impl_ = std::move(impl);
+  return view;
+}
 
 LynxView::~LynxView() = default;
 
-std::unique_ptr<LynxView> LynxView::Create(
-    base::WeakPtr<api::LynxWindow> lynx_window) {
-  return base::WrapUnique(new LynxView(lynx_window));
-}
-
-// static
 void LynxView::SetNodePlatformEnv(void* platform) {
   lynx_env_set_node_platform(platform);
   SetNodePlatformEnvToLynxNodeModule(platform);
 }
 
-void LynxView::Init(double width,
-                    double height,
-                    float dpi,
-                    void* parent,
-                    const std::vector<std::string>& node_integration_preload) {
-  impl_->Init(width, height, dpi, parent, node_integration_preload,
-              lynx_window_);
+void LynxView::LoadFile(const std::string& path,
+                        const std::string& data,
+                        const std::string& global_props) {
+  impl_->LoadFile(path, data, global_props);
 }
 
-void LynxView::LoadTemplate(std::string_view template_url,
-                            base::span<const uint8_t> content) {
-  impl_->LoadTemplate(template_url, content);
+void LynxView::LoadURL(const std::string& url,
+                       const std::string& data,
+                       const std::string& global_props) {
+  impl_->LoadURL(url, data, global_props);
+}
+
+void LynxView::LoadBundle(std::shared_ptr<lynx::pub::LynxTemplateBundle> bundle,
+                          const std::string& data,
+                          const std::string& global_props) {
+  impl_->LoadBundle(std::move(bundle), data, global_props);
 }
 
 void LynxView::SetClient(base::WeakPtr<lynxtron::LynxViewClient> client) {
@@ -61,12 +61,8 @@ void LynxView::SetBounds(const gfx::Rect& bounds) {
   impl_->SetBounds(bounds);
 }
 
-void LynxView::Show() {
-  impl_->Show();
-}
-
-void LynxView::Hide() {
-  impl_->Hide();
+void LynxView::Focus() {
+  impl_->Focus();
 }
 
 void LynxView::Close() {
@@ -81,6 +77,10 @@ void LynxView::SendGlobalEvent(const std::string& event,
 void LynxView::UpdateData(const std::string& data,
                           const std::string& global_props) {
   impl_->UpdateData(data, global_props);
+}
+
+void LynxView::UpdateData(std::shared_ptr<LynxUpdateMeta> meta) {
+  impl_->UpdateData(std::move(meta));
 }
 
 void LynxView::ReloadTemplate(const std::string& data,
@@ -100,6 +100,14 @@ void LynxView::SetFrame(float x, float y, float width, float height) {
 
 void* LynxView::GetNativeWindow() {
   return impl_->GetNativeWindow();
+}
+
+void LynxView::EnterForeground() {
+  impl_->EnterForeground();
+}
+
+void LynxView::EnterBackground() {
+  impl_->EnterBackground();
 }
 
 }  // namespace lynxtron

@@ -5,8 +5,6 @@
 // @ts-nocheck
 
 import { app, LynxWindow } from 'lynxtron';
-import * as path from 'node:path';
-import * as url from 'node:url';
 
 let mainWindow: LynxWindow | null = null;
 

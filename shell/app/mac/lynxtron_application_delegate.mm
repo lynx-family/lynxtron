@@ -83,6 +83,7 @@ static NSDictionary* UNNotificationResponseToNSDictionary(
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 
 - (void)applicationDidFinishLaunching:(NSNotification*)notify {
+  lynxtron::Application* app = lynxtron::Application::Get();
   NSObject* user_notification =
       [notify userInfo][NSApplicationLaunchUserNotificationKey];
   NSDictionary* notification_info = nil;
@@ -103,10 +104,10 @@ static NSDictionary* UNNotificationResponseToNSDictionary(
       (event.eventID == kAEOpenApplication &&
        [event paramDescriptorForKeyword:keyAEPropData].enumCodeValue ==
            keyAELaunchedAsLogInItem);
-  lynxtron::Application::Get()->SetLaunchedAtLogin(launched_as_login_item);
+  app->SetLaunchedAtLogin(launched_as_login_item);
 
-  lynxtron::Application::Get()->DidFinishLaunching(
-      lynxtron::NSDictionaryToValue(notification_info));
+  app->DidFinishLaunching(lynxtron::NSDictionaryToValue(notification_info));
+  app->Activate(false);
 }
 
 // -Wdeprecated-declarations

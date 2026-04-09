@@ -18,8 +18,39 @@ pnpm add lynxtron
 npx lynxtron <args>
 ```
 
+- Fuse CLI:
+
+```bash
+npx lynxtron-fuses read
+npx lynxtron-fuses write runAsNode=off embeddedAsarIntegrityValidation=on onlyLoadAppFromAsar=on
+npx lynxtron-fuses read --app "C:\\path\\to\\lynxtron"
+npx lynxtron-fuses write --binary "C:\\path\\to\\lynxtron.exe" nodeOptions=off
+```
+
+When `--app` points at a packaged app, Lynxtron prefers the real runtime binary:
+- macOS: `Contents/Frameworks/Lynxtron Framework.framework/Lynxtron Framework`
+- Windows: `lynxtron.dll`
+
+- Fuse API:
+
+```js
+import { flipFuses, FuseV1Options, FuseVersion, getCurrentFuses } from '@lynx-js/lynxtron/fuses';
+
+await flipFuses('/Applications/Lynxtron.app', {
+  version: FuseVersion.V1,
+  [FuseV1Options.RunAsNode]: false,
+  [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
+  [FuseV1Options.OnlyLoadAppFromAsar]: true,
+});
+
+console.log(await getCurrentFuses('/Applications/Lynxtron.app'));
+console.log(await getCurrentFuses('C:\\path\\to\\lynxtron'));
+```
+
 ## Files (excluding `apis/`)
 - `package.json` — ESM config (`type: "module"`), `bin` entry, `types` entry, `postinstall`, dependencies, publish `files`.
+- `fuses.js` — Reads and flips Lynxtron fuse bytes embedded in the packaged runtime.
+- `fuses-cli.js` — CLI wrapper for reading and writing fuse values.
 - `install.js` — Postinstall script to download and extract the runtime to `dist/<platform>/<arch>/`; sets executable permission on macOS.
 - `lynxtron_bin.js` — Resolves the platform-specific executable path under `dist/<platform>/<arch>/<exe>`.
 - `utils/env-config.js` — Resolves platform, arch and version; builds the executable filename for each OS.
