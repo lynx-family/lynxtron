@@ -24,11 +24,10 @@ git config --global core.eol lf
 ### macOS
 
 ```
-git clone git@github.com:lynx-family/lynxtron.git src/lynxtron
-cd src/lynxtron
+git clone git@github.com:lynx-family/lynxtron.git 
+cd lynxtron
 python3 lynxtron_tools/prepare_build_env.py
 source lynxtron_tools/envsetup.sh
-cd ..
 # release build
 python3 lynxtron_tools/gn/gn.py --mac-cpu ['x64', 'arm64']
 # release build with trace
@@ -44,12 +43,11 @@ ninja -C out/Debug lynxtron_app
 ### Windows (PowerShell)
 
 ```
-git clone git@github.com:lynx-family/lynxtron.git src/lynxtron
-cd src/lynxtron
+git clone git@github.com:lynx-family/lynxtron.git
+cd lynxtron
 python3 lynxtron_tools/prepare_build_env.py
 lynxtron_tools/envsetup.ps1
 $env:DEPOT_TOOLS_WIN_TOOLCHAIN=0
-cd ..
 # release build
 python lynxtron/tools/gn/gn.py --windows-cpu ['x64', 'x86']
 # release build with trace
