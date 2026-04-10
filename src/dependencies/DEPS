@@ -20,7 +20,9 @@ def symlink_dir(src, dest):
         if os.path.islink(dest):
             os.unlink(dest)
         elif os.path.isdir(dest):
-            shutil.rmtree(dest)
+            # islink has some problem, so use unlink here
+            os.unlink(dest)
+            # shutil.rmtree(dest)
         else:
             os.remove(dest)
     dest_parent = os.path.dirname(dest)

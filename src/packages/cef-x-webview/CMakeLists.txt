@@ -24,7 +24,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
 endif()
 
 set(HOST_EXECUTABLE_NAME "lynxtron")
-set(PROJECT_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../..)
+set(PROJECT_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../..)
 set(LYNX_ROOT_DIR ${PROJECT_ROOT_DIR}/lynx)
 set(NODE_ADDON_API_DIR "${CMAKE_SOURCE_DIR}/node_modules/node-addon-api")
 
