@@ -17,7 +17,9 @@ current_dir = os.path.dirname(os.path.realpath(__file__))
 root_dir = os.path.abspath(os.path.join(current_dir, '..'))
 print(f"root_dir: {root_dir}")
 sys.path.append(root_dir)
-from script.abort_am_sessions import abort_am_sessions
+from src.script.abort_am_sessions import abort_am_sessions
+src_dir = os.path.join(root_dir, "src")
+print(f"src_dir: {src_dir}")
 
 def main():
     start_cwd = os.getcwd()
@@ -38,7 +40,7 @@ def main():
     print(f"{COLORED_GREEN_MSG}abort am sessions............{COLORED_PRINT_END}")
     abort_am_sessions()
     print(f"{COLORED_YELLOW_MSG}sync lynxtron dependencies............{COLORED_PRINT_END}")
-    os.chdir(root_dir)
+    os.chdir(src_dir)
     if system == "windows":
         return_code = os.system(f"powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File \"{hab}\" sync . -f --no-history --target lynxtron")
     else:

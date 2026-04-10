@@ -11,7 +11,7 @@ import json
 import platform
 
 CURRENT_PATH = os.path.dirname(__file__)
-ROOT_PATH = os.path.dirname(os.path.dirname(os.path.dirname(CURRENT_PATH)))
+ROOT_PATH = os.path.dirname(os.path.dirname(CURRENT_PATH))
 
 def get_current_os():
   system = platform.system()

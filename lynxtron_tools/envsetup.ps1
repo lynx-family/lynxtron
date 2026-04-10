@@ -9,13 +9,14 @@ $root_dir_path = Split-Path -Parent $lynxtron_dir_path
 
 function Lynxtron-Env-Setup {
     $buildtoolsDir = Join-Path $root_dir_path 'buildtools'
+    Write-Host "buildtoolsDir: " $buildtoolsDir
     $env:PATH += ';'
     $env:PATH += Join-Path $buildtoolsDir 'gn;'
     $env:PATH += Join-Path $buildtoolsDir 'ninja;'
 }
 
 function Python-Env-Setup {
-  python $lynxtron_dir_path\tools\vpython_tools\vpython_env_setup.py --root_dir $lynxtron_dir_path
+  python $lynxtron_dir_path\lynxtron_tools\vpython_tools\vpython_env_setup.py --root_dir $lynxtron_dir_path
   $venv_path = Join-Path $lynxtron_dir_path '.venv'
   & $venv_path\Scripts\Activate.ps1
 }
