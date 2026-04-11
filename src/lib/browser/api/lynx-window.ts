@@ -68,11 +68,11 @@ LynxWindow.prototype.loadBundle = function (
   );
 };
 
-LynxWindow.prototype.updateMetaData = function (this: LWT, meta: any): void {
+LynxWindow.prototype.updateMetaData = function (this: LWT, meta: any): boolean {
   if (!meta || typeof meta !== 'object') {
     throw new TypeError('updateMetaData requires a LynxUpdateMeta instance');
   }
-  nativeUpdateMetaData.call(this, meta);
+  return nativeUpdateMetaData.call(this, meta);
 };
 
 LynxWindow.prototype._init = function (this: LWT) {

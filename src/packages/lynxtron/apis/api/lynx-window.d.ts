@@ -334,7 +334,7 @@ export declare class LynxWindow extends BaseWindow {
    *
    * When called before the first template load, updates are cached and applied after the view is created and the first load finishes.
    */
-  updateMetaData(meta: LynxUpdateMeta): void;
+  updateMetaData(meta: LynxUpdateMeta): boolean;
   /**
    * Send global event to the window.
    */

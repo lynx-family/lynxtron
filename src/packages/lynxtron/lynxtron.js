@@ -20,3 +20,5 @@ export const getVar = lynxtron.getVar;
 export const hasVar = lynxtron.hasVar;
 export const setVar = lynxtron.setVar;
 export const Tray = lynxtron.Tray;
+export const LynxTemplateData = lynxtron.LynxTemplateData;
+export const LynxUpdateMeta = lynxtron.LynxUpdateMeta;
