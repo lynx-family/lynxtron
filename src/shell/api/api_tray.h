@@ -35,9 +35,9 @@ class Tray final : public gin_helper::DeprecatedWrappable<Tray>,
                    public TrayIconObserver {
  public:
   static gin::DeprecatedWrapperInfo kWrapperInfo;
-  static Tray* New(gin::Arguments* args);
+  static Tray* New(gin_helper::ErrorThrower thrower, gin::Arguments* args);
 
-  Tray(gin::Arguments* args);
+  Tray();
   ~Tray() override;
 
   void Destroy();
@@ -45,7 +45,7 @@ class Tray final : public gin_helper::DeprecatedWrappable<Tray>,
   void SetImage(gin::Arguments* args);
   void SetPressedImage(gin::Arguments* args);
   void SetToolTip(const std::string& tool_tip);
-  void SetTitle(const std::string& title);
+  void SetTitle(gin::Arguments* args);
   std::string GetTitle() const;
   void SetIgnoreDoubleClickEvents(bool ignore);
   bool GetIgnoreDoubleClickEvents() const;
@@ -72,6 +72,9 @@ class Tray final : public gin_helper::DeprecatedWrappable<Tray>,
 
   Menu* GetMenuFromValue(v8::Isolate* isolate, v8::Local<v8::Value> menu);
   void SetMenu(Menu* menu, v8::Isolate* isolate, v8::Local<v8::Value> value);
+  void SetPopupMenu(Menu* menu,
+                    v8::Isolate* isolate,
+                    v8::Local<v8::Value> value);
 
   void OnClick(const TrayBounds& bounds, const TrayPoint& position) override;
   void OnRightClick(const TrayBounds& bounds) override;
@@ -95,6 +98,8 @@ class Tray final : public gin_helper::DeprecatedWrappable<Tray>,
   bool destroyed_ = false;
   Menu* menu_ = nullptr;
   v8::Global<v8::Object> menu_handle_;
+  Menu* popup_menu_ = nullptr;
+  v8::Global<v8::Object> popup_menu_handle_;
   std::unique_ptr<TrayIcon> tray_icon_;
 };
 

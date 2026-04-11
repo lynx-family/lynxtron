@@ -104,6 +104,8 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
                          const std::string& message);
 
  private:
+  bool ComputeRenderActive() const;
+  void SyncRenderActiveState();
   void EnsureLynxView();
   void OnPageStart(std::string_view url) override;
   void OnLoadSuccess() override;
@@ -159,6 +161,7 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
   bool enable_fps_monitor_ = false;
   int sample_interval_millis_ = 1000;
   std::vector<std::vector<int64_t>> last_frame_timings_;
+  bool last_render_active_ = false;
   base::WeakPtrFactory<LynxWindow> weak_factory_{this};
   std::unique_ptr<LynxViewMonitorDelegate> lynx_view_monitor_delegate_;
   std::optional<std::string> data_str_ = std::nullopt;

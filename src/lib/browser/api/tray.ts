@@ -21,8 +21,30 @@ Tray.prototype.popUpContextMenu = function (
   menu?: object,
   position?: { x: number; y: number }
 ) {
+  const isPointLike =
+    menu != null &&
+    typeof menu === 'object' &&
+    'x' in menu &&
+    'y' in menu &&
+    typeof (menu as { x?: unknown }).x === 'number' &&
+    typeof (menu as { y?: unknown }).y === 'number';
+
+  if (isPointLike && position === undefined) {
+    return originalPopUpContextMenu.call(
+      this,
+      undefined,
+      menu as { x: number; y: number }
+    );
+  }
+
   if (!menu && menuRefs.has(this)) {
+    if (position === undefined) {
+      return originalPopUpContextMenu.call(this, menuRefs.get(this));
+    }
     return originalPopUpContextMenu.call(this, menuRefs.get(this), position);
+  }
+  if (position === undefined) {
+    return originalPopUpContextMenu.call(this, menu);
   }
   return originalPopUpContextMenu.call(this, menu, position);
 };

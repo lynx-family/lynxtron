@@ -118,7 +118,7 @@ NativeWindowWin::NativeWindowWin(const gin_helper::Dictionary& options,
     SetContentSize(gfx::Size(width, height), false);
   }
 
-  const bool minimizable = options.ValueOrDefault(options::kMinimizable, true);
+  const bool minimizable = this->minimizable();
   if (is_modal() && NativeWindow::parent() && !minimizable) {
     SetMinimizable(false);
   }
@@ -616,7 +616,11 @@ void NativeWindowWin::SetFocusable(bool focusable) {
     ex_style |= WS_EX_NOACTIVATE;
   }
   ::SetWindowLong(GetNativeWindowHandle(), GWL_EXSTYLE, ex_style);
-  //  SetSkipTaskbar(!focusable);
+  if (!focusable) {
+    SetSkipTaskbar(true);
+  } else {
+    SetSkipTaskbar(false);
+  }
   Focus(false);
 }
 

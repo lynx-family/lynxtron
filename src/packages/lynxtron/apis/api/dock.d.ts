@@ -6,8 +6,6 @@ import { Menu } from './menu';
 import { NativeImage } from './native-image';
 
 export declare class Dock {
-  // Docs: https://electronjs.org/docs/api/dock
-
   /**
    * an ID representing the request.
    *

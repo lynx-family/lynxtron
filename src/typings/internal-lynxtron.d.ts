@@ -15,6 +15,7 @@ import { Event as LynxtronEvent } from '../packages/lynxtron/apis/lynxtron';
 import { CommandLine as LynxtronCommandLine } from '../packages/lynxtron/apis/api/command-line';
 import { Screen as LynxtronScreen } from '../packages/lynxtron/apis/api/screen';
 import { NativeImage as LynxtronNativeImage } from '../packages/lynxtron/apis/api/native-image';
+import { Clipboard as LynxtronClipboard } from '../packages/lynxtron/apis/api/clipboard';
 import { Shell as LynxtronShell } from '../packages/lynxtron/apis/api/shell';
 import { MenuItem as LynxtronMenuItem } from '../packages/lynxtron/apis/api/menu';
 import { Tray as LynxtronTray } from '../packages/lynxtron/apis/api/tray';
@@ -28,6 +29,7 @@ import {
 } from '../packages/lynxtron/apis/api/touch-bar';
 
 import {
+  Dialog as LynxtronDialog,
   OpenDialogOptions as LynxtronOpenDialogOptions,
   OpenDialogReturnValue as LynxtronOpenDialogReturnValue,
   MessageBoxOptions as LynxtronMessageBoxOptions,
@@ -109,6 +111,8 @@ declare module 'lynxtron' {
   export const LynxUpdateMeta: typeof LynxtronLynxUpdateMeta;
   export const Menu: typeof LynxtronMenu;
   export const MenuItem: typeof LynxtronMenuItem;
+  export const clipboard: LynxtronClipboard;
+  export const dialog: LynxtronDialog;
   export const nativeImage: typeof LynxtronNativeImage;
   export const screen: LynxtronScreen;
   export const shell: LynxtronShell;
@@ -119,6 +123,7 @@ declare module 'lynxtron' {
   export type BaseWindow = BaseWindowInternal;
   export type LynxWindow = LynxWindowInternal;
   export type LynxUpdateMeta = LynxtronLynxUpdateMeta;
+  export type Clipboard = LynxtronClipboard;
   export type NativeImage = LynxtronNativeImage;
   export type Screen = LynxtronScreen;
   export type Shell = LynxtronShell;
@@ -126,6 +131,7 @@ declare module 'lynxtron' {
   export type Tray = LynxtronTray;
   export type OpenDialogOptions = LynxtronOpenDialogOptions;
   export type OpenDialogReturnValue = LynxtronOpenDialogReturnValue;
+  export type Dialog = LynxtronDialog;
   export type MessageBoxOptions = LynxtronMessageBoxOptions;
   export type MessageBoxReturnValue = LynxtronMessageBoxReturnValue;
   export type SaveDialogOptions = LynxtronSaveDialogOptions;

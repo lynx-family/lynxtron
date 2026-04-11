@@ -5,7 +5,11 @@
 
 #import <Cocoa/Cocoa.h>
 
+#include "base/functional/bind.h"
+#include "base/location.h"
 #include "base/strings/sys_string_conversions.h"
+#include "base/task/current_thread.h"
+#include "shell/common/global_thread.h"
 #include "shell/ui/cocoa/lynxtron_menu_controller.h"
 #include "shell/ui/gfx/image/image.h"
 
@@ -85,6 +89,7 @@ TrayIconMac::TrayIconMac(TrayIconObserver* observer, const std::string& guid)
 }
 
 TrayIconMac::~TrayIconMac() {
+  weak_factory_.InvalidateWeakPtrs();
   NSStatusItem* status_item = (__bridge NSStatusItem*)status_item_;
   if (status_item) {
     NSStatusBarButton* button = status_item.button;
@@ -106,10 +111,7 @@ TrayIconMac::~TrayIconMac() {
     CFBridgingRelease(target_);
     target_ = nullptr;
   }
-  if (menu_controller_) {
-    CFBridgingRelease(menu_controller_);
-    menu_controller_ = nullptr;
-  }
+  ResetPopupMenuController();
   if (status_item_) {
     CFBridgingRelease(status_item_);
     status_item_ = nullptr;
@@ -131,9 +133,36 @@ void TrayIconMac::SetToolTip(const std::string& tool_tip) {
   status_item.button.toolTip = base::SysUTF8ToNSString(tool_tip);
 }
 
-void TrayIconMac::SetTitle(const std::string& title) {
+void TrayIconMac::SetTitle(const std::string& title,
+                           const std::string& font_type) {
   NSStatusItem* status_item = (__bridge NSStatusItem*)status_item_;
-  status_item.button.title = base::SysUTF8ToNSString(title);
+  NSString* ns_title = base::SysUTF8ToNSString(title);
+  NSMutableAttributedString* attributed_title =
+      [[NSMutableAttributedString alloc] initWithString:ns_title];
+
+  CGFloat existing_size = status_item.button.font.pointSize;
+  if (font_type == "monospaced") {
+    NSDictionary* attributes = @{
+      NSFontAttributeName :
+          [NSFont monospacedSystemFontOfSize:existing_size
+                                      weight:NSFontWeightRegular]
+    };
+    [attributed_title addAttributes:attributes
+                              range:NSMakeRange(0, attributed_title.length)];
+  } else if (font_type == "monospacedDigit") {
+    NSDictionary* attributes = @{
+      NSFontAttributeName :
+          [NSFont monospacedDigitSystemFontOfSize:existing_size
+                                           weight:NSFontWeightRegular]
+    };
+    [attributed_title addAttributes:attributes
+                              range:NSMakeRange(0, attributed_title.length)];
+  }
+
+  status_item.button.title = ns_title;
+  status_item.button.attributedTitle = attributed_title;
+  status_item.button.imagePosition =
+      ns_title.length > 0 ? NSImageLeft : NSImageOnly;
 }
 
 std::string TrayIconMac::GetTitle() const {
@@ -151,22 +180,6 @@ bool TrayIconMac::GetIgnoreDoubleClickEvents() const {
 
 void TrayIconMac::SetContextMenu(LynxtronMenuModel* menu) {
   menu_model_ = menu;
-  if (!menu) {
-    if (menu_controller_) {
-      CFBridgingRelease(menu_controller_);
-      menu_controller_ = nullptr;
-    }
-    menu_controller_ = nullptr;
-    return;
-  }
-  if (menu_controller_) {
-    CFBridgingRelease(menu_controller_);
-    menu_controller_ = nullptr;
-  }
-  LynxtronMenuController* controller =
-      [[LynxtronMenuController alloc] initWithModel:menu
-                              useDefaultAccelerator:NO];
-  menu_controller_ = (__bridge_retained void*)controller;
 }
 
 void TrayIconMac::PopUpContextMenu(LynxtronMenuModel* menu,
@@ -175,29 +188,81 @@ void TrayIconMac::PopUpContextMenu(LynxtronMenuModel* menu,
   if (!menu_to_use) {
     return;
   }
-  if (!menu_controller_ || menu_to_use != menu_model_) {
-    menu_model_ = menu_to_use;
-    if (menu_controller_) {
-      CFBridgingRelease(menu_controller_);
-      menu_controller_ = nullptr;
-    }
-    LynxtronMenuController* controller =
-        [[LynxtronMenuController alloc] initWithModel:menu_to_use
-                                useDefaultAccelerator:NO];
-    menu_controller_ = (__bridge_retained void*)controller;
-  }
-  NSStatusItem* status_item = (__bridge NSStatusItem*)status_item_;
-  LynxtronMenuController* controller =
-      (__bridge LynxtronMenuController*)menu_controller_;
-  [status_item popUpStatusItemMenu:controller.menu];
+  pending_close_ = false;
+  uint64_t popup_id = ++popup_request_id_;
+  GlobalThread::GetUIThreadTaskRunner()->PostTask(
+      FROM_HERE, base::BindOnce(&TrayIconMac::PopUpContextMenuOnUI,
+                                weak_factory_.GetWeakPtr(), popup_id,
+                                menu_to_use, position));
 }
 
 void TrayIconMac::CloseContextMenu() {
+  pending_close_ = true;
+  GlobalThread::GetUIThreadTaskRunner()->PostTask(
+      FROM_HERE, base::BindOnce(&TrayIconMac::CloseContextMenuOnUI,
+                                weak_factory_.GetWeakPtr()));
+}
+
+void TrayIconMac::PopUpContextMenuOnUI(uint64_t popup_id,
+                                       LynxtronMenuModel* menu,
+                                       const TrayPoint& position) {
+  (void)position;
+  if (!status_item_ || !menu || popup_id != popup_request_id_) {
+    return;
+  }
+  if (pending_close_) {
+    pending_close_ = false;
+    return;
+  }
+
+  LynxtronMenuController* active_controller =
+      (__bridge LynxtronMenuController*)popup_menu_controller_;
+  if (active_controller && [active_controller isMenuOpen]) {
+    return;
+  }
+
+  ResetPopupMenuController();
   LynxtronMenuController* controller =
-      (__bridge LynxtronMenuController*)menu_controller_;
+      [[LynxtronMenuController alloc] initWithModel:menu
+                              useDefaultAccelerator:NO];
+  active_popup_id_ = popup_id;
+  [controller setPopupCloseCallback:base::BindOnce(&TrayIconMac::OnPopupClosed,
+                                                   weak_factory_.GetWeakPtr(),
+                                                   popup_id)];
+  popup_menu_controller_ = (__bridge_retained void*)controller;
+
+  base::WeakPtr<TrayIconMac> weak_this = weak_factory_.GetWeakPtr();
+  base::CurrentThread::ScopedAllowApplicationTasksInNativeNestedLoop allow;
+  NSStatusItem* status_item = (__bridge NSStatusItem*)status_item_;
+  [status_item popUpStatusItemMenu:controller.menu];
+  if (!weak_this) {
+    return;
+  }
+}
+
+void TrayIconMac::CloseContextMenuOnUI() {
+  LynxtronMenuController* controller =
+      (__bridge LynxtronMenuController*)popup_menu_controller_;
   if (controller) {
     [controller cancel];
   }
+}
+
+void TrayIconMac::OnPopupClosed(uint64_t popup_id) {
+  if (popup_id != active_popup_id_) {
+    return;
+  }
+  pending_close_ = false;
+  active_popup_id_ = 0;
+  ResetPopupMenuController();
+}
+
+void TrayIconMac::ResetPopupMenuController() {
+  if (!popup_menu_controller_) {
+    return;
+  }
+  CFBridgingRelease(popup_menu_controller_);
+  popup_menu_controller_ = nullptr;
 }
 
 TrayBounds TrayIconMac::GetBounds() const {

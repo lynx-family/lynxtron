@@ -101,8 +101,6 @@ export interface ToPNGOptions {
 }
 
 export declare class NativeImage {
-  // Docs: https://electronjs.org/docs/api/native-image
-
   /**
    * Creates an empty `NativeImage` instance.
    */

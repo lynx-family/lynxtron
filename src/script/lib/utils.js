@@ -5,7 +5,9 @@ const os = require('node:os');
 const path = require('node:path');
 const { execSync } = require('node:child_process');
 
-const LYNXTRON_DIR = execSync('git rev-parse --show-toplevel').toString().trim();
+// Derive repo paths from this script location so nested git worktrees do not
+// break build output resolution.
+const LYNXTRON_DIR = path.resolve(__dirname, '../..');
 const SRC_DIR = path.resolve(LYNXTRON_DIR, '..');
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

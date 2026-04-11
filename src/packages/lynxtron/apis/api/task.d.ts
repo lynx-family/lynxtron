@@ -3,8 +3,6 @@
 // LICENSE file in the root directory of this source tree.
 
 export interface Task {
-  // Docs: https://electronjs.org/docs/api/structures/task
-
   /**
    * The command line arguments when `program` is executed.
    */

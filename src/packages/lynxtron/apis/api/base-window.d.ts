@@ -26,15 +26,19 @@ export interface VisibleOnAllWorkspacesOptions {
   /**
    * Sets whether the window should be visible above fullscreen windows.
    *
+   * In Lynxtron's current macOS implementation, this maps to
+   * `NSWindowCollectionBehaviorFullScreenAuxiliary`.
+   *
    * @platform darwin
    */
   visibleOnFullScreen?: boolean;
   /**
-   * Calling setVisibleOnAllWorkspaces will by default transform the process type
-   * between UIElementApplication and ForegroundApplication to ensure the correct
-   * behavior. However, this will hide the window and dock for a short time every
-   * time it is called. If your window is already of type UIElementApplication, you
-   * can bypass this transformation by passing true to skipTransformProcessType.
+   * Reserved for Electron compatibility.
+   *
+   * Lynxtron currently keeps the minimal macOS behavior for
+   * `setVisibleOnAllWorkspaces` and does not perform Electron's extra Dock /
+   * process-type transformation. Passing this option does not currently change
+   * behavior.
    *
    * @platform darwin
    */
@@ -226,8 +230,7 @@ export interface BaseWindowConstructorOptions {
    */
   thickFrame?: boolean;
   /**
-   * Default window title. Default is `"Electron"`. If the HTML tag `<title>` is
-   * defined in the HTML file loaded by `loadURL()`, this property will be ignored.
+   * Default window title. Sets the title of the native window when provided.
    */
   title?: string;
   /**
@@ -253,9 +256,9 @@ export interface BaseWindowConstructorOptions {
    */
   type?: string;
   /**
-   * The `width` and `height` would be used as web page's size, which means the
-   * actual window's size will include window frame's size and be slightly larger.
-   * Default is `false`.
+   * The `width` and `height` would be used as the content area's size, which means
+   * the actual window's size will include the window frame's size and be slightly
+   * larger. Default is `false`.
    */
   useContentSize?: boolean;
   /**
@@ -358,9 +361,8 @@ export declare class BaseWindow extends EventEmitter {
   addListener(event: 'blur', listener: (event: Event) => void): this;
   removeListener(event: 'blur', listener: (event: Event) => void): this;
   /**
-   * Emitted when the window is going to be closed. It's emitted before the
-   * `beforeunload` and `unload` event of the DOM. Calling `event.preventDefault()`
-   * will cancel the close.
+   * Emitted when the window is going to be closed. Calling
+   * `event.preventDefault()` will cancel the close.
    */
   on(event: 'close', listener: (event: Event) => void): this;
   off(event: 'close', listener: (event: Event) => void): this;
@@ -376,6 +378,14 @@ export declare class BaseWindow extends EventEmitter {
   once(event: 'closed', listener: () => void): this;
   addListener(event: 'closed', listener: () => void): this;
   removeListener(event: 'closed', listener: () => void): this;
+  /**
+   * Emitted before the window enters a full-screen state.
+   */
+  on(event: 'will-enter-full-screen', listener: () => void): this;
+  off(event: 'will-enter-full-screen', listener: () => void): this;
+  once(event: 'will-enter-full-screen', listener: () => void): this;
+  addListener(event: 'will-enter-full-screen', listener: () => void): this;
+  removeListener(event: 'will-enter-full-screen', listener: () => void): this;
   /**
    * Emitted when the window enters a full-screen state.
    */
@@ -400,6 +410,14 @@ export declare class BaseWindow extends EventEmitter {
   once(event: 'hide', listener: () => void): this;
   addListener(event: 'hide', listener: () => void): this;
   removeListener(event: 'hide', listener: () => void): this;
+  /**
+   * Emitted before the window leaves a full-screen state.
+   */
+  on(event: 'will-leave-full-screen', listener: () => void): this;
+  off(event: 'will-leave-full-screen', listener: () => void): this;
+  once(event: 'will-leave-full-screen', listener: () => void): this;
+  addListener(event: 'will-leave-full-screen', listener: () => void): this;
+  removeListener(event: 'will-leave-full-screen', listener: () => void): this;
   /**
    * Emitted when the window leaves a full-screen state.
    */
@@ -498,6 +516,43 @@ export declare class BaseWindow extends EventEmitter {
   once(event: 'restore', listener: () => void): this;
   addListener(event: 'restore', listener: () => void): this;
   removeListener(event: 'restore', listener: () => void): this;
+  /**
+   * Emitted after the window's always-on-top state changes.
+   *
+   * @platform darwin,win32
+   */
+  on(
+    event: 'always-on-top-changed',
+    listener: (event: Event, isAlwaysOnTop: boolean) => void
+  ): this;
+  /**
+   * @platform darwin,win32
+   */
+  off(
+    event: 'always-on-top-changed',
+    listener: (event: Event, isAlwaysOnTop: boolean) => void
+  ): this;
+  /**
+   * @platform darwin,win32
+   */
+  once(
+    event: 'always-on-top-changed',
+    listener: (event: Event, isAlwaysOnTop: boolean) => void
+  ): this;
+  /**
+   * @platform darwin,win32
+   */
+  addListener(
+    event: 'always-on-top-changed',
+    listener: (event: Event, isAlwaysOnTop: boolean) => void
+  ): this;
+  /**
+   * @platform darwin,win32
+   */
+  removeListener(
+    event: 'always-on-top-changed',
+    listener: (event: Event, isAlwaysOnTop: boolean) => void
+  ): this;
   /**
    * Emitted on trackpad rotation gesture. Continually emitted until rotation gesture
    * is ended. The `rotation` value on each emission is the angle in degrees rotated
@@ -934,7 +989,7 @@ export declare class BaseWindow extends EventEmitter {
    */
   static fromId(id: number): BaseWindow | null;
   /**
-   * An array of all opened browser windows.
+   * An array of all opened windows.
    */
   static getAllWindows(): BaseWindow[];
   /**
@@ -951,14 +1006,13 @@ export declare class BaseWindow extends EventEmitter {
   center(): void;
   /**
    * Try to close the window. This has the same effect as a user manually clicking
-   * the close button of the window. The web page may cancel the close though. See
-   * the close event.
+   * the close button of the window. The close may be canceled by a listener on the
+   * `close` event.
    */
   close(): void;
   /**
-   * Force closing the window, the `unload` and `beforeunload` event won't be emitted
-   * for the web page, and `close` event will also not be emitted for this window,
-   * but it guarantees the `closed` event will be emitted.
+   * Force closing the window. The `close` event will not be emitted for this
+   * window, but it guarantees the `closed` event will be emitted.
    */
   destroy(): void;
   /**
@@ -985,10 +1039,10 @@ export declare class BaseWindow extends EventEmitter {
   /**
    * The `bounds` of the window as `Object`.
    *
-   * > [!NOTE] On macOS, the y-coordinate value returned will be at minimum the Tray
+   * > [!NOTE] On macOS, the returned y-coordinate will be at minimum the menu bar
    * height. For example, calling `win.setBounds({ x: 25, y: 20, width: 800, height:
-   * 600 })` with a tray height of 38 means that `win.getBounds()` will return `{ x:
-   * 25, y: 38, width: 800, height: 600 }`.
+   * 600 })` with a menu bar height of 38 means that `win.getBounds()` will return
+   * `{ x: 25, y: 38, width: 800, height: 600 }`.
    */
   getBounds(): Rectangle;
   /**
@@ -1036,9 +1090,6 @@ export declare class BaseWindow extends EventEmitter {
   getSize(): number[];
   /**
    * The title of the native window.
-   *
-   * > [!NOTE] The title of the web page can be different from the title of the
-   * native window.
    */
   getTitle(): string;
   /**
@@ -1184,8 +1235,7 @@ export declare class BaseWindow extends EventEmitter {
    */
   maximize(): void;
   /**
-   * Minimizes the window. On some platforms the minimized window will be shown in
-   * the Dock.
+   * Minimizes the window. On macOS, the minimized window will be shown in the Dock.
    */
   minimize(): void;
   /**
@@ -1299,10 +1349,10 @@ export declare class BaseWindow extends EventEmitter {
    * Resizes and moves the window to the supplied bounds. Any properties that are not
    * supplied will default to their current values.
    *
-   * > [!NOTE] On macOS, the y-coordinate value cannot be smaller than the Tray
-   * height. The tray height has changed over time and depends on the operating
-   * system, but is between 20-40px. Passing a value lower than the tray height will
-   * result in a window that is flush to the tray.
+   * > [!NOTE] On macOS, the y-coordinate value cannot be smaller than the menu bar
+   * height. The menu bar height has changed over time and depends on the operating
+   * system, but is between 20-40px. Passing a value lower than the menu bar height
+   * will result in a window that is flush to the menu bar.
    */
   setBounds(bounds: Partial<Rectangle>, animate?: boolean): void;
   /**
@@ -1429,7 +1479,7 @@ export declare class BaseWindow extends EventEmitter {
   /**
    * Changes the attachment point for sheets on macOS. By default, sheets are
    * attached just below the window frame, but you may want to display them beneath a
-   * HTML-rendered toolbar. For example:
+   * custom client-rendered toolbar. For example:
    *
    * @platform darwin
    */
@@ -1515,6 +1565,10 @@ export declare class BaseWindow extends EventEmitter {
    * Sets whether the window should be visible on all workspaces.
    *
    * > [!NOTE] This API does nothing on Windows.
+   * > [!NOTE] On macOS, Lynxtron currently applies only the window-level
+   * > collection behaviors (`CanJoinAllSpaces` and, if requested,
+   * > `FullScreenAuxiliary`). It does not currently implement Electron's Dock /
+   * > process-type transformation.
    *
    * @platform darwin
    */
@@ -1629,8 +1683,8 @@ export declare class BaseWindow extends EventEmitter {
   /**
    * A `string` property that determines the title of the native window.
    *
-   * > [!NOTE] The title of the web page can be different from the title of the
-   * native window.
+   * > [!NOTE] Application content may present a different title from the native
+   * window title.
    */
   title: string;
   /**
