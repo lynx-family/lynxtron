@@ -64,26 +64,30 @@ async function main () {
     await installSpecModules(path.resolve(__dirname, '..', 'spec'));
     await getSpecHash().then(saveSpecHash);
   }
-
-  // if (!fs.existsSync(path.resolve(__dirname, '../lynxtron.d.ts'))) {
-  //   console.log('Generating lynxtron.d.ts as it is missing');
-  //   generateTypeDefinitions();
-  // }
-
+  await buildLynxCards();
   await runLynxtronTests();
 }
 
-// TODO(Guo Xi): handle create-typescript-definitions
-// function generateTypeDefinitions () {
-//   const { status } = childProcess.spawnSync('npm', ['run', 'create-typescript-definitions'], {
-//     cwd: path.resolve(__dirname, '..'),
-//     stdio: 'inherit',
-//     shell: true
-//   });
-//   if (status !== 0) {
-//     throw new Error(`Electron typescript definition generation failed with exit code: ${status}.`);
-//   }
-// }
+async function buildLynxCards () {
+  const lynxCardDir = path.resolve(__dirname, '..', 'spec', 'case', 'lynx-card');
+  const { entries } = require(path.join(lynxCardDir, 'cards.config'));
+  const distDir = path.join(lynxCardDir, 'dist');
+  const allBuilt = Object.keys(entries).every(name =>
+    fs.existsSync(path.join(distDir, `${name}.lynx.bundle`))
+  );
+  if (allBuilt) return;
+
+  console.info('\nBuilding lynx-card test bundles...');
+  const { status } = childProcess.spawnSync('node', ['./build-all.js'], {
+    cwd: lynxCardDir,
+    stdio: 'inherit',
+    shell: process.platform === 'win32'
+  });
+  if (status !== 0) {
+    console.log(`${fail} Failed to build lynx-card test bundles`);
+    process.exit(1);
+  }
+}
 
 function loadLastSpecHash () {
   return fs.existsSync(specHashPath)
@@ -161,7 +165,7 @@ async function asyncSpawn (exe, runnerArgs) {
 async function runTestUsingElectron (specDir, testName) {
   let exe;
   exe = path.resolve(BASE, utils.getElectronExec());
-  const runnerArgs = [`lynxtron/${specDir}`, ...unknownArgs.slice(2)];
+  const runnerArgs = [path.resolve(__dirname, '..', specDir), ...unknownArgs.slice(2)];
   if (process.platform === 'linux') {
     runnerArgs.unshift(path.resolve(__dirname, 'dbus_mock.py'), exe);
     exe = 'python3';

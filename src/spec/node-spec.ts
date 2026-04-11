@@ -218,7 +218,11 @@ describe('node feature', () => {
         child.kill();
       });
 
-      const env = { ...process.env, NODE_OPTIONS: '--v8-options' };
+      const env: NodeJS.ProcessEnv = {
+        ...process.env,
+        NODE_OPTIONS: '--v8-options',
+      };
+      delete env.ELECTRON_FORCE_IS_PACKAGED;
       child = childProcess.spawn(process.execPath, { env });
       exitPromise = once(child, 'exit');
 
@@ -287,10 +291,11 @@ describe('node feature', () => {
 
     it('does allow --require in non-packaged apps', async () => {
       const appPath = path.join(fixtures, 'module', 'noop.js');
-      const env = {
+      const env: NodeJS.ProcessEnv = {
         ...process.env,
         NODE_OPTIONS: `--require=${path.join(fixtures, 'module', 'fail.js')}`,
       };
+      delete env.ELECTRON_FORCE_IS_PACKAGED;
       // App should exit with code 1.
       const child = childProcess.spawn(process.execPath, [appPath], { env });
       const [code] = await once(child, 'exit');

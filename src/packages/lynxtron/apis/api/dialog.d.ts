@@ -6,8 +6,6 @@ import { NativeImage } from './native-image';
 import { BaseWindow } from './base-window';
 
 export interface FileFilter {
-  // Docs: https://electronjs.org/docs/api/structures/file-filter
-
   extensions: string[];
   name: string;
 }
@@ -71,7 +69,7 @@ export interface MessageBoxOptions {
    */
   cancelId?: number;
   /**
-   * On Windows Electron will try to figure out which one of the `buttons` are common
+   * On Windows, Lynxtron will try to figure out which of the `buttons` are common
    * buttons (like "Cancel" or "Yes"), and show the others as command links in the
    * dialog. This can make the dialog appear in the style of modern Windows apps. If
    * you don't like this behavior, you can set `noLink` to `true`.
@@ -387,8 +385,6 @@ export interface SaveDialogSyncOptions {
 }
 
 export interface Dialog {
-  // Docs: https://electronjs.org/docs/api/dialog
-
   /**
    * Displays a modal dialog that shows an error message.
    *

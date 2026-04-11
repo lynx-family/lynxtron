@@ -391,6 +391,8 @@ source_set("lynxtron_lib") {
     "shell/api/api_asar.cc",
     "shell/api/api_base_window.cc",
     "shell/api/api_base_window.h",
+    "shell/api/api_clipboard.cc",
+    "shell/api/api_clipboard.h",
     "shell/api/api_command_line.cc",
     "shell/api/api_dialog.cc",
     "shell/api/api_environment.cc",
@@ -547,6 +549,7 @@ source_set("lynxtron_lib") {
     sources += ui_sources_macos
     sources += [
       "shell/api/api_app_mac.mm",
+      "shell/api/api_clipboard_mac.mm",
       "shell/api/api_menu_mac.h",
       "shell/api/api_menu_mac.mm",
       "shell/api/api_native_image_mac.mm",
@@ -614,6 +617,7 @@ source_set("lynxtron_lib") {
 
   if (is_win) {
     sources += [
+      "shell/api/api_clipboard_win.cc",
       "shell/api/api_native_image_win.cc",
       "shell/api/dpi_win.cc",
       "shell/api/dpi_win.h",

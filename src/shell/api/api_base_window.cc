@@ -34,7 +34,6 @@ namespace lynxtron::api {
 
 namespace {
 
-#if !BUILDFLAG(IS_MAC)
 // Converts binary data to Buffer.
 v8::Local<v8::Value> ToBuffer(v8::Isolate* isolate,
                               const base::span<const uint8_t> val) {
@@ -45,7 +44,6 @@ v8::Local<v8::Value> ToBuffer(v8::Isolate* isolate,
     return buffer.ToLocalChecked();
   }
 }
-#endif
 
 [[nodiscard]] constexpr std::array<int, 2U> ToArray(const gfx::Size size) {
   return {size.width(), size.height()};
@@ -254,9 +252,8 @@ void BaseWindow::OnWindowSheetEnd() {
   Emit("sheet-end");
 }
 
-// TODO(Guo Xi): Add OnWindowAlwaysOnTopChanged
 void BaseWindow::OnWindowAlwaysOnTopChanged() {
-  // Emit("always-on-top-changed", IsAlwaysOnTop());
+  Emit("always-on-top-changed", IsAlwaysOnTop());
 }
 
 void BaseWindow::OnExecuteAppCommand(const std::string_view command_name) {
@@ -692,12 +689,10 @@ void BaseWindow::SetParentWindow(v8::Local<v8::Value> value,
   }
 }
 
-#if !BUILDFLAG(IS_MAC)
 v8::Local<v8::Value> BaseWindow::GetNativeWindowHandle() {
   NativeWindowHandle handle = window_->GetNativeWindowHandle();
   return ToBuffer(isolate(), base::byte_span_from_ref(handle));
 }
-#endif
 
 void BaseWindow::SetVisibleOnAllWorkspaces(bool visible,
                                            gin_helper::Arguments* args) {
@@ -735,7 +730,10 @@ bool BaseWindow::IsMenuBarVisible() const {
 void BaseWindow::SetVibrancy(v8::Isolate* isolate,
                              v8::Local<v8::Value> value,
                              gin_helper::Arguments* args) {
-  std::string type = gin::V8ToString(isolate, value);
+  std::string type;
+  if (!value->IsNullOrUndefined()) {
+    type = gin::V8ToString(isolate, value);
+  }
   gin_helper::Dictionary options;
   int animation_duration_ms = 0;
 
@@ -749,6 +747,22 @@ void BaseWindow::SetVibrancy(v8::Isolate* isolate,
 #if BUILDFLAG(IS_MAC)
 std::string BaseWindow::GetAlwaysOnTopLevel() const {
   return window_->GetAlwaysOnTopLevel();
+}
+
+std::string BaseWindow::GetVibrancyTypeForTesting() const {
+  return window_->GetVibrancyTypeForTesting();
+}
+
+bool BaseWindow::HasVibrancyView() const {
+  return window_->HasVibrancyView();
+}
+
+std::string BaseWindow::GetVisualEffectStateForTesting() const {
+  return window_->GetVisualEffectStateForTesting();
+}
+
+std::string BaseWindow::GetNativeVisualEffectStateForTesting() const {
+  return window_->GetNativeVisualEffectStateForTesting();
 }
 
 void BaseWindow::SetWindowButtonVisibility(bool visible) {
@@ -983,15 +997,19 @@ void BaseWindow::BuildPrototype(v8::Isolate* isolate,
       .SetMethod("setFocusable", &BaseWindow::SetFocusable)
       .SetMethod("isFocusable", &BaseWindow::IsFocusable)
       .SetMethod("setParentWindow", &BaseWindow::SetParentWindow)
-#if !BUILDFLAG(IS_MAC)
       .SetMethod("getNativeWindowHandle", &BaseWindow::GetNativeWindowHandle)
-#endif
       .SetMethod("setVisibleOnAllWorkspaces",
                  &BaseWindow::SetVisibleOnAllWorkspaces)
       .SetMethod("isVisibleOnAllWorkspaces",
                  &BaseWindow::IsVisibleOnAllWorkspaces)
 #if BUILDFLAG(IS_MAC)
       .SetMethod("_getAlwaysOnTopLevel", &BaseWindow::GetAlwaysOnTopLevel)
+      .SetMethod("_getVibrancyType", &BaseWindow::GetVibrancyTypeForTesting)
+      .SetMethod("_hasVibrancyView", &BaseWindow::HasVibrancyView)
+      .SetMethod("_getVisualEffectState",
+                 &BaseWindow::GetVisualEffectStateForTesting)
+      .SetMethod("_getNativeVisualEffectState",
+                 &BaseWindow::GetNativeVisualEffectStateForTesting)
       .SetMethod("setAutoHideCursor", &BaseWindow::SetAutoHideCursor)
       .SetMethod("isHiddenInMissionControl",
                  &BaseWindow::IsHiddenInMissionControl)

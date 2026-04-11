@@ -244,6 +244,29 @@ LynxWindow::~LynxWindow() {
   LynxWindowManager::GetInstance()->UnregisterLynxWindow(GetWeakPtr());
 }
 
+bool LynxWindow::ComputeRenderActive() const {
+  return lynx_view_ != nullptr && window_ != nullptr && !window_->IsClosed() &&
+         window_->IsVisible();
+}
+
+void LynxWindow::SyncRenderActiveState() {
+  const bool render_active = ComputeRenderActive();
+  if (render_active == last_render_active_) {
+    return;
+  }
+
+  last_render_active_ = render_active;
+  if (!lynx_view_) {
+    return;
+  }
+
+  if (render_active) {
+    lynx_view_->EnterForeground();
+  } else {
+    lynx_view_->EnterBackground();
+  }
+}
+
 void LynxWindow::OnWindowBlur() {
   BaseWindow::OnWindowBlur();
 }
@@ -326,16 +349,12 @@ void LynxWindow::OnWindowResized() {
 }
 
 void LynxWindow::OnWindowRestore() {
-  if (lynx_view_) {
-    lynx_view_->EnterForeground();
-  }
+  SyncRenderActiveState();
   BaseWindow::OnWindowRestore();
 }
 
 void LynxWindow::OnWindowMinimize() {
-  if (lynx_view_) {
-    lynx_view_->EnterBackground();
-  }
+  SyncRenderActiveState();
   BaseWindow::OnWindowMinimize();
 }
 
@@ -353,6 +372,7 @@ void LynxWindow::OnWindowLeaveFullScreen() {
 }
 
 void LynxWindow::OnWindowClosed() {
+  SyncRenderActiveState();
   BaseWindow::OnWindowClosed();
 }
 
@@ -386,6 +406,10 @@ void LynxWindow::CloseImmediately() {
     if (gin::ConvertFromV8(isolate(), value, &child) && !child.IsEmpty()) {
       child->window()->CloseImmediately();
     }
+  }
+  if (lynx_view_ && last_render_active_) {
+    lynx_view_->EnterBackground();
+    last_render_active_ = false;
   }
   auto lynx_view = std::move(lynx_view_);
   BaseWindow::CloseImmediately();
@@ -436,6 +460,7 @@ void LynxWindow::EnsureLynxView() {
 
   lynx_view_ = builder.Build();
   lynx_view_->SetClient(weak_factory_.GetWeakPtr());
+  SyncRenderActiveState();
 
   if (data_str_.has_value() && global_props_.has_value()) {
     lynx_view_->UpdateData(data_str_.value(), global_props_.value());
@@ -483,16 +508,12 @@ void LynxWindow::EmitFpsEvent() {
 }
 
 void LynxWindow::OnWindowShow() {
-  if (lynx_view_) {
-    lynx_view_->EnterForeground();
-  }
+  SyncRenderActiveState();
   BaseWindow::OnWindowShow();
 }
 
 void LynxWindow::OnWindowHide() {
-  if (lynx_view_) {
-    lynx_view_->EnterBackground();
-  }
+  SyncRenderActiveState();
   BaseWindow::OnWindowHide();
 }
 

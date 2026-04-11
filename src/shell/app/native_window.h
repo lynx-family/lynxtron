@@ -207,6 +207,10 @@ class NativeWindow : public base::SupportsUserData {
 
   // Vibrancy API
   virtual void SetVibrancy(const std::string& type, int duration);
+  virtual std::string GetVibrancyTypeForTesting() const;
+  virtual bool HasVibrancyView() const;
+  virtual std::string GetVisualEffectStateForTesting() const;
+  virtual std::string GetNativeVisualEffectStateForTesting() const;
 
   // Traffic Light API
 #if BUILDFLAG(IS_MAC)

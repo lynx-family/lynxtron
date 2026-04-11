@@ -3,8 +3,6 @@
 // LICENSE file in the root directory of this source tree.
 
 export interface OpenExternalOptions {
-  // Docs: https://electronjs.org/docs/api/shell
-
   /**
    * `true` to bring the opened application to the foreground. The default is `true`.
    *
@@ -27,8 +25,6 @@ export interface OpenExternalOptions {
 }
 
 export interface ShortcutDetails {
-  // Docs: https://electronjs.org/docs/api/structures/shortcut-details
-
   /**
    * The Application User Model ID. Default is empty.
    */
@@ -67,8 +63,6 @@ export interface ShortcutDetails {
 }
 
 export interface Shell {
-  // Docs: https://electronjs.org/docs/api/shell
-
   /**
    * Play the beep sound.
    */
