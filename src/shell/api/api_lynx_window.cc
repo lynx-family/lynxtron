@@ -511,7 +511,7 @@ bool LynxWindow::LoadFile(const std::string& path, gin::Arguments* args) {
   }
 
   lynx_view_->LoadFile(local_path.AsUTF8Unsafe(), data_json.value(),
-                       global_props.IsEmpty() ? "" : props_json.value());
+                       global_props.IsEmptyObject() ? "" : props_json.value());
   return true;
 }
 
