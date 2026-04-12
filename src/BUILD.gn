@@ -5,6 +5,7 @@ import("//build/config/win/manifest.gni")
 import("//lynx/config.gni")
 import("//testing/test.gni")
 import("//tools/v8_context_snapshot/v8_context_snapshot.gni")
+import("../config.gni")
 import("build/asar.gni")
 import("build/js2c_toolchain.gni")
 import("build/npm.gni")
@@ -873,6 +874,21 @@ if (is_win) {
     sources = [ "shell/app/main_win.cc" ]
 
     ldflags = [ "/DEF:" + rebase_path("build/lynxtron.def", root_build_dir) ]
+    if (enable_enlarge_stack) {
+      if (current_cpu == "x86") {
+        # Set the initial stack size to 0.5MiB, instead of the 1.5MiB needed by
+        # Chrome's main thread. This saves significant memory on threads (like
+        # those in the Windows thread pool, and others) whose stack size we can
+        # only control through this setting. Because Chrome's main thread needs
+        # a minimum 1.5 MiB stack, the main thread (in 32-bit builds only) uses
+        # fibers to switch to a 1.5 MiB stack before running any other code.
+        ldflags += [ "/STACK:0x80000" ]
+      } else {
+        # Increase the initial stack size. The default is 1MB, this is 8MB.
+        ldflags += [ "/STACK:0x800000" ]
+      }
+    }
+
     inputs = [
       "shell/app/resources/win/lynxtron.ico",
       "build/lynxtron.def",
@@ -903,6 +919,21 @@ if (is_win) {
     ]
     lib_dirs = [ "//third_party/webview2/Microsoft.Web.WebView2.1.0.902.49/build/native/$current_cpu" ]
     output_name = "lynxtron"
+    ldflags = []
+    if (enable_enlarge_stack) {
+      if (current_cpu == "x86") {
+        # Set the initial stack size to 0.5MiB, instead of the 1.5MiB needed by
+        # Chrome's main thread. This saves significant memory on threads (like
+        # those in the Windows thread pool, and others) whose stack size we can
+        # only control through this setting. Because Chrome's main thread needs
+        # a minimum 1.5 MiB stack, the main thread (in 32-bit builds only) uses
+        # fibers to switch to a 1.5 MiB stack before running any other code.
+        ldflags += [ "/STACK:0x80000" ]
+      } else {
+        # Increase the initial stack size. The default is 1MB, this is 8MB.
+        ldflags += [ "/STACK:0x800000" ]
+      }
+    }
   }
 }
 
