@@ -58,3 +58,4 @@
 /base/
 .DS_Store
 /out/
+.venv/

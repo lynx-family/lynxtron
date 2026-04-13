@@ -5,26 +5,26 @@ description: pull common source and binary dependencies via habitat.
 inputs:
   concurrency:
     description: concurrency of requests
-    default: '2'
+    default: "2"
     required: false
   cache-backend:
     description: cache backend for habitat
-    default: 'lynx-infra'
+    default: "lynx-infra"
     required: false
   target:
     description: habitat target
-    default: ''
+    default: ""
     required: false
   target_only:
     description: only install dependencies for the target
-    default: 'false'
+    default: "false"
     required: false
   # actions/cache stores files with relative directory, which causes inconsistency between self-hosted runner and
   # container runner. Therefore, add this temporary option to modify cache key prefix as a workaround. Delete this when
   # we are able to adjust the container runner's directory structure to the same as self-hosted runner.
   cache-key-prefix:
     description: cache key prefix for cache action
-    default: ''
+    default: ""
     required: false
 
 runs:
@@ -35,7 +35,7 @@ runs:
       uses: lynx-infra/cache@5c6160a6a4c7fca80a2f3057bb9dfc9513fcb732
       with:
         path: ~/.habitat_cache
-        key: hab${{ inputs.cache-key-prefix }}-${{ runner.os }}-${{ hashFiles('src/lynxtron/.habitat', 'src/lynxtron/src/dependencies/DEPS') }}
+        key: hab${{ inputs.cache-key-prefix }}-${{ runner.os }}-${{ hashFiles('lynxtron/.habitat', 'lynxtron/src/dependencies/DEPS') }}
         restore-keys: |
           hab${{ inputs.cache-key-prefix }}-${{ runner.os }}-
 
@@ -44,7 +44,7 @@ runs:
       uses: actions/cache@v4
       with:
         path: ~/.habitat_cache
-        key: hab${{ inputs.cache-key-prefix }}-${{ runner.os }}-${{ hashFiles('src/lynxtron/.habitat', 'src/lynxtron/src/dependencies/DEPS') }}
+        key: hab${{ inputs.cache-key-prefix }}-${{ runner.os }}-${{ hashFiles('lynxtron/.habitat', 'lynxtron/src/dependencies/DEPS') }}
         restore-keys: |
           hab${{ inputs.cache-key-prefix }}-${{ runner.os }}-
 
@@ -63,15 +63,15 @@ runs:
 
     - name: run habitat sync
       shell: bash
-      working-directory: src/lynxtron
+      working-directory: lynxtron/src
       run: |
         set -x
         if [[ "${{ inputs.target }}" == "" ]]; then
-          lynxtron_tools/hab sync .
+          ${{ github.workspace }}/lynxtron/lynxtron_tools/hab sync .
         elif [[ "${{ inputs.target_only }}" == "true" ]]; then
-          lynxtron_tools/hab sync . --target ${{ inputs.target }} --target-only
+          ${{ github.workspace }}/lynxtron/lynxtron_tools/hab sync . --target ${{ inputs.target }} --target-only
         else
-          lynxtron_tools/hab sync . --target ${{ inputs.target }}
+          ${{ github.workspace }}/lynxtron/lynxtron_tools/hab sync . --target ${{ inputs.target }}
         fi
       env:
         HABITAT_CONCURRENCY: ${{ inputs.concurrency }}

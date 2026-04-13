@@ -9,3 +9,5 @@ packages/default_app/app/dist
 .DS_Store
 spec/.yarn/
 .venv
+node_modules/
+__pycache__/
