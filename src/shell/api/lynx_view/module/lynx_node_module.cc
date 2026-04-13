@@ -5,6 +5,7 @@
 #include "shell/api/lynx_view/module/lynx_node_module.h"
 
 #include <memory>
+#include <utility>
 
 #include "base/include/fml/message_loop.h"
 #include "base/include/fml/platform/node/message_loop_node.h"
@@ -194,8 +195,14 @@ v8::Local<v8::Context> LynxNodeModule::CreateNewNodeContext(
       v8_isolate, GetUVLoopFromCurrent(),
       reinterpret_cast<node::MultiIsolatePlatform*>(v8_platform_));
 
+  // IMPORTANT: Always provide a "main script" as argv[1]. If we don't,
+  // upstream Node.js may fall back to interactive REPL mode when stdin is a
+  // TTY. The embedded Node environment used for BTS preloads should never
+  // start a REPL.
+  std::vector<std::string> args = {"lynxbts_node",
+                                   "lynxtron/js2c/lynxbts_init"};
   env_ = node::CreateEnvironment(
-      isolate_data_, new_context, {}, {},
+      isolate_data_, new_context, std::move(args), {},
       static_cast<node::EnvironmentFlags::Flags>(kInitNodeEnvflags));
 
   node::LoadEnvironment(env_, node::StartExecutionCallback{},
