@@ -5,8 +5,8 @@
   "description": "A browser Lynxtron application",
   "main": "main.js",
   "scripts": {
-    "dev": "cross-env TARGET_ENV=desktop NODE_ENV=development concurrently -k --raw \"rspeedy dev\" \"dev-ready-rspeedy && rspack dev\"",
-    "dev:web": "cross-env TARGET_ENV=web NODE_ENV=development concurrently -k --raw \"rspeedy dev\" \"rspack serve\"",
+    "dev": "cross-env TARGET_ENV=desktop NODE_ENV=development concurrently -k --prefix none \"rspeedy dev\" \"dev-ready-rspeedy && rspack dev\"",
+    "dev:web": "cross-env TARGET_ENV=web NODE_ENV=development concurrently -k --prefix node \"rspeedy dev\" \"rspack serve\"",
     "build": "rspeedy build && rspack build",
     "start": "cross-env TARGET_ENV=desktop npm run build && lynxtron ./dist/desktop",
     "start:web": "cross-env TARGET_ENV=web npm run build && npx serve ./dist/web",
