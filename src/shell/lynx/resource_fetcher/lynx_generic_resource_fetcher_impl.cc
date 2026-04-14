@@ -16,6 +16,7 @@
 #include "shell/api/lynx_view/module/lynx_emit_event.h"
 #include "shell/app/javascript_environment.h"
 #include "shell/common/gin_helper/dictionary.h"
+#include "shell/common/global_thread.h"
 #include "shell/lynx/resource_fetcher/lynx_generic_resource_fetcher_factory.h"
 #include "v8.h"
 
@@ -105,47 +106,55 @@ void LynxGenericResourceFetcherImpl::FetchResource(
   if (!request || !response || !request->GetUrl()) {
     return;
   }
-
-  std::string url = std::string(request->GetUrl());
   if (!lynx_window_) {
     return;
   }
-
-  v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
-  v8::Locker locker(isolate);
-  v8::Isolate::Scope isolate_scope(isolate);
-  v8::HandleScope handle_scope(isolate);
-
-  auto node_emit_event = LynxEmitEvent::Create(
-      isolate, [response](v8::Isolate* isolate, v8::Local<v8::Value> data_val) {
-        if (data_val.IsEmpty() || !data_val->IsObject()) {
-          CompleteWithError(response, kDefaultErrorCode,
-                            "Invalid reply payload");
-          return;
-        }
-
-        gin_helper::Dictionary dict(isolate, data_val.As<v8::Object>());
-        int status_code = kDefaultErrorCode;
-        dict.Get("statusCode", &status_code);
-        response->SetCode(status_code);
-
-        v8::Local<v8::Value> buf_val;
-        if (!dict.Get("data", &buf_val)) {
-          CompleteWithError(response, status_code, "No data field");
-          return;
-        }
-
-        if (!SetResponseDataFromV8Value(isolate, buf_val, response)) {
-          CompleteWithError(response, status_code, "Unsupported data type");
-          return;
-        }
-
-        response->Complete();
-      });
-
-  const std::string& resource_type = GetResourceTypeString(request->GetType());
-  lynx_window_->EmitWithoutEvent("-on-fetch-resource", node_emit_event,
-                                 resource_type, url);
+  GlobalThread::GetUIThreadTaskRunner()->PostTask(
+      FROM_HERE,
+      base::BindOnce(
+          [](std::shared_ptr<lynx::pub::resource::LynxResourceRequest> request,
+             std::shared_ptr<lynx::pub::resource::LynxResourceResponse>
+                 response,
+             base::WeakPtr<api::LynxWindow> lynx_window) {
+            if (!lynx_window) {
+              return;
+            }
+            std::string url = std::string(request->GetUrl());
+            v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
+            v8::Locker locker(isolate);
+            v8::Isolate::Scope isolate_scope(isolate);
+            v8::HandleScope handle_scope(isolate);
+            auto node_emit_event = LynxEmitEvent::Create(
+                isolate, [response](v8::Isolate* isolate,
+                                    v8::Local<v8::Value> data_val) {
+                  if (data_val.IsEmpty() || !data_val->IsObject()) {
+                    CompleteWithError(response, kDefaultErrorCode,
+                                      "Invalid reply payload");
+                    return;
+                  }
+                  gin_helper::Dictionary dict(isolate,
+                                              data_val.As<v8::Object>());
+                  int status_code = kDefaultErrorCode;
+                  dict.Get("statusCode", &status_code);
+                  response->SetCode(status_code);
+                  v8::Local<v8::Value> buf_val;
+                  if (!dict.Get("data", &buf_val)) {
+                    CompleteWithError(response, status_code, "No data field");
+                    return;
+                  }
+                  if (!SetResponseDataFromV8Value(isolate, buf_val, response)) {
+                    CompleteWithError(response, status_code,
+                                      "Unsupported data type");
+                    return;
+                  }
+                  response->Complete();
+                });
+            const std::string& resource_type =
+                GetResourceTypeString(request->GetType());
+            lynx_window->EmitWithoutEvent("-on-fetch-resource", node_emit_event,
+                                          resource_type, url);
+          },
+          request, response, lynx_window_));
 }
 
 void LynxGenericResourceFetcherImpl::FetchResourcePath(
@@ -162,13 +171,11 @@ LynxGenericResourceFetcherFactory::Create(
   lynx_generic_resource_fetcher_bind_intercept_func(
       fetcher->Impl(),
       [](const char* url, bool /*should_decode*/, void* user_data) -> char* {
-        auto* weak_ptr =
-            reinterpret_cast<std::weak_ptr<lynx::pub::LynxGenericResourceFetcher>*>(
-                user_data);
+        auto* weak_ptr = reinterpret_cast<
+            std::weak_ptr<lynx::pub::LynxGenericResourceFetcher>*>(user_data);
         auto shared_fetcher = weak_ptr ? weak_ptr->lock() : nullptr;
-        auto impl =
-            std::static_pointer_cast<LynxGenericResourceFetcherImpl>(
-                shared_fetcher);
+        auto impl = std::static_pointer_cast<LynxGenericResourceFetcherImpl>(
+            shared_fetcher);
         if (!impl || !url) {
           return lynx_strdup(url ? url : "");
         }
