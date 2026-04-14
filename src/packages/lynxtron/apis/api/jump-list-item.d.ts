@@ -3,6 +3,8 @@
 // LICENSE file in the root directory of this source tree.
 
 export interface JumpListCategory {
+  // Docs: https://electronjs.org/docs/api/structures/jump-list-category
+
   /**
    * Array of `JumpListItem` objects if `type` is `tasks` or `custom`, otherwise it
    * should be omitted.
@@ -35,6 +37,8 @@ export interface JumpListSettings {
 }
 
 export interface JumpListItem {
+  // Docs: https://electronjs.org/docs/api/structures/jump-list-item
+
   /**
    * The command line arguments when `program` is executed. Should only be set if
    * `type` is `task`.

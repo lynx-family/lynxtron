@@ -82,7 +82,6 @@ inline constexpr std::string_view kFocusable = "focusable";
 
 // Add a vibrancy effect to the browser window
 inline constexpr std::string_view kVibrancyType = "vibrancy";
-inline constexpr std::string_view kVisualEffectState = "visualEffectState";
 
 inline constexpr std::string_view kTrafficLightPosition =
     "trafficLightPosition";

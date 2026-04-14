@@ -176,10 +176,6 @@ class BaseWindow : public gin_helper::TrackableObject<BaseWindow>,
 
 #if BUILDFLAG(IS_MAC)
   std::string GetAlwaysOnTopLevel() const;
-  std::string GetVibrancyTypeForTesting() const;
-  bool HasVibrancyView() const;
-  std::string GetVisualEffectStateForTesting() const;
-  std::string GetNativeVisualEffectStateForTesting() const;
   void SetWindowButtonVisibility(bool visible);
   bool GetWindowButtonVisibility() const;
   void SetTrafficLightPosition(const gfx::Point& position);

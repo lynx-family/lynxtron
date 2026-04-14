@@ -9,6 +9,8 @@ import { BaseWindow } from './base-window';
 import { EventEmitter } from 'node:events';
 
 export interface Display {
+  // Docs: https://electronjs.org/docs/api/structures/display
+
   /**
    * Can be `available`, `unavailable`, `unknown`.
    */
@@ -89,6 +91,8 @@ export interface Display {
 }
 
 export interface Screen extends EventEmitter {
+  // Docs: https://electronjs.org/docs/api/screen
+
   /**
    * Emitted when `newDisplay` has been added.
    */

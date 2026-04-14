@@ -28,12 +28,6 @@ namespace lynxtron {
 
 class NativeWindowMac : public NativeWindow {
  public:
-  enum class VisualEffectState {
-    kFollowWindow,
-    kActive,
-    kInactive,
-  };
-
   NativeWindowMac(const gin_helper::Dictionary& options, NativeWindow* parent);
   ~NativeWindowMac() override;
 
@@ -55,7 +49,6 @@ class NativeWindowMac : public NativeWindow {
   bool IsMinimized() const override;
   void SetFullScreen(bool fullscreen) override;
   bool IsFullscreen() const override;
-  void SetSizeConstraints(const SizeConstraints& window_constraints) override;
   void SetBounds(const gfx::Rect& bounds, bool animate) override;
   gfx::Rect GetBounds() const override;
   gfx::Size GetSize() const override;
@@ -97,9 +90,6 @@ class NativeWindowMac : public NativeWindow {
   void SetFocusable(bool focusable) override;
   bool IsFocusable() const override;
   void SetVibrancy(const std::string& type, int duration) override;
-  bool HasVibrancyView() const override;
-  std::string GetVisualEffectStateForTesting() const override;
-  std::string GetNativeVisualEffectStateForTesting() const override;
   void SetParentWindow(NativeWindow* parent) override;
   gfx::NativeWindow GetNativeWindow() const override;
   void SetProgressBar(double progress, const ProgressState state) override;
@@ -174,15 +164,6 @@ class NativeWindowMac : public NativeWindow {
   void AttachChildren();
   void HideTrafficLights();
   void RestoreTrafficLights();
-  void SyncWindowVisibilityState();
-  void set_restore_from_maximize_pending(bool pending) {
-    restore_from_maximize_pending_ = pending;
-  }
-  bool consume_restore_from_maximize_pending() {
-    const bool pending = restore_from_maximize_pending_;
-    restore_from_maximize_pending_ = false;
-    return pending;
-  }
 
  protected:
   std::queue<bool> pending_transitions_;
@@ -203,11 +184,6 @@ class NativeWindowMac : public NativeWindow {
   void InternalSetParentWindow(NativeWindow* parent, bool attach);
   void InternalSetWindowButtonVisibility(bool visible);
   void PerformTabAction(SEL selector);
-  bool wants_to_be_visible() const { return wants_to_be_visible_; }
-  void set_wants_to_be_visible(bool wants_to_be_visible) {
-    wants_to_be_visible_ = wants_to_be_visible;
-  }
-  void UpdateVibrancyState();
 
   LynxNSWindow* __strong window_;
   LynxNSWindowDelegate* __strong window_delegate_;
@@ -237,10 +213,6 @@ class NativeWindowMac : public NativeWindow {
   bool was_movable_ = false;
 
   bool is_active_ = false;
-  bool wants_to_be_visible_ = false;
-  // Cache the last reported visibility to avoid duplicate events.
-  bool last_reported_visible_ = false;
-  bool restore_from_maximize_pending_ = false;
   NSRect original_frame_;
   NSInteger original_level_;
   NSUInteger simple_fullscreen_mask_;
@@ -249,7 +221,6 @@ class NativeWindowMac : public NativeWindow {
   // The presentation options before entering simple fullscreen mode.
   NSApplicationPresentationOptions simple_fullscreen_options_;
   ui::ZOrderLevel z_order_ = ui::ZOrderLevel::kNormal;
-  VisualEffectState visual_effect_state_ = VisualEffectState::kFollowWindow;
 
   // DISALLOW_COPY_AND_ASSIGN(NativeWindowMac);
 };

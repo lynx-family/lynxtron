@@ -3,6 +3,8 @@
 // LICENSE file in the root directory of this source tree.
 
 export interface CPUUsage {
+  // Docs: https://electronjs.org/docs/api/structures/cpu-usage
+
   /**
    * Total seconds of CPU time used since process startup.
    */
@@ -19,13 +21,15 @@ export interface CPUUsage {
 }
 
 export interface MemoryInfo {
+  // Docs: https://electronjs.org/docs/api/structures/memory-info
+
   /**
    * The maximum amount of memory that has ever been pinned to actual physical RAM.
    */
   peakWorkingSetSize: number;
   /**
-   * The amount of memory not shared by other processes, such as script heap or
-   * other private runtime content.
+   * The amount of memory not shared by other processes, such as JS heap or HTML
+   * content.
    *
    * @platform win32
    */
@@ -37,6 +41,8 @@ export interface MemoryInfo {
 }
 
 export interface ProcessMetric {
+  // Docs: https://electronjs.org/docs/api/structures/process-metric
+
   /**
    * CPU usage of the process.
    */

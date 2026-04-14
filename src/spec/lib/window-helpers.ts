@@ -8,29 +8,11 @@ import { expect } from 'chai';
 import { once } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';
 
-import { waitUntil } from './spec-helpers';
-
 async function ensureWindowIsClosed(window: BaseWindow | null) {
   if (window && !window.isDestroyed()) {
-    const closed = once(window, 'closed').catch(() => undefined);
+    const closed = once(window, 'closed');
     window.destroy();
-
-    await Promise.race([
-      closed,
-      waitUntil(
-        () =>
-          window.isDestroyed() ||
-          !(BaseWindow.getAllWindows() as BaseWindow[]).includes(window),
-        { timeout: 3000 }
-      ),
-    ]).catch(() => undefined);
-  }
-
-  if (window) {
-    await waitUntil(
-      () => !(BaseWindow.getAllWindows() as BaseWindow[]).includes(window),
-      { timeout: 3000 }
-    ).catch(() => undefined);
+    await closed;
   }
 }
 
@@ -43,19 +25,8 @@ export const closeWindow = async (
   if (assertNotWindows) {
     let windows = BaseWindow.getAllWindows() as BaseWindow[];
     if (windows.length > 0) {
-      for (const win of windows) {
-        await ensureWindowIsClosed(win);
-      }
-
-      // Wait until next tick so delayed native teardown can flush.
+      // Wait until next tick to assert that all windows have been closed.
       await delay(0);
-      await waitUntil(
-        () => (BaseWindow.getAllWindows() as BaseWindow[]).length === 0,
-        {
-          timeout: 3000,
-        }
-      ).catch(() => undefined);
-
       windows = BaseWindow.getAllWindows() as BaseWindow[];
       try {
         expect(windows).to.have.lengthOf(0);

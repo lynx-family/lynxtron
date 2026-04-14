@@ -32,6 +32,7 @@ export class UtilityProcess extends EventEmitter {
 }
 
 export namespace utilityProcess {
+  // Docs: https://electronjs.org/docs/api/utility-process
   /**
    * Spawns a new process that runs the specified `modulePath`.
    */

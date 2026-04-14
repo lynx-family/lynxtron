@@ -7,7 +7,6 @@ export const app = lynxtron.app;
 export const LynxWindow = lynxtron.LynxWindow;
 export const Menu = lynxtron.Menu;
 export const MenuItem = lynxtron.MenuItem;
-export const clipboard = lynxtron.clipboard;
 export const shell = lynxtron.shell;
 export const dialog = lynxtron.dialog;
 export const screen = lynxtron.screen;

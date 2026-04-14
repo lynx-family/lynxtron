@@ -8,7 +8,6 @@
 export const lynxtronModuleList: LynxtronInternal.ModuleEntry[] = [
   { name: 'app', loader: () => require('./app') },
   { name: 'BaseWindow', loader: () => require('./base-window') },
-  { name: 'clipboard', loader: () => require('./clipboard') },
   { name: 'dialog', loader: () => require('./dialog') },
   { name: 'LynxWindow', loader: () => require('./lynx-window') },
   {

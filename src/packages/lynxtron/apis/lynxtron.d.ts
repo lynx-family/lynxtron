@@ -16,7 +16,6 @@ export * from './api/task';
 export * from './api/dock';
 export * from './api/jump-list-item';
 export * from './api/base-window';
-export * from './api/clipboard';
 export * from './api/event';
 export * from './api/lynx-window';
 export * from './api/touch-bar';

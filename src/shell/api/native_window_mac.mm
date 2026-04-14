@@ -62,111 +62,15 @@
 
 namespace lynxtron {
 
-namespace {
-
-NativeWindowMac::VisualEffectState ParseVisualEffectState(
-    const std::string& state) {
-  if (state == "active") {
-    return NativeWindowMac::VisualEffectState::kActive;
-  }
-  if (state == "inactive") {
-    return NativeWindowMac::VisualEffectState::kInactive;
-  }
-  return NativeWindowMac::VisualEffectState::kFollowWindow;
-}
-
-NSVisualEffectState ToNativeVisualEffectState(
-    NativeWindowMac::VisualEffectState state) {
-  switch (state) {
-    case NativeWindowMac::VisualEffectState::kActive:
-      return NSVisualEffectStateActive;
-    case NativeWindowMac::VisualEffectState::kInactive:
-      return NSVisualEffectStateInactive;
-    case NativeWindowMac::VisualEffectState::kFollowWindow:
-      return NSVisualEffectStateFollowsWindowActiveState;
-  }
-}
-
-std::optional<NSVisualEffectMaterial> ToVibrancyMaterial(
-    const std::string& type) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-  if (type == "appearance-based") {
-    return NSVisualEffectMaterialAppearanceBased;
-  }
-  if (type == "light") {
-    return NSVisualEffectMaterialLight;
-  }
-  if (type == "dark") {
-    return NSVisualEffectMaterialDark;
-  }
-  if (type == "medium-light") {
-    return NSVisualEffectMaterialMediumLight;
-  }
-  if (type == "ultra-dark") {
-    return NSVisualEffectMaterialUltraDark;
-  }
-#pragma clang diagnostic pop
-  if (type == "titlebar") {
-    return NSVisualEffectMaterialTitlebar;
-  }
-  if (type == "selection") {
-    return NSVisualEffectMaterialSelection;
-  }
-  if (type == "menu") {
-    return NSVisualEffectMaterialMenu;
-  }
-  if (type == "popover") {
-    return NSVisualEffectMaterialPopover;
-  }
-  if (type == "sidebar") {
-    return NSVisualEffectMaterialSidebar;
-  }
-  if (@available(macOS 10.14, *)) {
-    if (type == "header") {
-      return NSVisualEffectMaterialHeaderView;
-    }
-    if (type == "sheet") {
-      return NSVisualEffectMaterialSheet;
-    }
-    if (type == "window") {
-      return NSVisualEffectMaterialWindowBackground;
-    }
-    if (type == "hud") {
-      return NSVisualEffectMaterialHUDWindow;
-    }
-    if (type == "fullscreen-ui") {
-      return NSVisualEffectMaterialFullScreenUI;
-    }
-    if (type == "tooltip") {
-      return NSVisualEffectMaterialToolTip;
-    }
-    if (type == "content") {
-      return NSVisualEffectMaterialContentBackground;
-    }
-    if (type == "under-window") {
-      return NSVisualEffectMaterialUnderWindowBackground;
-    }
-    if (type == "under-page") {
-      return NSVisualEffectMaterialUnderPageBackground;
-    }
-  }
-  return std::nullopt;
-}
-
-}  // namespace
-
 NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
                                  NativeWindow* parent)
     : NativeWindow(options, parent) {
   bool hidden_in_mission_control = false;
   const bool has_hidden_in_mission_control =
       options.Get(options::kHiddenInMissionControl, &hidden_in_mission_control);
-  std::string vibrancy_type;
-  options.Get(options::kVibrancyType, &vibrancy_type);
-  if (std::string visual_effect_state;
-      options.Get(options::kVisualEffectState, &visual_effect_state)) {
-    visual_effect_state_ = ParseVisualEffectState(visual_effect_state);
+
+  if (std::string val; options.Get(options::kVibrancyType, &val)) {
+    SetVibrancy(val, 0);
   }
 
   std::string title_bar_style;
@@ -300,10 +204,6 @@ NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
     }
   }
 
-  if (!vibrancy_type.empty()) {
-    SetVibrancy(vibrancy_type, 0);
-  }
-
   if (tabbingIdentifier.empty() || transparent() || !frame()) {
     [window_ setTabbingMode:NSWindowTabbingModeDisallowed];
   } else {
@@ -336,19 +236,6 @@ NativeWindowMac::~NativeWindowMac() {
   window_ = nil;
 }
 
-void NativeWindowMac::SyncWindowVisibilityState() {
-  const bool should_report_visible = wants_to_be_visible() && IsVisible();
-  const bool should_report_hidden = !wants_to_be_visible() && !IsVisible();
-
-  if (should_report_visible && !last_reported_visible_) {
-    last_reported_visible_ = true;
-    NotifyWindowShow();
-  } else if (should_report_hidden && last_reported_visible_) {
-    last_reported_visible_ = false;
-    NotifyWindowHide();
-  }
-}
-
 void NativeWindowMac::CloseDisableOverlay() {
   if (!disabled_window_) {
     return;
@@ -370,8 +257,6 @@ void NativeWindowMac::Close() {
     WindowList::WindowCloseCancelled(this);
     return;
   }
-
-  set_wants_to_be_visible(false);
 
   CloseDisableOverlay();
   CloseAttachedSheets();
@@ -396,7 +281,6 @@ void NativeWindowMac::CloseImmediately() {
     deferred_close_ = true;
     return;
   }
-  set_wants_to_be_visible(false);
   CloseDisableOverlay();
   CloseAttachedSheets();
   [window_ close];
@@ -411,22 +295,8 @@ void NativeWindowMac::Focus(bool focus) {
     [[NSApplication sharedApplication] activateIgnoringOtherApps:NO];
     [window_ makeKeyAndOrderFront:nil];
   } else {
-    NSWindow* next_focus_window = nil;
-    for (NSWindow* candidate in [NSApp orderedWindows]) {
-      if (candidate == window_ || ![candidate isVisible] ||
-          [candidate isMiniaturized] || ![candidate canBecomeKeyWindow]) {
-        continue;
-      }
-      next_focus_window = candidate;
-      break;
-    }
-
     [window_ orderOut:nil];
     [window_ orderBack:nil];
-
-    if (next_focus_window != nil) {
-      [next_focus_window makeKeyAndOrderFront:nil];
-    }
   }
 }
 
@@ -435,8 +305,6 @@ bool NativeWindowMac::IsFocused() {
 }
 
 void NativeWindowMac::Show() {
-  set_wants_to_be_visible(true);
-
   if (is_modal() && parent()) {
     NSWindow* window = parent()->GetNativeWindow().GetNativeNSWindow();
     if ([window_ sheetParent] == nil) {
@@ -444,7 +312,6 @@ void NativeWindowMac::Show() {
           completionHandler:^(NSModalResponse){
           }];
     }
-    SyncWindowVisibilityState();
     return;
   }
   // Reattach the window to the parent to actually show it.
@@ -455,24 +322,18 @@ void NativeWindowMac::Show() {
   // have focus then "makeKeyAndOrderFront" will only show the window.
   [NSApp activateIgnoringOtherApps:YES];
   [window_ makeKeyAndOrderFront:nil];
-  SyncWindowVisibilityState();
 }
 
 void NativeWindowMac::ShowInactive() {
-  set_wants_to_be_visible(true);
-
   // Reattach the window to the parent to actually show it.
   if (parent()) {
     InternalSetParentWindow(parent(), true);
   }
 
   [window_ orderFrontRegardless];
-  SyncWindowVisibilityState();
 }
 
 void NativeWindowMac::Hide() {
-  set_wants_to_be_visible(false);
-
   // If a sheet is attached to the window when we call [window_
   // orderOut:nil], the sheet won't be able to show again on the same window.
   // Ensure it's closed before calling [window_ orderOut:nil].
@@ -482,7 +343,6 @@ void NativeWindowMac::Hide() {
   if (is_modal() && parent()) {
     [window_ orderOut:nil];
     [parent()->GetNativeWindow().GetNativeNSWindow() endSheet:window_];
-    SyncWindowVisibilityState();
     return;
   }
 
@@ -501,7 +361,6 @@ void NativeWindowMac::Hide() {
   }
 
   [window_ orderOut:nil];
-  SyncWindowVisibilityState();
 }
 
 void NativeWindowMac::DetachChildren() {
@@ -516,16 +375,7 @@ void NativeWindowMac::DetachChildren() {
   }
 
   for (NSWindow* child in children) {
-    bool should_restore = [child isVisible] && ![child isMiniaturized];
-    if ([child isKindOfClass:[LynxNSWindow class]]) {
-      LynxNSWindow* child_window = static_cast<LynxNSWindow*>(child);
-      if (lynxtron::NativeWindowMac* child_shell = [child_window shell]) {
-        should_restore =
-            child_shell->wants_to_be_visible() && ![child isMiniaturized];
-      }
-    }
-
-    if (should_restore) {
+    if ([child isVisible] && ![child isMiniaturized]) {
       minimized_visible_children_.push_back(child);
     }
     [child orderOut:nil];
@@ -542,24 +392,9 @@ void NativeWindowMac::AttachChildren() {
     if (!child) {
       continue;
     }
-    if ([child isKindOfClass:[LynxNSWindow class]]) {
-      LynxNSWindow* child_window = static_cast<LynxNSWindow*>(child);
-      if (lynxtron::NativeWindowMac* child_shell = [child_window shell]) {
-        if (!child_shell->wants_to_be_visible()) {
-          continue;
-        }
-      }
-    }
-    if ([child parentWindow] && [child parentWindow] != window_) {
-      [[child parentWindow] removeChildWindow:child];
-    }
+    // Only restore for windows that are still children of this window.
     if ([child parentWindow] != window_) {
-      NSInteger level = child.level;
-      [window_ addChildWindow:child ordered:NSWindowAbove];
-      [child setLevel:level];
-    }
-    if ([child isMiniaturized]) {
-      [child deminiaturize:nil];
+      continue;
     }
     [child orderWindow:NSWindowAbove relativeTo:[window_ windowNumber]];
   }
@@ -586,8 +421,9 @@ void NativeWindowMac::RestoreTrafficLights() {
 }
 
 bool NativeWindowMac::IsVisible() {
-  // Use the window's ordered visibility instead of screen visibility so
-  // show/hide state stays aligned with the window lifecycle.
+  // `occlusionState` lags behind show/restore notifications on macOS, which
+  // makes immediate `isVisible()` checks return false right after the window
+  // has been shown. Use the window's ordered visibility instead.
   return [window_ isVisible] && !IsMinimized();
 }
 
@@ -660,17 +496,10 @@ void NativeWindowMac::Unmaximize() {
     return;
   }
 
-  set_restore_from_maximize_pending(false);
   [window_ zoom:nil];
 }
 
 bool NativeWindowMac::IsMaximized() const {
-  // Align with Electron/AppKit semantics: a window that is miniaturized keeps
-  // its zoom state internally, but should not report as currently maximized.
-  if (IsMinimized() || IsFullscreen()) {
-    return false;
-  }
-
   if (HasStyleMask(NSWindowStyleMaskResizable) != 0) {
     return [window_ isZoomed];
   }
@@ -695,12 +524,6 @@ void NativeWindowMac::Minimize() {
 }
 
 void NativeWindowMac::Restore() {
-  if (IsMaximized()) {
-    set_restore_from_maximize_pending(true);
-    [window_ zoom:nil];
-    return;
-  }
-
   [window_ deminiaturize:nil];
 }
 
@@ -779,25 +602,6 @@ bool NativeWindowMac::HandleDeferredClose() {
 
 bool NativeWindowMac::IsFullscreen() const {
   return HasStyleMask(NSWindowStyleMaskFullScreen);
-}
-
-void NativeWindowMac::SetSizeConstraints(
-    const SizeConstraints& window_constraints) {
-  if (window_constraints.HasMinimumSize()) {
-    [window_ setMinSize:window_constraints.GetMinimumSize().ToCGSize()];
-  }
-  if (window_constraints.HasMaximumSize()) {
-    [window_ setMaxSize:window_constraints.GetMaximumSize().ToCGSize()];
-  }
-
-  NativeWindow::SetSizeConstraints(window_constraints);
-
-  gfx::Rect bounds = GetBounds();
-  gfx::Size clamped_size = window_constraints.ClampSize(bounds.size());
-  if (clamped_size != bounds.size()) {
-    bounds.set_size(clamped_size);
-    SetBounds(bounds, false);
-  }
 }
 
 void NativeWindowMac::SetBounds(const gfx::Rect& bounds, bool animate) {
@@ -1114,9 +918,6 @@ void NativeWindowMac::SetParentWindow(NativeWindow* parent) {
 void NativeWindowMac::SetVisibleOnAllWorkspaces(bool visible,
                                                 bool visibleOnFullScreen,
                                                 bool skipTransformProcessType) {
-  SetCollectionBehavior(visible, NSWindowCollectionBehaviorCanJoinAllSpaces);
-  SetCollectionBehavior(visibleOnFullScreen,
-                        NSWindowCollectionBehaviorFullScreenAuxiliary);
 }
 
 bool NativeWindowMac::IsVisibleOnAllWorkspaces() {
@@ -1362,7 +1163,6 @@ ui::ZOrderLevel NativeWindowMac::GetZOrderLevel() const {
 
 void NativeWindowMac::SetActive(bool is_key) {
   is_active_ = is_key;
-  UpdateVibrancyState();
 }
 
 bool NativeWindowMac::IsActive() const {
@@ -1390,108 +1190,7 @@ void NativeWindowMac::SetWindowButtonVisibility(bool visible) {
 }
 
 void NativeWindowMac::SetVibrancy(const std::string& type, int duration) {
-  NativeWindow::SetVibrancy(type, duration);
-
-  if (!window_) {
-    return;
-  }
-
-  NSVisualEffectView* vibrant_view = [window_ vibrantView];
-  const NSTimeInterval animation_duration = std::max(duration, 0) / 1000.0;
-  const bool animate = animation_duration > 0;
-
-  if (type.empty()) {
-    if (!vibrant_view) {
-      return;
-    }
-
-    auto cleanup = ^{
-      [vibrant_view removeFromSuperview];
-      [window_ setVibrantView:nil];
-    };
-
-    if (animate) {
-      [NSAnimationContext
-          runAnimationGroup:^(NSAnimationContext* context) {
-            context.duration = animation_duration;
-            vibrant_view.animator.alphaValue = 0.0;
-          }
-          completionHandler:cleanup];
-    } else {
-      cleanup();
-    }
-    return;
-  }
-
-  const auto material = ToVibrancyMaterial(type);
-  if (!material) {
-    LOG(WARNING) << "Unsupported vibrancy type: " << type;
-    return;
-  }
-
-  if (!vibrant_view) {
-    vibrant_view = [[NSVisualEffectView alloc]
-        initWithFrame:[[window_ contentView] bounds]];
-    [vibrant_view setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
-    [vibrant_view setBlendingMode:NSVisualEffectBlendingModeBehindWindow];
-    [vibrant_view setMaterial:*material];
-    [vibrant_view setState:ToNativeVisualEffectState(visual_effect_state_)];
-    [vibrant_view setAlphaValue:animate ? 0.0 : 1.0];
-    [[window_ contentView] addSubview:vibrant_view
-                           positioned:NSWindowBelow
-                           relativeTo:nil];
-    [window_ setVibrantView:vibrant_view];
-  } else {
-    [vibrant_view setMaterial:*material];
-    UpdateVibrancyState();
-  }
-
-  if (animate) {
-    [NSAnimationContext
-        runAnimationGroup:^(NSAnimationContext* context) {
-          context.duration = animation_duration;
-          vibrant_view.animator.alphaValue = 1.0;
-        }
-        completionHandler:nil];
-  }
-}
-
-bool NativeWindowMac::HasVibrancyView() const {
-  return [window_ vibrantView] != nil;
-}
-
-std::string NativeWindowMac::GetVisualEffectStateForTesting() const {
-  switch (visual_effect_state_) {
-    case VisualEffectState::kActive:
-      return "active";
-    case VisualEffectState::kInactive:
-      return "inactive";
-    case VisualEffectState::kFollowWindow:
-      return "followWindow";
-  }
-}
-
-std::string NativeWindowMac::GetNativeVisualEffectStateForTesting() const {
-  NSVisualEffectView* vibrant_view = [window_ vibrantView];
-  if (!vibrant_view) {
-    return "none";
-  }
-  switch ([vibrant_view state]) {
-    case NSVisualEffectStateActive:
-      return "active";
-    case NSVisualEffectStateInactive:
-      return "inactive";
-    case NSVisualEffectStateFollowsWindowActiveState:
-      return "followWindow";
-  }
-}
-
-void NativeWindowMac::UpdateVibrancyState() {
-  if (![window_ vibrantView]) {
-    return;
-  }
-  [[window_ vibrantView]
-      setState:ToNativeVisualEffectState(visual_effect_state_)];
+  // TODO(Guo Xi): Add vibrancy support.
 }
 
 bool NativeWindowMac::GetWindowButtonVisibility() const {

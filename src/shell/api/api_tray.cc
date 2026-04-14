@@ -11,88 +11,43 @@
 #include "gin/converter.h"
 #include "shell/api/api_menu.h"
 #include "shell/api/api_native_image.h"
-#include "shell/common/gin_converters/file_path_converter.h"
 #include "shell/common/gin_converters/gfx_converter.h"
-#include "shell/common/gin_converters/guid_converter.h"
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/gin_helper/error_thrower.h"
 #include "shell/common/node_includes.h"
 
 namespace lynxtron::api {
 
-namespace {
-
-bool ConvertTrayImage(v8::Isolate* isolate,
-                      v8::Local<v8::Value> image_value,
-                      gin_helper::ErrorThrower thrower,
-                      gfx::Image* image_out) {
-  base::FilePath icon_path;
-  if (gin::ConvertFromV8(isolate, image_value, &icon_path)) {
-    auto native_image = NativeImage::CreateFromPath(isolate, icon_path);
-    if (native_image->image().IsEmpty()) {
-#if BUILDFLAG(IS_WIN)
-      const auto image_path = base::WideToUTF8(icon_path.value());
-#else
-      const auto image_path = icon_path.value();
-#endif
-      thrower.ThrowError("Failed to load image from path '" + image_path + "'");
-      return false;
-    }
-
-    *image_out = native_image->image();
-    return true;
-  }
-
-  NativeImage* native_image = nullptr;
-  if (!gin::ConvertFromV8(isolate, image_value, &native_image) ||
-      !native_image) {
-    thrower.ThrowError("Argument must be a file path or a NativeImage");
-    return false;
-  }
-
-  *image_out = native_image->image();
-  return true;
+Tray* Tray::New(gin::Arguments* args) {
+  return new Tray(args);
 }
 
-}  // namespace
-
-Tray* Tray::New(gin_helper::ErrorThrower thrower, gin::Arguments* args) {
+Tray::Tray(gin::Arguments* args) {
   v8::Isolate* isolate = args->isolate();
+  gin_helper::ErrorThrower thrower(isolate);
   v8::Local<v8::Value> image;
   if (!args->GetNext(&image)) {
     thrower.ThrowError("image is required");
-    return nullptr;
+    return;
   }
 
   std::string guid;
   args->GetNext(&guid);
-  if (!guid.empty()) {
-    base::Uuid parsed_guid;
-    if (!gin::ConvertFromV8(isolate, gin::ConvertToV8(isolate, guid),
-                            &parsed_guid)) {
-      thrower.ThrowError("Invalid GUID format");
-      return nullptr;
-    }
+
+  NativeImage* native_image = nullptr;
+  if (!NativeImage::TryConvertNativeImage(isolate, image, &native_image)) {
+    thrower.ThrowError("invalid image");
+    return;
   }
 
-  gfx::Image tray_image;
-  if (!ConvertTrayImage(isolate, image, thrower, &tray_image)) {
-    return nullptr;
-  }
-
-  auto* tray = new Tray();
-  tray->tray_icon_ = TrayIcon::Create(tray, guid);
-  if (!tray->tray_icon_) {
-    delete tray;
+  tray_icon_ = TrayIcon::Create(this, guid);
+  if (!tray_icon_) {
     thrower.ThrowError("tray is not supported");
-    return nullptr;
+    return;
   }
 
-  tray->tray_icon_->SetImage(tray_image);
-  return tray;
+  tray_icon_->SetImage(native_image->image());
 }
-
-Tray::Tray() = default;
 
 Tray::~Tray() {
   Destroy();
@@ -106,8 +61,6 @@ void Tray::Destroy() {
   tray_icon_.reset();
   menu_ = nullptr;
   menu_handle_.Reset();
-  popup_menu_ = nullptr;
-  popup_menu_handle_.Reset();
 }
 
 bool Tray::IsDestroyed() const {
@@ -123,12 +76,11 @@ void Tray::SetImage(gin::Arguments* args) {
   if (!args->GetNext(&image)) {
     return;
   }
-  gin_helper::ErrorThrower thrower(isolate);
-  gfx::Image tray_image;
-  if (!ConvertTrayImage(isolate, image, thrower, &tray_image)) {
+  NativeImage* native_image = nullptr;
+  if (!NativeImage::TryConvertNativeImage(isolate, image, &native_image)) {
     return;
   }
-  tray_icon_->SetImage(tray_image);
+  tray_icon_->SetImage(native_image->image());
 }
 
 void Tray::SetPressedImage(gin::Arguments* args) {
@@ -140,12 +92,11 @@ void Tray::SetPressedImage(gin::Arguments* args) {
   if (!args->GetNext(&image)) {
     return;
   }
-  gin_helper::ErrorThrower thrower(isolate);
-  gfx::Image tray_image;
-  if (!ConvertTrayImage(isolate, image, thrower, &tray_image)) {
+  NativeImage* native_image = nullptr;
+  if (!NativeImage::TryConvertNativeImage(isolate, image, &native_image)) {
     return;
   }
-  tray_icon_->SetPressedImage(tray_image);
+  tray_icon_->SetPressedImage(native_image->image());
 }
 
 void Tray::SetToolTip(const std::string& tool_tip) {
@@ -154,43 +105,10 @@ void Tray::SetToolTip(const std::string& tool_tip) {
   }
 }
 
-void Tray::SetTitle(gin::Arguments* args) {
-  if (!tray_icon_) {
-    return;
+void Tray::SetTitle(const std::string& title) {
+  if (tray_icon_) {
+    tray_icon_->SetTitle(title);
   }
-
-  v8::Isolate* isolate = args->isolate();
-  gin_helper::ErrorThrower thrower(isolate);
-
-  std::string title;
-  if (!args->GetNext(&title)) {
-    args->ThrowError();
-    return;
-  }
-
-  std::string font_type;
-  v8::Local<v8::Value> options_value = args->PeekNext();
-  if (!options_value.IsEmpty() && !options_value->IsUndefined()) {
-    if (!options_value->IsObject()) {
-      thrower.ThrowError("setTitle options must be an object");
-      return;
-    }
-    args->Skip();
-    gin_helper::Dictionary options_dict(isolate,
-                                        options_value.As<v8::Object>());
-    v8::Local<v8::Value> font_type_value;
-    if (options_dict.Get("fontType", &font_type_value)) {
-      if (!font_type_value->IsString() ||
-          !gin::ConvertFromV8(isolate, font_type_value, &font_type) ||
-          (font_type != "monospaced" && font_type != "monospacedDigit")) {
-        thrower.ThrowError(
-            "fontType must be one of 'monospaced' or 'monospacedDigit'");
-        return;
-      }
-    }
-  }
-
-  tray_icon_->SetTitle(title, font_type);
 }
 
 std::string Tray::GetTitle() const {
@@ -234,16 +152,6 @@ void Tray::SetMenu(Menu* menu,
   }
 }
 
-void Tray::SetPopupMenu(Menu* menu,
-                        v8::Isolate* isolate,
-                        v8::Local<v8::Value> value) {
-  popup_menu_ = menu;
-  popup_menu_handle_.Reset();
-  if (menu && !value.IsEmpty()) {
-    popup_menu_handle_.Reset(isolate, value.As<v8::Object>());
-  }
-}
-
 void Tray::SetContextMenu(gin::Arguments* args) {
   if (!tray_icon_) {
     return;
@@ -263,54 +171,17 @@ void Tray::PopUpContextMenu(gin::Arguments* args) {
     return;
   }
   v8::Isolate* isolate = args->isolate();
-  gin_helper::ErrorThrower thrower(isolate);
+  v8::Local<v8::Value> menu_value;
   gfx::Point position;
-  bool has_position = false;
-  bool should_use_default_menu = true;
 
   Menu* menu_obj = nullptr;
-  v8::Local<v8::Value> first_arg = args->PeekNext();
-  if (!first_arg.IsEmpty()) {
-    if (first_arg->IsNullOrUndefined()) {
-      args->Skip();
-      v8::Local<v8::Value> second_arg = args->PeekNext();
-      if (!second_arg.IsEmpty() && !second_arg->IsUndefined()) {
-        if (!args->GetNext(&position)) {
-          thrower.ThrowError("Error processing argument at index 1");
-          return;
-        }
-        has_position = true;
-      }
-    } else if (gin::ConvertFromV8(isolate, first_arg, &menu_obj) &&
-               menu_obj != nullptr) {
-      should_use_default_menu = false;
-      args->Skip();
-      SetPopupMenu(menu_obj, isolate, first_arg);
-      v8::Local<v8::Value> second_arg = args->PeekNext();
-      if (!second_arg.IsEmpty() && !second_arg->IsUndefined()) {
-        if (!args->GetNext(&position)) {
-          thrower.ThrowError("Error processing argument at index 1");
-          return;
-        }
-        has_position = true;
-      }
-    } else if (args->GetNext(&position)) {
-      has_position = true;
-    } else {
-      thrower.ThrowError("Error processing argument at index 0");
-      return;
-    }
-  }
-
-  if (should_use_default_menu) {
-    SetPopupMenu(nullptr, isolate, v8::Local<v8::Value>());
+  if (args->GetNext(&menu_value)) {
+    menu_obj = GetMenuFromValue(isolate, menu_value);
   }
   if (!menu_obj) {
     menu_obj = menu_;
-    if (menu_ && !menu_handle_.IsEmpty()) {
-      SetPopupMenu(menu_, isolate, menu_handle_.Get(isolate));
-    }
   }
+  bool has_position = args->GetNext(&position);
   TrayPoint tray_position{0, 0};
   if (has_position) {
     tray_position = TrayPoint{position.x(), position.y()};
@@ -392,7 +263,7 @@ void Tray::DisplayBalloon(gin::Arguments* args) {
     NativeImage* icon_image = nullptr;
     if (NativeImage::TryConvertNativeImage(
             isolate, icon_value, &icon_image,
-            NativeImage::OnConvertError::kThrow)) {
+            NativeImage::OnConvertError::kWarn)) {
       int size = large_icon ? 32 : 16;
       balloon_options.icon = icon_image->GetHICON(size);
     }

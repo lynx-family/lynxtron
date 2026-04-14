@@ -110,6 +110,20 @@ bool IsVerticalEdge(gfx::ResizeEdge edge) {
 
 #pragma mark - NSWindowDelegate
 
+- (void)windowDidChangeOcclusionState:(NSNotification*)notification {
+  // Do NOT map occlusion to show/hide.
+  // occlusionState indicates whether the window is currently visible on screen
+  // (i.e. not fully occluded), which is different from show/hide semantics.
+  // Mapping it to NotifyWindowShow/Hide causes spurious hide/show when the
+  // window is simply covered by other windows (Electron does not do this).
+  NSWindow* window = notification.object;
+  // Ignore occlusion notifications for windows that are not ordered visible.
+  if (![window isVisible]) {
+    return;
+  }
+  // Placeholder: this can be used for render visibility optimizations later.
+}
+
 // Called when the user clicks the zoom button or selects it from the Window
 // menu to determine the "standard size" of the window.
 - (NSRect)windowWillUseStandardFrame:(NSWindow*)window
@@ -249,9 +263,6 @@ bool IsVerticalEdge(gfx::ResizeEdge edge) {
 }
 
 - (void)windowWillMiniaturize:(NSNotification*)notification {
-  if (!shell_) {
-    return;
-  }
   NSWindow* window = shell_->GetNativeWindow().GetNativeNSWindow();
   // store the current status window level to be restored in
   // windowDidDeminiaturize
@@ -266,16 +277,10 @@ bool IsVerticalEdge(gfx::ResizeEdge edge) {
 }
 
 - (void)windowDidMiniaturize:(NSNotification*)notification {
-  if (!shell_) {
-    return;
-  }
   shell_->NotifyWindowMinimize();
 }
 
 - (void)windowDidDeminiaturize:(NSNotification*)notification {
-  if (!shell_) {
-    return;
-  }
   shell_->SetWindowLevel(level_);
   shell_->AttachChildren();
   // Reposition traffic light buttons and make them visible again. They were
@@ -297,8 +302,6 @@ bool IsVerticalEdge(gfx::ResizeEdge edge) {
   if (is_zooming_) {
     if (shell_->IsMaximized()) {
       shell_->NotifyWindowMaximize();
-    } else if (shell_->consume_restore_from_maximize_pending()) {
-      shell_->NotifyWindowRestore();
     } else {
       shell_->NotifyWindowUnmaximize();
     }
@@ -348,9 +351,6 @@ bool IsVerticalEdge(gfx::ResizeEdge edge) {
 }
 
 - (void)windowWillClose:(NSNotification*)notification {
-  if (!shell_) {
-    return;
-  }
   shell_->NotifyWindowClosed();
 
   // Something called -[NSWindow close] on a sheet rather than calling

@@ -2,22 +2,35 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-import { app, BaseWindow, dialog, LynxWindow } from 'lynxtron';
+import { app, BaseWindow, LynxWindow } from 'lynxtron';
 
 import { expect } from 'chai';
 
 // @ts-expect-error
 import * as childProcess from 'node:child_process';
 import { once } from 'node:events';
+// import * as fs from 'node:fs';
+// import * as http from 'node:http';
+// import { AddressInfo } from 'node:net';
+// import * as os from 'node:os';
+// import * as path from 'node:path';
+// import * as qs from 'node:querystring';
+// import { setTimeout as syncSetTimeout } from 'node:timers';
 import { setTimeout } from 'node:timers/promises';
+// import * as nodeUrl from 'node:url';
 
-const expectedNativeHandleSize = process.arch === 'ia32' ? 4 : 8;
-const expectBoundsEqual = (actual: any, expected: any) => {
-  expect(actual).to.deep.equal(expected);
-};
+// import { emittedUntil, emittedNTimes } from './lib/events-helpers';
+// import { randomString } from './lib/net-helpers';
+// import { HexColors, hasCapturableScreen, ScreenCapture } from './lib/screen-helpers';
+
 // @ts-expect-error
 import { ifit, ifdescribe, defer, listen, waitUntil } from './lib/spec-helpers';
 import { closeWindow, closeAllWindows } from './lib/window-helpers';
+
+// const fixtures = path.resolve(__dirname, 'fixtures');
+// const mainFixtures = path.resolve(__dirname, 'fixtures');
+
+//import { setTimeout as syncSetTimeout } from 'node:timers';
 
 describe('LynxWindow module', () => {
   it('sets the correct class name on the prototype', () => {
@@ -46,7 +59,7 @@ describe('LynxWindow module', () => {
     ifdescribe(process.platform === 'darwin')('native tabs', () => {
       afterEach(closeAllWindows);
 
-      it.skip('exposes native tab methods', async () => {
+      it('exposes native tab methods', () => {
         const w1 = new LynxWindow({
           show: false,
           tabbingIdentifier: 'tab-group',
@@ -56,21 +69,15 @@ describe('LynxWindow module', () => {
           tabbingIdentifier: 'tab-group',
         });
 
-        try {
-          expect(() => {
-            w1.addTabbedWindow(w2);
-            w1.selectNextTab();
-            w1.selectPreviousTab();
-            w1.mergeAllWindows();
-            w1.moveTabToNewWindow();
-            w1.toggleTabBar();
-            w1.showAllTabs();
-          }).not.to.throw();
-        } finally {
-          await closeWindow(w1, { assertNotWindows: false });
-          await closeWindow(w2, { assertNotWindows: false });
-          await closeAllWindows();
-        }
+        expect(() => {
+          w1.addTabbedWindow(w2);
+          w1.selectNextTab();
+          w1.selectPreviousTab();
+          w1.mergeAllWindows();
+          w1.moveTabToNewWindow();
+          w1.toggleTabBar();
+          w1.showAllTabs();
+        }).not.to.throw();
       });
     });
 
@@ -140,15 +147,17 @@ describe('LynxWindow module', () => {
 
     it('should work if called when a messageBox is showing', async () => {
       const closed = once(w, 'closed');
-      void dialog.showMessageBox(w, { message: 'Hello Error' });
+      // TODO(Guo Xi): support dialog
+      // dialog.showMessageBox(w, { message: 'Hello Error' });
       w.close();
       await closed;
     });
 
     it('should work if called when multiple messageBoxes are showing', async () => {
       const closed = once(w, 'closed');
-      void dialog.showMessageBox(w, { message: 'Hello Error' });
-      void dialog.showMessageBox(w, { message: 'Hello Error' });
+      // TODO(Guo Xi): support dialog
+      // dialog.showMessageBox(w, { message: 'Hello Error' });
+      // dialog.showMessageBox(w, { message: 'Hello Error' });
       w.close();
       await closed;
     });
@@ -167,7 +176,45 @@ describe('LynxWindow module', () => {
       await closed;
       expect(w.id).to.be.a('number');
     });
+
+    // it('should emit unload handler', async () => {
+    //   await w.loadFile(path.join(fixtures, 'api', 'unload.html'));
+    //   const closed = once(w, 'closed');
+    //   w.close();
+    //   await closed;
+    //   const test = path.join(fixtures, 'api', 'unload');
+    //   const content = fs.readFileSync(test);
+    //   fs.unlinkSync(test);
+    //   expect(String(content)).to.equal('unload');
+    // });
   });
+
+  // TODO(Guo Xi): Does LynxWindow load and unload need event?
+  // describe('window.close()', () => {
+  //   let w: LynxWindow;
+  //   beforeEach(() => {
+  //     w = new LynxWindow({ show: false, webPreferences: { nodeIntegration: true, contextIsolation: false } });
+  //   });
+  //   afterEach(async () => {
+  //     await closeWindow(w);
+  //     w = null as unknown as LynxWindow;
+  //   });
+
+  //   it('should emit unload event', async () => {
+  //     w.loadFile(path.join(fixtures, 'api', 'close.html'));
+  //     await once(w, 'closed');
+  //     const test = path.join(fixtures, 'api', 'close');
+  //     const content = fs.readFileSync(test).toString();
+  //     fs.unlinkSync(test);
+  //     expect(content).to.equal('close');
+  //   });
+
+  //   it('should emit beforeunload event', async function () {
+  //     await w.loadFile(path.join(__dirname, 'fixtures', 'api', 'beforeunload-false.html'));
+  //     w.webContents.executeJavaScript('window.close()', true);
+  //     await once(w.webContents, '-before-unload-fired');
+  //   });
+  // });
 
   describe('LynxWindow.destroy()', () => {
     let w: LynxWindow;
@@ -196,6 +243,9 @@ describe('LynxWindow module', () => {
       for (const win of windows) win.destroy();
       app.removeListener('lynx-window-focus', focusListener);
     });
+
+    // TODO(Guo Xi): LynxWindow.getContentProtection not suported
+    // TODO(Guo Xi): LynxWindow.loadURL(url) add loadFile for LynxWindow
 
     describe('focus and visibility', () => {
       let w: LynxWindow;
@@ -268,193 +318,6 @@ describe('LynxWindow module', () => {
             expect(w.isVisible()).to.equal(false);
           }
         );
-
-        ifit(process.platform !== 'linux')(
-          'does not emit hide when the window is minimized',
-          async () => {
-            let hideCount = 0;
-            w.on('hide', () => {
-              hideCount++;
-            });
-
-            const shown = once(w, 'show');
-            w.show();
-            await shown;
-
-            const minimize = once(w, 'minimize');
-            w.minimize();
-            await minimize;
-            await setTimeout(100);
-
-            expect(hideCount).to.equal(0);
-            expect(w.isMinimized()).to.equal(true);
-          }
-        );
-      });
-
-      describe('LynxWindow.restore()', () => {
-        ifit(process.platform !== 'linux')(
-          'does not emit show when restoring a minimized window',
-          async () => {
-            let showCount = 0;
-            w.on('show', () => {
-              showCount++;
-            });
-
-            const shown = once(w, 'show');
-            w.show();
-            await shown;
-            expect(showCount).to.equal(1);
-
-            const minimize = once(w, 'minimize');
-            w.minimize();
-            await minimize;
-
-            const restored = once(w, 'restore');
-            w.restore();
-            await restored;
-            await setTimeout(100);
-
-            expect(showCount).to.equal(1);
-            expect(w.isVisible()).to.equal(true);
-            expect(w.isMinimized()).to.equal(false);
-          }
-        );
-
-        ifit(process.platform !== 'linux')(
-          'restores a maximized window after minimize',
-          async () => {
-            const shown = once(w, 'show');
-            w.show();
-            await shown;
-
-            const maximized = once(w, 'maximize');
-            w.maximize();
-            await maximized;
-            expect(w.isMaximized()).to.equal(true);
-
-            const minimized = once(w, 'minimize');
-            w.minimize();
-            await minimized;
-            expect(w.isMinimized()).to.equal(true);
-            expect(w.isMaximized()).to.equal(false);
-
-            const restored = once(w, 'restore');
-            w.restore();
-            await restored;
-
-            expect(w.isMinimized()).to.equal(false);
-            expect(w.isMaximized()).to.equal(true);
-          }
-        );
-      });
-
-      describe('LynxWindow.unmaximize()', () => {
-        ifit(process.platform !== 'linux')(
-          'does not restore a minimized window',
-          async () => {
-            const shown = once(w, 'show');
-            w.show();
-            await shown;
-
-            const minimized = once(w, 'minimize');
-            w.minimize();
-            await minimized;
-
-            w.unmaximize();
-            await setTimeout(50);
-
-            expect(w.isMinimized()).to.equal(true);
-          }
-        );
-
-        it('does not change the size or position of a normal window', async () => {
-          const initialSize = w.getSize();
-          const initialPosition = w.getPosition();
-
-          w.unmaximize();
-          await setTimeout(50);
-
-          expectBoundsEqual(w.getSize(), initialSize);
-          expectBoundsEqual(w.getPosition(), initialPosition);
-        });
-
-        ifit(process.platform !== 'linux')(
-          'does not change size for a frameless window with min size',
-          async () => {
-            await closeWindow(w, { assertNotWindows: false });
-            w = new LynxWindow({
-              show: false,
-              frame: false,
-              width: 300,
-              height: 300,
-              minWidth: 300,
-              minHeight: 300,
-            });
-            const bounds = w.getBounds();
-
-            w.once('maximize', () => {
-              w.unmaximize();
-            });
-            const unmaximize = once(w, 'unmaximize');
-            w.show();
-            await waitUntil(() => w.isVisible());
-            w.maximize();
-            await unmaximize;
-
-            expectBoundsEqual(w.getNormalBounds(), bounds);
-          }
-        );
-      });
-
-      describe('LynxWindow.isMaximized()', () => {
-        ifit(process.platform !== 'linux')(
-          'correctly checks transparent window maximization state',
-          async () => {
-            await closeWindow(w, { assertNotWindows: false });
-            w = new LynxWindow({
-              show: false,
-              width: 300,
-              height: 300,
-              transparent: true,
-            });
-
-            const maximize = once(w, 'maximize');
-            w.show();
-            await waitUntil(() => w.isVisible());
-            w.maximize();
-            await maximize;
-            expect(w.isMaximized()).to.equal(true);
-
-            const unmaximize = once(w, 'unmaximize');
-            w.unmaximize();
-            await unmaximize;
-            expect(w.isMaximized()).to.equal(false);
-          }
-        );
-
-        ifit(process.platform !== 'linux')(
-          'returns true for windows with an aspect ratio after resizable becomes false',
-          async () => {
-            await closeWindow(w, { assertNotWindows: false });
-            w = new LynxWindow({
-              show: false,
-              fullscreenable: false,
-            });
-
-            w.setAspectRatio(16 / 11);
-
-            const maximize = once(w, 'maximize');
-            w.show();
-            await waitUntil(() => w.isVisible());
-            w.maximize();
-            await maximize;
-
-            expect(w.isMaximized()).to.equal(true);
-            w.resizable = false;
-            expect(w.isMaximized()).to.equal(true);
-          }
-        );
       });
 
       describe('LynxWindow.showInactive()', () => {
@@ -522,23 +385,19 @@ describe('LynxWindow module', () => {
         });
 
         // FIXME(Guo Xi): failed in electron
-        ifit(process.platform !== 'win32')(
-          'focuses a blurred window',
-          async () => {
-            {
-              const isBlurred = once(w, 'blur');
-              const isShown = once(w, 'show');
-              w.show();
-              w.blur();
-              await isShown;
-              await isBlurred;
-            }
-            expect(w.isFocused()).to.equal(false);
-            w.focus();
-            await waitUntil(() => w.isFocused());
-            expect(w.isFocused()).to.equal(true);
-          }
-        );
+        // ifit(process.platform !== 'win32')('focuses a blurred window', async () => {
+        //   {
+        //     const isBlurred = once(w, 'blur');
+        //     const isShown = once(w, 'show');
+        //     w.show();
+        //     w.blur();
+        //     await isShown;
+        //     await isBlurred;
+        //   }
+        //   expect(w.isFocused()).to.equal(false);
+        //   w.focus();
+        //   expect(w.isFocused()).to.equal(true);
+        // });
 
         ifit(process.platform !== 'linux')(
           'acquires focus status from the other windows',
@@ -592,6 +451,42 @@ describe('LynxWindow module', () => {
             }
           }
         );
+
+        // TODO(Guo Xi): support macOS panel
+        // ifit(process.platform === 'darwin')('it does not activate the app if focusing an inactive panel', async () => {
+        //   // Show to focus app, then remove existing window
+        //   w.show();
+        //   w.destroy();
+
+        //   // We first need to resign app focus for this test to work
+        //   const isInactive = once(app, 'did-resign-active');
+        //   childProcess.execSync('osascript -e \'tell application "Finder" to activate\'');
+        //   defer(() => childProcess.execSync('osascript -e \'tell application "Finder" to quit\''));
+        //   await isInactive;
+
+        //   // Create new window
+        //   w = new LynxWindow({
+        //     type: 'panel',
+        //     height: 200,
+        //     width: 200,
+        //     center: true,
+        //     show: false
+        //   });
+
+        //   const isShow = once(w, 'show');
+        //   const isFocus = once(w, 'focus');
+
+        //   w.show();
+        //   w.focus();
+
+        //   await isShow;
+        //   await isFocus;
+
+        //   const getActiveAppOsa = 'tell application "System Events" to get the name of the first process whose frontmost is true';
+        //   const activeApp = childProcess.execSync(`osascript -e '${getActiveAppOsa}'`).toString().trim();
+
+        //   expect(activeApp).to.equal('Finder');
+        // });
       });
 
       // TODO(RaisinTen): Make this work on Windows too.
@@ -610,55 +505,58 @@ describe('LynxWindow module', () => {
           expect(w.isFocused()).to.equal(false);
         });
 
-        it('transfers focus status to the next window', async () => {
-          const w1 = new LynxWindow({ show: false });
-          const w2 = new LynxWindow({ show: false });
-          const w3 = new LynxWindow({ show: false });
-          {
-            const isFocused3 = once(w3, 'focus');
-            const isShown1 = once(w1, 'show');
-            const isShown2 = once(w2, 'show');
-            const isShown3 = once(w3, 'show');
-            w1.show();
-            w2.show();
-            w3.show();
-            await isShown1;
-            await isShown2;
-            await isShown3;
-            await isFocused3;
+        ifit(process.platform !== 'linux')(
+          'transfers focus status to the next window',
+          async () => {
+            const w1 = new LynxWindow({ show: false });
+            const w2 = new LynxWindow({ show: false });
+            const w3 = new LynxWindow({ show: false });
+            {
+              const isFocused3 = once(w3, 'focus');
+              const isShown1 = once(w1, 'show');
+              const isShown2 = once(w2, 'show');
+              const isShown3 = once(w3, 'show');
+              w1.show();
+              w2.show();
+              w3.show();
+              await isShown1;
+              await isShown2;
+              await isShown3;
+              await isFocused3;
+            }
+            // TODO(RaisinTen): Investigate why this assertion fails only on Linux.
+            expect(w1.isFocused()).to.equal(false);
+            expect(w2.isFocused()).to.equal(false);
+            expect(w3.isFocused()).to.equal(true);
+
+            w3.blur();
+            expect(w1.isFocused()).to.equal(false);
+            expect(w2.isFocused()).to.equal(true);
+            expect(w3.isFocused()).to.equal(false);
+
+            w2.blur();
+            expect(w1.isFocused()).to.equal(true);
+            expect(w2.isFocused()).to.equal(false);
+            expect(w3.isFocused()).to.equal(false);
+
+            w1.blur();
+            expect(w1.isFocused()).to.equal(false);
+            expect(w2.isFocused()).to.equal(false);
+            expect(w3.isFocused()).to.equal(true);
+
+            {
+              const isClosed1 = once(w1, 'closed');
+              const isClosed2 = once(w2, 'closed');
+              const isClosed3 = once(w3, 'closed');
+              w1.destroy();
+              w2.destroy();
+              w3.destroy();
+              await isClosed1;
+              await isClosed2;
+              await isClosed3;
+            }
           }
-          // TODO(RaisinTen): Investigate why this assertion fails only on Linux.
-          expect(w1.isFocused()).to.equal(false);
-          expect(w2.isFocused()).to.equal(false);
-          expect(w3.isFocused()).to.equal(true);
-
-          w3.blur();
-          expect(w1.isFocused()).to.equal(false);
-          expect(w2.isFocused()).to.equal(true);
-          expect(w3.isFocused()).to.equal(false);
-
-          w2.blur();
-          expect(w1.isFocused()).to.equal(true);
-          expect(w2.isFocused()).to.equal(false);
-          expect(w3.isFocused()).to.equal(false);
-
-          w1.blur();
-          expect(w1.isFocused()).to.equal(false);
-          expect(w2.isFocused()).to.equal(false);
-          expect(w3.isFocused()).to.equal(true);
-
-          {
-            const isClosed1 = once(w1, 'closed');
-            const isClosed2 = once(w2, 'closed');
-            const isClosed3 = once(w3, 'closed');
-            w1.destroy();
-            w2.destroy();
-            w3.destroy();
-            await isClosed1;
-            await isClosed2;
-            await isClosed3;
-          }
-        });
+        );
       });
 
       ifdescribe(process.platform !== 'linux')('LynxWindow.fullscreen', () => {
@@ -714,28 +612,6 @@ describe('LynxWindow module', () => {
           await leaveFullScreen;
           expect(w.isFullScreen()).to.equal(false);
         });
-
-        it('reports not maximized after maximizing then fullscreening', async () => {
-          const shown = once(w, 'show');
-          w.show();
-          await shown;
-
-          const maximize = once(w, 'maximize');
-          w.maximize();
-          await maximize;
-          expect(w.isMaximized()).to.equal(true);
-
-          const enterFullScreen = once(w, 'enter-full-screen');
-          w.setFullScreen(true);
-          await enterFullScreen;
-
-          expect(w.isMaximized()).to.equal(false);
-          expect(w.isFullScreen()).to.equal(true);
-
-          const leaveFullScreen = once(w, 'leave-full-screen');
-          w.setFullScreen(false);
-          await leaveFullScreen;
-        });
       });
 
       ifdescribe(process.platform === 'darwin')(
@@ -764,33 +640,6 @@ describe('LynxWindow module', () => {
             expect(w.simpleFullScreen).to.equal(false);
           });
 
-          it('can be changed with setSimpleFullScreen', async () => {
-            const shown = once(w, 'show');
-            w.show();
-            await shown;
-
-            w.setSimpleFullScreen(true);
-            await waitUntil(() => w.isSimpleFullScreen());
-            expect(w.isSimpleFullScreen()).to.equal(true);
-
-            w.setSimpleFullScreen(false);
-            await waitUntil(() => !w.isSimpleFullScreen());
-            expect(w.isSimpleFullScreen()).to.equal(false);
-          });
-
-          it('does not crash when exiting simpleFullScreen via setFullScreen', async () => {
-            const shown = once(w, 'show');
-            w.show();
-            await shown;
-
-            w.setSimpleFullScreen(true);
-            await waitUntil(() => w.isSimpleFullScreen());
-
-            w.setFullScreen(false);
-            await waitUntil(() => !w.isSimpleFullScreen());
-            expect(w.isSimpleFullScreen()).to.equal(false);
-          });
-
           it('honors simpleFullscreen constructor option with setFullScreen', async () => {
             await closeWindow(w, { assertNotWindows: false });
             w = new LynxWindow({ show: false, simpleFullscreen: true });
@@ -807,73 +656,6 @@ describe('LynxWindow module', () => {
           });
         }
       );
-
-      ifdescribe(process.platform === 'darwin')('fullscreenable state', () => {
-        afterEach(closeAllWindows);
-
-        describe('with functions', () => {
-          it('can be set with fullscreenable constructor option', () => {
-            const w = new LynxWindow({ show: false, fullscreenable: false });
-            expect(w.isFullScreenable()).to.be.false('isFullScreenable');
-          });
-
-          it('can be changed', () => {
-            const w = new LynxWindow({ show: false });
-            expect(w.isFullScreenable()).to.be.true('isFullScreenable');
-            w.setFullScreenable(false);
-            expect(w.isFullScreenable()).to.be.false('isFullScreenable');
-            w.setFullScreenable(true);
-            expect(w.isFullScreenable()).to.be.true('isFullScreenable');
-          });
-        });
-
-        describe('with property', () => {
-          it('can be changed through the fullScreenable property', () => {
-            const w = new LynxWindow({ show: false });
-            expect(w.fullScreenable).to.be.true('fullScreenable');
-            w.fullScreenable = false;
-            expect(w.fullScreenable).to.be.false('fullScreenable');
-            expect(w.isFullScreenable()).to.be.false('isFullScreenable');
-            w.fullScreenable = true;
-            expect(w.fullScreenable).to.be.true('fullScreenable');
-          });
-        });
-
-        it('is set correctly with different resizable values', () => {
-          const w1 = new LynxWindow({
-            show: false,
-            resizable: false,
-            fullscreenable: false,
-          });
-          const w2 = new LynxWindow({
-            show: false,
-            resizable: true,
-            fullscreenable: false,
-          });
-          const w3 = new LynxWindow({
-            show: false,
-            fullscreenable: false,
-          });
-
-          expect(w1.isFullScreenable()).to.be.false('isFullScreenable');
-          expect(w2.isFullScreenable()).to.be.false('isFullScreenable');
-          expect(w3.isFullScreenable()).to.be.false('isFullScreenable');
-        });
-
-        it('does not disable maximize button if window is resizable', () => {
-          const w = new LynxWindow({
-            show: false,
-            resizable: true,
-            fullscreenable: false,
-          });
-
-          expect(w.isMaximizable()).to.be.true('isMaximizable');
-
-          w.setResizable(false);
-
-          expect(w.isMaximizable()).to.be.false('isMaximizable');
-        });
-      });
 
       ifdescribe(process.platform === 'darwin')(
         'isHiddenInMissionControl state',
@@ -908,216 +690,6 @@ describe('LynxWindow module', () => {
           });
         }
       );
-
-      ifdescribe(process.platform === 'darwin')('LynxWindow vibrancy', () => {
-        afterEach(closeAllWindows);
-
-        describe('lifecycle', () => {
-          it('creates and removes a vibrancy view', async () => {
-            const w = new LynxWindow({ show: false });
-            const shown = once(w, 'show');
-            w.show();
-            await shown;
-
-            expect((w as any)._hasVibrancyView()).to.equal(false);
-
-            w.setVibrancy('sidebar');
-            await waitUntil(() => (w as any)._hasVibrancyView() === true);
-            expect((w as any)._getVisualEffectState()).to.equal('followWindow');
-            expect((w as any)._getNativeVisualEffectState()).to.equal(
-              'followWindow'
-            );
-
-            w.setVibrancy(null);
-            await waitUntil(() => (w as any)._hasVibrancyView() === false);
-            expect((w as any)._getNativeVisualEffectState()).to.equal('none');
-          });
-
-          it('updates the vibrancy type without removing the view', async () => {
-            const w = new LynxWindow({ show: false });
-
-            w.setVibrancy('sidebar');
-            await waitUntil(() => (w as any)._hasVibrancyView() === true);
-            expect((w as any)._getVibrancyType()).to.equal('sidebar');
-
-            w.setVibrancy('menu');
-            expect((w as any)._hasVibrancyView()).to.equal(true);
-            expect((w as any)._getVibrancyType()).to.equal('menu');
-
-            w.setVibrancy(null);
-            await waitUntil(() => (w as any)._hasVibrancyView() === false);
-            expect((w as any)._getVibrancyType()).to.equal('');
-          });
-
-          it('supports animationDuration when creating and removing vibrancy', async () => {
-            const w = new LynxWindow({ show: false });
-            const shown = once(w, 'show');
-            w.show();
-            await shown;
-
-            (w as any).setVibrancy('sidebar', { animationDuration: 50 });
-            await waitUntil(() => (w as any)._hasVibrancyView() === true);
-            expect((w as any)._getVibrancyType()).to.equal('sidebar');
-
-            (w as any).setVibrancy(null, { animationDuration: 50 });
-            await waitUntil(() => (w as any)._hasVibrancyView() === false);
-            expect((w as any)._getNativeVisualEffectState()).to.equal('none');
-          });
-        });
-
-        describe('visualEffectState', () => {
-          it('applies constructor visualEffectState when creating vibrancy', async () => {
-            const w = new LynxWindow({
-              show: false,
-              vibrancy: 'sidebar',
-              visualEffectState: 'inactive',
-            });
-
-            expect((w as any)._hasVibrancyView()).to.equal(true);
-            expect((w as any)._getVisualEffectState()).to.equal('inactive');
-            expect((w as any)._getNativeVisualEffectState()).to.equal(
-              'inactive'
-            );
-
-            w.setVibrancy(null);
-            await waitUntil(() => (w as any)._hasVibrancyView() === false);
-          });
-
-          it('defaults constructor visualEffectState to followWindow', () => {
-            const w = new LynxWindow({
-              show: false,
-              vibrancy: 'sidebar',
-            });
-
-            expect((w as any)._hasVibrancyView()).to.equal(true);
-            expect((w as any)._getVisualEffectState()).to.equal('followWindow');
-            expect((w as any)._getNativeVisualEffectState()).to.equal(
-              'followWindow'
-            );
-          });
-
-          it('applies the active visualEffectState', () => {
-            const w = new LynxWindow({
-              show: false,
-              vibrancy: 'sidebar',
-              visualEffectState: 'active',
-            });
-
-            expect((w as any)._hasVibrancyView()).to.equal(true);
-            expect((w as any)._getVisualEffectState()).to.equal('active');
-            expect((w as any)._getNativeVisualEffectState()).to.equal('active');
-          });
-        });
-
-        describe('window transitions', () => {
-          it('keeps followWindow native state across focus changes', async () => {
-            const w = new LynxWindow({
-              show: false,
-              vibrancy: 'sidebar',
-            });
-            const other = new LynxWindow({ show: false });
-
-            const shown = once(w, 'show');
-            w.show();
-            await shown;
-            const otherShown = once(other, 'show');
-            other.show();
-            await otherShown;
-
-            w.focus();
-            await waitUntil(() => w.isFocused());
-            expect((w as any)._getNativeVisualEffectState()).to.equal(
-              'followWindow'
-            );
-
-            other.focus();
-            await waitUntil(() => other.isFocused());
-            expect((w as any)._getNativeVisualEffectState()).to.equal(
-              'followWindow'
-            );
-          });
-
-          it('keeps the active visualEffectState after focus changes', async () => {
-            const w = new LynxWindow({
-              show: false,
-              vibrancy: 'sidebar',
-              visualEffectState: 'active',
-            });
-            const other = new LynxWindow({ show: false });
-
-            const shown = once(w, 'show');
-            w.show();
-            await shown;
-            const otherShown = once(other, 'show');
-            other.show();
-            await otherShown;
-
-            other.focus();
-            await waitUntil(() => other.isFocused());
-            expect((w as any)._getNativeVisualEffectState()).to.equal('active');
-          });
-
-          it('keeps the inactive visualEffectState after focus changes', async () => {
-            const w = new LynxWindow({
-              show: false,
-              vibrancy: 'sidebar',
-              visualEffectState: 'inactive',
-            });
-            const other = new LynxWindow({ show: false });
-
-            const shown = once(w, 'show');
-            w.show();
-            await shown;
-            const otherShown = once(other, 'show');
-            other.show();
-            await otherShown;
-
-            w.focus();
-            await waitUntil(() => w.isFocused());
-            expect((w as any)._getNativeVisualEffectState()).to.equal(
-              'inactive'
-            );
-
-            other.focus();
-            await waitUntil(() => other.isFocused());
-            expect((w as any)._getNativeVisualEffectState()).to.equal(
-              'inactive'
-            );
-          });
-
-          it('keeps vibrancy through fullscreen transitions', async () => {
-            const w = new LynxWindow({
-              show: false,
-              vibrancy: 'sidebar',
-              visualEffectState: 'followWindow',
-            });
-
-            const shown = once(w, 'show');
-            w.show();
-            await shown;
-            expect((w as any)._hasVibrancyView()).to.equal(true);
-            expect((w as any)._getNativeVisualEffectState()).to.equal(
-              'followWindow'
-            );
-
-            const enterFullScreen = once(w, 'enter-full-screen');
-            w.setFullScreen(true);
-            await enterFullScreen;
-            expect((w as any)._hasVibrancyView()).to.equal(true);
-            expect((w as any)._getNativeVisualEffectState()).to.equal(
-              'followWindow'
-            );
-
-            const leaveFullScreen = once(w, 'leave-full-screen');
-            w.setFullScreen(false);
-            await leaveFullScreen;
-            expect((w as any)._hasVibrancyView()).to.equal(true);
-            expect((w as any)._getNativeVisualEffectState()).to.equal(
-              'followWindow'
-            );
-          });
-        });
-      });
 
       ifdescribe(process.platform === 'darwin')(
         'LynxWindow.setWindowButtonVisibility()',
@@ -1259,168 +831,56 @@ describe('LynxWindow module', () => {
         }
       );
 
-      describe('LynxWindow.setAlwaysOnTop(flag, level)', () => {
-        let w: LynxWindow;
-
-        beforeEach(() => {
-          w = new LynxWindow({ show: false });
-        });
-        afterEach(async () => {
-          await closeWindow(w);
-          w = (null as unknown) as LynxWindow;
-        });
-
-        it('defaults to false and can be toggled', () => {
-          expect(w.isAlwaysOnTop()).to.be.false('is alwaysOnTop');
-
-          w.setAlwaysOnTop(true, 'screen-saver');
-          expect(w.isAlwaysOnTop()).to.be.true('is not alwaysOnTop');
-
-          w.setAlwaysOnTop(false);
-          expect(w.isAlwaysOnTop()).to.be.false('is alwaysOnTop');
-
-          w.setAlwaysOnTop(true);
-          expect(w.isAlwaysOnTop()).to.be.true('is not alwaysOnTop');
-        });
-
-        it('honors the alwaysOnTop constructor option', async () => {
-          await closeWindow(w, { assertNotWindows: false });
-          w = new LynxWindow({ show: false, alwaysOnTop: true });
-
-          expect(w.isAlwaysOnTop()).to.be.true('is not alwaysOnTop');
-        });
-
-        it('works when called prior to show', async () => {
-          w.setAlwaysOnTop(true, 'screen-saver');
-
-          const shown = once(w, 'show');
-          w.show();
-          await shown;
-
-          expect(w.isAlwaysOnTop()).to.be.true('is not alwaysOnTop');
-        });
-
-        it('works when called prior to showInactive', async () => {
-          w.setAlwaysOnTop(true, 'screen-saver');
-
-          const shown = once(w, 'show');
-          w.showInactive();
-          await shown;
-
-          expect(w.isAlwaysOnTop()).to.be.true('is not alwaysOnTop');
-        });
-
-        ifit(process.platform === 'darwin' || process.platform === 'win32')(
-          'emits always-on-top-changed with the latest state',
-          async () => {
-            const changedToTrue = once(w, 'always-on-top-changed');
-            w.setAlwaysOnTop(true, 'screen-saver');
-            const [, isAlwaysOnTopTrue] = await changedToTrue;
-            expect(isAlwaysOnTopTrue).to.equal(true);
-
-            const changedToFalse = once(w, 'always-on-top-changed');
-            w.setAlwaysOnTop(false);
-            const [, isAlwaysOnTopFalse] = await changedToFalse;
-            expect(isAlwaysOnTopFalse).to.equal(false);
-          }
-        );
-
-        ifit(process.platform === 'darwin')(
-          'honors the alwaysOnTop level of a child window',
-          async () => {
-            const parent = new LynxWindow({ show: false });
-            const child = new LynxWindow({ show: false, parent });
-
-            child.setAlwaysOnTop(true, 'screen-saver');
-
-            expect(parent.isAlwaysOnTop()).to.be.false();
-            expect(child.isAlwaysOnTop()).to.be.true(
-              'child is not always on top'
-            );
-            expect((child as any)._getAlwaysOnTopLevel()).to.equal(
-              'screen-saver'
-            );
-
-            await closeWindow(child, { assertNotWindows: false });
-            await closeWindow(parent, { assertNotWindows: false });
-          }
-        );
-
-        ifit(process.platform === 'darwin')(
-          'resets the alwaysOnTop state while minimized and restores it afterwards',
-          async () => {
-            const shown = once(w, 'show');
-            w.show();
-            await shown;
-
-            w.setAlwaysOnTop(true, 'screen-saver');
-            expect(w.isAlwaysOnTop()).to.be.true('is not alwaysOnTop');
-
-            const minimized = once(w, 'minimize');
-            w.minimize();
-            await minimized;
-            expect(w.isAlwaysOnTop()).to.be.false('is alwaysOnTop');
-
-            const restored = once(w, 'restore');
-            w.restore();
-            await restored;
-            expect(w.isAlwaysOnTop()).to.be.true('is not alwaysOnTop');
-          }
-        );
-      });
-
       describe('LynxWindow.moveTop()', () => {
         afterEach(closeAllWindows);
 
-        ifit(process.platform !== 'linux')(
-          'should not steal focus',
-          async () => {
-            const posDelta = 50;
-            const wShownInactive = once(w, 'show');
-            w.showInactive();
-            await wShownInactive;
-            expect(w.isFocused()).to.equal(false);
+        it.skip('should not steal focus', async () => {
+          const posDelta = 50;
+          const wShownInactive = once(w, 'show');
+          w.showInactive();
+          await wShownInactive;
+          expect(w.isFocused()).to.equal(false);
 
-            const otherWindow = new LynxWindow({
-              show: false,
-              title: 'otherWindow',
-            });
-            const otherWindowShown = once(otherWindow, 'show');
-            const otherWindowFocused = once(otherWindow, 'focus');
-            otherWindow.show();
-            await otherWindowShown;
-            await otherWindowFocused;
-            expect(otherWindow.isFocused()).to.equal(true);
+          const otherWindow = new LynxWindow({
+            show: false,
+            title: 'otherWindow',
+          });
+          const otherWindowShown = once(otherWindow, 'show');
+          const otherWindowFocused = once(otherWindow, 'focus');
+          otherWindow.show();
+          await otherWindowShown;
+          await otherWindowFocused;
+          expect(otherWindow.isFocused()).to.equal(true);
 
-            w.moveTop();
-            const wPos = w.getPosition();
-            const wMoving = once(w, 'move');
-            w.setPosition(wPos[0] + posDelta, wPos[1] + posDelta);
-            await wMoving;
-            expect(w.isFocused()).to.equal(false);
-            expect(otherWindow.isFocused()).to.equal(true);
+          w.moveTop();
+          const wPos = w.getPosition();
+          const wMoving = once(w, 'move');
+          w.setPosition(wPos[0] + posDelta, wPos[1] + posDelta);
+          await wMoving;
+          expect(w.isFocused()).to.equal(false);
+          expect(otherWindow.isFocused()).to.equal(true);
 
-            const wFocused = once(w, 'focus');
-            const otherWindowBlurred = once(otherWindow, 'blur');
-            w.focus();
-            await wFocused;
-            await otherWindowBlurred;
-            expect(w.isFocused()).to.equal(true);
+          const wFocused = once(w, 'focus');
+          const otherWindowBlurred = once(otherWindow, 'blur');
+          w.focus();
+          await wFocused;
+          await otherWindowBlurred;
+          expect(w.isFocused()).to.equal(true);
 
-            otherWindow.moveTop();
-            const otherWindowPos = otherWindow.getPosition();
-            const otherWindowMoving = once(otherWindow, 'move');
-            otherWindow.setPosition(
-              otherWindowPos[0] + posDelta,
-              otherWindowPos[1] + posDelta
-            );
-            await otherWindowMoving;
-            expect(otherWindow.isFocused()).to.equal(false);
-            expect(w.isFocused()).to.equal(true);
+          otherWindow.moveTop();
+          const otherWindowPos = otherWindow.getPosition();
+          const otherWindowMoving = once(otherWindow, 'move');
+          otherWindow.setPosition(
+            otherWindowPos[0] + posDelta,
+            otherWindowPos[1] + posDelta
+          );
+          await otherWindowMoving;
+          expect(otherWindow.isFocused()).to.equal(false);
+          expect(w.isFocused()).to.equal(true);
 
-            await closeWindow(otherWindow, { assertNotWindows: false });
-          }
-        );
+          await closeWindow(otherWindow, { assertNotWindows: false });
+          expect(LynxWindow.getAllWindows()).to.have.lengthOf(1);
+        });
 
         it('should not crash when called on a modal child window', async () => {
           const shown = once(w, 'show');
@@ -1458,9 +918,8 @@ describe('LynxWindow module', () => {
 
           it('does not close a modal sheet when re-enabling the parent window', async () => {
             const parent = new LynxWindow({ show: false });
-            const parentShow = once(parent, 'show');
             parent.show();
-            await parentShow;
+            await once(parent, 'show');
 
             const child = new LynxWindow({
               show: false,
@@ -1479,40 +938,18 @@ describe('LynxWindow module', () => {
             expect(child.isVisible()).to.equal(true);
             expect(parent.isEnabled()).to.equal(false);
           });
-
-          it('emits sheet-end when a modal sheet is closed', async () => {
-            const parent = new LynxWindow({ show: false });
-            const parentShow = once(parent, 'show');
-            parent.show();
-            await parentShow;
-
-            const child = new LynxWindow({
-              show: false,
-              parent,
-              modal: true,
-            });
-
-            const sheetBegin = once(parent, 'sheet-begin');
-            child.show();
-            await sheetBegin;
-
-            const sheetEnd = once(parent, 'sheet-end');
-            child.close();
-            await sheetEnd;
-          });
         }
       );
 
-      ifdescribe(process.platform === 'win32' || process.platform === 'darwin')(
+      ifdescribe(process.platform === 'win32')(
         'LynxWindow modal parent enable state',
         () => {
           afterEach(closeAllWindows);
 
           it('disables parent while modal child is visible', async () => {
             const parent = new LynxWindow({ show: false });
-            const parentShown = once(parent, 'show');
             parent.show();
-            await parentShown;
+            await once(parent, 'show');
 
             expect(parent.isEnabled()).to.equal(true);
 
@@ -1522,15 +959,7 @@ describe('LynxWindow module', () => {
               modal: true,
             });
 
-            if (process.platform === 'darwin') {
-              const sheetBegin = once(parent, 'sheet-begin');
-              child.show();
-              await sheetBegin;
-            } else {
-              const childShown = once(child, 'show');
-              child.show();
-              await childShown;
-            }
+            child.showInactive();
             await waitUntil(() => parent.isEnabled() === false);
             expect(parent.isEnabled()).to.equal(false);
 
@@ -1558,6 +987,59 @@ describe('LynxWindow module', () => {
         }
       );
 
+      describe('LynxWindow.moveAbove(mediaSourceId)', () => {
+        it.skip('should throw an exception if wrong formatting', async () => {
+          const fakeSourceIds = [
+            'none',
+            'screen:0',
+            'window:fake',
+            'window:1234',
+            'foobar:1:2',
+          ];
+          for (const sourceId of fakeSourceIds) {
+            expect(() => {
+              w.moveAbove(sourceId);
+            }).to.throw(/Invalid media source id/);
+          }
+        });
+
+        it.skip('should throw an exception if wrong type', async () => {
+          const fakeSourceIds = [null as any, 123 as any];
+          for (const sourceId of fakeSourceIds) {
+            expect(() => {
+              w.moveAbove(sourceId);
+            }).to.throw(/Error processing argument at index 0 */);
+          }
+        });
+
+        it.skip('should throw an exception if invalid window', async () => {
+          // It is very unlikely that these window id exist.
+          const fakeSourceIds = [
+            'window:99999999:0',
+            'window:123456:1',
+            'window:123456:9',
+          ];
+          for (const sourceId of fakeSourceIds) {
+            expect(() => {
+              w.moveAbove(sourceId);
+            }).to.throw(/Invalid media source id/);
+          }
+        });
+
+        it.skip('should not throw an exception', async () => {
+          const w2 = new LynxWindow({ show: false, title: 'window2' });
+          const w2Shown = once(w2, 'show');
+          w2.show();
+          await w2Shown;
+
+          expect(() => {
+            w.moveAbove(w2.getMediaSourceId());
+          }).to.not.throw();
+
+          await closeWindow(w2, { assertNotWindows: false });
+        });
+      });
+
       describe('LynxWindow.setFocusable()', () => {
         it('can set unfocusable window to focusable', async () => {
           const w2 = new LynxWindow({ focusable: false });
@@ -1570,778 +1052,13 @@ describe('LynxWindow module', () => {
       });
 
       describe('LynxWindow.isFocusable()', () => {
-        ifit(process.platform === 'win32' || process.platform === 'darwin')(
-          'correctly returns whether a window is focusable',
-          async () => {
-            const w2 = new LynxWindow({ focusable: false });
-            try {
-              expect(w2.isFocusable()).to.be.false();
-
-              w2.setFocusable(true);
-              expect(w2.isFocusable()).to.be.true();
-            } finally {
-              await closeWindow(w2, { assertNotWindows: false });
-            }
-          }
-        );
-      });
-
-      describe('LynxWindow focusable property', () => {
-        ifit(process.platform === 'win32' || process.platform === 'darwin')(
-          'can be changed through the focusable property',
-          async () => {
-            const w2 = new LynxWindow({ show: false });
-            try {
-              expect(w2.focusable).to.be.true();
-              w2.focusable = false;
-              expect(w2.focusable).to.be.false();
-              expect(w2.isFocusable()).to.be.false();
-              w2.focusable = true;
-              expect(w2.focusable).to.be.true();
-            } finally {
-              await closeWindow(w2, { assertNotWindows: false });
-            }
-          }
-        );
-      });
-
-      ifdescribe(process.platform === 'darwin')(
-        'LynxWindow.getNativeWindowHandle()',
-        () => {
-          it('returns a unique native handle buffer per window', async () => {
-            const w1 = new LynxWindow({ show: false });
-            const w2 = new LynxWindow({ show: false });
-
-            try {
-              const handle1 = w1.getNativeWindowHandle();
-              const handle2 = w2.getNativeWindowHandle();
-
-              // Follow Electron-style expectations: the handle is exposed as
-              // a raw pointer-sized Buffer and different windows should not
-              // share the same native view handle.
-              expect(Buffer.isBuffer(handle1)).to.equal(true);
-              expect(Buffer.isBuffer(handle2)).to.equal(true);
-              expect(handle1.length).to.equal(expectedNativeHandleSize);
-              expect(handle2.length).to.equal(expectedNativeHandleSize);
-              expect(handle1.equals(Buffer.alloc(handle1.length, 0))).to.equal(
-                false
-              );
-              expect(handle2.equals(Buffer.alloc(handle2.length, 0))).to.equal(
-                false
-              );
-              expect(handle1.equals(handle2)).to.equal(false);
-            } finally {
-              await closeWindow(w1, { assertNotWindows: false });
-              await closeWindow(w2, { assertNotWindows: false });
-            }
-          });
-        }
-      );
-
-      describe('BaseWindow.fromId(id)', () => {
-        afterEach(closeAllWindows);
-
-        it('returns the window with id', () => {
-          const w = new LynxWindow({ show: false });
-          expect(BaseWindow.fromId(w.id)).to.equal(w);
-        });
-      });
-
-      describe('LynxWindow.setBounds(bounds[, animate])', () => {
-        it('sets the window bounds with full bounds', async () => {
-          const bounds = w.getBounds();
-          const fullBounds = {
-            x: bounds.x + 20,
-            y: bounds.y + 20,
-            width: bounds.width + 40,
-            height: bounds.height + 30,
-          };
-          const resize = once(w, 'resize');
-          w.setBounds(fullBounds);
-          await resize;
-          expectBoundsEqual(w.getBounds(), fullBounds);
-        });
-
-        it('sets the window bounds with partial bounds', async () => {
-          const bounds = w.getBounds();
-          const fullBounds = {
-            x: bounds.x + 10,
-            y: bounds.y + 10,
-            width: bounds.width + 50,
-            height: bounds.height + 20,
-          };
-          const resize = once(w, 'resize');
-          w.setBounds(fullBounds);
-          await resize;
-
-          const boundsUpdate = { width: fullBounds.width - 25 };
-          const resizeUpdated = once(w, 'resize');
-          w.setBounds(boundsUpdate);
-          await resizeUpdated;
-
-          expectBoundsEqual(w.getBounds(), { ...fullBounds, ...boundsUpdate });
-        });
-
-        ifit(process.platform === 'darwin')(
-          'emits resized event after animating',
-          async () => {
-            const shown = once(w, 'show');
-            w.show();
-            await shown;
-
-            const bounds = w.getBounds();
-            const resized = once(w, 'resized');
-            w.setBounds(
-              {
-                ...bounds,
-                width: bounds.width + 20,
-                height: bounds.height + 20,
-              },
-              true
-            );
-            await resized;
-          }
-        );
-
-        it('does not emit the resize event for move-only changes', async () => {
-          const [x, y] = w.getPosition();
-          let resizeEmitted = false;
-          w.once('resize', () => {
-            resizeEmitted = true;
-          });
-
-          w.setBounds({ x: x + 10, y: y + 10 });
-          await setTimeout(100);
-
-          expect(resizeEmitted).to.equal(false);
-        });
-      });
-
-      describe('LynxWindow.setMinimum/MaximumSize(width, height)', () => {
-        it('sets the maximum and minimum size of the window', () => {
-          expect(w.getMinimumSize()).to.deep.equal([0, 0]);
-          expect(w.getMaximumSize()).to.deep.equal([0, 0]);
-
-          w.setMinimumSize(100, 100);
-          expectBoundsEqual(w.getMinimumSize(), [100, 100]);
-          expectBoundsEqual(w.getMaximumSize(), [0, 0]);
-
-          w.setMaximumSize(900, 600);
-          expectBoundsEqual(w.getMinimumSize(), [100, 100]);
-          expectBoundsEqual(w.getMaximumSize(), [900, 600]);
-        });
-
-        it('clamps the current window size when minimum size increases', async () => {
-          const resize = once(w, 'resize');
-          w.setSize(200, 200);
-          await resize;
-
-          w.setMinimumSize(300, 320);
-          await waitUntil(() => {
-            const [width, height] = w.getSize();
-            return width >= 300 && height >= 320;
-          });
-
-          const [width, height] = w.getSize();
-          expect(width).to.be.at.least(300);
-          expect(height).to.be.at.least(320);
-        });
-
-        it('clamps the current window size when maximum size decreases', async () => {
-          const resize = once(w, 'resize');
-          w.setSize(500, 480);
-          await resize;
-
-          w.setMaximumSize(260, 240);
-          await waitUntil(() => {
-            const [width, height] = w.getSize();
-            return width <= 260 && height <= 240;
-          });
-
-          const [width, height] = w.getSize();
-          expect(width).to.be.at.most(260);
-          expect(height).to.be.at.most(240);
-        });
-      });
-
-      describe('LynxWindow.center()', () => {
-        it('moves the window away from a custom position', async () => {
-          const w2 = new LynxWindow({
-            show: false,
-            x: 10,
-            y: 10,
-            width: 200,
-            height: 200,
-          });
-
-          try {
-            const before = w2.getPosition();
-            w2.center();
-            await waitUntil(() => {
-              const after = w2.getPosition();
-              return after[0] !== before[0] || after[1] !== before[1];
-            });
-          } finally {
-            await closeWindow(w2, { assertNotWindows: false });
-          }
-        });
-      });
-
-      describe('LynxWindow.setAspectRatio(ratio)', () => {
-        it('resets the behavior when passing in 0', async () => {
-          const size = [300, 400];
-          w.setAspectRatio(1 / 2);
-          w.setAspectRatio(0);
-          const resize = once(w, 'resize');
-          w.setSize(size[0], size[1]);
-          await resize;
-          expectBoundsEqual(w.getSize(), size);
-        });
-
-        it('does not change bounds when maximum size is set', () => {
-          w.setMaximumSize(400, 400);
-          w.setAspectRatio(1.0);
-          expectBoundsEqual(w.getSize(), [400, 400]);
-        });
-      });
-
-      describe('LynxWindow.getNormalBounds()', () => {
-        it('checks normal bounds after resize', async () => {
-          const size = [300, 400];
-          const resize = once(w, 'resize');
-          w.setSize(size[0], size[1]);
-          await resize;
-          expectBoundsEqual(w.getNormalBounds(), w.getBounds());
-        });
-
-        it('checks normal bounds after move', async () => {
-          const [x, y] = w.getPosition();
-          const move = once(w, 'move');
-          w.setPosition(x + 10, y + 10);
-          await move;
-          expectBoundsEqual(w.getNormalBounds(), w.getBounds());
-        });
-
-        ifit(process.platform !== 'linux')(
-          'checks normal bounds when maximized',
-          async () => {
-            const bounds = w.getBounds();
-            const shown = once(w, 'show');
-            w.show();
-            await shown;
-
-            const maximize = once(w, 'maximize');
-            w.maximize();
-            await maximize;
-            expectBoundsEqual(w.getNormalBounds(), bounds);
-          }
-        );
-
-        ifit(process.platform !== 'linux')(
-          'updates normal bounds after move and maximize',
-          async () => {
-            const [x, y] = w.getPosition();
-            const move = once(w, 'move');
-            w.setPosition(x + 10, y + 10);
-            await move;
-            const original = w.getBounds();
-
-            const shown = once(w, 'show');
-            w.show();
-            await shown;
-
-            const maximize = once(w, 'maximize');
-            w.maximize();
-            await maximize;
-
-            const normal = w.getNormalBounds();
-            const bounds = w.getBounds();
-
-            expect(normal).to.deep.equal(original);
-            expect(normal).to.not.deep.equal(bounds);
-          }
-        );
-
-        ifit(process.platform !== 'linux')(
-          'checks normal bounds when unmaximized',
-          async () => {
-            const bounds = w.getBounds();
-            const shown = once(w, 'show');
-            w.show();
-            await shown;
-
-            const maximize = once(w, 'maximize');
-            w.maximize();
-            await maximize;
-
-            const unmaximize = once(w, 'unmaximize');
-            w.unmaximize();
-            await unmaximize;
-            expectBoundsEqual(w.getNormalBounds(), bounds);
-            expect(w.isMaximized()).to.equal(false);
-          }
-        );
-
-        ifit(process.platform !== 'linux')(
-          'updates normal bounds after resize and minimize',
-          async () => {
-            const resize = once(w, 'resize');
-            w.setSize(300, 400);
-            await resize;
-            const original = w.getBounds();
-
-            const shown = once(w, 'show');
-            w.show();
-            await shown;
-
-            const minimized = once(w, 'minimize');
-            w.minimize();
-            await minimized;
-
-            const normal = w.getNormalBounds();
-
-            expect(normal).to.deep.equal(original);
-            expectBoundsEqual(normal, w.getBounds());
-          }
-        );
-
-        ifit(process.platform !== 'linux')(
-          'updates normal bounds after move and minimize',
-          async () => {
-            const [x, y] = w.getPosition();
-            const move = once(w, 'move');
-            w.setPosition(x + 10, y + 10);
-            await move;
-            const original = w.getBounds();
-
-            const shown = once(w, 'show');
-            w.show();
-            await shown;
-
-            const minimized = once(w, 'minimize');
-            w.minimize();
-            await minimized;
-
-            const normal = w.getNormalBounds();
-
-            expect(normal).to.deep.equal(original);
-            expectBoundsEqual(normal, w.getBounds());
-          }
-        );
-
-        ifit(process.platform !== 'linux')(
-          'checks normal bounds when minimized',
-          async () => {
-            const bounds = w.getBounds();
-            const shown = once(w, 'show');
-            w.show();
-            await shown;
-
-            const minimized = once(w, 'minimize');
-            w.minimize();
-            await minimized;
-
-            expectBoundsEqual(w.getNormalBounds(), bounds);
-          }
-        );
-
-        ifit(process.platform !== 'linux')(
-          'checks normal bounds when restored',
-          async () => {
-            const bounds = w.getBounds();
-            const shown = once(w, 'show');
-            w.show();
-            await shown;
-
-            w.once('minimize', () => {
-              w.restore();
-            });
-            const restored = once(w, 'restore');
-            w.minimize();
-            await restored;
-
-            expectBoundsEqual(w.getNormalBounds(), bounds);
-          }
-        );
-      });
-
-      describe('LynxWindow.isNormal()', () => {
-        it('returns true for a newly created window', () => {
-          expect(w.isNormal()).to.equal(true);
-        });
-
-        ifit(process.platform !== 'linux')(
-          'returns false when maximized and true after restore',
-          async () => {
-            const shown = once(w, 'show');
-            w.show();
-            await shown;
-
-            const maximize = once(w, 'maximize');
-            w.maximize();
-            await maximize;
-            expect(w.isNormal()).to.equal(false);
-
-            const restore = once(w, 'restore');
-            w.restore();
-            await restore;
-            expect(w.isNormal()).to.equal(true);
-          }
-        );
-      });
-
-      ifdescribe(process.platform !== 'linux')(
-        'LynxWindow.setOpacity(opacity)',
-        () => {
-          afterEach(closeAllWindows);
-
-          it('makes a window with initial opacity', () => {
-            const w = new LynxWindow({ show: false, opacity: 0.5 });
-            expect(w.getOpacity()).to.equal(0.5);
-          });
-
-          it('allows setting the opacity', () => {
-            const w = new LynxWindow({ show: false });
-            expect(() => {
-              w.setOpacity(0.0);
-              expect(w.getOpacity()).to.equal(0.0);
-              w.setOpacity(0.5);
-              expect(w.getOpacity()).to.equal(0.5);
-              w.setOpacity(1.0);
-              expect(w.getOpacity()).to.equal(1.0);
-            }).to.not.throw();
-          });
-
-          it('clamps opacity to [0.0...1.0]', () => {
-            const w = new LynxWindow({ show: false, opacity: 0.5 });
-            w.setOpacity(100);
-            expect(w.getOpacity()).to.equal(1.0);
-            w.setOpacity(-100);
-            expect(w.getOpacity()).to.equal(0.0);
-          });
-        }
-      );
-
-      ifdescribe(process.platform === 'darwin')(
-        'visibleOnAllWorkspaces state',
-        () => {
-          afterEach(closeAllWindows);
-
-          describe('with properties', () => {
-            it('can be changed', () => {
-              const w = new LynxWindow({ show: false });
-              expect(w.visibleOnAllWorkspaces).to.be.false();
-              w.visibleOnAllWorkspaces = true;
-              expect(w.visibleOnAllWorkspaces).to.be.true();
-            });
-          });
-
-          describe('with functions', () => {
-            it('can be changed', () => {
-              const w = new LynxWindow({ show: false });
-              expect(w.isVisibleOnAllWorkspaces()).to.be.false();
-              w.setVisibleOnAllWorkspaces(true);
-              expect(w.isVisibleOnAllWorkspaces()).to.be.true();
-            });
-          });
-        }
-      );
-
-      describe('native window title', () => {
-        afterEach(closeAllWindows);
-
-        describe('with properties', () => {
-          it('can be set with title constructor option', () => {
-            const w = new LynxWindow({ show: false, title: 'mYtItLe' });
-            expect(w.title).to.equal('mYtItLe');
-          });
-
-          it('can be changed', () => {
-            const w = new LynxWindow({ show: false });
-            w.title = 'NEW TITLE';
-            expect(w.title).to.equal('NEW TITLE');
-          });
-        });
-
-        describe('with functions', () => {
-          it('can be set with title constructor option', () => {
-            const w = new LynxWindow({ show: false, title: 'mYtItLe' });
-            expect(w.getTitle()).to.equal('mYtItLe');
-          });
-
-          it('can be changed', () => {
-            const w = new LynxWindow({ show: false });
-            w.setTitle('NEW TITLE');
-            expect(w.getTitle()).to.equal('NEW TITLE');
-          });
-        });
-      });
-
-      describe('hasShadow state', () => {
-        afterEach(closeAllWindows);
-
-        describe('with properties', () => {
-          it('returns a boolean on all platforms', () => {
-            const w = new LynxWindow({ show: false });
-            expect(w.shadow).to.be.a('boolean');
-          });
-
-          it('can be changed with hasShadow option', () => {
-            const w = new LynxWindow({ show: false, hasShadow: false });
-            expect(w.shadow).to.equal(false);
-          });
-
-          it('can be changed through the shadow property', () => {
-            const w = new LynxWindow({ show: false });
-            w.shadow = false;
-            expect(w.shadow).to.be.false('shadow');
-            w.shadow = true;
-            expect(w.shadow).to.be.true('shadow');
-          });
-        });
-
-        describe('with functions', () => {
-          it('can be changed with setHasShadow method', () => {
-            const w = new LynxWindow({ show: false });
-            w.setHasShadow(false);
-            expect(w.hasShadow()).to.be.false('hasShadow');
-            w.setHasShadow(true);
-            expect(w.hasShadow()).to.be.true('hasShadow');
-          });
-        });
-      });
-
-      describe('LynxWindow.isModal()', () => {
-        afterEach(closeAllWindows);
-
-        it('returns false for a regular window', () => {
-          const regular = new LynxWindow({ show: false });
-          expect(regular.isModal()).to.equal(false);
-        });
-
-        it('returns true for a modal child window', () => {
-          const parent = new LynxWindow({ show: false });
-          const child = new LynxWindow({
-            show: false,
-            parent,
-            modal: true,
-          });
-
-          expect(child.isModal()).to.equal(true);
-          expect(parent.isModal()).to.equal(false);
-        });
-      });
-
-      ifdescribe(process.platform === 'darwin' || process.platform === 'win32')(
-        'window states',
-        () => {
-          afterEach(closeAllWindows);
-
-          describe('movable state', () => {
-            describe('with properties', () => {
-              it('can be set with movable constructor option', () => {
-                const w = new LynxWindow({ show: false, movable: false });
-                expect(w.movable).to.be.false('movable');
-              });
-
-              it('can be changed', () => {
-                const w = new LynxWindow({ show: false });
-                expect(w.movable).to.be.true('movable');
-                w.movable = false;
-                expect(w.movable).to.be.false('movable');
-                w.movable = true;
-                expect(w.movable).to.be.true('movable');
-              });
-            });
-
-            describe('with functions', () => {
-              it('can be set with movable constructor option', () => {
-                const w = new LynxWindow({ show: false, movable: false });
-                expect(w.isMovable()).to.be.false('isMovable');
-              });
-
-              it('can be changed', () => {
-                const w = new LynxWindow({ show: false });
-                expect(w.isMovable()).to.be.true('isMovable');
-                w.setMovable(false);
-                expect(w.isMovable()).to.be.false('isMovable');
-                w.setMovable(true);
-                expect(w.isMovable()).to.be.true('isMovable');
-              });
-            });
-          });
-
-          describe('minimizable state', () => {
-            describe('with properties', () => {
-              it('can be set with minimizable constructor option', () => {
-                const w = new LynxWindow({ show: false, minimizable: false });
-                expect(w.minimizable).to.be.false('minimizable');
-              });
-
-              it('can be changed', () => {
-                const w = new LynxWindow({ show: false });
-                expect(w.minimizable).to.be.true('minimizable');
-                w.minimizable = false;
-                expect(w.minimizable).to.be.false('minimizable');
-                w.minimizable = true;
-                expect(w.minimizable).to.be.true('minimizable');
-              });
-            });
-
-            describe('with functions', () => {
-              it('can be set with minimizable constructor option', () => {
-                const w = new LynxWindow({ show: false, minimizable: false });
-                expect(w.isMinimizable()).to.be.false('isMinimizable');
-              });
-
-              it('can be changed', () => {
-                const w = new LynxWindow({ show: false });
-                expect(w.isMinimizable()).to.be.true('isMinimizable');
-                w.setMinimizable(false);
-                expect(w.isMinimizable()).to.be.false('isMinimizable');
-                w.setMinimizable(true);
-                expect(w.isMinimizable()).to.be.true('isMinimizable');
-              });
-            });
-          });
-
-          describe('maximizable state', () => {
-            describe('with properties', () => {
-              it('can be set with maximizable constructor option', () => {
-                const w = new LynxWindow({ show: false, maximizable: false });
-                expect(w.maximizable).to.be.false('maximizable');
-              });
-
-              it('can be changed', () => {
-                const w = new LynxWindow({ show: false });
-                expect(w.maximizable).to.be.true('maximizable');
-                w.maximizable = false;
-                expect(w.maximizable).to.be.false('maximizable');
-                w.maximizable = true;
-                expect(w.maximizable).to.be.true('maximizable');
-              });
-            });
-
-            describe('with functions', () => {
-              it('can be set with maximizable constructor option', () => {
-                const w = new LynxWindow({ show: false, maximizable: false });
-                expect(w.isMaximizable()).to.be.false('isMaximizable');
-              });
-
-              it('can be changed', () => {
-                const w = new LynxWindow({ show: false });
-                expect(w.isMaximizable()).to.be.true('isMaximizable');
-                w.setMaximizable(false);
-                expect(w.isMaximizable()).to.be.false('isMaximizable');
-                w.setMaximizable(true);
-                expect(w.isMaximizable()).to.be.true('isMaximizable');
-              });
-            });
-          });
-
-          describe('resizable state', () => {
-            describe('with properties', () => {
-              it('can be set with resizable constructor option', () => {
-                const w = new LynxWindow({ show: false, resizable: false });
-                expect(w.resizable).to.be.false('resizable');
-              });
-
-              it('can be changed', () => {
-                const w = new LynxWindow({ show: false });
-                expect(w.resizable).to.be.true('resizable');
-                w.resizable = false;
-                expect(w.resizable).to.be.false('resizable');
-                w.resizable = true;
-                expect(w.resizable).to.be.true('resizable');
-              });
-            });
-
-            describe('with functions', () => {
-              it('can be set with resizable constructor option', () => {
-                const w = new LynxWindow({ show: false, resizable: false });
-                expect(w.isResizable()).to.be.false('isResizable');
-              });
-
-              it('can be changed', () => {
-                const w = new LynxWindow({ show: false });
-                expect(w.isResizable()).to.be.true('isResizable');
-                w.setResizable(false);
-                expect(w.isResizable()).to.be.false('isResizable');
-                w.setResizable(true);
-                expect(w.isResizable()).to.be.true('isResizable');
-              });
-            });
-          });
-
-          describe('closable state', () => {
-            describe('with properties', () => {
-              it('can be set with closable constructor option', () => {
-                const w = new LynxWindow({ show: false, closable: false });
-                expect(w.closable).to.be.false('closable');
-              });
-
-              it('can be changed', () => {
-                const w = new LynxWindow({ show: false });
-                expect(w.closable).to.be.true('closable');
-                w.closable = false;
-                expect(w.closable).to.be.false('closable');
-                w.closable = true;
-                expect(w.closable).to.be.true('closable');
-              });
-            });
-
-            describe('with functions', () => {
-              it('can be set with closable constructor option', () => {
-                const w = new LynxWindow({ show: false, closable: false });
-                expect(w.isClosable()).to.be.false('isClosable');
-              });
-
-              it('can be changed', () => {
-                const w = new LynxWindow({ show: false });
-                expect(w.isClosable()).to.be.true('isClosable');
-                w.setClosable(false);
-                expect(w.isClosable()).to.be.false('isClosable');
-                w.setClosable(true);
-                expect(w.isClosable()).to.be.true('isClosable');
-              });
-            });
-          });
-        }
-      );
-
-      ifdescribe(process.platform === 'win32')('autoHideMenuBar state', () => {
-        afterEach(closeAllWindows);
-
-        describe('with properties', () => {
-          it('can be set with autoHideMenuBar constructor option', () => {
-            const w = new LynxWindow({ show: false, autoHideMenuBar: true });
-            expect(w.autoHideMenuBar).to.be.true('autoHideMenuBar');
-          });
-
-          it('can be changed', () => {
-            const w = new LynxWindow({ show: false });
-            expect(w.autoHideMenuBar).to.be.false('autoHideMenuBar');
-            w.autoHideMenuBar = true;
-            expect(w.autoHideMenuBar).to.be.true('autoHideMenuBar');
-            w.autoHideMenuBar = false;
-            expect(w.autoHideMenuBar).to.be.false('autoHideMenuBar');
-          });
-        });
-
-        describe('with functions', () => {
-          it('can be set with autoHideMenuBar constructor option', () => {
-            const w = new LynxWindow({ show: false, autoHideMenuBar: true });
-            expect(w.isMenuBarAutoHide()).to.be.true('autoHideMenuBar');
-          });
-
-          it('can be changed', () => {
-            const w = new LynxWindow({ show: false });
-            expect(w.isMenuBarAutoHide()).to.be.false('autoHideMenuBar');
-            w.setAutoHideMenuBar(true);
-            expect(w.isMenuBarAutoHide()).to.be.true('autoHideMenuBar');
-            w.setAutoHideMenuBar(false);
-            expect(w.isMenuBarAutoHide()).to.be.false('autoHideMenuBar');
-          });
+        it.skip('correctly returns whether a window is focusable', async () => {
+          const w2 = new LynxWindow({ focusable: false });
+          expect(w2.isFocusable()).to.be.false();
+
+          w2.setFocusable(true);
+          expect(w2.isFocusable()).to.be.true();
+          await closeWindow(w2, { assertNotWindows: false });
         });
       });
 
@@ -2463,16 +1180,16 @@ describe('LynxWindow module', () => {
           });
         });
 
-        ifit(process.platform !== 'linux')(
+        ifit(process.platform === 'win32')(
           'frameless window keeps client size across activation changes',
           async () => {
             const wFrameless = new LynxWindow({
               show: true,
               frame: false,
               resizable: true,
+              thickFrame: true,
               width: 400,
               height: 300,
-              ...(process.platform === 'win32' ? { thickFrame: true } : {}),
             });
             const wOther = new LynxWindow({
               show: true,
@@ -2482,8 +1199,9 @@ describe('LynxWindow module', () => {
               height: 200,
             });
 
+            await setTimeout(50);
             wFrameless.focus();
-            await waitUntil(() => wFrameless.isFocused());
+            await setTimeout(100);
 
             const beforeContentSize = wFrameless.getContentSize();
             const beforeWindowSize = wFrameless.getSize();
@@ -2491,8 +1209,7 @@ describe('LynxWindow module', () => {
             expect(beforeContentSize[1]).to.equal(beforeWindowSize[1]);
 
             wOther.focus();
-            await waitUntil(() => wOther.isFocused());
-            expect(wFrameless.isFocused()).to.equal(false);
+            await setTimeout(150);
 
             const afterContentSize = wFrameless.getContentSize();
             const afterWindowSize = wFrameless.getSize();

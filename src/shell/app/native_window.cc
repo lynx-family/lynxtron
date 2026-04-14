@@ -41,12 +41,6 @@ NativeWindow::NativeWindow(const gin_helper::Dictionary& options,
     options.Get("modal", &is_modal_);
   }
 
-  // Match Electron: modal child windows default to non-minimizable unless the
-  // caller explicitly specifies otherwise.
-  if (parent && is_modal_ && !options.Has(options::kMinimizable)) {
-    minimizable_ = false;
-  }
-
   WindowList::AddWindow(this);
 }
 
@@ -143,10 +137,6 @@ void NativeWindow::InitFromOptions(const gin_helper::Dictionary& options) {
 
   if (bool val; options.Get(options::kSkipTaskbar, &val)) {
     SetSkipTaskbar(val);
-  }
-
-  if (bool val; options.Get(options::kFocusable, &val)) {
-    SetFocusable(val);
   }
 
   SetTitle(
@@ -308,22 +298,6 @@ void NativeWindow::SetAutoHideCursor(bool auto_hide) {}
 
 void NativeWindow::SetVibrancy(const std::string& type, int duration) {
   vibrancy_ = type;
-}
-
-std::string NativeWindow::GetVibrancyTypeForTesting() const {
-  return vibrancy_;
-}
-
-bool NativeWindow::HasVibrancyView() const {
-  return false;
-}
-
-std::string NativeWindow::GetVisualEffectStateForTesting() const {
-  return "followWindow";
-}
-
-std::string NativeWindow::GetNativeVisualEffectStateForTesting() const {
-  return "none";
 }
 
 #if BUILDFLAG(IS_MAC)

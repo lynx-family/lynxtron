@@ -1512,7 +1512,9 @@ export interface App extends EventEmitter {
    * windows are successfully closed, the `will-quit` event will be emitted and by
    * default the application will terminate.
    *
-   * A window may still cancel the quit during its close flow.
+   * This method guarantees that all `beforeunload` and `unload` event handlers are
+   * correctly executed. It is possible that a window cancels the quitting by
+   * returning `false` in the `beforeunload` event handler.
    */
   quit(): void;
   /**
@@ -1717,9 +1719,11 @@ export interface App extends EventEmitter {
    * the path specifies a directory that does not exist, an `Error` is thrown. In
    * that case, the directory should be created with `fs.mkdirSync` or similar.
    *
-   * You can only override paths of a `name` defined in `app.getPath`. Override the
-   * path before the `ready` event if the runtime should use the custom location
-   * during startup.
+   * You can only override paths of a `name` defined in `app.getPath`.
+   *
+   * By default, web pages' cookies and caches will be stored under the `sessionData`
+   * directory. If you want to change this location, you have to override the
+   * `sessionData` path before the `ready` event of the `app` module is emitted.
    */
   setPath(name: string, path: string): void;
   /**
@@ -1797,7 +1801,7 @@ export interface App extends EventEmitter {
   badgeCount: number;
   /**
    * A `CommandLine` object that allows you to read and manipulate the command line
-   * arguments.
+   * arguments that Chromium uses.
    *
    */
   readonly commandLine: CommandLine;

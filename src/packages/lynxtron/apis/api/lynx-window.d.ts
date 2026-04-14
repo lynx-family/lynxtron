@@ -28,9 +28,9 @@ export interface LynxWindowConstructorOptions {
    */
   y?: number;
   /**
-   * The `width` and `height` would be used as the content area's size, which means
-   * the actual window's size will include the window frame's size and be slightly
-   * larger. Default is `false`.
+   * The `width` and `height` would be used as web page's size, which means the
+   * actual window's size will include window frame's size and be slightly larger.
+   * Default is `false`.
    */
   useContentSize?: boolean;
   /**
@@ -118,6 +118,13 @@ export interface LynxWindowConstructorOptions {
    */
   show?: boolean;
   /**
+   * Whether the renderer should be active when `show` is `false` and it has just
+   * been created.  In order for `document.visibilityState` to work correctly on
+   * first load with `show: false` you should set this to `false`.  Setting this to
+   * `false` will cause the `ready-to-show` event to not fire.  Default is `true`.
+   */
+  paintWhenInitiallyHidden?: boolean;
+  /**
    * Specify `false` to create a [Frameless Window]. Default is `true`.
    */
   frame?: boolean;
@@ -189,6 +196,13 @@ export interface LynxWindowConstructorOptions {
    */
   roundedCorners?: boolean;
   /**
+   * Shows the title in the title bar in full screen mode on macOS for `hiddenInset`
+   * titleBarStyle. Default is `false`.
+   *
+   * @deprecated Use `titleBarStyle` instead.
+   */
+  fullscreenWindowTitle?: boolean;
+  /**
    * Use `WS_THICKFRAME` style for frameless windows on Windows, which adds standard
    * window frame. Setting it to `false` will remove window shadow and window
    * animations. Default is `true`.
@@ -230,6 +244,11 @@ export interface LynxWindowConstructorOptions {
    */
   tabbingIdentifier?: string;
   /**
+   * Whether to follow parent window if `parent` is set.
+   */
+  followParent?: boolean;
+
+  /**
    * Whether node integration is enabled. Default is undefined.
    * path is node init file for node env exports.
    */
@@ -250,7 +269,7 @@ export declare class LynxWindow extends BaseWindow {
    */
   static fromId(id: number): LynxWindow | null;
   /**
-   * An array of all opened windows.
+   * An array of all opened browser windows.
    */
   static getAllWindows(): LynxWindow[];
   /**
@@ -258,6 +277,8 @@ export declare class LynxWindow extends BaseWindow {
    */
   static getFocusedWindow(): LynxWindow | null;
   tabbingIdentifier: string;
+  moveAbove(mediaSourceId: string): void;
+  getMediaSourceId(): string;
   /**
    * Starts loading a Lynx bundle from a local file path.
    *

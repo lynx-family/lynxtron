@@ -85,8 +85,7 @@ class TrayIcon {
   virtual void SetImage(const gfx::Image& image) = 0;
   virtual void SetPressedImage(const gfx::Image& image) {}
   virtual void SetToolTip(const std::string& tool_tip) = 0;
-  virtual void SetTitle(const std::string& title,
-                        const std::string& font_type = std::string()) {}
+  virtual void SetTitle(const std::string& title) {}
   virtual std::string GetTitle() const { return std::string(); }
   virtual void SetIgnoreDoubleClickEvents(bool ignore) {}
   virtual bool GetIgnoreDoubleClickEvents() const { return false; }
