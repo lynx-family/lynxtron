@@ -1,6 +1,6 @@
-From 52a4fd6563821bb64d64560605fa1130e1fa1054 Mon Sep 17 00:00:00 2001
-From: zhixuan <201550585+icecreamx10@users.noreply.github.com>
-Date: Tue, 31 Mar 2026 13:55:20 +0800
+From 2ae1970eec37ae8be318c838c58f9dfd4f9b6ccf Mon Sep 17 00:00:00 2001
+From: zsy-jason <186247581+zsy-jason@users.noreply.github.com>
+Date: Wed, 15 Apr 2026 16:40:24 +0800
 Subject: [PATCH] feat(macos): implement hybrid composition overlay 
  pipeline(Phase 1+2)
 
@@ -29,8 +29,8 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
  lynx/platform/darwin/macos/common/BUILD.gn    |   7 +
  .../darwin/macos/common/LynxOverlayView.h     |  31 ++++
  .../darwin/macos/common/LynxOverlayView.mm    |  82 +++++++++++
- .../darwin/macos/common/LynxUIRenderer.mm     |  75 ++++++++++
- 12 files changed, 570 insertions(+), 7 deletions(-)
+ .../darwin/macos/common/LynxUIRenderer.mm     |  74 ++++++++++
+ 12 files changed, 569 insertions(+), 7 deletions(-)
  create mode 100644 lynx/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h
  create mode 100644 lynx/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.mm
  create mode 100644 lynx/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.h
@@ -39,7 +39,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
  create mode 100644 lynx/platform/darwin/macos/common/LynxOverlayView.mm
 
 diff --git a/clay/lynx_adaptor/native_view_service_desktop.cc b/clay/lynx_adaptor/native_view_service_desktop.cc
-index d348ce81a..8da660bed 100644
+index d348ce81..8da660be 100644
 --- a/clay/lynx_adaptor/native_view_service_desktop.cc
 +++ b/clay/lynx_adaptor/native_view_service_desktop.cc
 @@ -74,6 +74,7 @@ class NativeViewPluginDesktop : public NativeViewPlugin {
@@ -51,7 +51,7 @@ index d348ce81a..8da660bed 100644
      return native_platform_view_->SupportScrolling();
    }
 diff --git a/clay/shell/common/services/compositor/compositor_service.cc b/clay/shell/common/services/compositor/compositor_service.cc
-index 89e730a77..fba9982da 100644
+index a0071d75..62b76936 100644
 --- a/clay/shell/common/services/compositor/compositor_service.cc
 +++ b/clay/shell/common/services/compositor/compositor_service.cc
 @@ -30,6 +30,19 @@ bool CompositorService::SubmitFrame(
@@ -110,7 +110,7 @@ index 89e730a77..fba9982da 100644
  
    size_t required_overlay_layers = 0;
    for (int64_t view_id : compositor_state->GetCompositionOrder()) {
-@@ -110,6 +139,21 @@ bool CompositorService::SubmitFrame(
+@@ -112,6 +141,21 @@ bool CompositorService::SubmitFrame(
        RemoveUnusedSurfaces();
    RecycleSurfaces();
  
@@ -132,7 +132,7 @@ index 89e730a77..fba9982da 100644
    PresentFrame present_frame{
        .overlays = std::move(platform_overlays),
        .compositor_params = std::move(compositor_state->GetViewParams()),
-@@ -120,8 +164,8 @@ bool CompositorService::SubmitFrame(
+@@ -122,8 +166,8 @@ bool CompositorService::SubmitFrame(
  
    presenter_service_.Act([did_encode, present_frame = std::move(present_frame)](
                               auto& impl) mutable {
@@ -143,7 +143,7 @@ index 89e730a77..fba9982da 100644
      if (did_encode) {
        impl.Present(present_frame);
      }
-@@ -133,8 +177,13 @@ bool CompositorService::SubmitFrame(
+@@ -135,8 +179,13 @@ bool CompositorService::SubmitFrame(
  // |clay::Service|
  void CompositorService::OnInit(clay::ServiceManager& service_manager,
                                 const clay::RasterServiceContext& ctx) {
@@ -159,7 +159,7 @@ index 89e730a77..fba9982da 100644
    raster_task_runner_ = service_manager.GetTaskRunners()
                              ->SelectTaskRunner<clay::Owner::kRaster>();
  }
-@@ -143,6 +192,7 @@ void CompositorService::OnDestroy() {
+@@ -145,6 +194,7 @@ void CompositorService::OnDestroy() {
    presenter_service_ = nullptr;
    overlay_service_ = nullptr;
    raster_task_runner_ = nullptr;
@@ -168,7 +168,7 @@ index 89e730a77..fba9982da 100644
  }
  
 diff --git a/clay/shell/common/services/compositor/compositor_service.h b/clay/shell/common/services/compositor/compositor_service.h
-index f5eba2ee3..68187658d 100644
+index f5eba2ee..68187658 100644
 --- a/clay/shell/common/services/compositor/compositor_service.h
 +++ b/clay/shell/common/services/compositor/compositor_service.h
 @@ -8,6 +8,7 @@
@@ -192,7 +192,7 @@ index f5eba2ee3..68187658d 100644
    // of the unused
    // layers. For example, consider the following vector:
 diff --git a/clay/shell/platform/darwin/macos/BUILD.gn b/clay/shell/platform/darwin/macos/BUILD.gn
-index e91e140af..bd292f3af 100644
+index e91e140a..bd292f3a 100644
 --- a/clay/shell/platform/darwin/macos/BUILD.gn
 +++ b/clay/shell/platform/darwin/macos/BUILD.gn
 @@ -64,6 +64,10 @@ source_set("flutter_framework_source") {
@@ -208,7 +208,7 @@ index e91e140af..bd292f3af 100644
    sources += _flutter_framework_headers
 diff --git a/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h b/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h
 new file mode 100644
-index 000000000..f61e538f1
+index 00000000..f61e538f
 --- /dev/null
 +++ b/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.h
 @@ -0,0 +1,83 @@
@@ -297,7 +297,7 @@ index 000000000..f61e538f1
 +#endif  // CLAY_SHELL_PLATFORM_DARWIN_MACOS_PLATFORM_OVERLAY_SERVICE_MAC_H_
 diff --git a/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.mm b/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.mm
 new file mode 100644
-index 000000000..338c81b22
+index 00000000..338c81b2
 --- /dev/null
 +++ b/clay/shell/platform/darwin/macos/framework/Source/platform_overlay_service_mac.mm
 @@ -0,0 +1,134 @@
@@ -437,7 +437,7 @@ index 000000000..338c81b22
 +}  // namespace clay
 diff --git a/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.h b/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.h
 new file mode 100644
-index 000000000..13a801e9b
+index 00000000..13a801e9
 --- /dev/null
 +++ b/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.h
 @@ -0,0 +1,48 @@
@@ -491,7 +491,7 @@ index 000000000..13a801e9b
 +#endif  // CLAY_SHELL_PLATFORM_DARWIN_MACOS_PRESENTER_SERVICE_MAC_H_
 diff --git a/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.mm b/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.mm
 new file mode 100644
-index 000000000..8cb67de7e
+index 00000000..8cb67de7
 --- /dev/null
 +++ b/clay/shell/platform/darwin/macos/framework/Source/presenter_service_mac.mm
 @@ -0,0 +1,42 @@
@@ -538,7 +538,7 @@ index 000000000..8cb67de7e
 +
 +}  // namespace clay
 diff --git a/platform/darwin/macos/common/BUILD.gn b/platform/darwin/macos/common/BUILD.gn
-index 0d1850ab8..27c745d32 100644
+index 0d1850ab..27c745d3 100644
 --- a/platform/darwin/macos/common/BUILD.gn
 +++ b/platform/darwin/macos/common/BUILD.gn
 @@ -6,6 +6,8 @@ import("../../../../core/Lynx.gni")
@@ -562,7 +562,7 @@ index 0d1850ab8..27c745d32 100644
  }
 diff --git a/platform/darwin/macos/common/LynxOverlayView.h b/platform/darwin/macos/common/LynxOverlayView.h
 new file mode 100644
-index 000000000..929592237
+index 00000000..92959223
 --- /dev/null
 +++ b/platform/darwin/macos/common/LynxOverlayView.h
 @@ -0,0 +1,31 @@
@@ -599,7 +599,7 @@ index 000000000..929592237
 +#endif  // PLATFORM_DARWIN_MACOS_COMMON_LYNX_OVERLAY_VIEW_H_
 diff --git a/platform/darwin/macos/common/LynxOverlayView.mm b/platform/darwin/macos/common/LynxOverlayView.mm
 new file mode 100644
-index 000000000..8e06e441e
+index 00000000..8e06e441
 --- /dev/null
 +++ b/platform/darwin/macos/common/LynxOverlayView.mm
 @@ -0,0 +1,82 @@
@@ -686,7 +686,7 @@ index 000000000..8e06e441e
 +
 +@end
 diff --git a/platform/darwin/macos/common/LynxUIRenderer.mm b/platform/darwin/macos/common/LynxUIRenderer.mm
-index 8c1cfbe07..c76ebfbbf 100644
+index 67bafd00..4c1caca6 100644
 --- a/platform/darwin/macos/common/LynxUIRenderer.mm
 +++ b/platform/darwin/macos/common/LynxUIRenderer.mm
 @@ -3,6 +3,8 @@
@@ -708,7 +708,7 @@ index 8c1cfbe07..c76ebfbbf 100644
  #include "clay/ui/component/view_context.h"
  #include "core/base/threading/task_runner_manufactor.h"
  #include "platform/embedder/lynx_view_clients.h"
-@@ -25,6 +30,7 @@
+@@ -27,6 +32,7 @@
  @interface LynxUIRendererMac : NSObject
  
  @property(nonatomic) ClayViewProvider* clayViewProvider;
@@ -716,7 +716,7 @@ index 8c1cfbe07..c76ebfbbf 100644
  
  @end
  
-@@ -53,14 +59,57 @@
+@@ -55,14 +61,57 @@
  
  - (void)setFrame:(CGRect)frame {
    _clayViewProvider.flutterView.frame = frame;
@@ -774,10 +774,10 @@ index 8c1cfbe07..c76ebfbbf 100644
  }
  
  - (void)RegisterIMEHandler:(void*)handler arg:(void*)arg {
-@@ -201,6 +250,25 @@ LynxUIRendererImpl::LynxUIRendererImpl(lynx_view_builder_t* builder)
+@@ -202,6 +251,24 @@ LynxUIRendererImpl::LynxUIRendererImpl(lynx_view_builder_t* builder)
+ 
    clay::NativeViewServiceDesktop::SetViewFactories(view_context,
                                                     std::move(builder->native_view_creators));
- 
 +  // Register macOS-specific compositor services so that Lynx elements with
 +  // high z-index can be rendered into the LynxOverlayView above native views.
 +  {
@@ -796,11 +796,10 @@ index 8c1cfbe07..c76ebfbbf 100644
 +          ->RegisterService<clay::PresenterService>(presenter_service);
 +    }
 +  }
-+
+ 
    if (builder->generic_fetcher) {
      auto fetcher_holder = std::make_shared<LynxResourceFetcherHolder>(builder->generic_fetcher);
-     view_context->GetServiceManager()->RegisterService<clay::ResourceLoaderCreatorService>(
-@@ -328,6 +396,13 @@ void LynxUIRendererImpl::RegisterNativeView(const char* name, lynx_native_view_c
+@@ -361,6 +428,13 @@ void LynxUIRendererImpl::RegisterNativeView(const char* name, lynx_native_view_c
    auto* view_context =
        reinterpret_cast<clay::ViewContext*>(lynx_ui_renderer.clayViewProvider.clayViewContext);
    clay::NativeViewServiceDesktop::AddViewFactory(view_context, name, creator, opaque);
