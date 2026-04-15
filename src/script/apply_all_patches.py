@@ -21,6 +21,7 @@ def apply_patches(target):
     warnings.warn(f'repo not found: {repo}')
     return
   patch_dir = target.get('patch_dir')
+  directory = target.get('directory')
   print(f'{COLORED_GREEN_MSG}applying patches from {patch_dir} to {repo}{COLORED_PRINT_END}')
   git.import_patches(
     committer_email="scripts@lynxtron",
@@ -28,6 +29,7 @@ def apply_patches(target):
     patch_data=patch_from_dir(patch_dir),
     repo=repo,
     threeway=THREEWAY,
+    directory=directory,
   )
 
 def apply_config(config):

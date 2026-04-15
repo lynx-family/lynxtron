@@ -3,3 +3,4 @@
 0003-Replace-MessageLoopimpl-with-libuv-for-lynx-bts.patch
 0004-Unify-V8-Version-for-Lynx-BTS-with-NodeJS.patch
 0005-Change-COREPACK_ENABLE_NETWORK-to-1-form-0.patch
+0007-feat-macos-implement-hybrid-composition-overlay-pipe.patch
