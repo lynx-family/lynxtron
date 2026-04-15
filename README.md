@@ -41,11 +41,6 @@ You shall find documentation for Lynxtron on [lynxjs.org/lynxtron](http://lynxjs
 ### Requirements
 We recommend using macOS and Windows as the development operating system. If you need assistance, please file an issue, and we will be more than happy to help you address it.
 
-### Getting Started guide
-- Trying out Lynxtron with [Hello Lynxtron]()
-- Using [Native Utilities in Lynx Renderers]()
-- Using [Native Modules in Main]()
-
 ## How to Contribute
 ### [Code of Conduct][coc]
 We are devoted to ensuring a positive, inclusive, and safe environment for all contributors. Please find our [Code of Conduct][coc] for detailed information.
