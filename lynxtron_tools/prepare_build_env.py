@@ -91,7 +91,12 @@ def main():
    
     print(f"{COLORED_RED_MSG}Warning: One final step remains for the build environment, please run the following command manually:{COLORED_PRINT_END}")
     print(f"{COLORED_GREEN_MSG}{envsetup}{COLORED_PRINT_END}")
+    return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    exit_code = main()
+    if exit_code != 0:
+        sys.exit(1)
+    else:
+        sys.exit(0)
