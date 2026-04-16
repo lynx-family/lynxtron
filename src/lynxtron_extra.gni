@@ -3,11 +3,12 @@ declare_args() {
   # checkout to add additional targets without explicitly changing any checked-
   # in files.
   lynxtron_lib_extra_configs = []
-  lynxtron_lib_extra_deps = [ "//src/shell/lynx:lynx_lib"]
+  lynxtron_lib_extra_deps = [ "//src/shell/lynx:lynx_lib" ]
   lynxtron_app_extra_configs = []
   lynxtron_app_extra_deps = []
   lynxtron_asar_extra_deps = []
-  lynxtron_resource_fetcher_deps = [ "//src/shell/lynx/resource_fetcher:resource_fetcher" ]
+  lynxtron_resource_fetcher_deps = [ "//src/shell/lynx/resource_fetcher" ]
   lynxtron_app_resources_deps = [ "//src/shell/lynx:lynx_resources" ]
   lynxtron_lib_browser_module_list_path = []
+  lynxtron_extension_extra_deps = []
 }

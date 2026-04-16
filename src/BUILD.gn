@@ -1030,3 +1030,7 @@ test("lynxtron_unittests") {
     "shell/test/shell_v8_test.h",
   ]
 }
+
+group("lynxtron_extension_group") {
+  deps = lynxtron_extension_extra_deps
+}
