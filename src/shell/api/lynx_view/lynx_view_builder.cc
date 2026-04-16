@@ -4,10 +4,12 @@
 
 #include "shell/api/lynx_view/lynx_view_builder.h"
 
+#include <unordered_map>
 #include <utility>
 
 #include "base/base_paths.h"
 #include "base/files/file_path.h"
+#include "base/logging.h"
 #include "base/path_service.h"
 #include "build/build_config.h"
 #include "lynx/platform/embedder/public/lynx_view.h"
@@ -69,6 +71,19 @@ LynxViewBuilder& LynxViewBuilder::SetLynxWindow(
 LynxViewBuilder& LynxViewBuilder::SetNodeIntegrationPreload(
     const std::vector<std::string>& preload) {
   node_integration_preload_ = preload;
+  return *this;
+}
+
+LynxViewBuilder& LynxViewBuilder::SetNativeViewCreator(
+    const char* name,
+    lynx_native_view_creator creator,
+    void* opaque) {
+  if (!name || !*name) {
+    LOG(ERROR) << "Invalid native view creator name: " << name;
+    return *this;
+  }
+  lynx_view_builder_register_native_view(impl_->builder.Impl(), name, creator,
+                                         opaque);
   return *this;
 }
 

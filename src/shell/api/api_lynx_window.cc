@@ -22,7 +22,7 @@
 #include "shell/api/lynx_view/lynx_update_meta.h"
 #include "shell/api/lynx_view/lynx_view.h"
 #include "shell/api/lynx_view/lynx_view_builder.h"
-#include "shell/api/lynx_view_monitor_delegate.h"
+#include "shell/api/lynx_view_state_observer.h"
 #include "shell/api/lynx_window_manager.h"
 #include "shell/app/application.h"
 #include "shell/app/window_list.h"
@@ -227,15 +227,15 @@ LynxWindow::LynxWindow(gin::Arguments* args,
   lynx_env_set_devtool_app_info("appId", application->GetAppId().c_str());
   lynx_env_set_devtool_app_info("App", application->GetName().c_str());
   auto& registry = GetGlobalDelegateRegistry();
-  auto it = registry.find(kLynxViewMonitorDelegateName);
+  auto it = registry.find(kLynxViewStateObserverName);
   if (it != registry.end()) {
     auto delegate = it->second.CreateDelegate();
     if (delegate) {
-      lynx_view_monitor_delegate_ = std::unique_ptr<LynxViewMonitorDelegate>(
-          reinterpret_cast<LynxViewMonitorDelegate*>(delegate.release()));
+      lynx_view_state_observer_ = std::unique_ptr<LynxViewStateObserver>(
+          reinterpret_cast<LynxViewStateObserver*>(delegate.release()));
     }
   } else {
-    LOG(ERROR) << "LynxViewMonitorDelegate not found in registry.";
+    LOG(ERROR) << "LynxViewStateObserver not found in registry.";
   }
   LynxWindowManager::GetInstance()->RegisterLynxWindow(GetWeakPtr());
 }
@@ -458,6 +458,9 @@ void LynxWindow::EnsureLynxView() {
       .SetNodeIntegrationPreload(node_integration_preload_)
       .SetLynxWindow(GetWeakPtr());
 
+  if (lynx_view_state_observer_) {
+    lynx_view_state_observer_->OnPreLynxViewCreate(&builder);
+  }
   lynx_view_ = builder.Build();
   lynx_view_->SetClient(weak_factory_.GetWeakPtr());
   SyncRenderActiveState();
@@ -762,10 +765,10 @@ bool LynxWindow::UpdateMetaData(gin::Arguments* args) {
 
 void LynxWindow::OnPageStart(std::string_view url) {
   // Emit("on-page-start", url);
-  if (lynx_view_monitor_delegate_) {
-    lynx_view_monitor_delegate_->SetInstanceId(
+  if (lynx_view_state_observer_) {
+    lynx_view_state_observer_->SetInstanceId(
         reinterpret_cast<int64_t>(lynx_view_.get()));
-    lynx_view_monitor_delegate_->OnPageStart(url);
+    lynx_view_state_observer_->OnPageStart(url);
   }
 }
 
@@ -791,8 +794,8 @@ void LynxWindow::OnDestroy() {}
 void LynxWindow::OnRuntimeReady() {}
 
 void LynxWindow::OnReceivedError(int error_code, std::string_view message) {
-  if (lynx_view_monitor_delegate_) {
-    lynx_view_monitor_delegate_->OnReceivedError(error_code, message);
+  if (lynx_view_state_observer_) {
+    lynx_view_state_observer_->OnReceivedError(error_code, message);
   }
   ReportErrorToNode(kLynxError, error_code, std::string(message));
 }

@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "base/memory/weak_ptr.h"
+#include "lynx/platform/embedder/public/capi/lynx_native_view_capi.h"
 
 namespace lynx {
 namespace pub {
@@ -39,6 +40,9 @@ class LynxViewBuilder {
   LynxViewBuilder& SetLynxWindow(base::WeakPtr<api::LynxWindow> lynx_window);
   LynxViewBuilder& SetNodeIntegrationPreload(
       const std::vector<std::string>& preload);
+  LynxViewBuilder& SetNativeViewCreator(const char* name,
+                                        lynx_native_view_creator creator,
+                                        void* opaque = nullptr);
 
   std::unique_ptr<LynxView> Build();
 

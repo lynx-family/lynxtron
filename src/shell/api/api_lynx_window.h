@@ -19,7 +19,7 @@
 #include "shell/common/gin_helper/error_thrower.h"
 
 namespace lynxtron {
-class LynxViewMonitorDelegate;
+class LynxViewStateObserver;
 }
 
 namespace lynxtron::api {
@@ -163,7 +163,7 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
   std::vector<std::vector<int64_t>> last_frame_timings_;
   bool last_render_active_ = false;
   base::WeakPtrFactory<LynxWindow> weak_factory_{this};
-  std::unique_ptr<LynxViewMonitorDelegate> lynx_view_monitor_delegate_;
+  std::unique_ptr<LynxViewStateObserver> lynx_view_state_observer_;
   std::optional<std::string> data_str_ = std::nullopt;
   std::optional<std::string> global_props_ = std::nullopt;
   std::optional<std::string> current_resource_base_url_ = std::nullopt;

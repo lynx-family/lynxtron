@@ -2,8 +2,8 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#ifndef LYNXTRON_SHELL_API_LYNX_VIEW_MONITOR_DELEGATE_H_
-#define LYNXTRON_SHELL_API_LYNX_VIEW_MONITOR_DELEGATE_H_
+#ifndef LYNXTRON_SHELL_API_LYNX_VIEW_STATE_OBSERVER_H_
+#define LYNXTRON_SHELL_API_LYNX_VIEW_STATE_OBSERVER_H_
 
 #include <cstdint>
 #include <string_view>
@@ -12,13 +12,16 @@
 
 namespace lynxtron {
 
-static const char* kLynxViewMonitorDelegateName = "LynxViewMonitorDelegate";
+class LynxViewBuilder;
 
-class LynxViewMonitorDelegate : public GlobalDelegate {
+static const char* kLynxViewStateObserverName = "LynxViewStateObserver";
+
+class LynxViewStateObserver : public GlobalDelegate {
  public:
-  virtual ~LynxViewMonitorDelegate() = default;
+  virtual ~LynxViewStateObserver() = default;
   void SetInstanceId(int64_t instance_id) { instance_id_ = instance_id; }
 
+  virtual void OnPreLynxViewCreate(LynxViewBuilder* builder) = 0;
   virtual void OnPageStart(std::string_view url) = 0;
   virtual void OnRuntimeReady() = 0;
   virtual void OnReceivedError(int error_code, std::string_view message) = 0;
@@ -34,4 +37,4 @@ class LynxViewMonitorDelegate : public GlobalDelegate {
 
 }  // namespace lynxtron
 
-#endif  // LYNXTRON_SHELL_API_LYNX_VIEW_MONITOR_DELEGATE_H_
+#endif  // LYNXTRON_SHELL_API_LYNX_VIEW_STATE_OBSERVER_H_
