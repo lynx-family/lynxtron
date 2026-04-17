@@ -781,16 +781,40 @@ bool NativeWindowMac::IsFullscreen() const {
   return HasStyleMask(NSWindowStyleMaskFullScreen);
 }
 
-void NativeWindowMac::SetSizeConstraints(
-    const SizeConstraints& window_constraints) {
+namespace {
+
+void ApplyWindowSizeConstraints(LynxNSWindow* window,
+                                const SizeConstraints& window_constraints) {
   if (window_constraints.HasMinimumSize()) {
-    [window_ setMinSize:window_constraints.GetMinimumSize().ToCGSize()];
+    [window setMinSize:window_constraints.GetMinimumSize().ToCGSize()];
   }
   if (window_constraints.HasMaximumSize()) {
-    [window_ setMaxSize:window_constraints.GetMaximumSize().ToCGSize()];
+    [window setMaxSize:window_constraints.GetMaximumSize().ToCGSize()];
   }
+}
+
+}  // namespace
+
+void NativeWindowMac::SetSizeConstraints(
+    const SizeConstraints& window_constraints) {
+  ApplyWindowSizeConstraints(window_, window_constraints);
 
   NativeWindow::SetSizeConstraints(window_constraints);
+
+  gfx::Rect bounds = GetBounds();
+  gfx::Size clamped_size = window_constraints.ClampSize(bounds.size());
+  if (clamped_size != bounds.size()) {
+    bounds.set_size(clamped_size);
+    SetBounds(bounds, false);
+  }
+}
+
+void NativeWindowMac::SetContentSizeConstraints(
+    const SizeConstraints& size_constraints) {
+  NativeWindow::SetContentSizeConstraints(size_constraints);
+
+  const SizeConstraints window_constraints = GetSizeConstraints();
+  ApplyWindowSizeConstraints(window_, window_constraints);
 
   gfx::Rect bounds = GetBounds();
   gfx::Size clamped_size = window_constraints.ClampSize(bounds.size());

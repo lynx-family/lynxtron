@@ -155,6 +155,39 @@ std::string ToDirectoryFileUrl(const base::FilePath& path) {
   return directory_url;
 }
 
+struct LynxContentMetrics {
+  float width;
+  float height;
+  float device_pixel_ratio;
+};
+
+LynxContentMetrics GetLynxContentMetrics(NativeWindow* window) {
+  const float device_pixel_ratio = window->GetDevicePixelRatio();
+  float width = window->GetContentSize().width();
+  float height = window->GetContentSize().height();
+#if BUILDFLAG(IS_WIN)
+  RECT client_rect{};
+  ::GetClientRect(window->GetNativeWindowHandle(), &client_rect);
+  width = static_cast<float>(client_rect.right - client_rect.left) /
+          device_pixel_ratio;
+  height = static_cast<float>(client_rect.bottom - client_rect.top) /
+           device_pixel_ratio;
+#endif
+  return {.width = width,
+          .height = height,
+          .device_pixel_ratio = device_pixel_ratio};
+}
+
+void SyncLynxViewport(LynxView* lynx_view, const LynxContentMetrics& metrics) {
+  lynx_view->SetFrame(0, 0, metrics.width, metrics.height);
+}
+
+void SyncLynxScreenMetrics(LynxView* lynx_view,
+                           const LynxContentMetrics& metrics) {
+  lynx_view->UpdateScreenMetrics(metrics.width, metrics.height,
+                                 metrics.device_pixel_ratio);
+}
+
 #if BUILDFLAG(IS_WIN)
 void UpdateFramebufferTransparency(HWND window) {
   BOOL enabled;
@@ -300,17 +333,9 @@ void LynxWindow::OnWindowResize() {
 #endif
 
   if (lynx_view_) {
-    float width = window_->GetContentSize().width();
-    float height = window_->GetContentSize().height();
-    const float device_pixel_ratio = window_->GetDevicePixelRatio();
-#if BUILDFLAG(IS_WIN)
-    RECT cr{};
-    ::GetClientRect(window_->GetNativeWindowHandle(), &cr);
-    width = static_cast<float>(cr.right - cr.left) / device_pixel_ratio;
-    height = static_cast<float>(cr.bottom - cr.top) / device_pixel_ratio;
-#endif
+    const auto metrics = GetLynxContentMetrics(window_.get());
     // During sizing, only adjust frame to keep visual coverage; defer metrics.
-    lynx_view_->SetFrame(0, 0, width, height);
+    SyncLynxViewport(lynx_view_.get(), metrics);
 #if BUILDFLAG(IS_WIN)
     if (HWND lynx_hwnd =
             reinterpret_cast<HWND>(lynx_view_->GetNativeWindow())) {
@@ -318,7 +343,7 @@ void LynxWindow::OnWindowResize() {
     }
 #endif
     if (!window_->IsInSizeMove()) {
-      lynx_view_->UpdateScreenMetrics(width, height, device_pixel_ratio);
+      SyncLynxScreenMetrics(lynx_view_.get(), metrics);
     }
   }
   BaseWindow::OnWindowResize();
@@ -326,17 +351,9 @@ void LynxWindow::OnWindowResize() {
 
 void LynxWindow::OnWindowResized() {
   if (lynx_view_) {
-    const float dpr = window_->GetDevicePixelRatio();
-    float width = window_->GetContentSize().width();
-    float height = window_->GetContentSize().height();
-#if BUILDFLAG(IS_WIN)
-    RECT cr{};
-    ::GetClientRect(window_->GetNativeWindowHandle(), &cr);
-    width = static_cast<float>(cr.right - cr.left) / dpr;
-    height = static_cast<float>(cr.bottom - cr.top) / dpr;
-#endif
-    lynx_view_->UpdateScreenMetrics(width, height, dpr);
-    lynx_view_->SetFrame(0, 0, width, height);
+    const auto metrics = GetLynxContentMetrics(window_.get());
+    SyncLynxScreenMetrics(lynx_view_.get(), metrics);
+    SyncLynxViewport(lynx_view_.get(), metrics);
 #if BUILDFLAG(IS_WIN)
     if (HWND lynx_hwnd =
             reinterpret_cast<HWND>(lynx_view_->GetNativeWindow())) {
@@ -439,21 +456,12 @@ void LynxWindow::EnsureLynxView() {
     return;
   }
 
-  float width = window_->GetContentSize().width();
-  float height = window_->GetContentSize().height();
-  float device_pixel_ratio = window_->GetDevicePixelRatio();
-#if BUILDFLAG(IS_WIN)
-  RECT win_rect{};
-  ::GetClientRect(window_->GetNativeWindowHandle(), &win_rect);
-  width =
-      static_cast<float>(win_rect.right - win_rect.left) / device_pixel_ratio;
-  height =
-      static_cast<float>(win_rect.bottom - win_rect.top) / device_pixel_ratio;
-#endif
+  const auto metrics = GetLynxContentMetrics(window_.get());
 
   LynxViewBuilder builder;
-  builder.SetScreenSize(width, height, device_pixel_ratio)
-      .SetFrame(0, 0, width, height)
+  builder
+      .SetScreenSize(metrics.width, metrics.height, metrics.device_pixel_ratio)
+      .SetFrame(0, 0, metrics.width, metrics.height)
       .SetParent(window_->GetNativeWindowHandle())
       .SetNodeIntegrationPreload(node_integration_preload_)
       .SetLynxWindow(GetWeakPtr());

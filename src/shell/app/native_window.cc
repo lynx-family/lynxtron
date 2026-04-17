@@ -56,9 +56,14 @@ NativeWindow::~NativeWindow() {
 
 void NativeWindow::InitFromOptions(const gin_helper::Dictionary& options) {
   // Setup window from options.
-  if (int x, y; options.Get(options::kX, &x) && options.Get(options::kY, &y)) {
+  int x = 0;
+  int y = 0;
+  const bool has_x = options.Get(options::kX, &x);
+  const bool has_y = options.Get(options::kY, &y);
+  if (has_x && has_y) {
     SetPosition(gfx::Point{x, y}, false);
-  } else if (bool center; options.Get(options::kCenter, &center) && center) {
+  } else if (!has_x && !has_y &&
+             options.ValueOrDefault(options::kCenter, true)) {
     Center();
   }
 

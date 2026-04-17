@@ -82,6 +82,111 @@ describe('LynxWindow module', () => {
         w.destroy();
       }).not.to.throw();
     });
+
+    describe('sizing semantics', () => {
+      it('defaults to an 800x600 window and centers when no position is given', async () => {
+        const wDefault = new LynxWindow({ show: false });
+        const wCentered = new LynxWindow({
+          show: false,
+          x: 10,
+          y: 10,
+          width: 800,
+          height: 600,
+        });
+
+        try {
+          expectBoundsEqual(wDefault.getSize(), [800, 600]);
+
+          const before = wCentered.getPosition();
+          wCentered.center();
+          await waitUntil(() => {
+            const after = wCentered.getPosition();
+            return after[0] !== before[0] || after[1] !== before[1];
+          });
+
+          const defaultPosition = wDefault.getPosition();
+          const centeredPosition = wCentered.getPosition();
+          expect(
+            Math.abs(defaultPosition[0] - centeredPosition[0])
+          ).to.be.at.most(2);
+          expect(
+            Math.abs(defaultPosition[1] - centeredPosition[1])
+          ).to.be.at.most(2);
+        } finally {
+          await closeWindow(wCentered, { assertNotWindows: false });
+          await closeWindow(wDefault, { assertNotWindows: false });
+        }
+      });
+
+      it('uses width and height as content bounds when useContentSize is true', async () => {
+        const w = new LynxWindow({
+          show: false,
+          width: 420,
+          height: 320,
+          useContentSize: true,
+        });
+
+        try {
+          expectBoundsEqual(w.getContentSize(), [420, 320]);
+
+          const [windowWidth, windowHeight] = w.getSize();
+          expect(windowWidth).to.be.at.least(420);
+          expect(windowHeight).to.be.at.least(320);
+        } finally {
+          await closeWindow(w, { assertNotWindows: false });
+        }
+      });
+
+      it('applies constructor minimum size in content space when useContentSize is true', async () => {
+        const w = new LynxWindow({
+          show: false,
+          width: 400,
+          height: 300,
+          useContentSize: true,
+          minWidth: 300,
+          minHeight: 320,
+        });
+
+        try {
+          w.setContentSize(200, 200);
+          await waitUntil(() => {
+            const [width, height] = w.getContentSize();
+            return width >= 300 && height >= 320;
+          });
+
+          const [width, height] = w.getContentSize();
+          expect(width).to.be.at.least(300);
+          expect(height).to.be.at.least(320);
+        } finally {
+          await closeWindow(w, { assertNotWindows: false });
+        }
+      });
+
+      it('applies constructor maximum size in content space when useContentSize is true', async () => {
+        const w = new LynxWindow({
+          show: false,
+          width: 320,
+          height: 300,
+          useContentSize: true,
+          maxWidth: 260,
+          maxHeight: 240,
+        });
+
+        try {
+          w.setContentSize(500, 480);
+          await waitUntil(() => {
+            const [width, height] = w.getContentSize();
+            return width <= 260 && height <= 240;
+          });
+
+          const [width, height] = w.getContentSize();
+          expect(width).to.be.at.most(260);
+          expect(height).to.be.at.most(240);
+        } finally {
+          await closeWindow(w, { assertNotWindows: false });
+        }
+      });
+    });
   });
 
   describe('background color', () => {
