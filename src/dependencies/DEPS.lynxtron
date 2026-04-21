@@ -14,4 +14,11 @@ deps = {
         ],
         "require": ["../base", "../build", "../third_party/node", "../url", "../tools", "../v8"],
     },
+    '../build/toolchain/win/rc/win/rc.exe': {
+        "type": "http",
+        # dea7da0d9bfcb8dad6cf53ca608dddac3459faaa is defined in lynxtron/build/toolchain/win/rc/win/rc.exe.sha1
+        "url": "https://storage.googleapis.com/chromium-browser-clang/rc/dea7da0d9bfcb8dad6cf53ca608dddac3459faaa",
+        "decompress": False,
+        "condition": system in ['windows'],
+    }
 }

@@ -876,6 +876,7 @@ if (is_win) {
     include_dirs = [ "." ]
 
     sources = [ "shell/app/main_win.cc" ]
+    sources += get_target_outputs(":lynxtron_win_rc")
 
     ldflags = [ "/DEF:" + rebase_path("build/lynxtron.def", root_build_dir) ]
     if (enable_enlarge_stack) {
