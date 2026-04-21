@@ -197,6 +197,47 @@ index 9db837a..ea9a0ff 100644
  async function getElectronVersion(projectDir, config) {
      if (config == null) {
          config = await (0, config_1.getConfig)(projectDir, null, null);
+diff --git a/node_modules/app-builder-lib/out/node-module-collector/nodeModulesCollector.js b/node_modules/app-builder-lib/out/node-module-collector/nodeModulesCollector.js
+index 1e9256c..f18fb0b 100644
+--- a/node_modules/app-builder-lib/out/node-module-collector/nodeModulesCollector.js
++++ b/node_modules/app-builder-lib/out/node-module-collector/nodeModulesCollector.js
+@@ -81,17 +81,17 @@ class NodeModulesCollector {
+             }
+             const version = dependencies.version || "";
+             const newKey = `${packageName}@${version}`;
+-            if (!dependencies.path) {
+-                builder_util_1.log.error({
+-                    packageName,
+-                    data: dependencies,
+-                    parentModule: tree.name,
+-                    parentVersion: tree.version,
+-                }, "dependency path is undefined");
+-                throw new Error("unable to parse `path` during `tree.dependencies` reduce");
+-            }
++            // if (!dependencies.path) {
++            //     builder_util_1.log.error({
++            //         packageName,
++            //         data: dependencies,
++            //         parentModule: tree.name,
++            //         parentVersion: tree.version,
++            //     }, "dependency path is undefined");
++            //     throw new Error("unable to parse `path` during `tree.dependencies` reduce");
++            // }
+             // Map dependency details: name, version and path to the dependency tree
+-            this.dependencyPathMap.set(newKey, path.normalize(this.resolvePath(dependencies.path)));
++            // this.dependencyPathMap.set(newKey, path.normalize(this.resolvePath(dependencies.path)));
+             if (!acc[parentKey]) {
+                 acc[parentKey] = { dependencies: [] };
+             }
+@@ -100,7 +100,7 @@ class NodeModulesCollector {
+                 builder_util_1.log.debug({
+                     dependency: packageName,
+                     version,
+-                    path: dependencies.path,
++                    // path: dependencies.path,
+                     parentModule: tree.name,
+                     parentVersion: tree.version,
+                 }, "converted implicit dependency");
 diff --git a/node_modules/app-builder-lib/out/targets/nsis/NsisTarget.js b/node_modules/app-builder-lib/out/targets/nsis/NsisTarget.js
 index 8336c60..3eda216 100644
 --- a/node_modules/app-builder-lib/out/targets/nsis/NsisTarget.js

@@ -21,6 +21,8 @@ npmRebuild: false
 extraResources:
   - from: src/assets
     to: assets
+  - from: dist/desktop
+    to: resources/app
 icon: lynxtron.png
 electronBranding:
   projectName: lynxtron

@@ -20,17 +20,15 @@ function getLynxtronVersion() {
       if (lynxtronPackageJson && lynxtronPackageJson.version) {
         return lynxtronPackageJson.version;
       }
-    }
-  } catch (e) {
-    // Swallow and try legacy approach below
-  }
-
-  // Legacy approach for environments that still allow subpath access
-  try {
-    const legacyPkgPath = require.resolve('@lynx-js/lynxtron/package.json', { paths: [projectRoot] });
-    const legacyPkg = JSON.parse(fs.readFileSync(legacyPkgPath, 'utf8'));
-    if (legacyPkg && legacyPkg.version) {
-      return legacyPkg.version;
+    } else {
+      // Look for package.json in the parent directory
+      const lynxtronPkgPath = path.join(path.dirname(path.dirname(lynxtronEntryPath)), 'package.json');
+      if (fs.existsSync(lynxtronPkgPath)) {
+        const lynxtronPackageJson = JSON.parse(fs.readFileSync(lynxtronPkgPath, 'utf8'));
+        if (lynxtronPackageJson && lynxtronPackageJson.version) {
+          return lynxtronPackageJson.version;
+        }
+      }
     }
   } catch (e) {
     console.warn('Could not resolve installed lynxtron version from node_modules.');
@@ -133,12 +131,13 @@ function runBuild(arch) {
       const lynxtronVersion = getLynxtronVersion();
       const archFlag = arch ? arch.replace('--', '') : process.arch;
       const resolvedArch = archFlag;
+      const resolvedPlatform = process.platform;
       config.electronVersion = lynxtronVersion;
       config.electronDownload = {
         version: lynxtronVersion,
         mirror: '',
         customDir: `v${lynxtronVersion}`,
-        customFilename: `lynxtron-v${lynxtronVersion}-darwin-${resolvedArch}.zip`,
+        customFilename: `lynxtron-v${lynxtronVersion}-${resolvedPlatform}-${resolvedArch}.zip`,
       };
     }
     fs.writeFileSync(tempConfigPath, JSON.stringify(config, null, 2));

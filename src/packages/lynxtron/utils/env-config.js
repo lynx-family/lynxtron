@@ -16,7 +16,7 @@ function getPlatformPath (platform) {
     // case 'linux':
     //   return 'lynxtron';
     case 'win32':
-      return 'lynxtron/lynxtron.exe';
+      return 'lynxtron.exe';
     default:
       throw new Error('lynxtron builds are not available on platform: ' + platform);
   }
