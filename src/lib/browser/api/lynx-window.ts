@@ -16,6 +16,7 @@ const nativeLoadFile = LynxWindow.prototype.loadFile;
 const nativeLoadURL = LynxWindow.prototype.loadURL;
 const nativeLoadBundle = LynxWindow.prototype.loadBundle;
 const nativeUpdateMetaData = LynxWindow.prototype.updateMetaData;
+const nativeSendGlobalEvent = LynxWindow.prototype.sendGlobalEvent;
 
 // The native layer returns `false` only for synchronous input validation or
 // request setup failures. Actual template load completion remains event-driven.
@@ -73,6 +74,14 @@ LynxWindow.prototype.updateMetaData = function (this: LWT, meta: any): boolean {
     throw new TypeError('updateMetaData requires a LynxUpdateMeta instance');
   }
   return nativeUpdateMetaData.call(this, meta);
+};
+
+LynxWindow.prototype.sendGlobalEvent = function (
+  this: LWT,
+  eventName: string,
+  ...args: any[]
+): boolean {
+  return nativeSendGlobalEvent.call(this, eventName, [...args]);
 };
 
 LynxWindow.prototype._init = function (this: LWT) {

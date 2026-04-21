@@ -316,6 +316,8 @@ export declare class LynxWindow extends BaseWindow {
   updateMetaData(meta: LynxUpdateMeta): boolean;
   /**
    * Send global event to the window.
+   * Lynx-side GlobalEventListener signature:
+   * `(...args) => { }`
    */
-  sendGlobalEvent(eventName: string, data: Object): boolean;
+  sendGlobalEvent(eventName: string, ...args: any[]): boolean;
 }
