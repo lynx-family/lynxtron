@@ -639,8 +639,6 @@ source_set("lynxtron_lib") {
       "shell/app/relauncher_win.cc",
       "shell/common/application_info_win.cc",
       "shell/common/asar/archive_win.cc",
-      "shell/common/node_addon_adapter.cc",
-      "shell/common/node_addon_adapter.h",
       "shell/common/node_bindings_win.cc",
       "shell/common/node_bindings_win.h",
       "shell/common/nt_internals.h",
@@ -1019,6 +1017,9 @@ test("lynxtron_unittests") {
       "-rpath",
       "@executable_path",
     ]
+  }
+  if (is_win) {
+    libs = [ "Wintrust.lib" ]
   }
   sources = [
     "shell/common/global_thread_unittest.cc",
