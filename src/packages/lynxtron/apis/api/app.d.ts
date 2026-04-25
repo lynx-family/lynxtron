@@ -1454,6 +1454,11 @@ export interface App extends EventEmitter {
    * executable is returned.
    */
   getVersion(): string;
+
+  /**
+   * The device model of the current device.
+   */
+  getDeviceModel(): string;
   /**
    * This method returns whether or not this instance of your app is currently
    * holding the single instance lock.  You can request the lock with

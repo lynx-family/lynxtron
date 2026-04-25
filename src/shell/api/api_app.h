@@ -166,6 +166,7 @@ class App : public gin_helper::DeprecatedWrappable<App>,
   v8::Local<v8::Promise> runAsElevated(gin::Arguments* args);
   std::string getChannelID();
   std::string getGuid();
+  std::string GetDeviceModel();
 
   std::unique_ptr<ProcessSingleton> process_singleton_;
   bool watch_singleton_socket_on_ready_ = false;

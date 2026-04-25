@@ -49,9 +49,11 @@
 #if BUILDFLAG(IS_WIN)
 #include "base/strings/utf_string_conversions.h"
 #include "shell/api/ui/win/jump_list.h"
+#include "shell/app/win/reg_helper.h"
 #endif
 
 #if BUILDFLAG(IS_MAC)
+#include "base/system/sys_info.h"
 #include "shell/api/api_menu.h"
 #include "shell/ui/cocoa/electron_bundle_mover.h"
 #endif
@@ -980,6 +982,18 @@ gin_helper::Dictionary App::GetAppMetrics(v8::Isolate* isolate) {
   return result;
 }
 
+std::string App::GetDeviceModel() {
+#if BUILDFLAG(IS_WIN)
+  std::string ret;
+  if (lynxtron::RegHelper::GetDeviceManufacturer(ret)) {
+    return ret;
+  }
+  return std::string();
+#elif BUILDFLAG(IS_MAC)
+  return base::SysInfo::HardwareModelName();
+#endif
+}
+
 #if BUILDFLAG(IS_WIN)
 
 bool App::IsRunningUnderARM64Translation() const {
@@ -1151,6 +1165,7 @@ gin::ObjectTemplateBuilder App::GetObjectTemplateBuilder(v8::Isolate* isolate) {
 #if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN)
       .SetProperty("runningUnderARM64Translation",
                    &App::IsRunningUnderARM64Translation)
+      .SetMethod("getDeviceModel", &App::GetDeviceModel)
 #endif
 #if BUILDFLAG(IS_WIN)
       .SetMethod("getJumpListSettings", &App::GetJumpListSettings)
