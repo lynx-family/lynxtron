@@ -20,7 +20,7 @@ def read_patch(patch_dir, patch_filename):
   ret = []
   added_patch_location = False
   patch_path = os.path.join(patch_dir, patch_filename)
-  with codecs.open(patch_path, encoding='utf-8') as f:
+  with open(patch_path, 'r', encoding='utf-8') as f:
     for l in f.readlines():
       line_has_correct_start = l.startswith('diff -') or l.startswith('---')
       if not added_patch_location and line_has_correct_start:
