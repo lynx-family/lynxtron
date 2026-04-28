@@ -1258,6 +1258,46 @@ describe('LynxWindow module', () => {
       );
 
       ifdescribe(process.platform === 'darwin')(
+        'LynxWindow titleBarStyle hiddenInset size preservation',
+        () => {
+          afterEach(closeAllWindows);
+
+          // Regression: switching FullSizeContentView after setFrame used to
+          // make AppKit shrink the content by a title bar height, so a
+          // 1512x870 window ended up delivering 1512x837 to the content view.
+          it('keeps the requested size when using hiddenInset + useContentSize=false', () => {
+            const w = new LynxWindow({
+              show: false,
+              width: 1512,
+              height: 870,
+              titleBarStyle: 'hiddenInset',
+            });
+            const bounds = w.getBounds();
+            const content = w.getContentBounds();
+            expect(bounds.width).to.equal(1512);
+            expect(bounds.height).to.equal(870);
+            // With FullSizeContentView the content view must equal the frame,
+            // not frame - titleBarHeight.
+            expect(content.width).to.equal(bounds.width);
+            expect(content.height).to.equal(bounds.height);
+          });
+
+          it('keeps the requested content size when using hiddenInset + useContentSize=true', () => {
+            const w = new LynxWindow({
+              show: false,
+              width: 1512,
+              height: 870,
+              useContentSize: true,
+              titleBarStyle: 'hiddenInset',
+            });
+            const content = w.getContentBounds();
+            expect(content.width).to.equal(1512);
+            expect(content.height).to.equal(870);
+          });
+        }
+      );
+
+      ifdescribe(process.platform === 'darwin')(
         'LynxWindow trafficLightPosition',
         () => {
           afterEach(closeAllWindows);

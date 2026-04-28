@@ -237,6 +237,19 @@ NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
   window_.releasedWhenClosed = NO;
   window_.customButtonsOnHover =
       title_bar_style_ == TitleBarStyle::kCustomButtonsOnHover;
+
+  const bool use_custom_title_bar_early =
+      title_bar_style_ != TitleBarStyle::kNormal;
+  if (transparent() || !frame() || use_custom_title_bar_early) {
+    // Enable FullSizeContentView before any size is applied. Switching this
+    // style mask after setFrame/SetContentSize would make AppKit re-interpret
+    // the window's content/frame relationship by a title bar height, causing
+    // the content to shrink by that amount (e.g. 870 -> 837).
+    [window_ setTitlebarAppearsTransparent:YES];
+    [window_ setTitleVisibility:NSWindowTitleHidden];
+    SetStyleMask(true, NSWindowStyleMaskFullSizeContentView);
+  }
+
   [window_
       setFrame:NSMakeRect(bounds.x(), bounds.y(), window_width, window_height)
        display:true];
@@ -264,9 +277,9 @@ NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
 
   const bool use_custom_title_bar = title_bar_style_ != TitleBarStyle::kNormal;
   if (transparent() || !frame() || use_custom_title_bar) {
-    [window_ setTitlebarAppearsTransparent:YES];
-    [window_ setTitleVisibility:NSWindowTitleHidden];
-    SetStyleMask(true, NSWindowStyleMaskFullSizeContentView);
+    // titlebarAppearsTransparent / titleVisibility / FullSizeContentView have
+    // already been configured right after window_ creation (before setFrame),
+    // so only the remaining button / opacity setup is handled here.
     if (transparent() || !frame()) {
       [window_ setOpaque:NO];
       if (!use_custom_title_bar) {
