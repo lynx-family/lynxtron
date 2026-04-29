@@ -357,11 +357,12 @@ void NativeWindowWin::SetBounds(const gfx::Rect& bounds, bool animate) {
 
 gfx::Rect NativeWindowWin::GetBounds() const {
   if (IsMinimized()) {
-    return window_->GetRestoredBounds();
+    return ScreenToDIPRect(GetNativeWindowHandle(),
+                           window_->GetRestoredBounds());
   }
 
   gfx::Rect bounds = window_->GetWindowBoundsInScreen();
-  return bounds;
+  return ScreenToDIPRect(GetNativeWindowHandle(), bounds);
 }
 
 float NativeWindowWin::GetDevicePixelRatio() const {
@@ -372,7 +373,7 @@ gfx::Rect NativeWindowWin::GetNormalBounds() const {
   if (IsMaximized() && transparent()) {
     return restore_bounds_;
   }
-  return window_->GetRestoredBounds();
+  return ScreenToDIPRect(GetNativeWindowHandle(), window_->GetRestoredBounds());
 }
 
 void NativeWindowWin::SetResizable(bool resizable) {

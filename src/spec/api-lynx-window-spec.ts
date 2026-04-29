@@ -118,6 +118,25 @@ describe('LynxWindow module', () => {
         }
       });
 
+      ifit(process.platform === 'win32')(
+        'returns constructor window size in DIP on Windows',
+        async () => {
+          const w = new LynxWindow({
+            show: false,
+            width: 320,
+            height: 240,
+          });
+
+          try {
+            expectBoundsEqual(w.getSize(), [320, 240]);
+            const bounds = w.getBounds();
+            expectBoundsEqual([bounds.width, bounds.height], [320, 240]);
+          } finally {
+            await closeWindow(w, { assertNotWindows: false });
+          }
+        }
+      );
+
       it('uses width and height as content bounds when useContentSize is true', async () => {
         const w = new LynxWindow({
           show: false,
@@ -1930,6 +1949,39 @@ describe('LynxWindow module', () => {
             await closeWindow(w2, { assertNotWindows: false });
           }
         });
+
+        ifit(process.platform === 'win32')(
+          'keeps the DIP size when centering on Windows',
+          async () => {
+            const w2 = new LynxWindow({
+              show: false,
+              x: 10,
+              y: 10,
+              width: 320,
+              height: 240,
+            });
+
+            try {
+              expectBoundsEqual(w2.getSize(), [320, 240]);
+
+              const beforePosition = w2.getPosition();
+              w2.center();
+              await waitUntil(() => {
+                const afterPosition = w2.getPosition();
+                return (
+                  afterPosition[0] !== beforePosition[0] ||
+                  afterPosition[1] !== beforePosition[1]
+                );
+              });
+
+              expectBoundsEqual(w2.getSize(), [320, 240]);
+              const bounds = w2.getBounds();
+              expectBoundsEqual([bounds.width, bounds.height], [320, 240]);
+            } finally {
+              await closeWindow(w2, { assertNotWindows: false });
+            }
+          }
+        );
       });
 
       describe('LynxWindow.setAspectRatio(ratio)', () => {
@@ -1979,6 +2031,39 @@ describe('LynxWindow module', () => {
             w.maximize();
             await maximize;
             expectBoundsEqual(w.getNormalBounds(), bounds);
+          }
+        );
+
+        ifit(process.platform === 'win32')(
+          'returns the normal size in DIP on Windows',
+          async () => {
+            const w2 = new LynxWindow({
+              show: true,
+              width: 320,
+              height: 240,
+            });
+
+            try {
+              await waitUntil(() => w2.isVisible());
+
+              const originalBounds = w2.getBounds();
+              expectBoundsEqual(
+                [originalBounds.width, originalBounds.height],
+                [320, 240]
+              );
+
+              const maximize = once(w2, 'maximize');
+              w2.maximize();
+              await maximize;
+
+              const normalBounds = w2.getNormalBounds();
+              expectBoundsEqual(
+                [normalBounds.width, normalBounds.height],
+                [320, 240]
+              );
+            } finally {
+              await closeWindow(w2, { assertNotWindows: false });
+            }
           }
         );
 
