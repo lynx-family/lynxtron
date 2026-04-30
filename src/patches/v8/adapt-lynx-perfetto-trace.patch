@@ -250,7 +250,7 @@ index 552afa6d..4bfd883d 100644
  
 -#if defined(V8_USE_PERFETTO)
 +#if defined(ENABLE_LYNX_TRACE)
-+#include "lynxtron/shell/lynx/trace/lynx_trace_event.h"
++#include "shell/lynx/trace/lynx_trace_event.h"
 +#elif defined(V8_USE_PERFETTO)
  #include "protos/perfetto/trace/track_event/debug_annotation.pbzero.h"
  #include "src/tracing/trace-categories.h"
