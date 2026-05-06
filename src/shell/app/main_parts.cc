@@ -80,7 +80,7 @@ MainParts::MainParts()
           reinterpret_cast<MainPartsDelegate*>(delegate.release()));
     }
   } else {
-    LOG(ERROR) << "MainPartsDelegate not found in registry.";
+    LOG(INFO) << "MainPartsDelegate not found in registry.";
   }
 }
 
