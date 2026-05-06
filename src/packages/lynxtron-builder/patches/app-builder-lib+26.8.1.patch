@@ -1,17 +1,14 @@
-diff --git a/node_modules/app-builder-lib/.DS_Store b/node_modules/app-builder-lib/.DS_Store
-new file mode 100644
-index 0000000..e69de29
 diff --git a/node_modules/app-builder-lib/out/electron/ElectronFramework.js b/node_modules/app-builder-lib/out/electron/ElectronFramework.js
-index 5a4b454..8720a08 100644
+index ce37e63..9f6755a 100644
 --- a/node_modules/app-builder-lib/out/electron/ElectronFramework.js
 +++ b/node_modules/app-builder-lib/out/electron/ElectronFramework.js
-@@ -17,8 +17,8 @@ const injectFFMPEG_1 = require("./injectFFMPEG");
+@@ -16,8 +16,8 @@ const injectFFMPEG_1 = require("./injectFFMPEG");
  function createBrandingOpts(opts) {
      var _a, _b;
      return {
 -        projectName: ((_a = opts.electronBranding) === null || _a === void 0 ? void 0 : _a.projectName) || "electron",
 -        productName: ((_b = opts.electronBranding) === null || _b === void 0 ? void 0 : _b.productName) || "Electron",
-+        projectName: ((_a = opts.electronBranding) === null || _a === void 0 ? void 0 : _a.projectName) || "Lynxtron",
++        projectName: ((_a = opts.electronBranding) === null || _a === void 0 ? void 0 : _a.projectName) || "lynxtron",
 +        productName: ((_b = opts.electronBranding) === null || _b === void 0 ? void 0 : _b.productName) || "Lynxtron",
      };
  }
@@ -26,7 +23,7 @@ index 5a4b454..8720a08 100644
          this.isCopyElevateHelper = true;
          // noinspection JSUnusedGlobalSymbols
 diff --git a/node_modules/app-builder-lib/out/electron/electronMac.js b/node_modules/app-builder-lib/out/electron/electronMac.js
-index e5551f8..e66cd7c 100644
+index e5551f8..df141ae 100644
 --- a/node_modules/app-builder-lib/out/electron/electronMac.js
 +++ b/node_modules/app-builder-lib/out/electron/electronMac.js
 @@ -12,31 +12,6 @@ const ElectronFramework_1 = require("./ElectronFramework");
@@ -185,82 +182,114 @@ index e5551f8..e66cd7c 100644
      await (0, promises_1.rename)(path.dirname(contentsPath), appPath);
      // https://github.com/electron-userland/electron-builder/issues/840
 diff --git a/node_modules/app-builder-lib/out/electron/electronVersion.js b/node_modules/app-builder-lib/out/electron/electronVersion.js
-index 9db837a..ea9a0ff 100644
+index 6a2d9a3..d485a06 100644
 --- a/node_modules/app-builder-lib/out/electron/electronVersion.js
 +++ b/node_modules/app-builder-lib/out/electron/electronVersion.js
-@@ -12,7 +12,7 @@ const path = require("path");
- const semver = require("semver");
+@@ -12,7 +12,7 @@ const semver = require("semver");
  const config_1 = require("../util/config/config");
  const load_1 = require("../util/config/load");
+ const search_module_1 = require("./search-module");
 -const electronPackages = ["electron", "electron-prebuilt", "electron-prebuilt-compile", "electron-nightly"];
 +const electronPackages = ["lynxtron"];
  async function getElectronVersion(projectDir, config) {
      if (config == null) {
          config = await (0, config_1.getConfig)(projectDir, null, null);
 diff --git a/node_modules/app-builder-lib/out/node-module-collector/nodeModulesCollector.js b/node_modules/app-builder-lib/out/node-module-collector/nodeModulesCollector.js
-index 1e9256c..f18fb0b 100644
+index 0956d26..af0391b 100644
 --- a/node_modules/app-builder-lib/out/node-module-collector/nodeModulesCollector.js
 +++ b/node_modules/app-builder-lib/out/node-module-collector/nodeModulesCollector.js
-@@ -81,17 +81,17 @@ class NodeModulesCollector {
+@@ -107,6 +107,7 @@ class NodeModulesCollector {
+                     builder_util_1.log.debug(fields, "JSON parse error in dependency tree, retrying");
+                     return true;
+                 }
++                fields.errorStack = error.stack;
+                 builder_util_1.log.error(fields, "error parsing dependencies tree");
+                 return false;
+             },
+@@ -125,7 +126,8 @@ class NodeModulesCollector {
+             // Please for the love of all that is holy, this should cover 99% of cases where npm/pnpm/yarn output is clean JSON
+             return JSON.parse(consoleOutput);
+         }
+-        catch {
++        catch (e) {
++            builder_util_1.log.debug({ firstParseError: e.message, outputLength: consoleOutput.length }, "first JSON parse attempt failed");
+             // ignore
+         }
+         // DEDICATED FALLBACK FOR POLLUTED OUTPUT, non-trivial to implement correctly, not needed in most cases, and highly inefficient
+@@ -133,10 +135,13 @@ class NodeModulesCollector {
+         const bracketOpen = Math.max(consoleOutput.indexOf("{"), 0);
+         const bracketOpenSquare = Math.max(consoleOutput.indexOf("["), 0);
+         const start = Math.min(bracketOpen, bracketOpenSquare); // always non-negative due to Math.max above
++        builder_util_1.log.debug({ start, bracketOpen, bracketOpenSquare }, "trying fallback JSON extraction");
+         for (let i = start; i < consoleOutput.length; i++) {
+             const slice = consoleOutput.slice(start, i + 1);
+             try {
+-                return JSON.parse(slice);
++                const result = JSON.parse(slice);
++                builder_util_1.log.debug({ sliceLength: slice.length }, "successfully parsed JSON with fallback method");
++                return result;
              }
-             const version = dependencies.version || "";
-             const newKey = `${packageName}@${version}`;
--            if (!dependencies.path) {
--                builder_util_1.log.error({
--                    packageName,
--                    data: dependencies,
--                    parentModule: tree.name,
--                    parentVersion: tree.version,
--                }, "dependency path is undefined");
--                throw new Error("unable to parse `path` during `tree.dependencies` reduce");
--            }
-+            // if (!dependencies.path) {
-+            //     builder_util_1.log.error({
-+            //         packageName,
-+            //         data: dependencies,
-+            //         parentModule: tree.name,
-+            //         parentVersion: tree.version,
-+            //     }, "dependency path is undefined");
-+            //     throw new Error("unable to parse `path` during `tree.dependencies` reduce");
-+            // }
-             // Map dependency details: name, version and path to the dependency tree
--            this.dependencyPathMap.set(newKey, path.normalize(this.resolvePath(dependencies.path)));
-+            // this.dependencyPathMap.set(newKey, path.normalize(this.resolvePath(dependencies.path)));
-             if (!acc[parentKey]) {
-                 acc[parentKey] = { dependencies: [] };
+             catch {
+                 // ignore, try next
+diff --git a/node_modules/app-builder-lib/out/platformPackager.js b/node_modules/app-builder-lib/out/platformPackager.js
+index 90d31da..1a69dd0 100644
+--- a/node_modules/app-builder-lib/out/platformPackager.js
++++ b/node_modules/app-builder-lib/out/platformPackager.js
+@@ -425,6 +425,7 @@ class PlatformPackager {
+         return Promise.resolve(null);
+     }
+     async computeAsarOptions(customBuildOptions) {
++        this.info.framework.name = "electron";
+         if (!(0, Framework_1.isElectronBased)(this.info.framework)) {
+             return null;
+         }
+diff --git a/node_modules/app-builder-lib/out/util/appFileCopier.js b/node_modules/app-builder-lib/out/util/appFileCopier.js
+index f762b47..1c9fb9a 100644
+--- a/node_modules/app-builder-lib/out/util/appFileCopier.js
++++ b/node_modules/app-builder-lib/out/util/appFileCopier.js
+@@ -175,13 +175,21 @@ async function collectNodeModulesWithLogging(platformPackager) {
+     const packager = platformPackager.info;
+     const { tempDirManager, appDir, projectDir } = packager;
+     let deps = undefined;
++    let lastError = undefined;
+     const searchDirectories = Array.from(new Set([appDir, projectDir, await packager.getWorkspaceRoot()])).filter((it) => (0, builder_util_1.isEmptyOrSpaces)(it) === false);
+     const pmApproaches = [await packager.getPackageManager(), node_module_collector_1.PM.TRAVERSAL];
+     for (const pm of pmApproaches) {
+         for (const dir of searchDirectories) {
+             builder_util_1.log.info({ pm, searchDir: dir }, "searching for node modules");
+             const collector = (0, node_module_collector_1.getCollectorByPackageManager)(pm, dir, tempDirManager);
+-            deps = await collector.getNodeModules({ packageName: packager.metadata.name });
++            try {
++                deps = await collector.getNodeModules({ packageName: packager.metadata.name });
++            }
++            catch (error) {
++                lastError = error;
++                builder_util_1.log.warn({ pm, searchDir: dir, error: error.message }, "node modules collection failed, trying next strategy");
++                continue;
++            }
+             if (deps.nodeModules.length > 0) {
+                 break;
              }
-@@ -100,7 +100,7 @@ class NodeModulesCollector {
-                 builder_util_1.log.debug({
-                     dependency: packageName,
-                     version,
--                    path: dependencies.path,
-+                    // path: dependencies.path,
-                     parentModule: tree.name,
-                     parentVersion: tree.version,
-                 }, "converted implicit dependency");
-diff --git a/node_modules/app-builder-lib/out/targets/nsis/NsisTarget.js b/node_modules/app-builder-lib/out/targets/nsis/NsisTarget.js
-index 8336c60..3eda216 100644
---- a/node_modules/app-builder-lib/out/targets/nsis/NsisTarget.js
-+++ b/node_modules/app-builder-lib/out/targets/nsis/NsisTarget.js
-@@ -324,12 +324,6 @@ class NsisTarget extends core_1.Target {
+@@ -196,6 +204,9 @@ async function collectNodeModulesWithLogging(platformPackager) {
+         }
      }
-     async computeScriptAndSignUninstaller(defines, commands, installerPath, sharedHeader, archs) {
-         const packager = this.packager;
--        const customScriptPath = await packager.getResource(this.options.script, "installer.nsi");
--        const script = await (0, fs_extra_1.readFile)(customScriptPath || path.join(nsisUtil_1.nsisTemplatesDir, "installer.nsi"), "utf8");
--        if (customScriptPath != null) {
--            builder_util_1.log.info({ reason: "custom NSIS script is used" }, "uninstaller is not signed by electron-builder");
--            return script;
--        }
-         // https://github.com/electron-userland/electron-builder/issues/2103
-         // it is more safe and reliable to write uninstaller to our out dir
-         const uninstallerPath = path.join(this.outDir, `__uninstaller-${this.name}-${this.packager.appInfo.sanitizedName}.exe`);
-@@ -495,7 +489,7 @@ class NsisTarget extends core_1.Target {
+     if (!((_b = deps === null || deps === void 0 ? void 0 : deps.nodeModules) === null || _b === void 0 ? void 0 : _b.length)) {
++        if (lastError != null) {
++            builder_util_1.log.warn({ error: lastError.message }, "node modules collection exhausted all strategies");
++        }
+         builder_util_1.log.warn({ searchDirectories: searchDirectories.map(it => builder_util_1.log.filePath(it)) }, "no node modules returned while searching directories");
+         return [];
      }
-     async executeMakensis(defines, commands, script) {
-         const args = this.options.warningsAsErrors === false ? [] : ["-WX"];
--        args.push("-INPUTCHARSET", "UTF8");
-+        args.push("-INPUTCHARSET", "UTF8", "-OUTPUTCHARSET", "UTF8");
-         for (const name of Object.keys(defines)) {
-             const value = defines[name];
-             if (value == null) {
+diff --git a/node_modules/app-builder-lib/out/util/packageMetadata.js b/node_modules/app-builder-lib/out/util/packageMetadata.js
+index 2f74568..aff70e7 100644
+--- a/node_modules/app-builder-lib/out/util/packageMetadata.js
++++ b/node_modules/app-builder-lib/out/util/packageMetadata.js
+@@ -110,7 +110,7 @@ function checkDependencies(dependencies, errors) {
+     if (swVersion != null && !versionSatisfies(swVersion, ">=20.32.0")) {
+         errors.push(`At least electron-builder-squirrel-windows 20.32.0 is required by current electron-builder version. Please set electron-builder-squirrel-windows to "^20.32.0"`);
+     }
+-    const deps = ["electron", "electron-prebuilt", "electron-rebuild"];
++    const deps = [];
+     if (process.env.ALLOW_ELECTRON_BUILDER_AS_PRODUCTION_DEPENDENCY !== "true") {
+         deps.push("electron-builder");
+     }

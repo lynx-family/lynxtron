@@ -3,14 +3,24 @@
 
 const { execSync } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 
 // When run as a postinstall script, process.cwd() is the package's directory
 // i.e., /path/to/project/node_modules/lynxtron-builder
 const packagePath = process.cwd();
+console.log(`[lynxtron-builder] Package path: ${packagePath}`);
+console.log(`[lynxtron-builder] INIT_CWD: ${process.env.INIT_CWD}`);
 
 // The project root is where the top-level package.json is.
 // `npm` and `yarn` set `INIT_CWD` to the project root.
-const projectRoot = process.env.INIT_CWD || path.resolve(packagePath, '../..');
+let projectRoot = process.env.INIT_CWD;
+if (!projectRoot) {
+  let candidate = path.resolve(packagePath, '../..');
+  if (!fs.existsSync(path.join(candidate, 'node_modules'))) {
+    candidate = path.resolve(packagePath, '../../..');
+  }
+  projectRoot = candidate;
+}
 
 console.log('[lynxtron-builder] Applying patches for the project...');
 console.log(`[lynxtron-builder] Project root detected as: ${projectRoot}`);
@@ -21,9 +31,12 @@ try {
   
   // --patch-dir must be a relative path from the project root (where we run the command).
   const absolutePatchesDir = path.join(packagePath, 'patches');
+  console.log(`[lynxtron-builder] Patches directory absolute path: ${absolutePatchesDir}`);
   const relativePatchesDir = path.relative(projectRoot, absolutePatchesDir);
+  console.log(`[lynxtron-builder] Patches directory relative to project root: ${relativePatchesDir}`);
 
-  const command = `patch-package --patch-dir "${relativePatchesDir}"`;
+  const npxCommand = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+  const command = `${npxCommand} patch-package --patch-dir "${relativePatchesDir}"`;
   
   console.log(`[lynxtron-builder] Executing: ${command}`);
   

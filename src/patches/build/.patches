@@ -3,3 +3,4 @@ build_disable_gclient.patch
 build_change_mac_sdk_min_to_14_from_15.patch
 0001-adapt-lynx-compile.patch
 0002-adapt-lynx-trace.patch
+0003-BugFix-disable-cet.patch

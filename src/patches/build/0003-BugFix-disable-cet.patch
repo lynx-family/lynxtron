@@ -1,0 +1,25 @@
+From 3f41e021f4d1e0a80805c5307e4e59db52267812 Mon Sep 17 00:00:00 2001
+From: zsy-jason <186247581+zsy-jason@users.noreply.github.com>
+Date: Thu, 7 May 2026 19:22:10 +0800
+Subject: [PATCH] [BugFix] disable cet.
+
+---
+ config/compiler/compiler.gni | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/config/compiler/compiler.gni b/config/compiler/compiler.gni
+index cf116f1..e0da3c7 100644
+--- a/config/compiler/compiler.gni
++++ b/config/compiler/compiler.gni
+@@ -127,7 +127,7 @@ declare_args() {
+   # it's enabled by OS then additional validation of return address will be
+   # performed as mitigation against Return-oriented programming (ROP).
+   # https://chromium.googlesource.com/chromium/src/+/main/docs/design/sandbox.md#cet-shadow-stack
+-  enable_cet_shadow_stack = target_cpu == "x64"
++  enable_cet_shadow_stack = false
+ 
+   # Set to true to enable using the ML inliner in LLVM. This currently only
+   # enables the ML inliner when targeting Android.
+-- 
+2.49.0
+
