@@ -21,6 +21,7 @@
 #include "lynx/platform/embedder/public/lynx_view.h"
 #include "platform/embedder/public/lynx_template_data.h"
 #include "platform/embedder/public/lynx_update_meta.h"
+#include "shell/api/lynx_view/devtool_event_simulation_proxy.h"
 #include "shell/api/lynx_view/lynx_update_meta.h"
 #include "shell/api/lynx_view/lynx_view_builder.h"
 #include "shell/api/lynx_view/lynx_view_client.h"
@@ -161,6 +162,9 @@ LynxViewImpl::~LynxViewImpl() {
 
 void LynxViewImpl::Initialize(std::unique_ptr<lynx::pub::LynxView> core_view) {
   lynx_view_ = std::move(core_view);
+  lynx_view_->SetEventSimulationProxy(
+      std::make_shared<internal::DevtoolEventSimulationProxy>(
+          std::make_unique<internal::LynxViewEventTarget>(lynx_view_.get())));
 #if BUILDFLAG(IS_WIN)
   // Hook the Lynx render child HWND: return HTTRANSPARENT near the edge so
   // hit-testing continues to the parent (which handles resize/caption logic).
