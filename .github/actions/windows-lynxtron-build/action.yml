@@ -12,15 +12,17 @@ runs:
     - name: Python Setup
       uses: actions/setup-python@v5
       with:
-        python-version: "3.13"
+        python-version: '3.13'
     - name: Setup Node.js 22.18.0
       uses: actions/setup-node@v6
       with:
-        node-version: "22.18.0"
+        node-version: '22.18.0'
     - name: Prepare environment
       shell: pwsh
       run: |
         cd ${{ github.workspace }}/lynxtron
+        git config --global user.name 'Lynxtron Scripts'
+        git config --global user.email 'scripts@lynxtron.com'
         lynxtron_tools/envsetup.ps1
         python lynxtron_tools/prepare_build_env.py
     - name: Build Lynxtron

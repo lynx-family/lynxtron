@@ -15,6 +15,8 @@ runs:
       run: |
         set -x
         cd ${{ github.workspace }}/lynxtron
+        git config --global user.name "Lynxtron Scripts"
+        git config --global user.email "scripts@lynxtron.com"
         source lynxtron_tools/envsetup.sh
         python3 lynxtron_tools/prepare_build_env.py
     - name: Build macOS Lynxtron
