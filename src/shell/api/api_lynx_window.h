@@ -50,9 +50,9 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
                              const std::string& name,
                              const std::string& json_params);
 
-  bool ReportJSError(const LynxView* lynx_view, const std::string& error_info);
-  bool ConfigJSBase(const LynxView* lynx_view, const std::string& bid);
-  bool CustomReport(const LynxView* lynx_view, const std::string& custom_data);
+  void ReportJSError(const std::string& error_info);
+  void ConfigJSBase(const std::string& js_base);
+  void CustomReport(const std::string& custom_data);
 
   void SetFpsMonitorEnabled(bool enabled, uint32_t sample_interval_millis);
 

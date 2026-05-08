@@ -45,9 +45,9 @@ class LynxHybridMonitorModuleImpl : public LynxNativeModule {
 LynxHybridMonitorModuleImpl::LynxHybridMonitorModuleImpl(
     base::WeakPtr<api::LynxWindow> lynx_window)
     : lynx_window_(lynx_window) {
-  RegisterMethod("ReportJSError", LynxHybridMonitorModuleImpl::ReportJSError);
-  RegisterMethod("CustomReport", LynxHybridMonitorModuleImpl::CustomReport);
-  RegisterMethod("ConfigJsBase", LynxHybridMonitorModuleImpl::ConfigJsBase);
+  RegisterMethod("reportJSError", LynxHybridMonitorModuleImpl::ReportJSError);
+  RegisterMethod("customReport", LynxHybridMonitorModuleImpl::CustomReport);
+  RegisterMethod("config", LynxHybridMonitorModuleImpl::ConfigJsBase);
 }
 
 void LynxHybridMonitorModuleImpl::ReportJSError(
@@ -56,7 +56,24 @@ void LynxHybridMonitorModuleImpl::ReportJSError(
     v8::Local<v8::Context> ctx,
     v8::Local<v8::Value> const* argv,
     int argc) {
-  // TODO(chennengshi) Add implementation
+  if (argc != 2) {
+    return;
+  }
+
+  auto* lynx_windows =
+      static_cast<LynxHybridMonitorModuleImpl*>(module)->lynx_window_.get();
+  if (!lynx_windows) {
+    return;
+  }
+
+  v8::Local<v8::String> error_info;
+  if (!v8::JSON::Stringify(ctx, argv[0]).ToLocal(&error_info)) {
+    return;
+  }
+
+  v8::String::Utf8Value utf8_value(isolate, error_info);
+  std::string error_info_str = *utf8_value ? *utf8_value : "";
+  lynx_windows->ReportJSError(error_info_str);
 }
 
 void LynxHybridMonitorModuleImpl::CustomReport(LynxNativeModule* module,
@@ -64,7 +81,24 @@ void LynxHybridMonitorModuleImpl::CustomReport(LynxNativeModule* module,
                                                v8::Local<v8::Context> ctx,
                                                v8::Local<v8::Value> const* argv,
                                                int argc) {
-  // TODO(chennengshi) Add implementation
+  if (argc != 2) {
+    return;
+  }
+
+  auto* lynx_windows =
+      static_cast<LynxHybridMonitorModuleImpl*>(module)->lynx_window_.get();
+  if (!lynx_windows) {
+    return;
+  }
+
+  v8::Local<v8::String> custom_data;
+  if (!v8::JSON::Stringify(ctx, argv[0]).ToLocal(&custom_data)) {
+    return;
+  }
+
+  v8::String::Utf8Value utf8_value(isolate, custom_data);
+  std::string custom_data_str = *utf8_value ? *utf8_value : "";
+  lynx_windows->CustomReport(custom_data_str);
 }
 
 void LynxHybridMonitorModuleImpl::ConfigJsBase(LynxNativeModule* module,
@@ -72,7 +106,24 @@ void LynxHybridMonitorModuleImpl::ConfigJsBase(LynxNativeModule* module,
                                                v8::Local<v8::Context> ctx,
                                                v8::Local<v8::Value> const* argv,
                                                int argc) {
-  // TODO(chennengshi) Add implementation
+  if (argc != 2) {
+    return;
+  }
+
+  auto* lynx_windows =
+      static_cast<LynxHybridMonitorModuleImpl*>(module)->lynx_window_.get();
+  if (!lynx_windows) {
+    return;
+  }
+
+  v8::Local<v8::String> custom_data;
+  if (!v8::JSON::Stringify(ctx, argv[0]).ToLocal(&custom_data)) {
+    return;
+  }
+
+  v8::String::Utf8Value utf8_value(isolate, custom_data);
+  std::string custom_data_str = *utf8_value ? *utf8_value : "";
+  lynx_windows->ConfigJSBase(custom_data_str);
 }
 
 void RegisterLynxHybridMonitorModuleToLynxView(

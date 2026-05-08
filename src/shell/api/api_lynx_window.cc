@@ -277,6 +277,24 @@ LynxWindow::~LynxWindow() {
   LynxWindowManager::GetInstance()->UnregisterLynxWindow(GetWeakPtr());
 }
 
+void LynxWindow::ReportJSError(const std::string& error_info) {
+  if (lynx_view_state_observer_) {
+    lynx_view_state_observer_->ReportJSError(error_info);
+  }
+}
+
+void LynxWindow::ConfigJSBase(const std::string& js_base) {
+  if (lynx_view_state_observer_) {
+    lynx_view_state_observer_->ConfigJSBase(js_base);
+  }
+}
+
+void LynxWindow::CustomReport(const std::string& custom_data) {
+  if (lynx_view_state_observer_) {
+    lynx_view_state_observer_->CustomReport(custom_data);
+  }
+}
+
 bool LynxWindow::ComputeRenderActive() const {
   return lynx_view_ != nullptr && window_ != nullptr && !window_->IsClosed() &&
          window_->IsVisible();

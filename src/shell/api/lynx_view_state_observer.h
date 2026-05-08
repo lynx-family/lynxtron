@@ -6,6 +6,7 @@
 #define LYNXTRON_SHELL_API_LYNX_VIEW_STATE_OBSERVER_H_
 
 #include <cstdint>
+#include <string>
 #include <string_view>
 
 #include "src/shell/common/global_delegate_registry.h"
@@ -20,6 +21,9 @@ class LynxViewStateObserver : public GlobalDelegate {
  public:
   virtual ~LynxViewStateObserver() = default;
   void SetInstanceId(int64_t instance_id) { instance_id_ = instance_id; }
+  virtual void ReportJSError(const std::string& error_info) = 0;
+  virtual void ConfigJSBase(const std::string& js_base) = 0;
+  virtual void CustomReport(const std::string& custom_data) = 0;
 
   virtual void OnPreLynxViewCreate(LynxViewBuilder* builder) = 0;
   virtual void OnPageStart(std::string_view url) = 0;
