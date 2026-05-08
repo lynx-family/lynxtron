@@ -37,3 +37,6 @@ runs:
         $env:PATH = "$pwd\buildtools\gn;$pwd\buildtools\ninja;$env:PATH"
         python lynxtron_tools\gn\gn.py --windows-cpu ${{ inputs.build-arch }}
         buildtools\ninja\ninja.exe -C out\Release lynxtron_app
+        $buildflags = Get-Content out\Release\gen\base\allocator\partition_allocator\src\partition_alloc\buildflags.h -Raw
+        if ($buildflags -notmatch 'USE_PARTITION_ALLOC_AS_MALLOC\(\) \(0\)') { throw 'USE_PARTITION_ALLOC_AS_MALLOC must be disabled for Lynxtron release builds' }
+        if ($buildflags -notmatch 'ENABLE_BACKUP_REF_PTR_SUPPORT\(\) \(0\)') { throw 'ENABLE_BACKUP_REF_PTR_SUPPORT must be disabled when PartitionAlloc is not process-wide malloc' }

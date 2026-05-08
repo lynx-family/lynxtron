@@ -104,11 +104,14 @@ if (is_win && is_component_build && (!use_custom_libcxx || libcxx_is_shared)) {
 
 shim_supports_sized_dealloc_default = use_sized_deallocation
 
-use_partition_alloc_as_malloc_default =
-    use_allocator_shim_default && _is_partition_alloc_everywhere_platform &&
-    !_disable_partition_alloc_everywhere
+# Lynxtron embeds native AppKit/CoreGraphics views and third-party native
+# controls in the same process. Do not replace the process-wide malloc/free
+# implementation with PartitionAlloc by default; keep PartitionAlloc available
+# for embedders such as V8/gin that opt into it explicitly.
+use_partition_alloc_as_malloc_default = false
 
-enable_backup_ref_ptr_support_default = use_partition_alloc_as_malloc_default
+# BackupRefPtr depends on PartitionAlloc-Everywhere.
+enable_backup_ref_ptr_support_default = false
 
 enable_backup_ref_ptr_slow_checks_default = false
 
