@@ -122,10 +122,6 @@ LynxWindow.prototype._init = function (this: LWT) {
   //   lynxBridgeMain.emit('lynx-file-load', event, args);
   // });
 
-  // this.on('lynx-file-verify-complete', function (this: LWT, event, args) {
-  //   lynxBridgeMain.emit('lynx-file-verify-complete', event, args);
-  // });
-
   // Redirect focus/blur event to app instance too.
   this.on('blur', (event: Event) => {
     app.emit('lynx-window-blur', event, this);
