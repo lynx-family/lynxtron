@@ -10,7 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 
-const LYNXTRON_PATH = path.join(__dirname, "dist", PLATFORM, ARCH, PLATFROM_EXE_PATH);
+const LYNXTRON_PATH = path.join(__dirname, "dist", PLATFROM_EXE_PATH);
 
 const hasDownloadLynxtron = () => {
   return fs.existsSync(LYNXTRON_PATH);
@@ -39,7 +39,7 @@ if (process.env.npm_config_custom_lynxtron_binary_url) {
 
 console.log(`downloading lynxtron from ${downloadUrl}`);
 
-const PACKAGE_DIR_PATH = path.join(__dirname, "dist", PLATFORM, ARCH);
+const PACKAGE_DIR_PATH = path.join(__dirname, "dist");
 const PACKAGE_PATH = path.join(PACKAGE_DIR_PATH, `${VERSION}.zip`);
 if (fs.existsSync(PACKAGE_PATH)) {
   fs.rmSync(path.join(__dirname, "dist"), { recursive: true, force: true });
