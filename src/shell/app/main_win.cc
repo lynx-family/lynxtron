@@ -19,6 +19,11 @@
 #include "base/scoped_native_library.h"
 #include "shell/app/library_main.h"
 
+extern "C" {
+__declspec(dllexport) unsigned long NvOptimusEnablement = 1;
+__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
+
 #if defined(ARCH_CPU_32_BITS)
 struct FiberState {
   HINSTANCE instance;
