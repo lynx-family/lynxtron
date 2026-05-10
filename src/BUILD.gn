@@ -662,7 +662,10 @@ source_set("lynxtron_lib") {
       # "shell/ui/gfx:gfx_skia",
     ]
   }
-  deps += [ "shell/ui" ]
+  deps += [
+    "shell/ui",
+    "//third_party/skia",
+  ]
 }
 
 bundle_data("lynxtron_app_resource_bundle_data") {
