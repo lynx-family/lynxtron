@@ -233,7 +233,7 @@ Menu.setApplicationMenu = function (menu: any) {
 
   applicationMenu = menu;
 
-  if (process.platform === 'darwin') {
+  if (process.platform === 'darwin' || process.platform === 'win32') {
     if (!menu) return;
     menu._callMenuWillShow();
     bindings.setApplicationMenu(menu);

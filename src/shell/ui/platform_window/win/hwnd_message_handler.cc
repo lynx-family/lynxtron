@@ -880,9 +880,11 @@ void HWNDMessageHandler::OnCommand(UINT notification_code,
                                    HWND window) {
   // If the notification code is > 1 it means it is control specific and we
   // should ignore it.
-  if (notification_code > 1 || delegate_->HandleAppCommand(command)) {
+  if (notification_code > 1) {
     SetMsgHandled(FALSE);
+    return;
   }
+  SetMsgHandled(delegate_->HandleCommand(command));
 }
 
 LRESULT HWNDMessageHandler::OnCreate(CREATESTRUCT* create_struct) {

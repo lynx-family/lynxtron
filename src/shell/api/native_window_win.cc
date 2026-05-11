@@ -13,6 +13,7 @@
 #include "base/location.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/single_thread_task_runner.h"
+#include "shell/api/api_menu.h"
 #include "shell/api/api_native_image.h"
 #include "shell/api/dpi_win.h"
 #include "shell/app/window_list.h"
@@ -840,7 +841,7 @@ void NativeWindowWin::HandleClose() {
 }
 
 bool NativeWindowWin::HandleCommand(int command) {
-  return false;
+  return api::Menu::ExecuteCommandFromApplicationMenu(command, 0);
 }
 
 void NativeWindowWin::HandleCreate() {}

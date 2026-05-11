@@ -8,13 +8,19 @@
 
 #include "shell/api/api_menu.h"
 
+#include <map>
+#include <optional>
 #include <utility>
 
 #include "base/logging.h"
 #include "base/notimplemented.h"
+#include "base/strings/string_util.h"
+#include "base/strings/utf_string_conversions.h"
 #include "build/build_config.h"
 #include "shell/api/api_base_window.h"
 #include "shell/app/javascript_environment.h"
+#include "shell/app/native_window.h"
+#include "shell/app/window_list.h"
 #include "shell/common/gin_converters/accelerator_converter.h"
 #include "shell/common/gin_converters/callback_converter.h"
 #include "shell/common/gin_converters/file_path_converter.h"
@@ -23,6 +29,11 @@
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/gin_helper/object_template_builder.h"
 #include "shell/common/node_includes.h"
+#include "shell/ui/events/event_constants.h"
+
+#if BUILDFLAG(IS_WIN)
+#include <windows.h>
+#endif
 
 #if BUILDFLAG(IS_MAC)
 namespace gin {
@@ -385,8 +396,10 @@ void Initialize(v8::Local<v8::Object> exports,
   v8::Isolate* const isolate = lynxtron::JavascriptEnvironment::GetIsolate();
   gin_helper::Dictionary dict{isolate, exports};
   dict.Set("Menu", Menu::GetConstructor(isolate, context));
-#if BUILDFLAG(IS_MAC)
+#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN)
   dict.SetMethod("setApplicationMenu", &Menu::SetApplicationMenu);
+#endif
+#if BUILDFLAG(IS_MAC)
   dict.SetMethod("sendActionToFirstResponder",
                  &Menu::SendActionToFirstResponder);
 #endif
@@ -398,12 +411,364 @@ NODE_LINKED_BINDING_CONTEXT_AWARE(lynxtron_binding_menu, Initialize)
 
 #if BUILDFLAG(IS_WIN)
 namespace lynxtron::api {
+namespace {
+
+Menu* g_application_menu = nullptr;
+HHOOK g_accelerator_hook = nullptr;
+std::map<HWND, HMENU> g_window_menus;
+
+int CurrentModifierFlags() {
+  int modifiers = 0;
+  if (::GetKeyState(VK_SHIFT) & 0x8000) {
+    modifiers |= ui::Accelerator::kShift;
+  }
+  if (::GetKeyState(VK_CONTROL) & 0x8000) {
+    modifiers |= ui::Accelerator::kCtrl;
+  }
+  if (::GetKeyState(VK_MENU) & 0x8000) {
+    modifiers |= ui::Accelerator::kAlt;
+  }
+  if ((::GetKeyState(VK_LWIN) & 0x8000) || (::GetKeyState(VK_RWIN) & 0x8000)) {
+    modifiers |= ui::Accelerator::kCmd;
+  }
+  return modifiers;
+}
+
+int CurrentEventFlags() {
+  int flags = ui::EF_NONE;
+  if (::GetKeyState(VK_SHIFT) & 0x8000) {
+    flags |= ui::EF_SHIFT_DOWN;
+  }
+  if (::GetKeyState(VK_CONTROL) & 0x8000) {
+    flags |= ui::EF_CONTROL_DOWN;
+  }
+  if (::GetKeyState(VK_MENU) & 0x8000) {
+    flags |= ui::EF_ALT_DOWN;
+  }
+  if ((::GetKeyState(VK_LWIN) & 0x8000) || (::GetKeyState(VK_RWIN) & 0x8000)) {
+    flags |= ui::EF_COMMAND_DOWN;
+  }
+  return flags;
+}
+
+std::optional<WPARAM> VirtualKeyFromAcceleratorKey(
+    const std::string& accelerator_key) {
+  const std::string key = base::ToUpperASCII(accelerator_key);
+  if (key.size() == 1) {
+    const char ch = key[0];
+    if ((ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'Z')) {
+      return static_cast<WPARAM>(ch);
+    }
+    if (ch == '+') {
+      return VK_OEM_PLUS;
+    }
+    if (ch == '-') {
+      return VK_OEM_MINUS;
+    }
+  }
+
+  if (key.size() >= 2 && key[0] == 'F') {
+    int function_key = 0;
+    for (size_t i = 1; i < key.size(); ++i) {
+      if (key[i] < '0' || key[i] > '9') {
+        function_key = 0;
+        break;
+      }
+      function_key = function_key * 10 + key[i] - '0';
+    }
+    if (function_key >= 1 && function_key <= 24) {
+      return VK_F1 + function_key - 1;
+    }
+  }
+
+  if (key == "PLUS") {
+    return VK_OEM_PLUS;
+  }
+  if (key == "MINUS") {
+    return VK_OEM_MINUS;
+  }
+  if (key == "TAB") {
+    return VK_TAB;
+  }
+  if (key == "ENTER" || key == "RETURN") {
+    return VK_RETURN;
+  }
+  if (key == "ESC" || key == "ESCAPE") {
+    return VK_ESCAPE;
+  }
+  if (key == "SPACE") {
+    return VK_SPACE;
+  }
+  if (key == "BACKSPACE") {
+    return VK_BACK;
+  }
+  if (key == "DELETE" || key == "DEL") {
+    return VK_DELETE;
+  }
+  if (key == "INSERT" || key == "INS") {
+    return VK_INSERT;
+  }
+  if (key == "HOME") {
+    return VK_HOME;
+  }
+  if (key == "END") {
+    return VK_END;
+  }
+  if (key == "PAGEUP") {
+    return VK_PRIOR;
+  }
+  if (key == "PAGEDOWN") {
+    return VK_NEXT;
+  }
+  if (key == "UP" || key == "ARROWUP") {
+    return VK_UP;
+  }
+  if (key == "DOWN" || key == "ARROWDOWN") {
+    return VK_DOWN;
+  }
+  if (key == "LEFT" || key == "ARROWLEFT") {
+    return VK_LEFT;
+  }
+  if (key == "RIGHT" || key == "ARROWRIGHT") {
+    return VK_RIGHT;
+  }
+
+  return std::nullopt;
+}
+
+bool AcceleratorMatchesKeyMessage(const ui::Accelerator& accelerator,
+                                  WPARAM virtual_key,
+                                  int modifiers) {
+  if (accelerator.IsEmpty() || accelerator.modifiers() != modifiers) {
+    return false;
+  }
+
+  std::optional<WPARAM> expected_key =
+      VirtualKeyFromAcceleratorKey(accelerator.key());
+  if (!expected_key) {
+    return false;
+  }
+  if (*expected_key == VK_OEM_PLUS) {
+    return virtual_key == VK_OEM_PLUS || virtual_key == VK_ADD;
+  }
+  if (*expected_key == VK_OEM_MINUS) {
+    return virtual_key == VK_OEM_MINUS || virtual_key == VK_SUBTRACT;
+  }
+
+  return *expected_key == virtual_key;
+}
+
+std::wstring GetNativeMenuLabel(LynxtronMenuModel* model, size_t index) {
+  std::wstring label = base::UTF16ToWide(model->GetLabelAt(index));
+  ui::Accelerator accelerator;
+  if (model->GetAcceleratorAtWithParams(index, true, &accelerator) &&
+      !accelerator.IsEmpty()) {
+    std::u16string shortcut = accelerator.GetShortcutText();
+    if (!shortcut.empty()) {
+      label.append(L"\t");
+      label.append(base::UTF16ToWide(shortcut));
+    }
+  }
+  return label;
+}
+
+bool ExecuteAcceleratorInModel(LynxtronMenuModel* model,
+                               WPARAM virtual_key,
+                               int modifiers,
+                               int event_flags) {
+  if (!model) {
+    return false;
+  }
+
+  for (size_t i = 0; i < model->GetItemCount(); ++i) {
+    const bool visible = model->IsVisibleAt(i);
+    if (!visible && !model->WorksWhenHiddenAt(i)) {
+      continue;
+    }
+
+    if (model->GetTypeAt(i) == LynxtronMenuModel::TYPE_SUBMENU) {
+      if (ExecuteAcceleratorInModel(model->GetSubmenuModelAt(i), virtual_key,
+                                    modifiers, event_flags)) {
+        return true;
+      }
+      continue;
+    }
+
+    if (!model->ShouldRegisterAcceleratorAt(i) || !model->IsEnabledAt(i)) {
+      continue;
+    }
+
+    ui::Accelerator accelerator;
+    if (!model->GetAcceleratorAtWithParams(i, true, &accelerator)) {
+      continue;
+    }
+
+    if (AcceleratorMatchesKeyMessage(accelerator, virtual_key, modifiers)) {
+      model->ActivatedAt(i, event_flags);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool ExecuteCommandInModel(LynxtronMenuModel* model,
+                           int command_id,
+                           int event_flags) {
+  if (!model) {
+    return false;
+  }
+
+  if (std::optional<size_t> index = model->GetIndexOfCommandId(command_id)) {
+    if (!model->IsEnabledAt(*index)) {
+      return false;
+    }
+    model->ActivatedAt(*index, event_flags);
+    return true;
+  }
+
+  for (size_t i = 0; i < model->GetItemCount(); ++i) {
+    if (model->GetTypeAt(i) == LynxtronMenuModel::TYPE_SUBMENU &&
+        ExecuteCommandInModel(model->GetSubmenuModelAt(i), command_id,
+                              event_flags)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool ExecuteApplicationMenuAccelerator(WPARAM virtual_key) {
+  if (!g_application_menu) {
+    return false;
+  }
+  return ExecuteAcceleratorInModel(g_application_menu->model(), virtual_key,
+                                   CurrentModifierFlags(), CurrentEventFlags());
+}
+
+LRESULT CALLBACK MenuAcceleratorHook(int code, WPARAM w_param, LPARAM l_param) {
+  if (code >= 0 && w_param == PM_REMOVE && l_param != 0) {
+    MSG* message = reinterpret_cast<MSG*>(l_param);
+    if (message &&
+        (message->message == WM_KEYDOWN || message->message == WM_SYSKEYDOWN) &&
+        ExecuteApplicationMenuAccelerator(message->wParam)) {
+      message->message = WM_NULL;
+      message->wParam = 0;
+      message->lParam = 0;
+    }
+  }
+  return ::CallNextHookEx(g_accelerator_hook, code, w_param, l_param);
+}
+
+void EnsureAcceleratorHook() {
+  if (g_accelerator_hook) {
+    return;
+  }
+  g_accelerator_hook = ::SetWindowsHookExW(WH_GETMESSAGE, MenuAcceleratorHook,
+                                           nullptr, ::GetCurrentThreadId());
+}
+
+HMENU BuildNativeMenuFromModel(LynxtronMenuModel* model, bool top_level) {
+  HMENU menu = top_level ? ::CreateMenu() : ::CreatePopupMenu();
+  if (!menu || !model) {
+    return menu;
+  }
+
+  for (size_t i = 0; i < model->GetItemCount(); ++i) {
+    if (!model->IsVisibleAt(i)) {
+      continue;
+    }
+
+    const int command_id = model->GetCommandIdAt(i);
+    const auto type = model->GetTypeAt(i);
+    if (type == LynxtronMenuModel::TYPE_SEPARATOR) {
+      ::AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
+      continue;
+    }
+
+    std::wstring label = GetNativeMenuLabel(model, i);
+    if (type == LynxtronMenuModel::TYPE_SUBMENU) {
+      HMENU sub_menu =
+          BuildNativeMenuFromModel(model->GetSubmenuModelAt(i), false);
+      ::AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(sub_menu),
+                    label.c_str());
+      continue;
+    }
+
+    UINT flags = MF_STRING;
+    if (!model->IsEnabledAt(i)) {
+      flags |= MF_GRAYED;
+    }
+    if (model->IsItemCheckedAt(i)) {
+      flags |= MF_CHECKED;
+    }
+    ::AppendMenuW(menu, flags, static_cast<UINT_PTR>(command_id),
+                  label.c_str());
+  }
+
+  return menu;
+}
+
+void SetWindowMenu(HWND hwnd, HMENU menu) {
+  auto existing = g_window_menus.find(hwnd);
+  if (existing != g_window_menus.end()) {
+    ::SetMenu(hwnd, nullptr);
+    ::DestroyMenu(existing->second);
+    g_window_menus.erase(existing);
+  }
+
+  if (menu) {
+    ::SetMenu(hwnd, menu);
+    g_window_menus[hwnd] = menu;
+  } else {
+    ::SetMenu(hwnd, nullptr);
+  }
+  ::SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
+                 SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOCOPYBITS |
+                     SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOSIZE |
+                     SWP_NOZORDER);
+  ::DrawMenuBar(hwnd);
+  ::RedrawWindow(hwnd, nullptr, nullptr,
+                 RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
+}
+
+void ApplyApplicationMenuToWindows() {
+  for (NativeWindow* window : WindowList::GetWindows()) {
+    if (!window || window->IsClosed()) {
+      continue;
+    }
+    HWND hwnd = window->GetNativeWindowHandle();
+    if (!hwnd || !::IsWindow(hwnd)) {
+      continue;
+    }
+    HMENU menu = g_application_menu ? BuildNativeMenuFromModel(
+                                          g_application_menu->model(), true)
+                                    : nullptr;
+    SetWindowMenu(hwnd, menu);
+  }
+}
+
+}  // namespace
 
 Menu* Menu::New(gin::Arguments* args) {
   v8::Isolate* const isolate = args->isolate();
   Menu* const menu = new Menu(args);
   gin_helper::CallMethod(isolate, menu, "_init");
   return menu;
+}
+
+void Menu::SetApplicationMenu(Menu* menu) {
+  g_application_menu = menu;
+  EnsureAcceleratorHook();
+  ApplyApplicationMenuToWindows();
+}
+
+bool Menu::ExecuteCommandFromApplicationMenu(int command_id, int event_flags) {
+  if (!g_application_menu) {
+    return false;
+  }
+  return ExecuteCommandInModel(g_application_menu->model(), command_id,
+                               event_flags);
 }
 
 }  // namespace lynxtron::api
