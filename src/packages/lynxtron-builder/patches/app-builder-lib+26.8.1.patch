@@ -1,5 +1,32 @@
+diff --git a/node_modules/app-builder-lib/out/codeSign/macCodeSign.js b/node_modules/app-builder-lib/out/codeSign/macCodeSign.js
+index 17e0c1e..63c9b45 100644
+--- a/node_modules/app-builder-lib/out/codeSign/macCodeSign.js
++++ b/node_modules/app-builder-lib/out/codeSign/macCodeSign.js
+@@ -172,12 +172,17 @@ async function importCerts(keychainFile, paths, keyPasswords) {
+         keychainFile,
+     };
+ }
++
++function signSimple(path, name, keychain) {
++    const args = ["--deep", "--force", "--sign", name, path];
++    if (keychain != null) {
++        args.push("--keychain", keychain);
++    }
++    return (0, builder_util_1.exec)("codesign", args);
++}
++
+ async function sign(opts) {
+-    return (0, builder_util_1.retry)(() => (0, osx_sign_1.signAsync)(opts), {
+-        retries: 3,
+-        interval: 5000,
+-        backoff: 5000,
+-    });
++    return signSimple(opts.app, opts.identity, opts.keychain);
+ }
+ exports.findIdentityRawResult = null;
+ async function getValidIdentities(keychain) {
 diff --git a/node_modules/app-builder-lib/out/electron/ElectronFramework.js b/node_modules/app-builder-lib/out/electron/ElectronFramework.js
-index ce37e63..9f6755a 100644
+index ce37e63..22b6ef2 100644
 --- a/node_modules/app-builder-lib/out/electron/ElectronFramework.js
 +++ b/node_modules/app-builder-lib/out/electron/ElectronFramework.js
 @@ -16,8 +16,8 @@ const injectFFMPEG_1 = require("./injectFFMPEG");
@@ -23,7 +50,7 @@ index ce37e63..9f6755a 100644
          this.isCopyElevateHelper = true;
          // noinspection JSUnusedGlobalSymbols
 diff --git a/node_modules/app-builder-lib/out/electron/electronMac.js b/node_modules/app-builder-lib/out/electron/electronMac.js
-index e5551f8..df141ae 100644
+index e5551f8..e66cd7c 100644
 --- a/node_modules/app-builder-lib/out/electron/electronMac.js
 +++ b/node_modules/app-builder-lib/out/electron/electronMac.js
 @@ -12,31 +12,6 @@ const ElectronFramework_1 = require("./ElectronFramework");
@@ -182,7 +209,7 @@ index e5551f8..df141ae 100644
      await (0, promises_1.rename)(path.dirname(contentsPath), appPath);
      // https://github.com/electron-userland/electron-builder/issues/840
 diff --git a/node_modules/app-builder-lib/out/electron/electronVersion.js b/node_modules/app-builder-lib/out/electron/electronVersion.js
-index 6a2d9a3..d485a06 100644
+index 6a2d9a3..e164942 100644
 --- a/node_modules/app-builder-lib/out/electron/electronVersion.js
 +++ b/node_modules/app-builder-lib/out/electron/electronVersion.js
 @@ -12,7 +12,7 @@ const semver = require("semver");
@@ -195,7 +222,7 @@ index 6a2d9a3..d485a06 100644
      if (config == null) {
          config = await (0, config_1.getConfig)(projectDir, null, null);
 diff --git a/node_modules/app-builder-lib/out/node-module-collector/nodeModulesCollector.js b/node_modules/app-builder-lib/out/node-module-collector/nodeModulesCollector.js
-index 0956d26..af0391b 100644
+index 0956d26..549dd57 100644
 --- a/node_modules/app-builder-lib/out/node-module-collector/nodeModulesCollector.js
 +++ b/node_modules/app-builder-lib/out/node-module-collector/nodeModulesCollector.js
 @@ -107,6 +107,7 @@ class NodeModulesCollector {
@@ -232,7 +259,7 @@ index 0956d26..af0391b 100644
              catch {
                  // ignore, try next
 diff --git a/node_modules/app-builder-lib/out/platformPackager.js b/node_modules/app-builder-lib/out/platformPackager.js
-index 90d31da..1a69dd0 100644
+index 90d31da..ab332c5 100644
 --- a/node_modules/app-builder-lib/out/platformPackager.js
 +++ b/node_modules/app-builder-lib/out/platformPackager.js
 @@ -425,6 +425,7 @@ class PlatformPackager {
@@ -244,7 +271,7 @@ index 90d31da..1a69dd0 100644
              return null;
          }
 diff --git a/node_modules/app-builder-lib/out/util/appFileCopier.js b/node_modules/app-builder-lib/out/util/appFileCopier.js
-index f762b47..1c9fb9a 100644
+index f762b47..8f275c9 100644
 --- a/node_modules/app-builder-lib/out/util/appFileCopier.js
 +++ b/node_modules/app-builder-lib/out/util/appFileCopier.js
 @@ -175,13 +175,21 @@ async function collectNodeModulesWithLogging(platformPackager) {
@@ -253,7 +280,8 @@ index f762b47..1c9fb9a 100644
      let deps = undefined;
 +    let lastError = undefined;
      const searchDirectories = Array.from(new Set([appDir, projectDir, await packager.getWorkspaceRoot()])).filter((it) => (0, builder_util_1.isEmptyOrSpaces)(it) === false);
-     const pmApproaches = [await packager.getPackageManager(), node_module_collector_1.PM.TRAVERSAL];
+-    const pmApproaches = [await packager.getPackageManager(), node_module_collector_1.PM.TRAVERSAL];
++    const pmApproaches = [node_module_collector_1.PM.TRAVERSAL];
      for (const pm of pmApproaches) {
          for (const dir of searchDirectories) {
              builder_util_1.log.info({ pm, searchDir: dir }, "searching for node modules");

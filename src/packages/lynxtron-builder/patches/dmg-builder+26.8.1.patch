@@ -1,0 +1,18 @@
+diff --git a/node_modules/dmg-builder/out/dmgUtil.js b/node_modules/dmg-builder/out/dmgUtil.js
+index f6f3e95..e3444aa 100644
+--- a/node_modules/dmg-builder/out/dmgUtil.js
++++ b/node_modules/dmg-builder/out/dmgUtil.js
+@@ -163,7 +163,12 @@ async function customizeDmg({ appPath, artifactPath, volumeName, specification,
+     }
+     if (!(0, builder_util_1.isEmptyOrSpaces)(settings.background)) {
+         const size = await getImageSizeUsingSips(settings.background);
+-        settings.window = { position: { x: 400, y: Math.round((1440 - size.height) / 2) }, size, ...settings.window };
++        // use image size as default size if user did not set window size
++        let windowSize = size;
++        if (specification.window && specification.window.width && specification.window.height) {
++            windowSize = { width: specification.window.width, height: specification.window.height };
++        }
++        settings.window = { position: { x: 400, y: Math.round((1440 - windowSize.height) / 2) }, size: windowSize, ...settings.window };
+     }
+     const settingsFile = await packager.getTempFile(".json");
+     await (0, fs_extra_1.writeFile)(settingsFile, JSON.stringify(settings, null, 2));
