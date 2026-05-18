@@ -93,6 +93,7 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
   bool UpdateMetaData(gin::Arguments* args);
   bool UpdateData(const gin_helper::Dictionary& data,
                   const gin_helper::Dictionary& global_props);
+  bool SetGlobalProps(const gin_helper::Dictionary& global_props);
   bool SendGlobalEvent(const std::string& name,
                        const gin_helper::Dictionary& json);
   bool ReloadTemplate(const gin_helper::Dictionary& data,

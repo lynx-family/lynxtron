@@ -315,6 +315,14 @@ export declare class LynxWindow extends BaseWindow {
    */
   updateMetaData(meta: LynxUpdateMeta): boolean;
   /**
+   * Set global props for the Lynx view.
+   *
+   * This is the primary entry point for setting global props on the client side.
+   *
+   * When called before the first template load, updates are cached and applied after the view is created and the first load finishes.
+   */
+  setGlobalProps(globalProps: Object): boolean;
+  /**
    * Send global event to the window.
    * Lynx-side GlobalEventListener signature:
    * `(...args) => { }`

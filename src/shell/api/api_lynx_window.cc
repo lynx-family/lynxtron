@@ -726,6 +726,24 @@ bool LynxWindow::UpdateData(const gin_helper::Dictionary& data,
   return true;
 }
 
+bool LynxWindow::SetGlobalProps(const gin_helper::Dictionary& global_props) {
+  auto global_props_string = ConvertDictionaryToJsonString(global_props);
+  if (!global_props_string.has_value()) {
+    return false;
+  }
+
+  if (!lynx_view_) {
+    data_str_ = "";
+    global_props_ = std::move(global_props_string);
+  } else {
+    auto impl = std::make_shared<lynxtron::LynxUpdateMeta>();
+    impl->SetUpdateData("");
+    impl->SetGlobalProps(global_props_string.value());
+    lynx_view_->UpdateData(impl);
+  }
+  return true;
+}
+
 bool LynxWindow::UpdateMetaData(gin::Arguments* args) {
   v8::Isolate* isolate = args->isolate();
   v8::HandleScope handle_scope(isolate);
@@ -922,6 +940,7 @@ void LynxWindow::BuildPrototype(v8::Isolate* isolate,
       .SetMethod("loadURL", &LynxWindow::LoadUrl)
       .SetMethod("loadBundle", &LynxWindow::LoadBundle)
       .SetMethod("updateMetaData", &LynxWindow::UpdateMetaData)
+      .SetMethod("setGlobalProps", &LynxWindow::SetGlobalProps)
       .SetMethod("sendGlobalEvent", &LynxWindow::SendGlobalEvent);
 }
 
