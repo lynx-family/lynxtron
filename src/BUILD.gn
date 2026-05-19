@@ -99,10 +99,12 @@ templated_file("lynxtron_version_file") {
 }
 
 lynx_bts_bundle_deps = [
+  "lib/common/define-properties.ts",
   "lib/lynxbts/api/context-bridge.ts",
   "lib/lynxbts/api/exports/lynxtron.ts",
   "lib/lynxbts/api/preload-runner.ts",
   "lib/lynxbts/init.ts",
+  "lib/node/asar-fs-wrapper.ts",
 ]
 
 webpack_build("lynxtron_bts_bundle") {
