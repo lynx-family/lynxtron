@@ -19,8 +19,14 @@ source_set("ui") {
   sources = []
   if (is_win) {
     sources += [
+      "base/win/session_change_observer.cc",
+      "base/win/session_change_observer.h",
       "gfx/win/hwnd_util.cc",
       "gfx/win/hwnd_util.h",
+      "gfx/win/singleton_hwnd.cc",
+      "gfx/win/singleton_hwnd.h",
+      "gfx/win/singleton_hwnd_observer.cc",
+      "gfx/win/singleton_hwnd_observer.h",
       "gfx/win/window_impl.cc",
       "gfx/win/window_impl.h",
       "platform_window/win/fullscreen_handler.cc",

@@ -44,24 +44,25 @@
 #include "third_party/node/src/debug_utils.h"
 #include "third_party/node/src/module_wrap.h"
 
-#define LYNXTRON_BROWSER_BINDINGS(V) \
-  V(lynxtron_binding_app)            \
-  V(lynxtron_binding_v8_util)        \
-  V(lynxtron_binding_asar)           \
-  V(lynxtron_binding_clipboard)      \
-  V(lynxtron_binding_command_line)   \
-  V(lynxtron_binding_environment)    \
-  V(lynxtron_binding_menu)           \
-  V(lynxtron_binding_shell)          \
-  V(lynxtron_binding_tray)           \
-  V(lynxtron_binding_event_emitter)  \
-  V(lynxtron_base_window)            \
-  V(lynxtron_lynx_window)            \
-  V(lynxtron_binding_native_image)   \
-  V(lynxtron_binding_notification)   \
-  V(lynxtron_binding_screen)         \
-  V(lynxtron_binding_dialog)         \
-  V(lynxtron_binding_lynx_template_bundle)
+#define LYNXTRON_BROWSER_BINDINGS(V)       \
+  V(lynxtron_binding_app)                  \
+  V(lynxtron_binding_v8_util)              \
+  V(lynxtron_binding_asar)                 \
+  V(lynxtron_binding_clipboard)            \
+  V(lynxtron_binding_command_line)         \
+  V(lynxtron_binding_environment)          \
+  V(lynxtron_binding_menu)                 \
+  V(lynxtron_binding_shell)                \
+  V(lynxtron_binding_tray)                 \
+  V(lynxtron_binding_event_emitter)        \
+  V(lynxtron_base_window)                  \
+  V(lynxtron_lynx_window)                  \
+  V(lynxtron_binding_native_image)         \
+  V(lynxtron_binding_notification)         \
+  V(lynxtron_binding_screen)               \
+  V(lynxtron_binding_dialog)               \
+  V(lynxtron_binding_lynx_template_bundle) \
+  V(lynxtron_binding_power_monitor)
 
 #define ELECTRON_TESTING_BINDINGS(V) V(lynxtron_binding_testing)
 

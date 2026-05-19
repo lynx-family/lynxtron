@@ -25,4 +25,5 @@ export const lynxtronModuleList: LynxtronInternal.ModuleEntry[] = [
   { name: 'screen', loader: () => require('./screen') },
   { name: 'Tray', loader: () => require('./tray') },
   { name: 'utilityProcess', loader: () => require('./utility-process') },
+  { name: 'powerMonitor', loader: () => require('./power-monitor') },
 ];
