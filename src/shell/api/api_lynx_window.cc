@@ -72,6 +72,14 @@ bool ExtractOptionalDictionary(v8::Isolate* isolate,
   return true;
 }
 
+void AppendLynxPreferencePreload(const gin_helper::Dictionary& lynx_preference,
+                                 std::vector<std::string>* preload_paths) {
+  std::string preload;
+  if (lynx_preference.Get("preload", &preload) && !preload.empty()) {
+    preload_paths->push_back(preload);
+  }
+}
+
 bool ExtractLoadDataOptions(gin::Arguments* args,
                             gin_helper::Dictionary* data,
                             gin_helper::Dictionary* global_props) {
@@ -239,9 +247,10 @@ LynxWindow::LynxWindow(gin::Arguments* args,
 
   window()->InitFromOptions(options);
 
-  gin_helper::Dictionary node_integration_config;
-  if (options.Get(options::kNodeIntegration, &node_integration_config)) {
-    node_integration_config.Get("preload_paths", &node_integration_preload_);
+  gin_helper::Dictionary lynx_preference;
+  if (ExtractOptionalDictionary(args->isolate(), options,
+                                options::kLynxPreference, &lynx_preference)) {
+    AppendLynxPreferencePreload(lynx_preference, &node_integration_preload_);
   }
 
   // transparent

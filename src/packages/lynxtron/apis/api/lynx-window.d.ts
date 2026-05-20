@@ -8,6 +8,14 @@ import { LynxTemplateBundle } from './lynx-template-bundle';
 import { LynxUpdateMeta } from './lynx-update-meta';
 import { Point } from '../structures/point';
 
+export interface LynxPreference {
+  /**
+   * Script path to load before the Lynx page runs, mirroring Electron's
+   * `webPreferences.preload` option.
+   */
+  preload?: string;
+}
+
 export interface LynxWindowConstructorOptions {
   /**
    * Window's width in pixels. Default is `800`.
@@ -230,12 +238,9 @@ export interface LynxWindowConstructorOptions {
    */
   tabbingIdentifier?: string;
   /**
-   * Whether node integration is enabled. Default is undefined.
-   * path is node init file for node env exports.
+   * Lynx page preferences.
    */
-  nodeIntegration?: {
-    preload_paths: string[];
-  };
+  lynxPreference?: LynxPreference;
 
   title?: string;
 }

@@ -9,8 +9,8 @@ app.whenReady().then(() => {
   const w = new LynxWindow({
     width: 1400,
     height: 1100,
-    nodeIntegration: {
-      preload_paths: [path.join(__dirname, 'preload.js')],
+    lynxPreference: {
+      preload: path.join(__dirname, 'preload.js'),
     },
     frame: false,
   });

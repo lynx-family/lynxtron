@@ -21,13 +21,11 @@ describe('lynx BTS await with contextBridge', () => {
       width: 800,
       height: 600,
       title: 'Lynxtron BTS Await Test',
-      nodeIntegration: {
-        preload_paths: [
-          path.resolve(
-            __dirname,
-            './case/lynx-card/src/lynx-node-bts-await/preload.js'
-          ),
-        ],
+      lynxPreference: {
+        preload: path.resolve(
+          __dirname,
+          './case/lynx-card/src/lynx-node-bts-await/preload.js'
+        ),
       },
     });
 

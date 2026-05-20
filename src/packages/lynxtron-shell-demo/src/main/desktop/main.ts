@@ -12,8 +12,8 @@ app.whenReady().then(() => {
     width: 800,
     height: 600,
     title: 'Lynxtron Hello World',
-    nodeIntegration: {
-      preload_paths: [path.join(__dirname, 'preload.js')],
+    lynxPreference: {
+      preload: path.join(__dirname, 'preload.js'),
     },
   });
 

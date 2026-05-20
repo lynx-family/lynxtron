@@ -71,13 +71,11 @@ describe('communication between node and lynx', () => {
       width: 800,
       height: 600,
       title: 'Lynxtron JSB Demo',
-      nodeIntegration: {
-        preload_paths: [
-          path.resolve(
-            __dirname,
-            './case/lynx-card/src/contextbridge-lynx-node/preload.js'
-          ),
-        ],
+      lynxPreference: {
+        preload: path.resolve(
+          __dirname,
+          './case/lynx-card/src/contextbridge-lynx-node/preload.js'
+        ),
       },
     });
 

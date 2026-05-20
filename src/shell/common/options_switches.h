@@ -88,8 +88,8 @@ inline constexpr std::string_view kTrafficLightPosition =
     "trafficLightPosition";
 inline constexpr std::string_view kRoundedCorners = "roundedCorners";
 
-// Enable the node integration.
-inline constexpr std::string_view kNodeIntegration = "nodeIntegration";
+// Lynx-specific page settings.
+inline constexpr std::string_view kLynxPreference = "lynxPreference";
 
 }  // namespace options
 
