@@ -32,6 +32,7 @@
     "fuses.js",
     "fuses-cli.js",
     "install.js",
+    "lynx.js",
     "lynxtron.js",
     "lynxtron_bin.js",
     "web-host",
@@ -42,6 +43,10 @@
   ],
   "exports": {
     ".": "./lynxtron.js",
+    "./lynx": {
+      "types": "./apis/lynx.d.ts",
+      "default": "./lynx.js"
+    },
     "./fuses": "./fuses.js",
     "./context-bridge": {
       "browser": "./web-worker.js",

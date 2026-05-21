@@ -3,10 +3,11 @@
 // LICENSE file in the root directory of this source tree.
 
 import { NativeImage } from './native-image';
-import { BaseWindow } from './base-window';
+import { BaseWindow, WillResizeDetails } from './base-window';
 import { LynxTemplateBundle } from './lynx-template-bundle';
 import { LynxUpdateMeta } from './lynx-update-meta';
 import { Point } from '../structures/point';
+import { Rectangle } from '../structures/rectangle';
 
 export interface LynxPreference {
   /**
@@ -245,11 +246,79 @@ export interface LynxWindowConstructorOptions {
   title?: string;
 }
 
+export interface LynxBridgeInvokeEvent {
+  sendReply(result?: unknown): boolean;
+}
+
+export type LynxBridgeInvokeListener = (
+  event: LynxBridgeInvokeEvent,
+  methodName: string,
+  params: unknown
+) => void | Promise<void>;
+
+export type LynxBridgeMessageListener = (
+  methodName: string,
+  params: unknown
+) => void;
+
 export declare class LynxWindow extends BaseWindow {
   /**
    * LynxWindow
    */
   constructor(options?: LynxWindowConstructorOptions);
+  on(event: '-lynx-invoke', listener: LynxBridgeInvokeListener): this;
+  on(event: '-lynx-message', listener: LynxBridgeMessageListener): this;
+  on(
+    event: 'app-command',
+    listener: (event: Event, command: string) => void
+  ): this;
+  on(event: 'blur', listener: (event: Event) => void): this;
+  on(event: 'close', listener: (event: Event) => void): this;
+  on(event: 'closed', listener: () => void): this;
+  on(event: 'will-enter-full-screen', listener: () => void): this;
+  on(event: 'enter-full-screen', listener: () => void): this;
+  on(event: 'focus', listener: (event: Event) => void): this;
+  on(event: 'hide', listener: () => void): this;
+  on(event: 'will-leave-full-screen', listener: () => void): this;
+  on(event: 'leave-full-screen', listener: () => void): this;
+  on(event: 'maximize', listener: () => void): this;
+  on(event: 'minimize', listener: () => void): this;
+  on(event: 'move', listener: () => void): this;
+  on(event: 'moved', listener: () => void): this;
+  on(event: 'resize', listener: () => void): this;
+  on(event: 'resized', listener: () => void): this;
+  on(event: 'restore', listener: () => void): this;
+  on(
+    event: 'always-on-top-changed',
+    listener: (event: Event, isAlwaysOnTop: boolean) => void
+  ): this;
+  on(
+    event: 'rotate-gesture',
+    listener: (event: Event, rotation: number) => void
+  ): this;
+  on(event: 'session-end', listener: (event: any) => void): this;
+  on(event: 'sheet-begin', listener: () => void): this;
+  on(event: 'sheet-end', listener: () => void): this;
+  on(event: 'new-window-for-tab', listener: (event: Event) => void): this;
+  on(event: 'show', listener: () => void): this;
+  on(event: 'swipe', listener: (event: Event, direction: string) => void): this;
+  on(
+    event: 'system-context-menu',
+    listener: (event: Event, point: Point) => void
+  ): this;
+  on(event: 'unmaximize', listener: () => void): this;
+  on(
+    event: 'will-move',
+    listener: (event: Event, newBounds: Rectangle) => void
+  ): this;
+  on(
+    event: 'will-resize',
+    listener: (
+      event: Event,
+      newBounds: Rectangle,
+      details: WillResizeDetails
+    ) => void
+  ): this;
   /**
    * The window with the given `id`.
    */
