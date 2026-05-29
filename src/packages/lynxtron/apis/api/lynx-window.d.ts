@@ -127,6 +127,16 @@ export interface LynxWindowConstructorOptions {
    */
   show?: boolean;
   /**
+   * Create the Lynx view with Lynx's windowless renderer instead of attaching
+   * it to the native window. Intended for controlled headless harness sessions.
+   */
+  headless?: boolean;
+  /**
+   * Device pixel ratio used by the headless Lynx viewport. Only applies when
+   * `headless` is `true`.
+   */
+  deviceScaleFactor?: number;
+  /**
    * Specify `false` to create a [Frameless Window]. Default is `true`.
    */
   frame?: boolean;
@@ -402,4 +412,55 @@ export declare class LynxWindow extends BaseWindow {
    * `(...args) => { }`
    */
   sendGlobalEvent(eventName: string, ...args: any[]): boolean;
+
+  /**
+   * Captures the latest software frame produced by a headless/windowless Lynx
+   * renderer. Returns an empty Buffer if no frame has been presented.
+   */
+  captureHeadlessFrame(): Buffer;
+
+  /**
+   * Returns windowless renderer counters for headless diagnostics.
+   */
+  getHeadlessMetrics(): {
+    headless: boolean;
+    hasRenderer: boolean;
+    contentWidth: number;
+    contentHeight: number;
+    devicePixelRatio: number;
+    windowDevicePixelRatio: number;
+    fmlLoopOnCurrentThread: boolean;
+    lynxUIRunnerOnCurrentThread: boolean;
+    framesPresented: number;
+    rendererTasksPosted: number;
+    rendererTasksRun: number;
+    taskPumps: number;
+    globalUITaskRunnerInstallAttempted: boolean;
+    globalUITaskRunnerInstalled: boolean;
+    globalUITasksPosted: number;
+    globalUITasksRun: number;
+    globalUITasksFailed: number;
+  };
+
+  /**
+   * Dispatches a pointer event to the headless/windowless renderer. Coordinates
+   * are logical pixels by default and are scaled by the window DPR.
+   */
+  dispatchHeadlessPointerEvent(
+    phase: 'add' | 'down' | 'move' | 'up' | 'remove' | 'cancel' | 'hover',
+    x: number,
+    y: number,
+    options?: {
+      physical?: boolean;
+      device?: number;
+      deviceKind?: 'touch' | 'mouse' | 'stylus' | 'trackpad';
+      buttons?: number;
+    }
+  ): boolean;
+
+  /**
+   * Runs expired Lynx/FML tasks for the current headless host thread. Headless
+   * harnesses call this while waiting for lifecycle and frame signals.
+   */
+  pumpHeadlessTasks(): boolean;
 }

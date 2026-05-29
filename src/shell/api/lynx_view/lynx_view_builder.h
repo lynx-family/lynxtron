@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "base/memory/weak_ptr.h"
+#include "lynx/platform/embedder/public/lynx_windowless_renderer.h"
 #include "lynx/platform/embedder/public/capi/lynx_native_view_capi.h"
 
 namespace lynx {
@@ -34,6 +35,8 @@ class LynxViewBuilder {
   LynxViewBuilder& SetFrame(float x, float y, float width, float height);
   LynxViewBuilder& SetICUDataPath(const std::string& icu_data_path);
   LynxViewBuilder& SetParent(void* parent);
+  LynxViewBuilder& SetWindowlessRenderer(
+      std::shared_ptr<lynx::pub::LynxWindowlessRenderer> renderer);
   LynxViewBuilder& SetGenericResourceFetcher(
       std::shared_ptr<lynx::pub::LynxGenericResourceFetcher> fetcher);
 

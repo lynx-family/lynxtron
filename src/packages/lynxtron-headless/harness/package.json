@@ -1,0 +1,6 @@
+{
+  "name": "@lynx-js/lynxtron-headless-harness",
+  "version": "0.0.0-development",
+  "type": "module",
+  "main": "main.js"
+}

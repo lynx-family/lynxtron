@@ -1,0 +1,629 @@
+/* Copyright 2026 The Lynxtron Authors. All rights reserved.
+ * Licensed under the Apache License Version 2.0 that can be found in the
+ * LICENSE file in the root directory of this source tree. */
+
+.CommerceShell {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  background-color: #eef3f1;
+  flex-direction: column;
+  linear-orientation: vertical;
+}
+
+.CommercePage {
+  display: flex;
+  width: 100%;
+  linear-weight: 1;
+  background-color: #eef3f1;
+  flex-direction: column;
+  linear-orientation: vertical;
+}
+
+.CommerceTop {
+  display: flex;
+  width: 100%;
+  height: 86px;
+  background-color: #ffffff;
+  padding-top: 8px;
+  padding-left: 14px;
+  padding-right: 14px;
+  padding-bottom: 8px;
+  border-bottom-width: 1px;
+  border-bottom-color: #d7e1dd;
+  flex-direction: column;
+  linear-orientation: vertical;
+}
+
+.CommerceHeaderRow {
+  display: flex;
+  width: 100%;
+  height: 42px;
+  flex-direction: row;
+  linear-orientation: horizontal;
+  align-items: center;
+}
+
+.CommerceTitleBlock {
+  display: flex;
+  width: 72%;
+  flex-direction: column;
+  linear-orientation: vertical;
+}
+
+.CommerceTitle {
+  color: #16231f;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.CommerceSubtitle {
+  color: #66756f;
+  font-size: 14px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.CommerceCartBadge {
+  display: flex;
+  width: 82px;
+  height: 30px;
+  border-radius: 8px;
+  background-color: #153d35;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  linear-orientation: vertical;
+}
+
+.CommerceCartText {
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.CommerceChipRow {
+  display: flex;
+  width: 100%;
+  height: 30px;
+  flex-direction: row;
+  linear-orientation: horizontal;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.CommerceChip {
+  width: 64px;
+  height: 28px;
+  border-radius: 8px;
+  background-color: #f1f4f3;
+  border-width: 1px;
+  border-color: #dde5e2;
+  margin-right: 8px;
+  color: #5f6e68;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  padding-top: 6px;
+}
+
+.CommerceChipActive {
+  width: 52px;
+  background-color: #dff1e8;
+  border-color: #2d7c68;
+  color: #175545;
+}
+
+.CommerceListArea {
+  display: flex;
+  width: 100%;
+  linear-weight: 1;
+  padding-top: 8px;
+  padding-left: 12px;
+  padding-right: 12px;
+  flex-direction: column;
+  linear-orientation: vertical;
+}
+
+.CommerceProductList {
+  width: 100%;
+  height: 100%;
+  padding-bottom: 8px;
+}
+
+.CommerceProductRow {
+  display: flex;
+  width: 100%;
+  height: 138px;
+  flex-direction: row;
+  linear-orientation: horizontal;
+  margin-bottom: 8px;
+}
+
+.CommerceProductCard {
+  display: flex;
+  width: 47%;
+  height: 132px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  border-width: 1px;
+  border-color: #d9e1de;
+  padding-top: 6px;
+  padding-left: 8px;
+  padding-right: 8px;
+  padding-bottom: 6px;
+  flex-direction: column;
+  linear-orientation: vertical;
+}
+
+.CommerceProductCardLead {
+  margin-right: 10px;
+}
+
+.CommerceProductArt {
+  display: flex;
+  width: 100%;
+  height: 24px;
+  border-radius: 6px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  linear-orientation: vertical;
+}
+
+.CommerceProductArt0 {
+  background-color: #cbe6d7;
+}
+
+.CommerceProductArt1 {
+  background-color: #d8e2f3;
+}
+
+.CommerceProductArt2 {
+  background-color: #f1d6cf;
+}
+
+.CommerceProductArt3 {
+  background-color: #d7d4e9;
+}
+
+.CommerceProductArt4 {
+  background-color: #f0dfb8;
+}
+
+.CommerceProductBadge {
+  color: #1d342e;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.CommerceProductName {
+  width: 100%;
+  height: 29px;
+  color: #17231f;
+  font-size: 13px;
+  font-weight: 800;
+  margin-top: 4px;
+}
+
+.CommerceProductMeta {
+  display: flex;
+  width: 100%;
+  height: 20px;
+  flex-direction: row;
+  linear-orientation: horizontal;
+  align-items: center;
+  margin-top: 1px;
+}
+
+.CommerceProductPrice {
+  width: 54px;
+  color: #b94f34;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.CommerceProductRating {
+  width: 55%;
+  color: #59675f;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.CommerceProductSold {
+  height: 14px;
+  color: #738079;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.CommerceOpenNova,
+.CommerceCardFoot {
+  display: flex;
+  width: 100%;
+  height: 21px;
+  border-radius: 6px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+  flex-direction: column;
+  linear-orientation: vertical;
+}
+
+.CommerceOpenNova {
+  background-color: #1f6f5d;
+}
+
+.CommerceOpenNovaText {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.CommerceCardFoot {
+  background-color: #f2f5f3;
+}
+
+.CommerceCardFootText {
+  color: #5f6b66;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.CommerceTabBar {
+  display: flex;
+  width: 100%;
+  height: 62px;
+  background-color: #ffffff;
+  border-top-width: 1px;
+  border-top-color: #d7e1dd;
+  flex-direction: row;
+  linear-orientation: horizontal;
+  align-items: center;
+  padding-left: 12px;
+  padding-right: 12px;
+  padding-bottom: 6px;
+}
+
+.CommerceTabItem {
+  display: flex;
+  width: 47%;
+  height: 40px;
+  border-radius: 8px;
+  align-items: center;
+  justify-content: center;
+  background-color: #f3f6f5;
+  flex-direction: column;
+  linear-orientation: vertical;
+}
+
+.CommerceTabItemLead {
+  margin-right: 10px;
+}
+
+.CommerceTabItemActive {
+  background-color: #153d35;
+}
+
+.CommerceTabText {
+  color: #59675f;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.CommerceTabTextActive {
+  color: #ffffff;
+}
+
+.DetailPage {
+  display: flex;
+  padding-left: 16px;
+  padding-right: 16px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+  flex-direction: column;
+  linear-orientation: vertical;
+}
+
+.CommerceDetailTop {
+  display: flex;
+  width: 100%;
+  height: 64px;
+  flex-direction: column;
+  linear-orientation: vertical;
+}
+
+.CommerceBackButton {
+  display: flex;
+  width: 206px;
+  height: 30px;
+  border-radius: 8px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #cfd9d5;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  linear-orientation: vertical;
+}
+
+.CommerceBackText {
+  color: #1f6f5d;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.CommerceDetailLabel {
+  color: #15221f;
+  font-size: 24px;
+  font-weight: 800;
+  margin-top: 6px;
+}
+
+.CommerceDetailBody {
+  display: flex;
+  width: 100%;
+  linear-weight: 1;
+  flex-direction: column;
+  linear-orientation: vertical;
+}
+
+.CommerceDetailHero {
+  display: flex;
+  width: 100%;
+  height: 116px;
+  border-radius: 8px;
+  background-color: #cbe6d7;
+  border-width: 1px;
+  border-color: #a9cbbf;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  linear-orientation: vertical;
+}
+
+.CommerceDetailHeroBadge {
+  color: #153d35;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.CommerceDetailPanel {
+  display: flex;
+  width: 100%;
+  background-color: #ffffff;
+  border-radius: 8px;
+  border-width: 1px;
+  border-color: #d9e1de;
+  padding-top: 14px;
+  padding-left: 14px;
+  padding-right: 14px;
+  padding-bottom: 14px;
+  margin-top: 12px;
+  flex-direction: column;
+  linear-orientation: vertical;
+}
+
+.CommerceDetailTitle {
+  color: #16231f;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.CommerceDetailPrice {
+  color: #b94f34;
+  font-size: 32px;
+  font-weight: 800;
+  margin-top: 6px;
+}
+
+.CommerceDetailInfoStack {
+  display: flex;
+  width: 100%;
+  margin-top: 10px;
+  flex-direction: column;
+  linear-orientation: vertical;
+}
+
+.CommerceDetailInfoRow {
+  display: flex;
+  width: 100%;
+  height: 32px;
+  flex-direction: row;
+  linear-orientation: horizontal;
+  margin-bottom: 6px;
+}
+
+.CommerceDetailInfo {
+  display: flex;
+  width: 47%;
+  height: 32px;
+  border-radius: 6px;
+  background-color: #f1f4f3;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  linear-orientation: vertical;
+}
+
+.CommerceDetailInfoRight {
+  margin-left: 8px;
+}
+
+.CommerceDetailInfoWide {
+  width: 100%;
+}
+
+.CommerceDetailInfoText {
+  color: #43524c;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.CommerceDetailCopy {
+  color: #52615b;
+  font-size: 15px;
+  font-weight: 700;
+  margin-top: 8px;
+}
+
+.CommerceAddAction {
+  display: flex;
+  width: 100%;
+  height: 44px;
+  border-radius: 8px;
+  background-color: #1f6f5d;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12px;
+  flex-direction: column;
+  linear-orientation: vertical;
+}
+
+.CommerceAddActionText {
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.CommerceProfileScroll {
+  width: 100%;
+  height: 100%;
+}
+
+.CommerceProfileBody {
+  display: flex;
+  width: 100%;
+  padding-top: 14px;
+  padding-left: 14px;
+  padding-right: 14px;
+  padding-bottom: 14px;
+  flex-direction: column;
+  linear-orientation: vertical;
+}
+
+.CommerceProfileHeader {
+  display: flex;
+  width: 100%;
+  height: 96px;
+  background-color: #153d35;
+  border-radius: 8px;
+  padding-top: 14px;
+  padding-left: 16px;
+  padding-right: 16px;
+  flex-direction: column;
+  linear-orientation: vertical;
+}
+
+.CommerceProfileTitle {
+  color: #d9efe7;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.CommerceProfileName {
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 800;
+  margin-top: 8px;
+}
+
+.CommerceProfileTier {
+  color: #f0ce5d;
+  font-size: 14px;
+  font-weight: 800;
+  margin-top: 4px;
+}
+
+.CommerceStatsRow {
+  display: flex;
+  width: 100%;
+  height: 62px;
+  flex-direction: row;
+  linear-orientation: horizontal;
+  margin-top: 10px;
+}
+
+.CommerceStat {
+  display: flex;
+  width: 47%;
+  height: 62px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  border-width: 1px;
+  border-color: #d9e1de;
+  padding-top: 8px;
+  padding-left: 12px;
+  padding-right: 12px;
+  flex-direction: column;
+  linear-orientation: vertical;
+}
+
+.CommerceStatRight {
+  margin-left: 10px;
+}
+
+.CommerceStatLabel {
+  color: #66756f;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.CommerceStatValue {
+  color: #17231f;
+  font-size: 18px;
+  font-weight: 800;
+  margin-top: 6px;
+}
+
+.CommerceSectionTitle {
+  color: #17231f;
+  font-size: 16px;
+  font-weight: 800;
+  margin-top: 12px;
+  margin-bottom: 6px;
+}
+
+.CommerceSettingsTitle {
+  margin-top: 12px;
+}
+
+.CommerceRows {
+  display: flex;
+  width: 100%;
+  background-color: #ffffff;
+  border-radius: 8px;
+  border-width: 1px;
+  border-color: #d9e1de;
+  flex-direction: column;
+  linear-orientation: vertical;
+}
+
+.CommerceDataRow {
+  display: flex;
+  width: 100%;
+  height: 38px;
+  flex-direction: row;
+  linear-orientation: horizontal;
+  align-items: center;
+  padding-left: 12px;
+  padding-right: 12px;
+  border-bottom-width: 1px;
+  border-bottom-color: #edf1ef;
+}
+
+.CommerceDataLabel {
+  width: 65%;
+  color: #1e2c27;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.CommerceDataValue {
+  width: 128px;
+  color: #6b7973;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+}

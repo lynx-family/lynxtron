@@ -47,6 +47,7 @@ class LynxView {
   void ReloadTemplate(const std::string& data, const std::string& global_props);
   void UpdateScreenMetrics(float width, float height, float device_pixel_ratio);
   void SetFrame(float x, float y, float width, float height);
+  std::string DumpUITreeForCDP();
   void* GetNativeWindow();
   void EnterForeground();
   void EnterBackground();

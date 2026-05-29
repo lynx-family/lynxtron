@@ -13,6 +13,7 @@
 
 #include "base/files/file_path.h"
 #include "shell/api/api_base_window.h"
+#include "shell/api/lynx_view/headless_windowless_renderer.h"
 #include "shell/api/lynx_view/lynx_view.h"
 #include "shell/api/lynx_view/lynx_view_client.h"
 #include "shell/common/gin_helper/dictionary.h"
@@ -96,6 +97,11 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
   bool SetGlobalProps(const gin_helper::Dictionary& global_props);
   bool SendGlobalEvent(const std::string& name,
                        const gin_helper::Dictionary& json);
+  v8::Local<v8::Value> CaptureHeadlessFrame();
+  std::string DumpHeadlessUITreeForCDP();
+  v8::Local<v8::Value> GetHeadlessMetrics();
+  bool DispatchHeadlessPointerEvent(gin::Arguments* args);
+  bool PumpHeadlessTasks();
   bool ReloadTemplate(const gin_helper::Dictionary& data,
                       const gin_helper::Dictionary& global_props);
 
@@ -156,12 +162,16 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
 #endif
 
   bool software_render_ = true;
+  bool headless_ = false;
+  std::optional<float> headless_device_pixel_ratio_ = std::nullopt;
+  std::shared_ptr<HeadlessWindowlessRenderer> headless_renderer_;
   std::vector<std::string> node_integration_preload_ = {};
   std::unique_ptr<LynxView> lynx_view_;
   static bool lynx_global_init_;
   bool enable_fps_monitor_ = false;
   int sample_interval_millis_ = 1000;
   std::vector<std::vector<int64_t>> last_frame_timings_;
+  uint64_t headless_task_pumps_ = 0;
   bool last_render_active_ = false;
   base::WeakPtrFactory<LynxWindow> weak_factory_{this};
   std::unique_ptr<LynxViewStateObserver> lynx_view_state_observer_;

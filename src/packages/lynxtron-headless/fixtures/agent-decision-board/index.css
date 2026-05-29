@@ -1,0 +1,294 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background-color: #eef3f1;
+  padding: 18px;
+}
+
+.pageExecute {
+  background-color: #f3f1ee;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 112px;
+  background-color: #17222b;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.headerTop {
+  display: flex;
+  width: 100%;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.eyebrow {
+  width: 202px;
+  color: #9ee2c8;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.modePill {
+  width: 118px;
+  height: 26px;
+  color: #17222b;
+  background-color: #dce9a8;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  padding-top: 4px;
+}
+
+.title {
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.subtitle {
+  color: #bdc8c4;
+  font-size: 15px;
+  margin-top: 7px;
+}
+
+.summary {
+  display: flex;
+  width: 100%;
+  flex-direction: row;
+  margin-bottom: 10px;
+}
+
+.lowerSummary {
+  margin-bottom: 12px;
+}
+
+.summaryCell {
+  display: flex;
+  flex-direction: column;
+  width: 172px;
+  height: 82px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  border-width: 1px;
+  border-color: #ced8d5;
+  padding: 11px;
+  margin-right: 10px;
+}
+
+.wide {
+  width: 172px;
+}
+
+.label {
+  color: #60706b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.value {
+  color: #162129;
+  font-size: 18px;
+  font-weight: 800;
+  margin-top: 7px;
+}
+
+.subvalue {
+  color: #7b8783;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.warnText {
+  color: #9b6500;
+}
+
+.dangerText {
+  color: #b42318;
+}
+
+.matrix {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 214px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  border-width: 1px;
+  border-color: #cbd7d2;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.sectionHeader {
+  display: flex;
+  width: 100%;
+  height: 34px;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.sectionTitle {
+  width: 142px;
+  color: #18242c;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.sectionBadge {
+  width: 188px;
+  height: 26px;
+  color: #2f3a3f;
+  background-color: #e8eee9;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  padding-top: 5px;
+}
+
+.matrixRow {
+  display: flex;
+  width: 100%;
+  height: 38px;
+  flex-direction: row;
+  align-items: center;
+  border-bottom-width: 1px;
+  border-bottom-color: #edf1ef;
+}
+
+.lane {
+  width: 74px;
+  color: #566561;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.service {
+  width: 102px;
+  color: #17222b;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.status {
+  width: 138px;
+  color: #687773;
+  font-size: 13px;
+  text-align: right;
+}
+
+.statusHot {
+  width: 138px;
+  color: #b42318;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 116px;
+  background-color: #f9fbfa;
+  border-radius: 8px;
+  border-width: 1px;
+  border-color: #d5dedb;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.timelineRow {
+  display: flex;
+  width: 100%;
+  height: 24px;
+  flex-direction: row;
+  align-items: center;
+}
+
+.time {
+  width: 54px;
+  color: #7a5528;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.event {
+  width: 276px;
+  color: #3d4a47;
+  font-size: 13px;
+}
+
+.actionCard {
+  display: flex;
+  width: 100%;
+  height: 136px;
+  background-color: #21312f;
+  border-radius: 8px;
+  border-width: 2px;
+  border-color: #2d7d67;
+  flex-direction: row;
+  align-items: center;
+  padding: 15px;
+}
+
+.actionCardArmed {
+  background-color: #431f24;
+  border-color: #c2412d;
+}
+
+.actionCopy {
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+}
+
+.actionKicker {
+  color: #9ee2c8;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.actionTitle {
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 900;
+  margin-top: 8px;
+}
+
+.actionDetail {
+  color: #d8e3df;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.actionRail {
+  display: flex;
+  width: 42px;
+  height: 84px;
+  background-color: #dce9a8;
+  border-radius: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.actionRailHot {
+  background-color: #ffd0c2;
+}
+
+.railText {
+  color: #17222b;
+  font-size: 14px;
+  font-weight: 900;
+}

@@ -1,0 +1,30 @@
+{
+  "name": "@lynx-js/lynxtron-headless",
+  "version": "0.0.0-development",
+  "description": "Headless Lynxtron SDK and runtime harness",
+  "type": "module",
+  "main": "./lib/index.js",
+  "types": "./types/index.d.ts",
+  "bin": {
+    "lynxtron-headless": "./cli.js"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "files": [
+    "cli.js",
+    "harness",
+    "lib",
+    "types",
+    "package.json"
+  ],
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "default": "./lib/index.js"
+    }
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

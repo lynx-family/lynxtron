@@ -244,6 +244,10 @@ void BaseWindow::OnWindowRotateGesture(float rotation) {
   Emit("rotate-gesture", rotation);
 }
 
+void BaseWindow::OnWindowInputEvent(const base::Value::Dict& details) {
+  Emit("window-input", details);
+}
+
 void BaseWindow::OnWindowSheetBegin() {
   Emit("sheet-begin");
 }

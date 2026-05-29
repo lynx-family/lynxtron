@@ -56,6 +56,12 @@ LynxViewBuilder& LynxViewBuilder::SetParent(void* parent) {
   return *this;
 }
 
+LynxViewBuilder& LynxViewBuilder::SetWindowlessRenderer(
+    std::shared_ptr<lynx::pub::LynxWindowlessRenderer> renderer) {
+  impl_->builder.SetWindowlessRenderer(std::move(renderer));
+  return *this;
+}
+
 LynxViewBuilder& LynxViewBuilder::SetGenericResourceFetcher(
     std::shared_ptr<lynx::pub::LynxGenericResourceFetcher> fetcher) {
   impl_->builder.SetGenericResourceFetcher(fetcher);

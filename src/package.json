@@ -39,6 +39,7 @@
   ],
   "workspaces": [
     "packages/default_app/app",
+    "packages/lynxtron-headless",
     "packages/lynxtron",
     "packages/lynxtron-builder",
     "packages/lynxtron-shell-demo",

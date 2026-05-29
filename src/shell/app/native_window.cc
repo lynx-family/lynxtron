@@ -485,6 +485,10 @@ void NativeWindow::NotifyWindowRotateGesture(float rotation) {
   observers_.Notify(&NativeWindowObserver::OnWindowRotateGesture, rotation);
 }
 
+void NativeWindow::NotifyWindowInputEvent(const base::Value::Dict& details) {
+  observers_.Notify(&NativeWindowObserver::OnWindowInputEvent, details);
+}
+
 void NativeWindow::NotifyWindowSheetBegin() {
   observers_.Notify(&NativeWindowObserver::OnWindowSheetBegin);
 }

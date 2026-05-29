@@ -277,6 +277,10 @@ void LynxViewImpl::SetFrame(float x, float y, float width, float height) {
   lynx_view_->SetFrame(x, y, width, height);
 }
 
+std::string LynxViewImpl::DumpUITreeForCDP() {
+  return lynx_view_ ? lynx_view_->DumpUITreeForCDP() : "";
+}
+
 void* LynxViewImpl::GetNativeWindow() {
   return lynx_view_->GetNativeWindow();
 }

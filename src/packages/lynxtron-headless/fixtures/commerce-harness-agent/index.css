@@ -1,0 +1,578 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background-color: #f5f6f4;
+  padding: 12px;
+}
+
+.contentWithTabs {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 714px;
+}
+
+.homeScroll {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 586px;
+  overflow: scroll;
+}
+
+.homeHeader {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 128px;
+  padding-top: 4px;
+}
+
+.topBar {
+  display: flex;
+  width: 100%;
+  height: 76px;
+  flex-direction: row;
+  align-items: center;
+  background-color: #172024;
+  border-radius: 8px;
+  padding-left: 16px;
+  padding-right: 14px;
+}
+
+.brandStack {
+  display: flex;
+  flex-direction: column;
+  width: 236px;
+}
+
+.marketTitle {
+  color: #ffffff;
+  font-size: 23px;
+  font-weight: 900;
+}
+
+.marketSubtitle {
+  color: #9edac9;
+  font-size: 15px;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.cartPill {
+  width: 88px;
+  height: 34px;
+  color: #172024;
+  background-color: #f2d35b;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 900;
+  text-align: center;
+  padding-top: 7px;
+}
+
+.chipRow {
+  display: flex;
+  width: 100%;
+  height: 44px;
+  flex-direction: row;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.chip {
+  width: 68px;
+  height: 32px;
+  color: #46535a;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #d7ddda;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 800;
+  text-align: center;
+  padding-top: 7px;
+  margin-right: 8px;
+}
+
+.chipActive {
+  width: 54px;
+  color: #ffffff;
+  background-color: #187b61;
+  border-color: #187b61;
+}
+
+.productRow {
+  display: flex;
+  width: 100%;
+  height: 156px;
+  flex-direction: row;
+  margin-bottom: 10px;
+}
+
+.productCard {
+  display: flex;
+  flex-direction: column;
+  width: 176px;
+  height: 148px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #d9dfdc;
+  border-radius: 8px;
+  padding: 9px;
+  margin-right: 10px;
+}
+
+.productVisual {
+  display: flex;
+  width: 100%;
+  height: 34px;
+  border-radius: 6px;
+  align-items: center;
+  justify-content: center;
+}
+
+.tileTone0 {
+  background-color: #dcefe8;
+}
+
+.tileTone1 {
+  background-color: #e7e5f4;
+}
+
+.tileTone2 {
+  background-color: #f6e3db;
+}
+
+.tileTone3 {
+  background-color: #dbe9f6;
+}
+
+.tileTone4 {
+  background-color: #edf0d5;
+}
+
+.badge {
+  color: #172024;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.productName {
+  color: #182228;
+  font-size: 15px;
+  font-weight: 900;
+  margin-top: 8px;
+}
+
+.productMeta {
+  display: flex;
+  width: 100%;
+  height: 24px;
+  flex-direction: row;
+  align-items: center;
+  margin-top: 5px;
+}
+
+.price {
+  width: 54px;
+  color: #d44d3d;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.rating {
+  width: 94px;
+  color: #415057;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.sold {
+  color: #6a7578;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.openButton {
+  width: 100%;
+  height: 24px;
+  background-color: #edf1ef;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.primaryOpen {
+  background-color: #187b61;
+}
+
+.openButtonText {
+  width: 100%;
+  color: #4c5a5e;
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+  padding-top: 5px;
+}
+
+.primaryOpenText {
+  color: #ffffff;
+}
+
+.tabBar {
+  display: flex;
+  width: 100%;
+  height: 98px;
+  flex-direction: row;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #d5ddd9;
+  border-radius: 8px;
+  padding: 8px;
+  margin-top: 8px;
+}
+
+.tabItem {
+  display: flex;
+  width: 170px;
+  height: 80px;
+  flex-direction: row;
+  align-items: center;
+  background-color: #f2f5f3;
+  border-radius: 8px;
+  padding-left: 12px;
+  margin-right: 8px;
+}
+
+.tabItemActive {
+  background-color: #e0f0eb;
+  border-width: 1px;
+  border-color: #187b61;
+}
+
+.tabGlyph {
+  width: 28px;
+  height: 28px;
+  color: #ffffff;
+  background-color: #69787d;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 900;
+  text-align: center;
+  padding-top: 5px;
+}
+
+.tabGlyphActive {
+  background-color: #187b61;
+}
+
+.tabLabel {
+  width: 120px;
+  color: #4e5b60;
+  font-size: 13px;
+  font-weight: 900;
+  margin-left: 8px;
+}
+
+.tabLabelActive {
+  color: #172024;
+}
+
+.detailPage {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 820px;
+}
+
+.detailHeader {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 112px;
+  background-color: #172024;
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.detailKicker {
+  color: #9edac9;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.detailTitle {
+  color: #ffffff;
+  font-size: 25px;
+  font-weight: 900;
+  margin-top: 14px;
+}
+
+.detailHero {
+  display: flex;
+  width: 100%;
+  height: 142px;
+  flex-direction: row;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #d8dfdc;
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 12px;
+}
+
+.detailVisual {
+  display: flex;
+  width: 138px;
+  height: 112px;
+  background-color: #dcefe8;
+  border-radius: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.detailBadge {
+  color: #172024;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.detailPriceBlock {
+  display: flex;
+  flex-direction: column;
+  width: 180px;
+  margin-left: 16px;
+  padding-top: 10px;
+}
+
+.detailPrice {
+  color: #d44d3d;
+  font-size: 34px;
+  font-weight: 900;
+}
+
+.detailRating {
+  color: #2c3a3f;
+  font-size: 16px;
+  font-weight: 800;
+  margin-top: 8px;
+}
+
+.detailSold {
+  color: #6a7578;
+  font-size: 15px;
+  font-weight: 700;
+  margin-top: 7px;
+}
+
+.detailFacts {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 146px;
+  margin-top: 12px;
+}
+
+.factPill {
+  width: 100%;
+  height: 42px;
+  color: #172024;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #d8dfdc;
+  border-radius: 8px;
+  font-size: 17px;
+  font-weight: 900;
+  padding-left: 16px;
+  padding-top: 10px;
+  margin-bottom: 10px;
+}
+
+.descriptionPanel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 126px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #d8dfdc;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 4px;
+}
+
+.sectionLabel {
+  color: #687579;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.descriptionText {
+  color: #172024;
+  font-size: 20px;
+  font-weight: 800;
+  margin-top: 14px;
+}
+
+.detailAction {
+  display: flex;
+  width: 100%;
+  height: 58px;
+  background-color: #187b61;
+  border-radius: 8px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.detailActionText {
+  color: #ffffff;
+  font-size: 19px;
+  font-weight: 900;
+}
+
+.backAction {
+  display: flex;
+  width: 100%;
+  height: 52px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #9db0aa;
+  border-radius: 8px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.backActionText {
+  color: #172024;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.profilePage {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 714px;
+}
+
+.profileHeader {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 132px;
+  background-color: #172024;
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.profileTitle {
+  color: #9edac9;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.profileName {
+  color: #ffffff;
+  font-size: 26px;
+  font-weight: 900;
+  margin-top: 16px;
+}
+
+.profileTier {
+  color: #f2d35b;
+  font-size: 17px;
+  font-weight: 900;
+  margin-top: 8px;
+}
+
+.profileStats {
+  display: flex;
+  width: 100%;
+  height: 78px;
+  flex-direction: row;
+  margin-top: 12px;
+}
+
+.statCell {
+  display: flex;
+  flex-direction: column;
+  width: 178px;
+  height: 78px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #d8dfdc;
+  border-radius: 8px;
+  padding: 13px;
+}
+
+.statCellRight {
+  margin-left: 10px;
+}
+
+.statLabel {
+  color: #172024;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.statSub {
+  color: #6a7578;
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 9px;
+}
+
+.profileSection {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 188px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #d8dfdc;
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 12px;
+}
+
+.settingsSection {
+  height: 188px;
+}
+
+.profileSectionTitle {
+  color: #172024;
+  font-size: 18px;
+  font-weight: 900;
+  margin-bottom: 8px;
+}
+
+.profileRow {
+  display: flex;
+  width: 100%;
+  height: 42px;
+  flex-direction: row;
+  align-items: center;
+  border-bottom-width: 1px;
+  border-bottom-color: #edf1ef;
+}
+
+.rowMain {
+  width: 206px;
+  color: #243238;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.rowSide {
+  width: 128px;
+  color: #6a7578;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+}

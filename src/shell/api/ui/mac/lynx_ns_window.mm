@@ -3,6 +3,7 @@
 // LICENSE file in the root directory of this source tree.
 #include "shell/api/ui/mac/lynx_ns_window.h"
 
+#include "base/values.h"
 #include "base/strings/sys_string_conversions.h"
 #include "shell/ui/gfx/mac/coordinate_conversion.h"
 
@@ -10,6 +11,118 @@ namespace {
 
 // It is not valid to make a zero-sized window. Use this constant instead.
 inline constexpr NSRect kWindowSizeDeterminedLater = {{0, 0}, {1, 1}};
+
+const char* InputTypeFromNSEventType(NSEventType type) {
+  switch (type) {
+    case NSEventTypeLeftMouseDown:
+    case NSEventTypeRightMouseDown:
+    case NSEventTypeOtherMouseDown:
+      return "mousePressed";
+    case NSEventTypeLeftMouseUp:
+    case NSEventTypeRightMouseUp:
+    case NSEventTypeOtherMouseUp:
+      return "mouseReleased";
+    case NSEventTypeLeftMouseDragged:
+    case NSEventTypeRightMouseDragged:
+    case NSEventTypeOtherMouseDragged:
+    case NSEventTypeMouseMoved:
+      return "mouseMoved";
+    case NSEventTypeScrollWheel:
+      return "mouseWheel";
+    default:
+      return nullptr;
+  }
+}
+
+const char* ButtonFromNSEvent(NSEvent* event) {
+  switch (event.type) {
+    case NSEventTypeLeftMouseDown:
+    case NSEventTypeLeftMouseUp:
+    case NSEventTypeLeftMouseDragged:
+      return "left";
+    case NSEventTypeRightMouseDown:
+    case NSEventTypeRightMouseUp:
+    case NSEventTypeRightMouseDragged:
+      return "right";
+    case NSEventTypeOtherMouseDown:
+    case NSEventTypeOtherMouseUp:
+    case NSEventTypeOtherMouseDragged:
+      return event.buttonNumber == 2 ? "middle" : "other";
+    default:
+      return "none";
+  }
+}
+
+base::Value::List ModifiersFromNSEvent(NSEvent* event) {
+  base::Value::List modifiers;
+  NSEventModifierFlags flags = event.modifierFlags;
+  if (flags & NSEventModifierFlagShift) {
+    modifiers.Append("shift");
+  }
+  if (flags & NSEventModifierFlagControl) {
+    modifiers.Append("control");
+  }
+  if (flags & NSEventModifierFlagOption) {
+    modifiers.Append("alt");
+  }
+  if (flags & NSEventModifierFlagCommand) {
+    modifiers.Append("meta");
+  }
+  if (flags & NSEventModifierFlagCapsLock) {
+    modifiers.Append("capsLock");
+  }
+  return modifiers;
+}
+
+void NotifyWindowInputEvent(lynxtron::NativeWindowMac* shell,
+                            NSWindow* window,
+                            NSEvent* event) {
+  if (!shell || !window || event.window != window) {
+    return;
+  }
+  const char* type = InputTypeFromNSEventType(event.type);
+  if (!type) {
+    return;
+  }
+
+  NSView* content_view = window.contentView;
+  if (!content_view) {
+    return;
+  }
+
+  NSPoint location = [content_view convertPoint:event.locationInWindow
+                                       fromView:nil];
+  NSRect bounds = content_view.bounds;
+  const double x = location.x - bounds.origin.x;
+  const double y = content_view.isFlipped
+                       ? location.y - bounds.origin.y
+                       : NSMaxY(bounds) - location.y;
+  const bool inside_content = x >= 0 && y >= 0 && x <= bounds.size.width &&
+                              y <= bounds.size.height;
+
+  base::Value::Dict details;
+  details.Set("provider", "macos-lynxtron");
+  details.Set("kind", "pointer");
+  details.Set("type", type);
+  details.Set("pointerType", "mouse");
+  details.Set("deviceKind", "mouse");
+  details.Set("coordinateSpace", "viewport");
+  details.Set("x", x);
+  details.Set("y", y);
+  details.Set("contentWidth", bounds.size.width);
+  details.Set("contentHeight", bounds.size.height);
+  details.Set("insideContent", inside_content);
+  details.Set("button", ButtonFromNSEvent(event));
+  details.Set("buttonNumber", static_cast<int>(event.buttonNumber));
+  details.Set("buttons", static_cast<int>([NSEvent pressedMouseButtons]));
+  details.Set("clickCount", static_cast<int>(event.clickCount));
+  details.Set("deltaX", event.deltaX);
+  details.Set("deltaY", event.deltaY);
+  details.Set("nativeTimestamp", event.timestamp);
+  details.Set("windowDevicePixelRatio", window.backingScaleFactor);
+  details.Set("modifiers", ModifiersFromNSEvent(event));
+  shell->NotifyWindowInputEvent(details);
+}
 
 }  // namespace
 
@@ -58,6 +171,7 @@ inline constexpr NSRect kWindowSizeDeterminedLater = {{0, 0}, {1, 1}};
     cached_move_prevent_default_ = false;
     has_last_allowed_origin_ = false;
   }
+  NotifyWindowInputEvent(shell_, self, event);
   [super sendEvent:event];
   if (self.disableAutoHideCursor) {
     return;

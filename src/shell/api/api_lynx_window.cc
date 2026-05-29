@@ -15,7 +15,11 @@
 #include "base/logging.h"
 #include "base/path_service.h"
 #include "base/task/single_thread_task_runner.h"
+#include "base/time/time.h"
+#include "base/include/fml/message_loop.h"
+#include "core/base/threading/task_runner_manufactor.h"
 #include "gin/converter.h"
+#include "lynx/platform/embedder/public/capi/lynx_types.h"
 #include "lynx/platform/embedder/public/capi/lynx_env_capi.h"
 #include "shell/api/api_app.h"
 #include "shell/api/api_lynx_template_bundle.h"
@@ -33,6 +37,7 @@
 #include "shell/common/gin_helper/object_template_builder.h"
 #include "shell/common/global_thread.h"
 #include "shell/common/node_includes.h"
+#include "shell/common/node_util.h"
 #include "shell/common/options_switches.h"
 #include "shell/common/thread_restrictions.h"
 #include "url/gurl.h"
@@ -145,6 +150,47 @@ bool ExtractTemplateDataObject(v8::Isolate* isolate,
   return true;
 }
 
+bool ParseHeadlessPointerPhase(std::string_view phase,
+                               lynx_pointer_phase_e* out) {
+  if (phase == "cancel") {
+    *out = kLynxPointerPhaseCancel;
+  } else if (phase == "up") {
+    *out = kLynxPointerPhaseUp;
+  } else if (phase == "down") {
+    *out = kLynxPointerPhaseDown;
+  } else if (phase == "move") {
+    *out = kLynxPointerPhaseMove;
+  } else if (phase == "add") {
+    *out = kLynxPointerPhaseAdd;
+  } else if (phase == "remove") {
+    *out = kLynxPointerPhaseRemove;
+  } else if (phase == "hover") {
+    *out = kLynxPointerPhaseHover;
+  } else {
+    return false;
+  }
+  return true;
+}
+
+lynx_pointer_device_kind_e ParseHeadlessPointerDeviceKind(
+    std::string_view device_kind) {
+  if (device_kind == "mouse") {
+    return kLynxPointerDeviceKindMouse;
+  }
+  if (device_kind == "stylus") {
+    return kLynxPointerDeviceKindStylus;
+  }
+  if (device_kind == "trackpad") {
+    return kLynxPointerDeviceKindTrackpad;
+  }
+  return kLynxPointerDeviceKindTouch;
+}
+
+size_t NowMicros() {
+  return static_cast<size_t>(
+      base::Time::Now().InMillisecondsSinceUnixEpoch() * 1000);
+}
+
 std::string ToFileUrl(const base::FilePath& path) {
   std::string normalized = path.AsUTF8Unsafe();
   std::replace(normalized.begin(), normalized.end(), '\\', '/');
@@ -167,23 +213,29 @@ struct LynxContentMetrics {
   float width;
   float height;
   float device_pixel_ratio;
+  float window_device_pixel_ratio;
 };
 
-LynxContentMetrics GetLynxContentMetrics(NativeWindow* window) {
-  const float device_pixel_ratio = window->GetDevicePixelRatio();
+LynxContentMetrics GetLynxContentMetrics(
+    NativeWindow* window,
+    std::optional<float> device_pixel_ratio_override = std::nullopt) {
+  const float window_device_pixel_ratio = window->GetDevicePixelRatio();
+  const float device_pixel_ratio =
+      device_pixel_ratio_override.value_or(window_device_pixel_ratio);
   float width = window->GetContentSize().width();
   float height = window->GetContentSize().height();
 #if BUILDFLAG(IS_WIN)
   RECT client_rect{};
   ::GetClientRect(window->GetNativeWindowHandle(), &client_rect);
   width = static_cast<float>(client_rect.right - client_rect.left) /
-          device_pixel_ratio;
+          window_device_pixel_ratio;
   height = static_cast<float>(client_rect.bottom - client_rect.top) /
-           device_pixel_ratio;
+           window_device_pixel_ratio;
 #endif
   return {.width = width,
           .height = height,
-          .device_pixel_ratio = device_pixel_ratio};
+          .device_pixel_ratio = device_pixel_ratio,
+          .window_device_pixel_ratio = window_device_pixel_ratio};
 }
 
 void SyncLynxViewport(LynxView* lynx_view, const LynxContentMetrics& metrics) {
@@ -244,6 +296,13 @@ LynxWindow::LynxWindow(gin::Arguments* args,
   InitWithArgs(args);
   // TODO(Guo Xi): support software render.
   options.Get("software_render", &software_render_);
+  options.Get("headless", &headless_);
+  double device_scale_factor = 0;
+  if (headless_ && options.Get("deviceScaleFactor", &device_scale_factor) &&
+      device_scale_factor > 0) {
+    headless_device_pixel_ratio_ =
+        static_cast<float>(device_scale_factor);
+  }
 
   window()->InitFromOptions(options);
 
@@ -305,8 +364,10 @@ void LynxWindow::CustomReport(const std::string& custom_data) {
 }
 
 bool LynxWindow::ComputeRenderActive() const {
-  return lynx_view_ != nullptr && window_ != nullptr && !window_->IsClosed() &&
-         window_->IsVisible();
+  if (lynx_view_ == nullptr || window_ == nullptr || window_->IsClosed()) {
+    return false;
+  }
+  return headless_ || window_->IsVisible();
 }
 
 void LynxWindow::SyncRenderActiveState() {
@@ -360,7 +421,8 @@ void LynxWindow::OnWindowResize() {
 #endif
 
   if (lynx_view_) {
-    const auto metrics = GetLynxContentMetrics(window_.get());
+    const auto metrics =
+        GetLynxContentMetrics(window_.get(), headless_device_pixel_ratio_);
     // During sizing, only adjust frame to keep visual coverage; defer metrics.
     SyncLynxViewport(lynx_view_.get(), metrics);
 #if BUILDFLAG(IS_WIN)
@@ -378,7 +440,8 @@ void LynxWindow::OnWindowResize() {
 
 void LynxWindow::OnWindowResized() {
   if (lynx_view_) {
-    const auto metrics = GetLynxContentMetrics(window_.get());
+    const auto metrics =
+        GetLynxContentMetrics(window_.get(), headless_device_pixel_ratio_);
     SyncLynxScreenMetrics(lynx_view_.get(), metrics);
     SyncLynxViewport(lynx_view_.get(), metrics);
 #if BUILDFLAG(IS_WIN)
@@ -483,15 +546,22 @@ void LynxWindow::EnsureLynxView() {
     return;
   }
 
-  const auto metrics = GetLynxContentMetrics(window_.get());
+  const auto metrics =
+      GetLynxContentMetrics(window_.get(), headless_device_pixel_ratio_);
 
   LynxViewBuilder builder;
   builder
       .SetScreenSize(metrics.width, metrics.height, metrics.device_pixel_ratio)
       .SetFrame(0, 0, metrics.width, metrics.height)
-      .SetParent(window_->GetNativeWindowHandle())
       .SetNodeIntegrationPreload(node_integration_preload_)
       .SetLynxWindow(GetWeakPtr());
+
+  if (headless_) {
+    headless_renderer_ = std::make_shared<HeadlessWindowlessRenderer>();
+    builder.SetWindowlessRenderer(headless_renderer_);
+  } else {
+    builder.SetParent(window_->GetNativeWindowHandle());
+  }
 
   if (lynx_view_state_observer_) {
     lynx_view_state_observer_->OnPreLynxViewCreate(&builder);
@@ -817,7 +887,7 @@ bool LynxWindow::UpdateMetaData(gin::Arguments* args) {
 }
 
 void LynxWindow::OnPageStart(std::string_view url) {
-  // Emit("on-page-start", url);
+  Emit("on-page-start", std::string(url));
   if (lynx_view_state_observer_) {
     lynx_view_state_observer_->SetInstanceId(
         reinterpret_cast<int64_t>(lynx_view_.get()));
@@ -844,7 +914,9 @@ void LynxWindow::OnDestroy() {}
 /**
  * notify JS Runtime initialization complete
  */
-void LynxWindow::OnRuntimeReady() {}
+void LynxWindow::OnRuntimeReady() {
+  Emit("on-runtime-ready");
+}
 
 void LynxWindow::OnReceivedError(int error_code, std::string_view message) {
   if (lynx_view_state_observer_) {
@@ -854,13 +926,14 @@ void LynxWindow::OnReceivedError(int error_code, std::string_view message) {
 }
 
 void LynxWindow::OnTimingSetup(std::string_view timing_info) {
-  // Emit("on-timing-setup", timing_info);
+  Emit("on-timing-setup", std::string(timing_info));
 }
 
 void LynxWindow::OnTimingUpdate(std::string_view timing_info,
                                 std::string_view update_timing,
                                 std::string_view update_flag) {
-  // Emit("on-timing-update", timing_info, update_timing, update_flag);
+  Emit("on-timing-update", std::string(timing_info),
+       std::string(update_timing), std::string(update_flag));
 }
 
 void LynxWindow::OnEnterForeground() {
@@ -919,6 +992,147 @@ bool LynxWindow::SendGlobalEvent(const std::string& name,
   return true;
 }
 
+v8::Local<v8::Value> LynxWindow::CaptureHeadlessFrame() {
+  if (!headless_renderer_) {
+    return node::Buffer::New(isolate(), 0).ToLocalChecked();
+  }
+
+  std::vector<uint8_t> png;
+  if (!headless_renderer_->CopyLastFrameToPng(&png)) {
+    return node::Buffer::New(isolate(), 0).ToLocalChecked();
+  }
+  return lynxtron::Buffer::Copy(isolate(), png).ToLocalChecked();
+}
+
+std::string LynxWindow::DumpHeadlessUITreeForCDP() {
+  if (!headless_ || !lynx_view_) {
+    return R"({"available":false})";
+  }
+  return lynx_view_->DumpUITreeForCDP();
+}
+
+v8::Local<v8::Value> LynxWindow::GetHeadlessMetrics() {
+  auto metrics = gin_helper::Dictionary::CreateEmpty(isolate());
+  const auto content_metrics =
+      GetLynxContentMetrics(window_.get(), headless_device_pixel_ratio_);
+  metrics.Set("headless", headless_);
+  metrics.Set("hasRenderer", static_cast<bool>(headless_renderer_));
+  metrics.Set("contentWidth", content_metrics.width);
+  metrics.Set("contentHeight", content_metrics.height);
+  metrics.Set("devicePixelRatio", content_metrics.device_pixel_ratio);
+  metrics.Set("windowDevicePixelRatio",
+              content_metrics.window_device_pixel_ratio);
+  metrics.Set("fmlLoopOnCurrentThread",
+              lynx::fml::MessageLoop::IsInitializedForCurrentThread() !=
+                  nullptr);
+  auto lynx_ui_runner = lynx::base::UIThread::GetRunner();
+  metrics.Set("lynxUIRunnerOnCurrentThread",
+              lynx_ui_runner && lynx_ui_runner->RunsTasksOnCurrentThread());
+  metrics.Set(
+      "framesPresented",
+      headless_renderer_
+          ? static_cast<double>(headless_renderer_->frames_presented())
+          : 0.0);
+  metrics.Set(
+      "rendererTasksPosted",
+      headless_renderer_
+          ? static_cast<double>(headless_renderer_->tasks_posted())
+          : 0.0);
+  metrics.Set("rendererTasksRun",
+              headless_renderer_
+                  ? static_cast<double>(headless_renderer_->tasks_run())
+                  : 0.0);
+  metrics.Set("taskPumps", static_cast<double>(headless_task_pumps_));
+  metrics.Set("globalUITaskRunnerInstallAttempted",
+              HeadlessWindowlessRenderer::
+                  global_ui_task_runner_install_attempted());
+  metrics.Set("globalUITaskRunnerInstalled",
+              HeadlessWindowlessRenderer::global_ui_task_runner_installed());
+  metrics.Set("globalUITasksPosted",
+              static_cast<double>(
+                  HeadlessWindowlessRenderer::global_ui_tasks_posted()));
+  metrics.Set("globalUITasksRun",
+              static_cast<double>(
+                  HeadlessWindowlessRenderer::global_ui_tasks_run()));
+  metrics.Set("globalUITasksFailed",
+              static_cast<double>(
+                  HeadlessWindowlessRenderer::global_ui_tasks_failed()));
+  return metrics.GetHandle();
+}
+
+bool LynxWindow::DispatchHeadlessPointerEvent(gin::Arguments* args) {
+  std::string phase_name;
+  double x = 0;
+  double y = 0;
+  if (!args->GetNext(&phase_name) || !args->GetNext(&x) ||
+      !args->GetNext(&y)) {
+    args->ThrowTypeError(
+        "dispatchHeadlessPointerEvent requires phase, x, and y");
+    return false;
+  }
+  if (!headless_renderer_) {
+    return false;
+  }
+
+  lynx_pointer_phase_e phase;
+  if (!ParseHeadlessPointerPhase(phase_name, &phase)) {
+    args->ThrowTypeError("Unsupported headless pointer phase");
+    return false;
+  }
+
+  gin_helper::Dictionary options;
+  bool physical = false;
+  int32_t device = 0;
+  int64_t buttons = 0;
+  std::string device_kind = "touch";
+  if (args->GetNext(&options)) {
+    options.Get("physical", &physical);
+    options.Get("device", &device);
+    options.Get("buttons", &buttons);
+    options.Get("deviceKind", &device_kind);
+  }
+
+  const auto content_metrics =
+      GetLynxContentMetrics(window_.get(), headless_device_pixel_ratio_);
+  const double coordinate_scale =
+      physical ? 1.0 : content_metrics.device_pixel_ratio;
+  const lynx_pointer_device_kind_e parsed_device_kind =
+      ParseHeadlessPointerDeviceKind(device_kind);
+  if (parsed_device_kind == kLynxPointerDeviceKindMouse &&
+      (phase == kLynxPointerPhaseDown || phase == kLynxPointerPhaseMove) &&
+      buttons == 0) {
+    buttons = kLynxPointerMouseButtonsMousePrimary;
+  }
+
+  lynx_pointer_event_t event{};
+  event.struct_size = sizeof(event);
+  event.phase = phase;
+  event.timestamp = NowMicros();
+  event.x = x * coordinate_scale;
+  event.y = y * coordinate_scale;
+  event.device = device;
+  event.signal_kind = kLynxPointerSignalKindNone;
+  event.device_kind = parsed_device_kind;
+  event.buttons = buttons;
+  headless_renderer_->SendPointerEvent(&event);
+  return true;
+}
+
+bool LynxWindow::PumpHeadlessTasks() {
+  if (!headless_) {
+    return false;
+  }
+
+  auto* loop = lynx::fml::MessageLoop::IsInitializedForCurrentThread();
+  if (!loop) {
+    return false;
+  }
+
+  loop->RunExpiredTasksNow();
+  ++headless_task_pumps_;
+  return true;
+}
+
 // static
 gin_helper::WrappableBase* LynxWindow::New(gin_helper::ErrorThrower thrower,
                                            gin::Arguments* args) {
@@ -950,7 +1164,14 @@ void LynxWindow::BuildPrototype(v8::Isolate* isolate,
       .SetMethod("loadBundle", &LynxWindow::LoadBundle)
       .SetMethod("updateMetaData", &LynxWindow::UpdateMetaData)
       .SetMethod("setGlobalProps", &LynxWindow::SetGlobalProps)
-      .SetMethod("sendGlobalEvent", &LynxWindow::SendGlobalEvent);
+      .SetMethod("sendGlobalEvent", &LynxWindow::SendGlobalEvent)
+      .SetMethod("captureHeadlessFrame", &LynxWindow::CaptureHeadlessFrame)
+      .SetMethod("__dumpHeadlessUITreeForCDP",
+                 &LynxWindow::DumpHeadlessUITreeForCDP)
+      .SetMethod("getHeadlessMetrics", &LynxWindow::GetHeadlessMetrics)
+      .SetMethod("dispatchHeadlessPointerEvent",
+                 &LynxWindow::DispatchHeadlessPointerEvent)
+      .SetMethod("pumpHeadlessTasks", &LynxWindow::PumpHeadlessTasks);
 }
 
 // static
