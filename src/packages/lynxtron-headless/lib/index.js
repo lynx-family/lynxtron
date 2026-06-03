@@ -93,6 +93,10 @@ function artifactPaths(options) {
     uiDumpAfterTap: absolutePath(
       options.uiDumpAfterTap || join(artifactDir, 'ui-dump-after-tap.json')
     ),
+    uiSnapshot: absolutePath(options.uiSnapshot || join(artifactDir, 'ui-snapshot.json')),
+    uiSnapshotAfterTap: absolutePath(
+      options.uiSnapshotAfterTap || join(artifactDir, 'ui-snapshot-after-tap.json')
+    ),
     report: absolutePath(options.report || join(artifactDir, 'report.json')),
     trace: absolutePath(options.trace || join(artifactDir, 'trace.jsonl')),
     replay: absolutePath(options.replay || join(artifactDir, 'replay.json')),
@@ -112,6 +116,8 @@ export function createHarnessArgs(bundleOrUrl, options = {}) {
     `--headless-tap-screenshot=${artifacts.tapScreenshot}`,
     `--headless-ui-dump=${artifacts.uiDump}`,
     `--headless-ui-dump-after-tap=${artifacts.uiDumpAfterTap}`,
+    `--headless-ui-snapshot=${artifacts.uiSnapshot}`,
+    `--headless-ui-snapshot-after-tap=${artifacts.uiSnapshotAfterTap}`,
     `--headless-report=${artifacts.report}`,
     `--headless-trace=${artifacts.trace}`,
     `--headless-replay=${artifacts.replay}`,
@@ -154,8 +160,35 @@ export function createHarnessArgs(bundleOrUrl, options = {}) {
   if (options.tap) {
     args.push(`--headless-tap=${options.tap.x},${options.tap.y}`);
   }
-  if (options.tapText) {
+  if (Array.isArray(options.tapTexts)) {
+    for (const tapText of options.tapTexts) {
+      args.push(`--headless-tap-text=${tapText}`);
+    }
+  }
+  if (options.tapText && !Array.isArray(options.tapTexts)) {
     args.push(`--headless-tap-text=${options.tapText}`);
+  }
+  if (Array.isArray(options.insertTexts)) {
+    for (const text of options.insertTexts) {
+      args.push(`--headless-insert-text=${text}`);
+    }
+  }
+  if (options.insertText && !Array.isArray(options.insertTexts)) {
+    args.push(`--headless-insert-text=${options.insertText}`);
+  }
+  if (Array.isArray(options.dragTexts)) {
+    for (const dragText of options.dragTexts) {
+      const text = typeof dragText === 'string' ? dragText : dragText.text;
+      const dx = typeof dragText === 'string' ? 0 : Number(dragText.dx || 0);
+      const dy = typeof dragText === 'string' ? -96 : Number(dragText.dy ?? -96);
+      args.push(`--headless-drag-text=${text}:${dx},${dy}`);
+    }
+  }
+  if (options.dragText && !Array.isArray(options.dragTexts)) {
+    const text = typeof options.dragText === 'string' ? options.dragText : options.dragText.text;
+    const dx = typeof options.dragText === 'string' ? 0 : Number(options.dragText.dx || 0);
+    const dy = typeof options.dragText === 'string' ? -96 : Number(options.dragText.dy ?? -96);
+    args.push(`--headless-drag-text=${text}:${dx},${dy}`);
   }
   return { args, artifacts };
 }
@@ -199,6 +232,8 @@ function replayOptions(manifest, manifestPath, options = {}) {
     tapScreenshot: options.tapScreenshot,
     uiDump: options.uiDump,
     uiDumpAfterTap: options.uiDumpAfterTap,
+    uiSnapshot: options.uiSnapshot,
+    uiSnapshotAfterTap: options.uiSnapshotAfterTap,
     report: options.report,
     trace: options.trace,
     replay: options.replay,
@@ -214,6 +249,16 @@ function replayOptions(manifest, manifestPath, options = {}) {
     replayScript: mode === 'recorded' ? absolutePath(manifestPath) : options.replayScript,
     stdio: options.stdio,
   };
+  const manifestInsertTexts = manifest.input?.text?.sequence
+    ?.map((item) => item?.text)
+    .filter((text) => typeof text === 'string');
+  if (Array.isArray(options.insertTexts)) {
+    base.insertTexts = options.insertTexts;
+  } else if (options.insertText) {
+    base.insertText = options.insertText;
+  } else if (manifestInsertTexts?.length > 0) {
+    base.insertTexts = manifestInsertTexts;
+  }
 
   if (mode === 'recorded') {
     // The harness will load the source and replay recorded input actions.

@@ -178,6 +178,10 @@ bool HeadlessWindowlessRenderer::CopyLastFrameToPng(
                                static_cast<int>(row_bytes), false, {}, output);
 }
 
+bool HeadlessWindowlessRenderer::DispatchTextInput(const std::string& text) {
+  return SendTextInput(text.c_str());
+}
+
 uint64_t HeadlessWindowlessRenderer::frames_presented() const {
   std::lock_guard<std::mutex> lock(frame_mutex_);
   return frames_presented_;

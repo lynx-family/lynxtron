@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <mutex>
+#include <string>
 #include <vector>
 
 #include "base/memory/scoped_refptr.h"
@@ -29,6 +30,7 @@ class HeadlessWindowlessRenderer final
   void OnPostTask(lynx_task_t task, uint64_t interval_nanoseconds) override;
 
   bool CopyLastFrameToPng(std::vector<uint8_t>* output) const;
+  bool DispatchTextInput(const std::string& text);
   uint64_t frames_presented() const;
   uint64_t tasks_posted() const;
   uint64_t tasks_run() const;

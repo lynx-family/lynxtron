@@ -1,0 +1,572 @@
+.page {
+  width: 100%;
+  min-height: 100%;
+  background-color: #f6f8fa;
+  padding: 22px;
+}
+
+.hero {
+  width: 100%;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.titleBlock {
+  width: 190px;
+}
+
+.title {
+  color: #18202a;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.subtitle {
+  color: #637083;
+  font-size: 16px;
+  margin-top: 6px;
+}
+
+.tapTarget {
+  width: 150px;
+  height: 96px;
+  margin-left: 14px;
+  background-color: #ffffff;
+  border-width: 2px;
+  border-color: #246bcb;
+  border-radius: 6px;
+  padding: 12px;
+  justify-content: center;
+}
+
+.tapTargetActive {
+  background-color: #18563d;
+  border-color: #18563d;
+}
+
+.tapTitle {
+  color: #1a2634;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.tapBody {
+  color: #5f6d7d;
+  font-size: 15px;
+  margin-top: 8px;
+}
+
+.tapTargetActive .tapTitle,
+.tapTargetActive .tapBody {
+  color: #ffffff;
+}
+
+.summary {
+  width: 100%;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #d6dde5;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+
+.statusLine {
+  width: 100%;
+  height: 28px;
+  flex-direction: row;
+  align-items: center;
+}
+
+.statusLabel {
+  width: 180px;
+  color: #536174;
+  font-size: 15px;
+}
+
+.statusValue {
+  width: 130px;
+  color: #17202a;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.section {
+  width: 100%;
+  margin-bottom: 14px;
+}
+
+.sectionTitle {
+  color: #18202a;
+  font-size: 19px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.boxRow,
+.formRow,
+.galleryRow {
+  width: 100%;
+  flex-direction: row;
+}
+
+.metricBox {
+  width: 128px;
+  height: 72px;
+  border-radius: 6px;
+  padding: 10px;
+  margin-right: 10px;
+}
+
+.metricBlue {
+  background-color: #e8f1ff;
+  border-width: 1px;
+  border-color: #7aa7e8;
+}
+
+.metricGreen {
+  background-color: #e7f6ed;
+  border-width: 1px;
+  border-color: #73b88b;
+}
+
+.metricLabel {
+  color: #445063;
+  font-size: 14px;
+}
+
+.metricValue {
+  color: #132033;
+  font-size: 20px;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.nestedParent {
+  width: 100%;
+  height: 162px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #7aa7e8;
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.nestedParentSeen {
+  border-color: #2f6f5e;
+  background-color: #eef8f4;
+}
+
+.nestedChild {
+  width: 190px;
+  height: 54px;
+  background-color: #e8f1ff;
+  border-width: 1px;
+  border-color: #246bcb;
+  border-radius: 4px;
+  padding-left: 10px;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+.nestedChildSeen {
+  background-color: #18563d;
+  border-color: #18563d;
+}
+
+.nestedCatchParent {
+  width: 190px;
+  height: 54px;
+  background-color: #fff6df;
+  border-width: 1px;
+  border-color: #c5892b;
+  border-radius: 4px;
+  padding-left: 10px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.nestedCatchChild {
+  width: 170px;
+  height: 34px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #c5892b;
+  border-radius: 4px;
+  padding-left: 8px;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.nestedChildText {
+  color: #152238;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.nestedReport {
+  color: #435164;
+  font-size: 14px;
+}
+
+.nestedChildSeen .nestedChildText,
+.nestedChildSeen .nestedReport {
+  color: #ffffff;
+}
+
+.nestedCatchChild.nestedChildSeen {
+  background-color: #18563d;
+  border-color: #18563d;
+}
+
+.interactionLab {
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #d6dde5;
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.labRow {
+  width: 100%;
+  flex-direction: row;
+  margin-bottom: 8px;
+}
+
+.labEventOuter {
+  width: 168px;
+  height: 82px;
+  background-color: #f4f7fb;
+  border-width: 1px;
+  border-color: #8a98aa;
+  border-radius: 4px;
+  padding: 8px;
+  margin-right: 10px;
+}
+
+.labEventMiddle {
+  width: 148px;
+  height: 62px;
+  background-color: #eef3f8;
+  border-width: 1px;
+  border-color: #7aa7e8;
+  border-radius: 4px;
+  padding: 6px;
+}
+
+.labEventInner {
+  width: 132px;
+  height: 42px;
+  background-color: #26364a;
+  border-radius: 4px;
+  align-items: center;
+  justify-content: center;
+}
+
+.labEventInner .nestedChildText {
+  color: #ffffff;
+  font-size: 12px;
+}
+
+.labNested,
+.labCatch {
+  width: 150px;
+  height: 82px;
+  background-color: #f7fafc;
+  border-width: 1px;
+  border-color: #7aa7e8;
+  border-radius: 4px;
+  padding: 6px;
+}
+
+.labNestedChild,
+.labCatchChild {
+  width: 132px;
+  height: 34px;
+  background-color: #e8f1ff;
+  border-width: 1px;
+  border-color: #246bcb;
+  border-radius: 4px;
+  align-items: center;
+  justify-content: center;
+}
+
+.labCatch {
+  margin-right: 10px;
+  border-color: #c5892b;
+}
+
+.labCatchChild {
+  background-color: #fff6df;
+  border-color: #c5892b;
+}
+
+.labActions {
+  width: 170px;
+}
+
+.labKeyedRow {
+  width: 170px;
+  flex-direction: row;
+  margin-bottom: 6px;
+}
+
+.labKeyedCell {
+  width: 52px;
+  height: 28px;
+  margin-right: 4px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #8a98aa;
+  border-radius: 4px;
+  align-items: center;
+  justify-content: center;
+}
+
+.labKeyedCell .keyedText {
+  font-size: 10px;
+}
+
+.labButton {
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+.eventOuter {
+  width: 100%;
+  height: 150px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #8a98aa;
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.eventMiddle {
+  width: 260px;
+  height: 86px;
+  background-color: #eef3f8;
+  border-width: 1px;
+  border-color: #7aa7e8;
+  border-radius: 4px;
+  padding: 8px;
+  margin-top: 6px;
+}
+
+.eventInner {
+  width: 220px;
+  height: 38px;
+  background-color: #26364a;
+  border-radius: 4px;
+  padding-left: 10px;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+.eventInner .nestedChildText {
+  color: #ffffff;
+}
+
+.inputBox {
+  width: 150px;
+  height: 48px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #9aa7b8;
+  border-radius: 4px;
+  color: #18202a;
+  font-size: 16px;
+  padding-left: 10px;
+  margin-right: 10px;
+}
+
+.textareaBox {
+  width: 178px;
+  height: 64px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #9aa7b8;
+  border-radius: 4px;
+  color: #18202a;
+  font-size: 15px;
+  padding: 8px;
+}
+
+.smallButton {
+  width: 170px;
+  height: 44px;
+  background-color: #26364a;
+  border-radius: 4px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.smallButtonText {
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.formReport {
+  color: #435164;
+  font-size: 15px;
+  margin-top: 8px;
+}
+
+.scrollBox {
+  width: 100%;
+  height: 116px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #d6dde5;
+  border-radius: 6px;
+}
+
+.scrollRow {
+  width: 100%;
+  height: 34px;
+  padding-left: 12px;
+  justify-content: center;
+  border-bottom-width: 1px;
+  border-bottom-color: #e6ebf0;
+}
+
+.scrollRowMarked {
+  background-color: #fff2cc;
+}
+
+.scrollText {
+  color: #253247;
+  font-size: 15px;
+}
+
+.nestedOuterScroll {
+  width: 100%;
+  height: 170px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #d6dde5;
+  border-radius: 6px;
+}
+
+.nestedScrollSpacer {
+  width: 100%;
+  height: 46px;
+  padding-left: 12px;
+  justify-content: center;
+  background-color: #f4f7fb;
+}
+
+.nestedInnerScroll {
+  width: 100%;
+  height: 94px;
+  background-color: #eef8f4;
+  border-width: 1px;
+  border-color: #73b88b;
+}
+
+.nestedScrollRow {
+  width: 100%;
+  height: 32px;
+  padding-left: 12px;
+  justify-content: center;
+  border-bottom-width: 1px;
+  border-bottom-color: #d6e8dc;
+}
+
+.selectionText {
+  width: 100%;
+  height: 52px;
+  padding-left: 12px;
+  justify-content: center;
+  color: #253247;
+  font-size: 15px;
+  background-color: #fff6df;
+  border-top-width: 1px;
+  border-bottom-width: 1px;
+  border-color: #c5892b;
+}
+
+.standaloneSelectionScroll {
+  width: 100%;
+  height: 142px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #c5892b;
+  border-radius: 6px;
+  margin-top: 10px;
+}
+
+.keyedRow {
+  width: 100%;
+  flex-direction: row;
+}
+
+.keyedCell {
+  width: 106px;
+  height: 50px;
+  margin-right: 8px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #8a98aa;
+  border-radius: 4px;
+  align-items: center;
+  justify-content: center;
+}
+
+.keyedText {
+  color: #253247;
+  font-size: 14px;
+}
+
+.cssGallery {
+  padding-bottom: 24px;
+}
+
+.effectCard,
+.motionBox {
+  width: 102px;
+  height: 58px;
+  margin-right: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.effectBorder {
+  background-color: #f7e8ee;
+  border-width: 2px;
+  border-color: #bb5b7b;
+  border-radius: 8px;
+}
+
+.effectOpacity {
+  background-color: #ffe3a6;
+  opacity: 0.72;
+}
+
+.motionBox {
+  background-color: #e3f0f2;
+  border-width: 1px;
+  border-color: #5b9aa5;
+  transform: translateX(0px);
+  transition-property: transform, background-color;
+  transition-duration: 120ms;
+  transition-timing-function: ease-out;
+}
+
+.motionBoxDone {
+  background-color: #2f6f5e;
+  transform: translateX(10px);
+}
+
+.motionBoxDone .effectText {
+  color: #ffffff;
+}
+
+.effectText {
+  color: #243145;
+  font-size: 14px;
+  font-weight: 700;
+}

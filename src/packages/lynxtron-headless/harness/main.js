@@ -73,6 +73,12 @@ function parseArgs(argv) {
       case '--headless-ui-dump-after-tap':
         options.uiDumpAfterTap = resolve(value);
         break;
+      case '--headless-ui-snapshot':
+        options.uiSnapshot = resolve(value);
+        break;
+      case '--headless-ui-snapshot-after-tap':
+        options.uiSnapshotAfterTap = resolve(value);
+        break;
       case '--headless-tap-screenshot':
         options.tapScreenshot = resolve(value);
         break;
@@ -124,7 +130,27 @@ function parseArgs(argv) {
       }
       case '--headless-tap-text':
         options.tapText = value;
+        options.tapTexts ||= [];
+        options.tapTexts.push(value);
         break;
+      case '--headless-insert-text':
+        options.insertText = value;
+        options.insertTexts ||= [];
+        options.insertTexts.push(value);
+        break;
+      case '--headless-drag-text': {
+        const separator = value.lastIndexOf(':');
+        const text = separator === -1 ? value : value.slice(0, separator);
+        const rawDelta = separator === -1 ? '' : value.slice(separator + 1);
+        const [dx, dy] = rawDelta.split(',').map(Number);
+        options.dragTexts ||= [];
+        options.dragTexts.push({
+          text,
+          dx: Number.isFinite(dx) ? dx : 0,
+          dy: Number.isFinite(dy) ? dy : -96,
+        });
+        break;
+      }
     }
   }
   options.artifactDir ||= resolve(process.env.LYNXTRON_HEADLESS_ARTIFACT_DIR || 'artifacts');
@@ -132,6 +158,8 @@ function parseArgs(argv) {
   options.tapScreenshot ||= resolve(options.artifactDir, 'screenshot-after-tap.png');
   options.uiDump ||= resolve(options.artifactDir, 'ui-dump.json');
   options.uiDumpAfterTap ||= resolve(options.artifactDir, 'ui-dump-after-tap.json');
+  options.uiSnapshot ||= resolve(options.artifactDir, 'ui-snapshot.json');
+  options.uiSnapshotAfterTap ||= resolve(options.artifactDir, 'ui-snapshot-after-tap.json');
   options.report ||= resolve(options.artifactDir, 'report.json');
   options.trace ||= resolve(options.artifactDir, 'trace.jsonl');
   options.replay ||= resolve(options.artifactDir, 'replay.json');
@@ -170,6 +198,8 @@ async function writeArtifacts(options, report, replayManifest) {
   await mkdir(dirname(options.tapScreenshot), { recursive: true });
   await mkdir(dirname(options.uiDump), { recursive: true });
   await mkdir(dirname(options.uiDumpAfterTap), { recursive: true });
+  await mkdir(dirname(options.uiSnapshot), { recursive: true });
+  await mkdir(dirname(options.uiSnapshotAfterTap), { recursive: true });
   await mkdir(dirname(options.report), { recursive: true });
   await mkdir(dirname(options.trace), { recursive: true });
   await mkdir(dirname(options.replay), { recursive: true });
@@ -181,12 +211,24 @@ async function writeArtifacts(options, report, replayManifest) {
       tapScreenshot: await hashFile(options.tapScreenshot),
       uiDump: await hashFile(options.uiDump),
       uiDumpAfterTap: await hashFile(options.uiDumpAfterTap),
+      uiSnapshot: await hashFile(options.uiSnapshot),
+      uiSnapshotAfterTap: await hashFile(options.uiSnapshotAfterTap),
       report: await hashFile(options.report),
       trace: await hashFile(options.trace),
       replay: { path: options.replay },
     };
     await writeFile(options.replay, JSON.stringify(replayManifest, null, 2));
   }
+}
+
+async function writeJsonArtifact(path, value, eventType, data = {}) {
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, JSON.stringify(value, null, 2));
+  trace(eventType, {
+    path,
+    via: 'cdp',
+    ...data,
+  });
 }
 
 function waitWithTimeout(promise, timeoutMs, code) {
@@ -305,7 +347,10 @@ function shouldSlowMo(method) {
     method === 'Lynx.loadURL' ||
     method === 'Page.takeScreenshot' ||
     method === 'Lynx.dumpUITree' ||
-    method === 'Input.dispatchTouchEvent'
+    method === 'LynxSnapshot.capture' ||
+    method === 'LynxInput.scrollIntoView' ||
+    method === 'Input.dispatchTouchEvent' ||
+    method === 'Input.insertText'
   );
 }
 
@@ -435,13 +480,12 @@ function createRecorderController(state, options) {
     ) {
       return null;
     }
-    const dump = await state.cdp.send('Lynx.dumpUITree', {});
+    const captured = await state.cdp.send('LynxSnapshot.capture', {});
     const snapshot = {
       id: `snapshot-${recorder.snapshots.length + 1}`,
       afterInputEventId: event.id,
       timestamp: now(),
-      nodeCount: dump.nodeCount,
-      texts: dumpTexts(dump),
+      ...captured,
     };
     recorder.snapshots.push(snapshot);
     state.cdpServer?.emit('LynxRecorder.uiSnapshot', snapshot);
@@ -449,7 +493,7 @@ function createRecorderController(state, options) {
       id: snapshot.id,
       afterInputEventId: event.id,
       nodeCount: snapshot.nodeCount,
-      texts: snapshot.texts.length,
+      visibleTextCount: snapshot.visualHealth?.visibleTextCount,
     });
     return snapshot;
   };
@@ -588,6 +632,251 @@ function centerOfBox(box) {
   };
 }
 
+function normalizeBox(box) {
+  if (!box || typeof box !== 'object') {
+    return null;
+  }
+  const x = Number(box.x);
+  const y = Number(box.y);
+  const width = Number(box.width);
+  const height = Number(box.height);
+  if (
+    !Number.isFinite(x) ||
+    !Number.isFinite(y) ||
+    !Number.isFinite(width) ||
+    !Number.isFinite(height)
+  ) {
+    return null;
+  }
+  return { x, y, width, height };
+}
+
+function intersectsViewport(box, viewport) {
+  return (
+    box.x < viewport.width &&
+    box.x + box.width > 0 &&
+    box.y < viewport.height &&
+    box.y + box.height > 0
+  );
+}
+
+function clipBoxToViewport(box, viewport) {
+  const x = Math.max(0, box.x);
+  const y = Math.max(0, box.y);
+  const right = Math.min(viewport.width, box.x + box.width);
+  const bottom = Math.min(viewport.height, box.y + box.height);
+  return {
+    x,
+    y,
+    width: Math.max(0, right - x),
+    height: Math.max(0, bottom - y),
+  };
+}
+
+function textContentOf(node) {
+  if (!node || typeof node !== 'object') {
+    return [];
+  }
+  const texts = [];
+  const visit = (item) => {
+    if (!item || typeof item !== 'object') return;
+    if (typeof item.text === 'string' && item.text.length > 0) {
+      texts.push(item.text);
+    }
+    for (const child of item.children || []) {
+      visit(child);
+    }
+  };
+  visit(node);
+  return texts;
+}
+
+function flattenDumpNodes(dump) {
+  const nodes = [];
+  const visit = (node, depth = 0, parentId = null) => {
+    if (!node || typeof node !== 'object') return;
+    nodes.push({ node, depth, parentId });
+    for (const child of node.children || []) {
+      visit(child, depth + 1, node.nodeId ?? null);
+    }
+  };
+  visit(dump?.root);
+  return nodes;
+}
+
+function boxOverlapArea(left, right) {
+  const x = Math.max(left.x, right.x);
+  const y = Math.max(left.y, right.y);
+  const width = Math.min(left.x + left.width, right.x + right.width) - x;
+  const height = Math.min(left.y + left.height, right.y + right.height) - y;
+  return Math.max(0, width) * Math.max(0, height);
+}
+
+function repeatedCollectionCandidates(visibleTextRuns) {
+  const buckets = new Map();
+  for (const run of visibleTextRuns) {
+    const prefix = run.text.replace(/\d+/g, '#').trim();
+    if (!prefix || prefix === run.text || prefix.length < 4) {
+      continue;
+    }
+    const bucket = buckets.get(prefix) || [];
+    bucket.push(run);
+    buckets.set(prefix, bucket);
+  }
+  return [...buckets.entries()]
+    .filter(([, runs]) => runs.length >= 3)
+    .map(([pattern, runs]) => ({
+      pattern,
+      count: runs.length,
+      nodeIds: runs.map((run) => run.nodeId),
+      sampleTexts: runs.slice(0, 5).map((run) => run.text),
+    }));
+}
+
+function buildUiSnapshot(dump, options, params = {}) {
+  const viewport = {
+    width: Number(dump?.viewport?.width ?? options.width),
+    height: Number(dump?.viewport?.height ?? options.height),
+    dpr: Number(dump?.viewport?.devicePixelRatio ?? options.dpr),
+  };
+  const flattened = flattenDumpNodes(dump);
+  const documentTextRuns = [];
+  const visibleTextRuns = [];
+  const visualBlocks = [];
+  const actionCandidates = [];
+  const scrollContainers = [];
+  let zeroAreaCount = 0;
+  let offscreenCount = 0;
+
+  for (const { node, depth, parentId } of flattened) {
+    const box = normalizeBox(node.box);
+    const visible = node.visible !== false;
+    if (!box || box.width <= 0 || box.height <= 0) {
+      zeroAreaCount += 1;
+      continue;
+    }
+    const inViewport = intersectsViewport(box, viewport);
+    if (!inViewport) {
+      offscreenCount += 1;
+    }
+    const clippedBox = clipBoxToViewport(box, viewport);
+    const base = {
+      nodeId: node.nodeId ?? null,
+      parentId,
+      type: node.type || 'unknown',
+      depth,
+      visible,
+      box,
+      viewportBox: clippedBox,
+      center: centerOfBox(box),
+    };
+    if (visible && inViewport) {
+      visualBlocks.push({
+        ...base,
+        text: typeof node.text === 'string' ? node.text : undefined,
+      });
+    }
+    if (visible && inViewport && typeof node.text === 'string' && node.text.length > 0) {
+      const textRun = {
+        ...base,
+        text: node.text,
+        visibleInViewport: true,
+      };
+      visibleTextRuns.push(textRun);
+      documentTextRuns.push(textRun);
+    } else if (visible && typeof node.text === 'string' && node.text.length > 0) {
+      documentTextRuns.push({
+        ...base,
+        text: node.text,
+        visibleInViewport: false,
+      });
+    }
+
+    const descendantTexts = textContentOf(node);
+    const label = descendantTexts.join(' ').replace(/\s+/g, ' ').trim();
+    const type = String(node.type || '');
+    const boxArea = box.width * box.height;
+    const viewportArea = viewport.width * viewport.height;
+    if (
+      visible &&
+      inViewport &&
+      type !== 'page' &&
+      type !== 'text' &&
+      label.length > 0 &&
+      boxArea <= viewportArea * 0.8
+    ) {
+      actionCandidates.push({
+        ...base,
+        role: 'action-candidate',
+        label: label.slice(0, 120),
+        textCount: descendantTexts.length,
+      });
+    }
+    if (
+      type === 'scroll-view' ||
+      type === 'list' ||
+      type.includes('scroll') ||
+      type.includes('list')
+    ) {
+      scrollContainers.push({
+        ...base,
+        label: label.slice(0, 120),
+        textCount: descendantTexts.length,
+      });
+    }
+  }
+
+  const overlapWarnings = [];
+  const textRuns = visibleTextRuns.slice(0, 200);
+  for (let i = 0; i < textRuns.length; i += 1) {
+    for (let j = i + 1; j < textRuns.length; j += 1) {
+      const area = boxOverlapArea(textRuns[i].viewportBox, textRuns[j].viewportBox);
+      const minArea = Math.min(
+        textRuns[i].viewportBox.width * textRuns[i].viewportBox.height,
+        textRuns[j].viewportBox.width * textRuns[j].viewportBox.height
+      );
+      if (minArea > 0 && area / minArea > 0.75) {
+        overlapWarnings.push({
+          nodeIds: [textRuns[i].nodeId, textRuns[j].nodeId],
+          texts: [textRuns[i].text, textRuns[j].text],
+          overlapRatio: Number((area / minArea).toFixed(3)),
+        });
+      }
+    }
+  }
+
+  return {
+    schemaVersion: 1,
+    protocol: 'cdp',
+    method: 'LynxSnapshot.capture',
+    capturedAt: now(),
+    source: {
+      uiDumpMethod: 'Lynx.dumpUITree',
+      screenshotMethod: params.includeScreenshot ? 'Page.takeScreenshot' : null,
+      backend: dump?.backend || 'windowless-software',
+    },
+    viewport,
+    nodeCount: Number(dump?.nodeCount ?? flattened.length),
+    documentTextRuns,
+    visibleTextRuns,
+    visualBlocks,
+    actionCandidates,
+    scrollContainers,
+    repeatedCollectionCandidates: repeatedCollectionCandidates(visibleTextRuns),
+    visualHealth: {
+      blank: visibleTextRuns.length === 0 && visualBlocks.length === 0,
+      visibleTextCount: visibleTextRuns.length,
+      visibleBlockCount: visualBlocks.length,
+      actionCandidateCount: actionCandidates.length,
+      scrollContainerCount: scrollContainers.length,
+      zeroAreaCount,
+      offscreenCount,
+      overlapWarningCount: overlapWarnings.length,
+      overlapWarnings: overlapWarnings.slice(0, 20),
+    },
+  };
+}
+
 function findNodePathByText(dump, text) {
   const path = [];
   const visit = (node) => {
@@ -639,6 +928,7 @@ function findTapPointFromText(dump, text) {
       );
     });
   const targetNode =
+    containingTargets.find((node) => node.box.width >= 44 && node.box.height >= 32) ||
     containingTargets.find((node) => node.box.width >= 80 && node.box.height >= 80) ||
     containingTargets[0] ||
     textNode;
@@ -651,12 +941,230 @@ function findTapPointFromText(dump, text) {
     throw error;
   }
 
+  let scrollAncestor = null;
+  for (let index = path.length - 2; index >= 0; index -= 1) {
+    const node = path[index];
+    const type = String(node?.type || '');
+    if (
+      hasUsableBox(node) &&
+      (type === 'scroll-view' || type === 'list' || type.includes('scroll') || type.includes('list'))
+    ) {
+      scrollAncestor = node;
+      break;
+    }
+  }
+  const targetCenter = centerOfBox(targetNode.box);
+  const scrollAncestorBox = normalizeBox(scrollAncestor?.box);
+  const clippedByScrollAncestor =
+    scrollAncestorBox &&
+    (targetCenter.x < scrollAncestorBox.x ||
+      targetCenter.x > scrollAncestorBox.x + scrollAncestorBox.width ||
+      targetCenter.y < scrollAncestorBox.y ||
+      targetCenter.y > scrollAncestorBox.y + scrollAncestorBox.height);
+
   return {
     ...centerOfBox(targetNode.box),
     targetText: text,
     targetNodeId: targetNode.nodeId,
     targetType: targetNode.type,
+    targetBox: normalizeBox(targetNode.box),
+    scrollAncestorNodeId: scrollAncestor?.nodeId,
+    scrollAncestorType: scrollAncestor?.type,
+    scrollAncestorBox,
+    clippedByScrollAncestor: Boolean(clippedByScrollAncestor),
   };
+}
+
+function tapPointNeedsScroll(tapPoint) {
+  return Boolean(tapPoint?.clippedByScrollAncestor && tapPoint.scrollAncestorBox);
+}
+
+async function dispatchHeadlessTouch(state, phase, point, data = {}) {
+  const accepted = state.window.dispatchHeadlessPointerEvent(
+    phase,
+    point.x,
+    point.y,
+    { deviceKind: 'touch' }
+  );
+  trace('input.pointer', { phase, x: point.x, y: point.y, accepted, via: 'cdp', ...data });
+  if (!accepted) {
+    throw Object.assign(new Error(`Headless pointer event was rejected: ${phase}`), {
+      code: 'INPUT_DISPATCH_FAILED',
+    });
+  }
+  await delay(16);
+}
+
+async function dispatchHeadlessDrag(state, from, to, steps = 8, data = {}) {
+  await dispatchHeadlessTouch(state, 'add', from, data);
+  await dispatchHeadlessTouch(state, 'down', from, data);
+  for (let i = 1; i <= steps; i += 1) {
+    const progress = i / steps;
+    await dispatchHeadlessTouch(
+      state,
+      'move',
+      {
+        x: Math.round(from.x + (to.x - from.x) * progress),
+        y: Math.round(from.y + (to.y - from.y) * progress),
+      },
+      data
+    );
+  }
+  await dispatchHeadlessTouch(state, 'up', to, data);
+  await dispatchHeadlessTouch(state, 'remove', to, data);
+}
+
+async function dispatchHeadlessInsertText(state, text) {
+  const providerMethods = [
+    'dispatchHeadlessTextInput',
+    'insertHeadlessText',
+    'dispatchHeadlessKeyboardText',
+  ];
+  const providerMethod = providerMethods.find(
+    (name) => typeof state.window?.[name] === 'function'
+  );
+  const baseResult = {
+    method: 'Input.insertText',
+    text,
+    textLength: text.length,
+    protocol: 'cdp',
+    provider: providerMethod || 'unavailable',
+  };
+
+  if (!providerMethod) {
+    return {
+      ...baseResult,
+      accepted: false,
+      errorCode: 'INPUT_TEXT_UNAVAILABLE',
+      errorMessage:
+        'No focused-element text input provider is exposed by the current Lynxtron runtime.',
+    };
+  }
+
+  try {
+    const providerResult = await state.window[providerMethod](text);
+    const accepted =
+      providerResult === true ||
+      (providerResult && typeof providerResult === 'object' && providerResult.accepted !== false);
+    return {
+      ...baseResult,
+      accepted,
+      providerResult: cloneJson(providerResult),
+      errorCode: accepted ? undefined : 'INPUT_TEXT_REJECTED',
+    };
+  } catch (error) {
+    return {
+      ...baseResult,
+      accepted: false,
+      errorCode: error?.code || 'INPUT_TEXT_PROVIDER_FAILED',
+      errorMessage: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+async function scrollIntoViewByText(state, options, params = {}) {
+  const text = params.text;
+  if (!text) {
+    throw Object.assign(new Error('LynxInput.scrollIntoView requires text'), {
+      code: 'INPUT_SCROLL_TARGET_REQUIRED',
+    });
+  }
+  const maxScrolls = Number(params.maxScrolls ?? 8);
+  const margin = Number(params.margin ?? 24);
+  const startedAt = Date.now();
+  let dump = null;
+  let lastTapPoint = null;
+  let scrollCount = 0;
+  const attempts = [];
+
+  for (let index = 0; index <= maxScrolls; index += 1) {
+    pumpHeadlessTasks(state.window);
+    dump = JSON.parse(state.window.__dumpHeadlessUITreeForCDP());
+    lastTapPoint = findTapPointFromText(dump, text);
+    const visible = !tapPointNeedsScroll(lastTapPoint);
+    attempts.push({
+      index,
+      x: lastTapPoint.x,
+      y: lastTapPoint.y,
+      visible,
+      targetNodeId: lastTapPoint.targetNodeId,
+      targetType: lastTapPoint.targetType,
+      scrollAncestorNodeId: lastTapPoint.scrollAncestorNodeId,
+      scrollAncestorBox: lastTapPoint.scrollAncestorBox,
+      clippedByScrollAncestor: lastTapPoint.clippedByScrollAncestor,
+    });
+    if (visible) {
+      trace('input.scroll-into-view', {
+        text,
+        scrollCount,
+        visible,
+        attempts,
+        via: 'cdp',
+      });
+      return {
+        accepted: true,
+        text,
+        visible: true,
+        scrollCount,
+        durationMs: Date.now() - startedAt,
+        tapPoint: lastTapPoint,
+        uiDump: dump,
+        attempts,
+        protocol: 'cdp',
+        method: 'LynxInput.scrollIntoView',
+      };
+    }
+
+    if (index === maxScrolls) {
+      break;
+    }
+
+    const scrollBox = lastTapPoint.scrollAncestorBox;
+    const targetBelow = lastTapPoint.y > scrollBox.y + scrollBox.height - margin;
+    const x = Math.max(
+      scrollBox.x + margin,
+      Math.min(scrollBox.x + scrollBox.width - margin, lastTapPoint.x || scrollBox.x + scrollBox.width / 2)
+    );
+    const from = {
+      x: Math.round(x),
+      y: Math.round(targetBelow ? scrollBox.y + scrollBox.height - margin : scrollBox.y + margin),
+    };
+    const to = {
+      x: Math.round(x),
+      y: Math.round(targetBelow ? scrollBox.y + margin : scrollBox.y + scrollBox.height - margin),
+    };
+    const beforeMetrics = readHeadlessMetrics(state.window);
+    const beforeFrameCount = Number(beforeMetrics?.framesPresented ?? 0);
+    await dispatchHeadlessDrag(state, from, to, Number(params.steps ?? 8), {
+      gesture: 'scrollIntoView',
+      text,
+      scrollIndex: scrollCount + 1,
+    });
+    await waitForFrameAfter(
+      state.window,
+      beforeFrameCount,
+      Number(params.timeoutMs ?? Math.min(options.timeoutMs, 800))
+    );
+    scrollCount += 1;
+  }
+
+  trace('input.scroll-into-view', {
+    text,
+    scrollCount,
+    visible: false,
+    attempts,
+    via: 'cdp',
+  });
+  throw Object.assign(new Error(`Unable to scroll text into viewport: ${text}`), {
+    code: 'INPUT_SCROLL_TARGET_NOT_VISIBLE',
+    exitCode: EXIT.inputFailure,
+    details: {
+      text,
+      scrollCount,
+      lastTapPoint,
+      attempts,
+    },
+  });
 }
 
 function complexSmokeExpectations(options) {
@@ -701,7 +1209,8 @@ async function createReplayManifest(options, report, actions) {
   const tap = report.input?.tap;
   const recording = report.input?.recording;
   const hasRecordedInputActions = actions.some(
-    (action) => action.method === 'Input.dispatchTouchEvent'
+    (action) =>
+      action.method === 'Input.dispatchTouchEvent' || action.method === 'Input.insertText'
   );
   const semanticTapText =
     options.tapText || (tap?.source === 'ui-dump' ? tap?.targetText : undefined);
@@ -827,6 +1336,33 @@ function createCdpMethods(state, options) {
       }
       return JSON.parse(state.window.__dumpHeadlessUITreeForCDP());
     },
+    async 'LynxSnapshot.capture'(params) {
+      pumpHeadlessTasks(state.window);
+      if (typeof state.window.__dumpHeadlessUITreeForCDP !== 'function') {
+        throw Object.assign(new Error('Headless UI dump backing is unavailable'), {
+          code: 'UI_DUMP_UNAVAILABLE',
+        });
+      }
+      const dump = JSON.parse(state.window.__dumpHeadlessUITreeForCDP());
+      const snapshot = buildUiSnapshot(dump, options, params);
+      if (params.includeScreenshot) {
+        const png = state.window.captureHeadlessFrame();
+        snapshot.screenshot = {
+          data: png.toString('base64'),
+          bytes: png.length,
+          encoding: 'base64',
+          mimeType: 'image/png',
+        };
+      }
+      trace('snapshot.capture', {
+        method: 'LynxSnapshot.capture',
+        visibleTextCount: snapshot.visualHealth.visibleTextCount,
+        actionCandidateCount: snapshot.visualHealth.actionCandidateCount,
+        includeScreenshot: Boolean(params.includeScreenshot),
+        via: 'cdp',
+      });
+      return snapshot;
+    },
     async 'Lynx.getHeadlessMetrics'() {
       return readHeadlessMetrics(state.window);
     },
@@ -871,6 +1407,33 @@ function createCdpMethods(state, options) {
         force: true,
       });
     },
+    async 'LynxInput.scrollIntoView'(params) {
+      return scrollIntoViewByText(state, options, params || {});
+    },
+    async 'Input.insertText'(params) {
+      const text = params?.text;
+      if (typeof text !== 'string') {
+        throw Object.assign(new Error('Input.insertText requires text'), {
+          code: 'INPUT_TEXT_INVALID_PARAMS',
+          exitCode: EXIT.inputFailure,
+        });
+      }
+      const result = await dispatchHeadlessInsertText(state, text);
+      state.inputTextResults ||= [];
+      state.inputTextResults.push(result);
+      trace('input.text', result);
+      if (!result.accepted) {
+        throw Object.assign(
+          new Error(result.errorMessage || `Input.insertText failed: ${result.errorCode}`),
+          {
+            code: result.errorCode || 'INPUT_TEXT_REJECTED',
+            exitCode: EXIT.inputFailure,
+            details: result,
+          }
+        );
+      }
+      return result;
+    },
     async 'Input.dispatchTouchEvent'(params) {
       const type = params.type;
       const point = params.touchPoints?.[0] || state.lastTouchPoint;
@@ -880,34 +1443,19 @@ function createCdpMethods(state, options) {
         });
       }
       state.lastTouchPoint = { x: point.x, y: point.y };
-      const dispatch = (phase) => {
-        const accepted = state.window.dispatchHeadlessPointerEvent(
-          phase,
-          point.x,
-          point.y,
-          { deviceKind: 'touch' }
-        );
-        trace('input.pointer', { phase, x: point.x, y: point.y, accepted, via: 'cdp' });
-        if (!accepted) {
-          throw Object.assign(new Error(`Headless pointer event was rejected: ${phase}`), {
-            code: 'INPUT_DISPATCH_FAILED',
-          });
-        }
-      };
       if (type === 'touchStart') {
-        dispatch('add');
-        dispatch('down');
+        await dispatchHeadlessTouch(state, 'add', point);
+        await dispatchHeadlessTouch(state, 'down', point);
       } else if (type === 'touchMove') {
-        dispatch('move');
+        await dispatchHeadlessTouch(state, 'move', point);
       } else if (type === 'touchEnd' || type === 'touchCancel') {
-        dispatch(type === 'touchCancel' ? 'cancel' : 'up');
-        dispatch('remove');
+        await dispatchHeadlessTouch(state, type === 'touchCancel' ? 'cancel' : 'up', point);
+        await dispatchHeadlessTouch(state, 'remove', point);
       } else {
         throw Object.assign(new Error(`Unsupported touch event type: ${type}`), {
           code: 'INPUT_DISPATCH_FAILED',
         });
       }
-      await delay(16);
       return { accepted: true };
     },
   };
@@ -960,11 +1508,112 @@ async function loadAndCaptureInitial(cdp, options) {
     texts: dumpTexts(uiDump).length,
     via: 'cdp',
   });
+  const uiSnapshot = await cdp.send('LynxSnapshot.capture', {});
+  await writeJsonArtifact(options.uiSnapshot, uiSnapshot, 'artifact.ui-snapshot', {
+    visibleTextCount: uiSnapshot.visualHealth?.visibleTextCount,
+    actionCandidateCount: uiSnapshot.visualHealth?.actionCandidateCount,
+  });
 
   const expectations = complexSmokeExpectations(options);
   assertTexts(uiDump, expectations.before, 'UI_DUMP_BEFORE_ASSERT_FAILED');
 
-  return { source, frame, screenshotBuffer, uiDump };
+  return { source, frame, screenshotBuffer, uiDump, uiSnapshot };
+}
+
+async function runInsertTextSequence(cdp, options, currentScreenshotBuffer, currentUiDump) {
+  const insertTexts = options.insertTexts?.length
+    ? options.insertTexts
+    : options.insertText
+      ? [options.insertText]
+      : [];
+  const sequence = [];
+  let latestScreenshotBuffer = currentScreenshotBuffer;
+  let latestUiDump = currentUiDump;
+
+  for (let index = 0; index < insertTexts.length; index += 1) {
+    const text = insertTexts[index];
+    const beforeMetrics = await cdp.send('Lynx.getHeadlessMetrics', {});
+    const beforeFrameCount = Number(beforeMetrics?.framesPresented ?? 0);
+    let providerResult;
+    try {
+      providerResult = await cdp.send('Input.insertText', { text });
+    } catch (error) {
+      const failed = {
+        index: index + 1,
+        method: 'Input.insertText',
+        text,
+        textLength: text.length,
+        accepted: false,
+        errorCode: error?.code || 'INPUT_TEXT_FAILED',
+        errorMessage: error instanceof Error ? error.message : String(error),
+        protocol: 'cdp',
+      };
+      trace('input.text-sequence', failed);
+      throw Object.assign(new Error(failed.errorMessage), {
+        code: failed.errorCode,
+        exitCode: EXIT.inputFailure,
+        details: failed,
+      });
+    }
+
+    const afterFrame = await cdp.send('Lynx.waitForFrameAfter', {
+      framesPresented: beforeFrameCount,
+      timeoutMs: Math.min(options.timeoutMs, 1500),
+    });
+    const afterScreenshotBuffer = bufferFromBase64(afterFrame.data);
+    if (afterScreenshotBuffer.length > 0) {
+      await mkdir(dirname(options.tapScreenshot), { recursive: true });
+      await writeFile(options.tapScreenshot, afterScreenshotBuffer);
+    }
+    const uiDumpAfterText = await cdp.send('Lynx.dumpUITree', {});
+    await mkdir(dirname(options.uiDumpAfterTap), { recursive: true });
+    await writeFile(options.uiDumpAfterTap, JSON.stringify(uiDumpAfterText, null, 2));
+    trace('artifact.ui-dump-after-text', {
+      path: options.uiDumpAfterTap,
+      nodeCount: uiDumpAfterText.nodeCount,
+      texts: dumpTexts(uiDumpAfterText).length,
+      via: 'cdp',
+    });
+    const uiSnapshotAfterText = await cdp.send('LynxSnapshot.capture', {});
+    await writeJsonArtifact(
+      options.uiSnapshotAfterTap,
+      uiSnapshotAfterText,
+      'artifact.ui-snapshot-after-text',
+      {
+        visibleTextCount: uiSnapshotAfterText.visualHealth?.visibleTextCount,
+        actionCandidateCount: uiSnapshotAfterText.visualHealth?.actionCandidateCount,
+      }
+    );
+    const screenshotChanged =
+      latestScreenshotBuffer.length > 0 &&
+      afterScreenshotBuffer.length > 0 &&
+      !buffersEqual(latestScreenshotBuffer, afterScreenshotBuffer);
+    const uiDumpChanged = JSON.stringify(latestUiDump) !== JSON.stringify(uiDumpAfterText);
+    const result = {
+      ...providerResult,
+      index: index + 1,
+      changed: screenshotChanged || uiDumpChanged,
+      screenshotChanged,
+      uiDumpChanged,
+      framesBefore: beforeFrameCount,
+      framesAfter: afterFrame.framesPresented,
+      screenshot: options.tapScreenshot,
+      uiDumpBefore: options.uiDump,
+      uiDumpAfter: options.uiDumpAfterTap,
+      uiSnapshotBefore: options.uiSnapshot,
+      uiSnapshotAfter: options.uiSnapshotAfterTap,
+    };
+    trace('input.text-sequence', result);
+    sequence.push(result);
+    latestScreenshotBuffer = afterScreenshotBuffer;
+    latestUiDump = uiDumpAfterText;
+  }
+
+  return {
+    result: sequence.length > 0 ? { sequence, last: sequence.at(-1) } : null,
+    screenshotBuffer: latestScreenshotBuffer,
+    uiDump: latestUiDump,
+  };
 }
 
 async function runCdpSmoke(cdp, options) {
@@ -1014,25 +1663,55 @@ async function runCdpSmoke(cdp, options) {
     texts: dumpTexts(uiDump).length,
     via: 'cdp',
   });
+  const uiSnapshot = await cdp.send('LynxSnapshot.capture', {});
+  await writeJsonArtifact(options.uiSnapshot, uiSnapshot, 'artifact.ui-snapshot', {
+    visibleTextCount: uiSnapshot.visualHealth?.visibleTextCount,
+    actionCandidateCount: uiSnapshot.visualHealth?.actionCandidateCount,
+  });
 
   const expectations = complexSmokeExpectations(options);
   assertTexts(uiDump, expectations.before, 'UI_DUMP_BEFORE_ASSERT_FAILED');
 
+  let currentScreenshotBuffer = screenshotBuffer;
+  let currentUiDump = uiDump;
   let tapResult = null;
-  const tapPoint =
-    options.tap ||
-    (options.tapText ? findTapPointFromText(uiDump, options.tapText) : null) ||
-    (options.smoke === 'complex' ? findTapPointFromText(uiDump, 'Upgrade plan') : null);
-  if (tapPoint) {
+  const tapResults = [];
+  const tapSequence = [];
+  if (options.tap) {
+    tapSequence.push({ point: options.tap, source: 'cli' });
+  }
+  const tapTexts = options.tapTexts?.length ? options.tapTexts : options.tapText ? [options.tapText] : [];
+  for (const text of tapTexts) {
+    tapSequence.push({ text, source: 'ui-dump' });
+  }
+  if (tapSequence.length === 0 && options.smoke === 'complex') {
+    tapSequence.push({ text: 'Upgrade plan', source: 'ui-dump' });
+  }
+
+  for (let index = 0; index < tapSequence.length; index += 1) {
+    const tapSpec = tapSequence[index];
+    let scrollResult = null;
+    let tapPoint = tapSpec.point || findTapPointFromText(currentUiDump, tapSpec.text);
+    if (tapSpec.text && tapPointNeedsScroll(tapPoint)) {
+      scrollResult = await cdp.send('LynxInput.scrollIntoView', {
+        text: tapSpec.text,
+        timeoutMs: Math.min(options.timeoutMs, 1000),
+      });
+      currentUiDump = scrollResult.uiDump;
+      tapPoint = scrollResult.tapPoint || findTapPointFromText(currentUiDump, tapSpec.text);
+    }
     const beforeTapMetrics = await cdp.send('Lynx.getHeadlessMetrics', {});
     const beforeTapFrameCount = Number(beforeTapMetrics?.framesPresented ?? 0);
     trace('input.tap-target', {
+      index: index + 1,
       x: tapPoint.x,
       y: tapPoint.y,
-      source: options.tap ? 'cli' : 'ui-dump',
+      source: tapSpec.source,
       targetText: tapPoint.targetText,
       targetNodeId: tapPoint.targetNodeId,
       targetType: tapPoint.targetType,
+      scrolled: Boolean(scrollResult),
+      scrollCount: scrollResult?.scrollCount,
       via: 'cdp',
     });
     await cdp.send('Input.dispatchTouchEvent', {
@@ -1061,27 +1740,46 @@ async function runCdpSmoke(cdp, options) {
       texts: dumpTexts(uiDumpAfterTap).length,
       via: 'cdp',
     });
-    assertTexts(uiDumpAfterTap, expectations.after, 'UI_DUMP_AFTER_ASSERT_FAILED');
-    const changed =
-      screenshotBuffer.length > 0 &&
+    const uiSnapshotAfterTap = await cdp.send('LynxSnapshot.capture', {});
+    await writeJsonArtifact(
+      options.uiSnapshotAfterTap,
+      uiSnapshotAfterTap,
+      'artifact.ui-snapshot-after-tap',
+      {
+        visibleTextCount: uiSnapshotAfterTap.visualHealth?.visibleTextCount,
+        actionCandidateCount: uiSnapshotAfterTap.visualHealth?.actionCandidateCount,
+      }
+    );
+    const screenshotChanged =
+      currentScreenshotBuffer.length > 0 &&
       afterScreenshotBuffer.length > 0 &&
-      !buffersEqual(screenshotBuffer, afterScreenshotBuffer);
+      !buffersEqual(currentScreenshotBuffer, afterScreenshotBuffer);
+    const uiDumpChanged = JSON.stringify(currentUiDump) !== JSON.stringify(uiDumpAfterTap);
+    const changed = screenshotChanged || uiDumpChanged;
     tapResult = {
+      index: index + 1,
       x: tapPoint.x,
       y: tapPoint.y,
-      source: options.tap ? 'cli' : 'ui-dump',
+      source: tapSpec.source,
       targetText: tapPoint.targetText,
       targetNodeId: tapPoint.targetNodeId,
       targetType: tapPoint.targetType,
+      scrolled: Boolean(scrollResult),
+      scrollCount: scrollResult?.scrollCount,
       changed,
+      screenshotChanged,
+      uiDumpChanged,
       framesBefore: beforeTapFrameCount,
       framesAfter: afterFrame.framesPresented,
       screenshot: options.tapScreenshot,
       uiDumpBefore: options.uiDump,
       uiDumpAfter: options.uiDumpAfterTap,
+      uiSnapshotBefore: options.uiSnapshot,
+      uiSnapshotAfter: options.uiSnapshotAfterTap,
       protocol: 'cdp',
     };
     trace('input.tap', tapResult);
+    tapResults.push(tapResult);
     if (!changed) {
       throw Object.assign(new Error('Tap did not produce a changed frame'), {
         code: 'INPUT_NO_VISUAL_CHANGE',
@@ -1089,14 +1787,154 @@ async function runCdpSmoke(cdp, options) {
         details: tapResult,
       });
     }
+    currentScreenshotBuffer = afterScreenshotBuffer;
+    currentUiDump = uiDumpAfterTap;
+  }
+  if (tapResults.length > 1 && tapResult) {
+    tapResult = {
+      ...tapResult,
+      sequence: tapResults.map((tap) => ({ ...tap })),
+    };
+  }
+  if (tapResults.length > 0) {
+    assertTexts(currentUiDump, expectations.after, 'UI_DUMP_AFTER_ASSERT_FAILED');
   }
 
-  return { source, completionSignal: 'on-first-screen', tapResult };
+  let textInputResult = null;
+  if (options.insertText || options.insertTexts?.length) {
+    const textSequence = await runInsertTextSequence(
+      cdp,
+      options,
+      currentScreenshotBuffer,
+      currentUiDump
+    );
+    textInputResult = textSequence.result;
+    currentScreenshotBuffer = textSequence.screenshotBuffer;
+    currentUiDump = textSequence.uiDump;
+  }
+
+  const dragResults = [];
+  const dragTexts = options.dragTexts || [];
+  for (let index = 0; index < dragTexts.length; index += 1) {
+    const dragSpec = dragTexts[index];
+    let scrollResult = null;
+    let dragPoint = findTapPointFromText(currentUiDump, dragSpec.text);
+    if (tapPointNeedsScroll(dragPoint)) {
+      scrollResult = await cdp.send('LynxInput.scrollIntoView', {
+        text: dragSpec.text,
+        timeoutMs: Math.min(options.timeoutMs, 1000),
+      });
+      currentUiDump = scrollResult.uiDump;
+      dragPoint = scrollResult.tapPoint || findTapPointFromText(currentUiDump, dragSpec.text);
+    }
+    const beforeDragMetrics = await cdp.send('Lynx.getHeadlessMetrics', {});
+    const beforeDragFrameCount = Number(beforeDragMetrics?.framesPresented ?? 0);
+    const start = { x: dragPoint.x, y: dragPoint.y };
+    const end = {
+      x: Math.round(dragPoint.x + Number(dragSpec.dx || 0)),
+      y: Math.round(dragPoint.y + Number(dragSpec.dy || 0)),
+    };
+    trace('input.drag-target', {
+      index: index + 1,
+      source: 'ui-dump',
+      targetText: dragPoint.targetText,
+      targetNodeId: dragPoint.targetNodeId,
+      targetType: dragPoint.targetType,
+      start,
+      end,
+      scrolled: Boolean(scrollResult),
+      scrollCount: scrollResult?.scrollCount,
+      via: 'cdp',
+    });
+    await cdp.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [start],
+    });
+    const steps = Number(dragSpec.steps || 8);
+    for (let step = 1; step <= steps; step += 1) {
+      const progress = step / steps;
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [
+          {
+            x: Math.round(start.x + (end.x - start.x) * progress),
+            y: Math.round(start.y + (end.y - start.y) * progress),
+          },
+        ],
+      });
+    }
+    await cdp.send('Input.dispatchTouchEvent', {
+      type: 'touchEnd',
+      touchPoints: [end],
+    });
+    const afterFrame = await cdp.send('Lynx.waitForFrameAfter', {
+      framesPresented: beforeDragFrameCount,
+      timeoutMs: Math.min(options.timeoutMs, 1500),
+    });
+    const afterScreenshotBuffer = bufferFromBase64(afterFrame.data);
+    if (afterScreenshotBuffer.length > 0) {
+      await mkdir(dirname(options.tapScreenshot), { recursive: true });
+      await writeFile(options.tapScreenshot, afterScreenshotBuffer);
+    }
+    const uiDumpAfterDrag = await cdp.send('Lynx.dumpUITree', {});
+    await mkdir(dirname(options.uiDumpAfterTap), { recursive: true });
+    await writeFile(options.uiDumpAfterTap, JSON.stringify(uiDumpAfterDrag, null, 2));
+    const uiSnapshotAfterDrag = await cdp.send('LynxSnapshot.capture', {});
+    await writeJsonArtifact(
+      options.uiSnapshotAfterTap,
+      uiSnapshotAfterDrag,
+      'artifact.ui-snapshot-after-drag',
+      {
+        visibleTextCount: uiSnapshotAfterDrag.visualHealth?.visibleTextCount,
+        actionCandidateCount: uiSnapshotAfterDrag.visualHealth?.actionCandidateCount,
+      }
+    );
+    const screenshotChanged =
+      currentScreenshotBuffer.length > 0 &&
+      afterScreenshotBuffer.length > 0 &&
+      !buffersEqual(currentScreenshotBuffer, afterScreenshotBuffer);
+    const uiDumpChanged = JSON.stringify(currentUiDump) !== JSON.stringify(uiDumpAfterDrag);
+    const changed = screenshotChanged || uiDumpChanged;
+    const dragResult = {
+      index: index + 1,
+      source: 'ui-dump',
+      targetText: dragPoint.targetText,
+      targetNodeId: dragPoint.targetNodeId,
+      targetType: dragPoint.targetType,
+      start,
+      end,
+      dx: dragSpec.dx,
+      dy: dragSpec.dy,
+      scrolled: Boolean(scrollResult),
+      scrollCount: scrollResult?.scrollCount,
+      changed,
+      screenshotChanged,
+      uiDumpChanged,
+      framesBefore: beforeDragFrameCount,
+      framesAfter: afterFrame.framesPresented,
+      protocol: 'cdp',
+    };
+    trace('input.drag', dragResult);
+    dragResults.push(dragResult);
+    currentScreenshotBuffer = afterScreenshotBuffer;
+    currentUiDump = uiDumpAfterDrag;
+  }
+  if (dragResults.length > 0) {
+    tapResult = {
+      ...(tapResult || {}),
+      dragSequence: dragResults.map((drag) => ({ ...drag })),
+    };
+  }
+
+  return { source, completionSignal: 'on-first-screen', tapResult, textInputResult };
 }
 
 function recordedInputActions(manifest) {
   return (manifest.actions || [])
-    .filter((action) => action?.method === 'Input.dispatchTouchEvent')
+    .filter(
+      (action) =>
+        action?.method === 'Input.dispatchTouchEvent' || action?.method === 'Input.insertText'
+    )
     .map((action) => ({
       method: action.method,
       params: cloneJson(action.params || {}),
@@ -1138,6 +1976,16 @@ async function runCdpRecordedReplay(cdp, options) {
     texts: dumpTexts(uiDumpAfterTap).length,
     via: 'cdp',
   });
+  const uiSnapshotAfterTap = await cdp.send('LynxSnapshot.capture', {});
+  await writeJsonArtifact(
+    options.uiSnapshotAfterTap,
+    uiSnapshotAfterTap,
+    'artifact.ui-snapshot-after-recorded-replay',
+    {
+      visibleTextCount: uiSnapshotAfterTap.visualHealth?.visibleTextCount,
+      actionCandidateCount: uiSnapshotAfterTap.visualHealth?.actionCandidateCount,
+    }
+  );
   const expectations = complexSmokeExpectations(options);
   assertTexts(uiDumpAfterTap, expectations.after, 'UI_DUMP_AFTER_ASSERT_FAILED');
   const changed =
@@ -1153,6 +2001,8 @@ async function runCdpRecordedReplay(cdp, options) {
     screenshot: options.tapScreenshot,
     uiDumpBefore: options.uiDump,
     uiDumpAfter: options.uiDumpAfterTap,
+    uiSnapshotBefore: options.uiSnapshot,
+    uiSnapshotAfter: options.uiSnapshotAfterTap,
     protocol: 'cdp',
   };
   trace('input.recorded-replay', tapResult);
@@ -1200,6 +2050,16 @@ async function runCdpRecord(cdp, options) {
   const uiDumpAfterTap = await cdp.send('Lynx.dumpUITree', {});
   await mkdir(dirname(options.uiDumpAfterTap), { recursive: true });
   await writeFile(options.uiDumpAfterTap, JSON.stringify(uiDumpAfterTap, null, 2));
+  const uiSnapshotAfterTap = await cdp.send('LynxSnapshot.capture', {});
+  await writeJsonArtifact(
+    options.uiSnapshotAfterTap,
+    uiSnapshotAfterTap,
+    'artifact.ui-snapshot-after-record',
+    {
+      visibleTextCount: uiSnapshotAfterTap.visualHealth?.visibleTextCount,
+      actionCandidateCount: uiSnapshotAfterTap.visualHealth?.actionCandidateCount,
+    }
+  );
   const expectations = complexSmokeExpectations(options);
   if (recording.events.length > 0) {
     assertTexts(uiDumpAfterTap, expectations.after, 'UI_DUMP_AFTER_ASSERT_FAILED');
@@ -1221,6 +2081,8 @@ async function runCdpRecord(cdp, options) {
     screenshot: options.tapScreenshot,
     uiDumpBefore: options.uiDump,
     uiDumpAfter: options.uiDumpAfterTap,
+    uiSnapshotBefore: options.uiSnapshot,
+    uiSnapshotAfter: options.uiSnapshotAfterTap,
     protocol: 'cdp',
     provider: providers.length === 0 ? 'macos-lynxtron' : providers.length === 1 ? providers[0] : 'mixed',
     providers,
@@ -1252,6 +2114,8 @@ async function main() {
   let cdpEndpoint = null;
   let completionSignal = null;
   let tapResult = null;
+  let textInputResult = null;
+  const inputTextResults = [];
   let recordingResult = null;
   let replayActions = [];
 
@@ -1354,6 +2218,7 @@ async function main() {
       cdpServer: null,
       cdp: null,
       recorder: null,
+      inputTextResults,
     };
     const recorderController = createRecorderController(cdpState, options);
     cdpState.recorder = recorderController;
@@ -1385,6 +2250,7 @@ async function main() {
     replayActions = recorder.actions;
     completionSignal = smokeResult.completionSignal;
     tapResult = smokeResult.tapResult;
+    textInputResult = smokeResult.textInputResult || null;
     recordingResult = smokeResult.recordingResult || null;
   } catch (caught) {
     status = 'failed';
@@ -1435,6 +2301,8 @@ async function main() {
       tapScreenshot: options.tapScreenshot,
       uiDump: options.uiDump,
       uiDumpAfterTap: options.uiDumpAfterTap,
+      uiSnapshot: options.uiSnapshot,
+      uiSnapshotAfterTap: options.uiSnapshotAfterTap,
       report: options.report,
       trace: options.trace,
       replay: options.replay,
@@ -1446,6 +2314,11 @@ async function main() {
     },
     input: {
       tap: tapResult,
+      text:
+        textInputResult ||
+        (inputTextResults.length > 0
+          ? { sequence: inputTextResults, last: inputTextResults.at(-1) }
+          : null),
       recording: recordingResult,
     },
     headless: readHeadlessMetrics(window),

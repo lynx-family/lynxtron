@@ -23,6 +23,8 @@ export interface RunBundleOptions {
   tapScreenshot?: string;
   uiDump?: string;
   uiDumpAfterTap?: string;
+  uiSnapshot?: string;
+  uiSnapshotAfterTap?: string;
   report?: string;
   trace?: string;
   replay?: string;
@@ -34,6 +36,11 @@ export interface RunBundleOptions {
   timeoutMs?: number;
   tap?: { x: number; y: number };
   tapText?: string;
+  tapTexts?: string[];
+  insertText?: string;
+  insertTexts?: string[];
+  dragText?: string | { text: string; dx?: number; dy?: number };
+  dragTexts?: Array<string | { text: string; dx?: number; dy?: number }>;
   headed?: boolean;
   slowMo?: number;
   record?: boolean;
@@ -58,6 +65,8 @@ export interface RunBundleResult {
     tapScreenshot: string;
     uiDump: string;
     uiDumpAfterTap: string;
+    uiSnapshot: string;
+    uiSnapshotAfterTap: string;
     report: string;
     trace: string;
     replay: string;

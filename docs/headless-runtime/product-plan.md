@@ -136,6 +136,11 @@ Acceptance:
 | HRT-015 | P0 | Done | Add replay manifest recording and semantic/exact replay | Reproducible smoke |
 | HRT-016 | P1 | Done | Add headed authoring playback with slowMo | Visual debug run/replay |
 | HRT-017 | P0 | Done | Add generic CDP input monitor and recorded replay mode | Recorder CDP domain |
+| HRT-021 | P0 | Planned | Add CDP text input bridge | `Input.insertText` / text E2E |
+| HRT-022 | P0 | Planned | Add CDP animation observation | Stable frame / animation artifacts |
+| HRT-023 | P0 | Initial done | Add CDP normalized UI snapshot | `ui-snapshot.json` |
+| HRT-024 | P1 | Planned | Add CDP computed style subset | Style subset assertions |
+| HRT-025 | P0 | In progress | Expand open-interface bug-hunt E2E and close harness gaps when found | Complex interaction matrix and reproducible failures |
 
 ## Dependencies And Risks
 
@@ -177,6 +182,10 @@ Acceptance:
 - Input recording is represented as CDP recorder events/actions. macOS
   `NSWindow` input capture is only one provider; mobile providers should emit
   the same schema.
+- New observation and interaction capabilities must be protocol-facing CDP or
+  Lynx custom CDP domains. macOS Lynxtron, mobile explorer apps, and
+  non-Lynxtron hosts should implement provider bridges behind the same method
+  names instead of exposing platform-private APIs to tests.
 
 ## Change Log
 
@@ -192,6 +201,8 @@ Acceptance:
 | 2026-05-28 | Added headed authoring playback with `--headed` and `--slow-mo` for run/replay debugging. |
 | 2026-05-28 | Added `LynxRecorder.*` CDP input monitoring, macOS provider bridge, `record` command, and recorded replay mode. |
 | 2026-05-29 | Added the MVP evaluation summary covering project starting point, target, measured results, and backend extension space. |
+| 2026-06-03 | Added CDP normalized UI snapshot artifacts, multi-step tap support, and the first open-interface E2E package. |
+| 2026-06-03 | Extended the open-interface smoke with nested `bindtap`, nested `catchtap`, form, scroll-view rendering, animation final state, and recorded the offscreen scroll-view interaction gap. |
 
 ## Current Status
 

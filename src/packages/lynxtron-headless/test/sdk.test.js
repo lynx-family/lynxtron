@@ -13,6 +13,9 @@ test('createHarnessArgs maps bundle and artifact paths', () => {
     dpr: 2,
     timeoutMs: 1234,
     tap: { x: 10, y: 20 },
+    tapTexts: ['Prime form state', 'Run interaction smoke'],
+    insertTexts: [' alpha', ' beta'],
+    dragTexts: [{ text: 'Nested scroll drag target', dx: 0, dy: -120 }],
     headed: true,
     slowMo: 50,
   });
@@ -23,16 +26,27 @@ test('createHarnessArgs maps bundle and artifact paths', () => {
   assert.ok(args.includes('--headless-dpr=2'));
   assert.ok(args.includes('--headless-timeout=1234'));
   assert.ok(args.includes('--headless-tap=10,20'));
+  assert.ok(args.includes('--headless-tap-text=Prime form state'));
+  assert.ok(args.includes('--headless-tap-text=Run interaction smoke'));
+  assert.ok(args.includes('--headless-insert-text= alpha'));
+  assert.ok(args.includes('--headless-insert-text= beta'));
+  assert.ok(args.includes('--headless-drag-text=Nested scroll drag target:0,-120'));
   assert.ok(args.includes('--headless-headed=true'));
   assert.ok(args.includes('--headless-slow-mo=50'));
   assert.ok(args.includes('--headless-replay=/tmp/out/replay.json'));
   assert.ok(args.includes('--headless-tap-screenshot=/tmp/out/screenshot-after-tap.png'));
   assert.ok(args.includes('--headless-ui-dump=/tmp/out/ui-dump.json'));
   assert.ok(args.includes('--headless-ui-dump-after-tap=/tmp/out/ui-dump-after-tap.json'));
+  assert.ok(args.includes('--headless-ui-snapshot=/tmp/out/ui-snapshot.json'));
+  assert.ok(
+    args.includes('--headless-ui-snapshot-after-tap=/tmp/out/ui-snapshot-after-tap.json')
+  );
   assert.equal(artifacts.report, '/tmp/out/report.json');
   assert.equal(artifacts.tapScreenshot, '/tmp/out/screenshot-after-tap.png');
   assert.equal(artifacts.uiDump, '/tmp/out/ui-dump.json');
   assert.equal(artifacts.uiDumpAfterTap, '/tmp/out/ui-dump-after-tap.json');
+  assert.equal(artifacts.uiSnapshot, '/tmp/out/ui-snapshot.json');
+  assert.equal(artifacts.uiSnapshotAfterTap, '/tmp/out/ui-snapshot-after-tap.json');
   assert.equal(artifacts.replay, '/tmp/out/replay.json');
 });
 
@@ -106,6 +120,16 @@ test('runReplay maps semantic manifest to harness args', async () => {
       device: { viewport: { width: 390, height: 844 }, dpr: 3 },
       load: { timeoutMs: 12000, smoke: 'complex' },
       semantic: { tapText: 'Upgrade plan' },
+      input: {
+        text: {
+          sequence: [
+            {
+              method: 'Input.insertText',
+              text: ' accepted copy',
+            },
+          ],
+        },
+      },
       actions: [
         {
           method: 'Input.dispatchTouchEvent',
@@ -144,6 +168,7 @@ await writeFile(screenshot, Buffer.from([137,80,78,71]));
   assert.ok(result.args.includes('--headless-timeout=12000'));
   assert.ok(result.args.includes('--headless-smoke=complex'));
   assert.ok(result.args.includes('--headless-tap-text=Upgrade plan'));
+  assert.ok(result.args.includes('--headless-insert-text= accepted copy'));
   assert.ok(!result.args.includes('--headless-headed=true'));
   assert.ok(!result.args.includes('--headless-slow-mo=99'));
 });

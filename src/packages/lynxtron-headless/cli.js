@@ -16,6 +16,8 @@ Options:
   --screenshot <path>       Screenshot PNG path
   --ui-dump <path>          UI dump JSON path
   --ui-dump-after-tap <path> UI dump JSON path after tap
+  --ui-snapshot <path>      Normalized UI snapshot JSON path
+  --ui-snapshot-after-tap <path> Normalized UI snapshot JSON path after tap
   --report <path>           report.json path
   --trace <path>            trace.jsonl path
   --data <path>             JSON initial data path
@@ -25,6 +27,8 @@ Options:
   --dpr <number>            Device pixel ratio
   --tap <x,y>               Dispatch a tap after first screen
   --tap-text <text>         Find text in UI dump and tap its containing node
+  --insert-text <text>      Send Input.insertText after tap/focus
+  --drag-text <text>:<dx>,<dy> Find text in UI dump and drag its containing node
   --headed                  Show an authoring window while automation runs
   --slow-mo <ms>            Delay after each CDP action for visual playback
   --record-duration <ms>    Duration for headed input recording
@@ -85,6 +89,12 @@ function parseRunArgs(args) {
       case '--ui-dump-after-tap':
         options.uiDumpAfterTap = value;
         break;
+      case '--ui-snapshot':
+        options.uiSnapshot = value;
+        break;
+      case '--ui-snapshot-after-tap':
+        options.uiSnapshotAfterTap = value;
+        break;
       case '--report':
         options.report = value;
         break;
@@ -140,7 +150,27 @@ function parseRunArgs(args) {
       }
       case '--tap-text':
         options.tapText = value;
+        options.tapTexts ||= [];
+        options.tapTexts.push(value);
         break;
+      case '--insert-text':
+        options.insertText = value;
+        options.insertTexts ||= [];
+        options.insertTexts.push(value);
+        break;
+      case '--drag-text': {
+        const separator = value.lastIndexOf(':');
+        const text = separator === -1 ? value : value.slice(0, separator);
+        const rawDelta = separator === -1 ? '' : value.slice(separator + 1);
+        const [dx, dy] = rawDelta.split(',').map(Number);
+        options.dragTexts ||= [];
+        options.dragTexts.push({
+          text,
+          dx: Number.isFinite(dx) ? dx : 0,
+          dy: Number.isFinite(dy) ? dy : -96,
+        });
+        break;
+      }
       default:
         throw new Error(`Unknown option: ${name}`);
     }

@@ -459,6 +459,17 @@ export declare class LynxWindow extends BaseWindow {
   ): boolean;
 
   /**
+   * Commits text to the currently focused editable element in the
+   * headless/windowless renderer. Returns accepted false when no focused text
+   * input client is active.
+   */
+  dispatchHeadlessTextInput(text: string): {
+    accepted: boolean;
+    provider: 'windowless-ime-commit';
+    textLength: number;
+  };
+
+  /**
    * Runs expired Lynx/FML tasks for the current headless host thread. Headless
    * harnesses call this while waiting for lifecycle and frame signals.
    */

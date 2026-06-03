@@ -1118,6 +1118,23 @@ bool LynxWindow::DispatchHeadlessPointerEvent(gin::Arguments* args) {
   return true;
 }
 
+v8::Local<v8::Value> LynxWindow::DispatchHeadlessTextInput(
+    gin::Arguments* args) {
+  std::string text;
+  if (!args->GetNext(&text)) {
+    args->ThrowTypeError("dispatchHeadlessTextInput requires text");
+    return v8::Undefined(isolate());
+  }
+
+  const bool accepted =
+      headless_renderer_ && headless_renderer_->DispatchTextInput(text);
+  auto result = gin_helper::Dictionary::CreateEmpty(isolate());
+  result.Set("accepted", accepted);
+  result.Set("provider", "windowless-ime-commit");
+  result.Set("textLength", static_cast<int>(text.size()));
+  return result.GetHandle();
+}
+
 bool LynxWindow::PumpHeadlessTasks() {
   if (!headless_) {
     return false;
@@ -1171,6 +1188,8 @@ void LynxWindow::BuildPrototype(v8::Isolate* isolate,
       .SetMethod("getHeadlessMetrics", &LynxWindow::GetHeadlessMetrics)
       .SetMethod("dispatchHeadlessPointerEvent",
                  &LynxWindow::DispatchHeadlessPointerEvent)
+      .SetMethod("dispatchHeadlessTextInput",
+                 &LynxWindow::DispatchHeadlessTextInput)
       .SetMethod("pumpHeadlessTasks", &LynxWindow::PumpHeadlessTasks);
 }
 
