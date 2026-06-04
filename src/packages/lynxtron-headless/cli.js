@@ -28,6 +28,8 @@ Options:
   --tap <x,y>               Dispatch a tap after first screen
   --tap-text <text>         Find text in UI dump and tap its containing node
   --insert-text <text>      Send Input.insertText after tap/focus
+  --press-key <key>         Dispatch a synthesized key event after tap/focus
+  --drag <x1,y1:x2,y2>      Dispatch a coordinate drag after tap/focus
   --drag-text <text>:<dx>,<dy> Find text in UI dump and drag its containing node
   --headed                  Show an authoring window while automation runs
   --slow-mo <ms>            Delay after each CDP action for visual playback
@@ -146,6 +148,8 @@ function parseRunArgs(args) {
           throw new Error('--tap must use the form x,y');
         }
         options.tap = { x, y };
+        options.taps ||= [];
+        options.taps.push({ x, y });
         break;
       }
       case '--tap-text':
@@ -158,6 +162,31 @@ function parseRunArgs(args) {
         options.insertTexts ||= [];
         options.insertTexts.push(value);
         break;
+      case '--press-key':
+        options.pressKeys ||= [];
+        options.pressKeys.push(value);
+        break;
+      case '--drag': {
+        const separator = value.lastIndexOf(':');
+        const rawStart = separator === -1 ? value : value.slice(0, separator);
+        const rawEnd = separator === -1 ? '' : value.slice(separator + 1);
+        const [startX, startY] = rawStart.split(',').map(Number);
+        const [endX, endY] = rawEnd.split(',').map(Number);
+        if (
+          !Number.isFinite(startX) ||
+          !Number.isFinite(startY) ||
+          !Number.isFinite(endX) ||
+          !Number.isFinite(endY)
+        ) {
+          throw new Error('--drag must use the form x1,y1:x2,y2');
+        }
+        options.drags ||= [];
+        options.drags.push({
+          start: { x: startX, y: startY },
+          end: { x: endX, y: endY },
+        });
+        break;
+      }
       case '--drag-text': {
         const separator = value.lastIndexOf(':');
         const text = separator === -1 ? value : value.slice(0, separator);

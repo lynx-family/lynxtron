@@ -157,7 +157,11 @@ export function createHarnessArgs(bundleOrUrl, options = {}) {
   if (options.globalProps) {
     args.push(`--headless-global-props=${absolutePath(options.globalProps)}`);
   }
-  if (options.tap) {
+  if (Array.isArray(options.taps)) {
+    for (const tap of options.taps) {
+      args.push(`--headless-tap=${tap.x},${tap.y}`);
+    }
+  } else if (options.tap) {
     args.push(`--headless-tap=${options.tap.x},${options.tap.y}`);
   }
   if (Array.isArray(options.tapTexts)) {
@@ -175,6 +179,18 @@ export function createHarnessArgs(bundleOrUrl, options = {}) {
   }
   if (options.insertText && !Array.isArray(options.insertTexts)) {
     args.push(`--headless-insert-text=${options.insertText}`);
+  }
+  if (Array.isArray(options.pressKeys)) {
+    for (const key of options.pressKeys) {
+      args.push(`--headless-press-key=${key}`);
+    }
+  }
+  if (Array.isArray(options.drags)) {
+    for (const drag of options.drags) {
+      args.push(
+        `--headless-drag=${drag.start.x},${drag.start.y}:${drag.end.x},${drag.end.y}`
+      );
+    }
   }
   if (Array.isArray(options.dragTexts)) {
     for (const dragText of options.dragTexts) {
@@ -258,6 +274,9 @@ function replayOptions(manifest, manifestPath, options = {}) {
     base.insertText = options.insertText;
   } else if (manifestInsertTexts?.length > 0) {
     base.insertTexts = manifestInsertTexts;
+  }
+  if (Array.isArray(options.pressKeys)) {
+    base.pressKeys = options.pressKeys;
   }
 
   if (mode === 'recorded') {

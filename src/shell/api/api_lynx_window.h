@@ -102,6 +102,7 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
   v8::Local<v8::Value> GetHeadlessMetrics();
   bool DispatchHeadlessPointerEvent(gin::Arguments* args);
   v8::Local<v8::Value> DispatchHeadlessTextInput(gin::Arguments* args);
+  v8::Local<v8::Value> DispatchHeadlessKeyEvent(gin::Arguments* args);
   bool PumpHeadlessTasks();
   bool ReloadTemplate(const gin_helper::Dictionary& data,
                       const gin_helper::Dictionary& global_props);

@@ -31,6 +31,10 @@ class HeadlessWindowlessRenderer final
 
   bool CopyLastFrameToPng(std::vector<uint8_t>* output) const;
   bool DispatchTextInput(const std::string& text);
+  bool DispatchKeyEvent(const std::string& type,
+                        uint64_t logical,
+                        const std::string& character,
+                        bool synthesized);
   uint64_t frames_presented() const;
   uint64_t tasks_posted() const;
   uint64_t tasks_run() const;

@@ -470,6 +470,24 @@ export declare class LynxWindow extends BaseWindow {
   };
 
   /**
+   * Dispatches a synthesized key event to the headless/windowless renderer.
+   */
+  dispatchHeadlessKeyEvent(options: {
+    type?: 'keyDown' | 'rawKeyDown' | 'keyUp' | 'down' | 'up' | 'repeat';
+    key?: string;
+    logical?: number;
+    text?: string;
+    synthesized?: boolean;
+  }): {
+    accepted: boolean;
+    provider: 'windowless-key-event';
+    type: string;
+    key: string;
+    logical: number;
+    textLength: number;
+  };
+
+  /**
    * Runs expired Lynx/FML tasks for the current headless host thread. Headless
    * harnesses call this while waiting for lifecycle and frame signals.
    */

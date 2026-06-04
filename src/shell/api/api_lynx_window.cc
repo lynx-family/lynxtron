@@ -19,6 +19,7 @@
 #include "base/include/fml/message_loop.h"
 #include "core/base/threading/task_runner_manufactor.h"
 #include "gin/converter.h"
+#include "lynx/clay/ui/event/keyboard_key.h"
 #include "lynx/platform/embedder/public/capi/lynx_types.h"
 #include "lynx/platform/embedder/public/capi/lynx_env_capi.h"
 #include "shell/api/api_app.h"
@@ -184,6 +185,48 @@ lynx_pointer_device_kind_e ParseHeadlessPointerDeviceKind(
     return kLynxPointerDeviceKindTrackpad;
   }
   return kLynxPointerDeviceKindTouch;
+}
+
+uint64_t ParseHeadlessLogicalKey(const std::string& key) {
+  if (key == "Backspace") {
+    return static_cast<uint64_t>(clay::KeyCode::kBackspace);
+  }
+  if (key == "Delete") {
+    return static_cast<uint64_t>(clay::KeyCode::kDelete);
+  }
+  if (key == "ArrowLeft") {
+    return static_cast<uint64_t>(clay::KeyCode::kArrowLeft);
+  }
+  if (key == "ArrowRight") {
+    return static_cast<uint64_t>(clay::KeyCode::kArrowRight);
+  }
+  if (key == "ArrowUp") {
+    return static_cast<uint64_t>(clay::KeyCode::kArrowUp);
+  }
+  if (key == "ArrowDown") {
+    return static_cast<uint64_t>(clay::KeyCode::kArrowDown);
+  }
+  if (key == "Home") {
+    return static_cast<uint64_t>(clay::KeyCode::kHome);
+  }
+  if (key == "End") {
+    return static_cast<uint64_t>(clay::KeyCode::kEnd);
+  }
+  if (key == "Enter") {
+    return static_cast<uint64_t>(clay::KeyCode::kEnter);
+  }
+  if (key == " ") {
+    return static_cast<uint64_t>(clay::KeyCode::kSpace);
+  }
+  if (key.size() == 1 && key[0] >= 'a' && key[0] <= 'z') {
+    return static_cast<uint64_t>(clay::KeyCode::kKeyA) +
+           static_cast<uint64_t>(key[0] - 'a');
+  }
+  if (key.size() == 1 && key[0] >= 'A' && key[0] <= 'Z') {
+    return static_cast<uint64_t>(clay::KeyCode::kKeyA) +
+           static_cast<uint64_t>(key[0] - 'A');
+  }
+  return 0;
 }
 
 size_t NowMicros() {
@@ -1135,6 +1178,42 @@ v8::Local<v8::Value> LynxWindow::DispatchHeadlessTextInput(
   return result.GetHandle();
 }
 
+v8::Local<v8::Value> LynxWindow::DispatchHeadlessKeyEvent(
+    gin::Arguments* args) {
+  gin_helper::Dictionary options;
+  if (!args->GetNext(&options)) {
+    args->ThrowTypeError("dispatchHeadlessKeyEvent requires options");
+    return v8::Undefined(isolate());
+  }
+
+  std::string type = "keyDown";
+  std::string key;
+  std::string text;
+  bool synthesized = true;
+  int64_t logical = 0;
+  options.Get("type", &type);
+  options.Get("key", &key);
+  options.Get("text", &text);
+  options.Get("synthesized", &synthesized);
+  options.Get("logical", &logical);
+  if (!logical && !key.empty()) {
+    logical = static_cast<int64_t>(ParseHeadlessLogicalKey(key));
+  }
+
+  const bool accepted =
+      headless_renderer_ &&
+      headless_renderer_->DispatchKeyEvent(
+          type, static_cast<uint64_t>(logical), text, synthesized);
+  auto result = gin_helper::Dictionary::CreateEmpty(isolate());
+  result.Set("accepted", accepted);
+  result.Set("provider", "windowless-key-event");
+  result.Set("type", type);
+  result.Set("key", key);
+  result.Set("logical", logical);
+  result.Set("textLength", static_cast<int>(text.size()));
+  return result.GetHandle();
+}
+
 bool LynxWindow::PumpHeadlessTasks() {
   if (!headless_) {
     return false;
@@ -1190,6 +1269,8 @@ void LynxWindow::BuildPrototype(v8::Isolate* isolate,
                  &LynxWindow::DispatchHeadlessPointerEvent)
       .SetMethod("dispatchHeadlessTextInput",
                  &LynxWindow::DispatchHeadlessTextInput)
+      .SetMethod("dispatchHeadlessKeyEvent",
+                 &LynxWindow::DispatchHeadlessKeyEvent)
       .SetMethod("pumpHeadlessTasks", &LynxWindow::PumpHeadlessTasks);
 }
 

@@ -13,6 +13,7 @@
 #include "base/task/single_thread_task_runner.h"
 #include "base/time/time.h"
 #include "lynx/platform/embedder/public/capi/lynx_windowless_renderer_capi.h"
+#include "lynx/platform/embedder/public/capi/lynx_types.h"
 #include "ui/gfx/codec/png_codec.h"
 #include "ui/gfx/geometry/size.h"
 
@@ -180,6 +181,36 @@ bool HeadlessWindowlessRenderer::CopyLastFrameToPng(
 
 bool HeadlessWindowlessRenderer::DispatchTextInput(const std::string& text) {
   return SendTextInput(text.c_str());
+}
+
+bool HeadlessWindowlessRenderer::DispatchKeyEvent(
+    const std::string& type,
+    uint64_t logical,
+    const std::string& character,
+    bool synthesized) {
+  if (!logical) {
+    return false;
+  }
+
+  lynx_key_event_t event{};
+  event.struct_size = sizeof(event);
+  event.timestamp =
+      base::Time::Now().InMillisecondsSinceUnixEpoch() * 1000.0;
+  if (type == "keyUp" || type == "up") {
+    event.type = kLynxKeyEventTypeUp;
+  } else if (type == "rawKeyDown" || type == "keyDown" || type == "down") {
+    event.type = kLynxKeyEventTypeDown;
+  } else if (type == "repeat") {
+    event.type = kLynxKeyEventTypeRepeat;
+  } else {
+    return false;
+  }
+  event.physical = 0;
+  event.logical = logical;
+  event.character = character.empty() ? nullptr : character.c_str();
+  event.synthesized = synthesized;
+  SendKeyEvent(&event);
+  return true;
 }
 
 uint64_t HeadlessWindowlessRenderer::frames_presented() const {

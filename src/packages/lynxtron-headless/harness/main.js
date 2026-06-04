@@ -125,6 +125,8 @@ function parseArgs(argv) {
         const [x, y] = value.split(',').map(Number);
         if (Number.isFinite(x) && Number.isFinite(y)) {
           options.tap = { x, y };
+          options.taps ||= [];
+          options.taps.push({ x, y });
         }
         break;
       }
@@ -138,6 +140,30 @@ function parseArgs(argv) {
         options.insertTexts ||= [];
         options.insertTexts.push(value);
         break;
+      case '--headless-press-key':
+        options.pressKeys ||= [];
+        options.pressKeys.push(value);
+        break;
+      case '--headless-drag': {
+        const separator = value.lastIndexOf(':');
+        const rawStart = separator === -1 ? value : value.slice(0, separator);
+        const rawEnd = separator === -1 ? '' : value.slice(separator + 1);
+        const [startX, startY] = rawStart.split(',').map(Number);
+        const [endX, endY] = rawEnd.split(',').map(Number);
+        if (
+          Number.isFinite(startX) &&
+          Number.isFinite(startY) &&
+          Number.isFinite(endX) &&
+          Number.isFinite(endY)
+        ) {
+          options.drags ||= [];
+          options.drags.push({
+            start: { x: startX, y: startY },
+            end: { x: endX, y: endY },
+          });
+        }
+        break;
+      }
       case '--headless-drag-text': {
         const separator = value.lastIndexOf(':');
         const text = separator === -1 ? value : value.slice(0, separator);
@@ -1062,6 +1088,61 @@ async function dispatchHeadlessInsertText(state, text) {
   }
 }
 
+async function dispatchHeadlessKeyEvent(state, params = {}) {
+  const providerMethod =
+    typeof state.window?.dispatchHeadlessKeyEvent === 'function'
+      ? 'dispatchHeadlessKeyEvent'
+      : null;
+  const key = String(params.key || '');
+  const type = params.type || 'keyDown';
+  const text = typeof params.text === 'string' ? params.text : '';
+  const baseResult = {
+    method: 'Input.dispatchKeyEvent',
+    key,
+    type,
+    text,
+    textLength: text.length,
+    protocol: 'cdp',
+    provider: providerMethod || 'unavailable',
+  };
+
+  if (!providerMethod) {
+    return {
+      ...baseResult,
+      accepted: false,
+      errorCode: 'INPUT_KEY_UNAVAILABLE',
+      errorMessage:
+        'No focused-element key input provider is exposed by the current Lynxtron runtime.',
+    };
+  }
+
+  try {
+    const providerResult = await state.window[providerMethod]({
+      type,
+      key,
+      text,
+      logical: params.logical,
+      synthesized: params.synthesized !== false,
+    });
+    const accepted =
+      providerResult === true ||
+      (providerResult && typeof providerResult === 'object' && providerResult.accepted !== false);
+    return {
+      ...baseResult,
+      accepted,
+      providerResult: cloneJson(providerResult),
+      errorCode: accepted ? undefined : 'INPUT_KEY_REJECTED',
+    };
+  } catch (error) {
+    return {
+      ...baseResult,
+      accepted: false,
+      errorCode: error?.code || 'INPUT_KEY_PROVIDER_FAILED',
+      errorMessage: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
 async function scrollIntoViewByText(state, options, params = {}) {
   const text = params.text;
   if (!text) {
@@ -1434,6 +1515,30 @@ function createCdpMethods(state, options) {
       }
       return result;
     },
+    async 'Input.dispatchKeyEvent'(params) {
+      const key = params?.key;
+      if (typeof key !== 'string' || key.length === 0) {
+        throw Object.assign(new Error('Input.dispatchKeyEvent requires key'), {
+          code: 'INPUT_KEY_INVALID_PARAMS',
+          exitCode: EXIT.inputFailure,
+        });
+      }
+      const result = await dispatchHeadlessKeyEvent(state, params || {});
+      state.inputKeyResults ||= [];
+      state.inputKeyResults.push(result);
+      trace('input.key', result);
+      if (!result.accepted) {
+        throw Object.assign(
+          new Error(result.errorMessage || `Input.dispatchKeyEvent failed: ${result.errorCode}`),
+          {
+            code: result.errorCode || 'INPUT_KEY_REJECTED',
+            exitCode: EXIT.inputFailure,
+            details: result,
+          }
+        );
+      }
+      return result;
+    },
     async 'Input.dispatchTouchEvent'(params) {
       const type = params.type;
       const point = params.touchPoints?.[0] || state.lastTouchPoint;
@@ -1616,6 +1721,122 @@ async function runInsertTextSequence(cdp, options, currentScreenshotBuffer, curr
   };
 }
 
+async function runKeySequence(cdp, options, currentScreenshotBuffer, currentUiDump) {
+  const pressKeys = options.pressKeys || [];
+  const sequence = [];
+  let latestScreenshotBuffer = currentScreenshotBuffer;
+  let latestUiDump = currentUiDump;
+
+  const parseKeySpec = (rawKey) => {
+    const parts = String(rawKey).split(':');
+    const [key, type, logical, text] = parts;
+    const parsed = {
+      key: key || String(rawKey),
+      type: type || 'keyDown',
+    };
+    const logicalNumber = Number(logical);
+    if (Number.isFinite(logicalNumber) && logical !== '') {
+      parsed.logical = logicalNumber;
+    }
+    if (text != null) {
+      parsed.text = text;
+    }
+    return parsed;
+  };
+
+  for (let index = 0; index < pressKeys.length; index += 1) {
+    const keySpec = parseKeySpec(pressKeys[index]);
+    const beforeMetrics = await cdp.send('Lynx.getHeadlessMetrics', {});
+    const beforeFrameCount = Number(beforeMetrics?.framesPresented ?? 0);
+    let providerResult;
+    try {
+      providerResult = await cdp.send('Input.dispatchKeyEvent', {
+        type: keySpec.type,
+        key: keySpec.key,
+        logical: keySpec.logical,
+        text: keySpec.text,
+        synthesized: true,
+      });
+    } catch (error) {
+      const failed = {
+        index: index + 1,
+        method: 'Input.dispatchKeyEvent',
+        key: keySpec.key,
+        type: keySpec.type,
+        logical: keySpec.logical,
+        accepted: false,
+        errorCode: error?.code || 'INPUT_KEY_FAILED',
+        errorMessage: error instanceof Error ? error.message : String(error),
+        protocol: 'cdp',
+      };
+      trace('input.key-sequence', failed);
+      throw Object.assign(new Error(failed.errorMessage), {
+        code: failed.errorCode,
+        exitCode: EXIT.inputFailure,
+        details: failed,
+      });
+    }
+
+    const afterFrame = await cdp.send('Lynx.waitForFrameAfter', {
+      framesPresented: beforeFrameCount,
+      timeoutMs: Math.min(options.timeoutMs, 1500),
+    });
+    const afterScreenshotBuffer = bufferFromBase64(afterFrame.data);
+    if (afterScreenshotBuffer.length > 0) {
+      await mkdir(dirname(options.tapScreenshot), { recursive: true });
+      await writeFile(options.tapScreenshot, afterScreenshotBuffer);
+    }
+    const uiDumpAfterKey = await cdp.send('Lynx.dumpUITree', {});
+    await mkdir(dirname(options.uiDumpAfterTap), { recursive: true });
+    await writeFile(options.uiDumpAfterTap, JSON.stringify(uiDumpAfterKey, null, 2));
+    trace('artifact.ui-dump-after-key', {
+      path: options.uiDumpAfterTap,
+      nodeCount: uiDumpAfterKey.nodeCount,
+      texts: dumpTexts(uiDumpAfterKey).length,
+      via: 'cdp',
+    });
+    const uiSnapshotAfterKey = await cdp.send('LynxSnapshot.capture', {});
+    await writeJsonArtifact(
+      options.uiSnapshotAfterTap,
+      uiSnapshotAfterKey,
+      'artifact.ui-snapshot-after-key',
+      {
+        visibleTextCount: uiSnapshotAfterKey.visualHealth?.visibleTextCount,
+        actionCandidateCount: uiSnapshotAfterKey.visualHealth?.actionCandidateCount,
+      }
+    );
+    const screenshotChanged =
+      latestScreenshotBuffer.length > 0 &&
+      afterScreenshotBuffer.length > 0 &&
+      !buffersEqual(latestScreenshotBuffer, afterScreenshotBuffer);
+    const uiDumpChanged = JSON.stringify(latestUiDump) !== JSON.stringify(uiDumpAfterKey);
+    const result = {
+      ...providerResult,
+      index: index + 1,
+      changed: screenshotChanged || uiDumpChanged,
+      screenshotChanged,
+      uiDumpChanged,
+      framesBefore: beforeFrameCount,
+      framesAfter: afterFrame.framesPresented,
+      screenshot: options.tapScreenshot,
+      uiDumpBefore: options.uiDump,
+      uiDumpAfter: options.uiDumpAfterTap,
+      uiSnapshotBefore: options.uiSnapshot,
+      uiSnapshotAfter: options.uiSnapshotAfterTap,
+    };
+    trace('input.key-sequence', result);
+    sequence.push(result);
+    latestScreenshotBuffer = afterScreenshotBuffer;
+    latestUiDump = uiDumpAfterKey;
+  }
+
+  return {
+    result: sequence.length > 0 ? { sequence, last: sequence.at(-1) } : null,
+    screenshotBuffer: latestScreenshotBuffer,
+    uiDump: latestUiDump,
+  };
+}
+
 async function runCdpSmoke(cdp, options) {
   const source = options.bundle || options.url;
   if (options.bundle) {
@@ -1677,8 +1898,9 @@ async function runCdpSmoke(cdp, options) {
   let tapResult = null;
   const tapResults = [];
   const tapSequence = [];
-  if (options.tap) {
-    tapSequence.push({ point: options.tap, source: 'cli' });
+  const taps = options.taps?.length ? options.taps : options.tap ? [options.tap] : [];
+  for (const tap of taps) {
+    tapSequence.push({ point: tap, source: 'cli' });
   }
   const tapTexts = options.tapTexts?.length ? options.tapTexts : options.tapText ? [options.tapText] : [];
   for (const text of tapTexts) {
@@ -1813,33 +2035,70 @@ async function runCdpSmoke(cdp, options) {
     currentUiDump = textSequence.uiDump;
   }
 
+  let keyInputResult = null;
+  if (options.pressKeys?.length) {
+    const keySequence = await runKeySequence(
+      cdp,
+      options,
+      currentScreenshotBuffer,
+      currentUiDump
+    );
+    keyInputResult = keySequence.result;
+    currentScreenshotBuffer = keySequence.screenshotBuffer;
+    currentUiDump = keySequence.uiDump;
+  }
+
   const dragResults = [];
+  const dragSequence = [];
+  const drags = options.drags || [];
+  for (const drag of drags) {
+    dragSequence.push({
+      source: 'cli',
+      start: drag.start,
+      end: drag.end,
+    });
+  }
   const dragTexts = options.dragTexts || [];
-  for (let index = 0; index < dragTexts.length; index += 1) {
-    const dragSpec = dragTexts[index];
+  for (const dragText of dragTexts) {
+    dragSequence.push({
+      ...dragText,
+      source: 'ui-dump',
+    });
+  }
+  for (let index = 0; index < dragSequence.length; index += 1) {
+    const dragSpec = dragSequence[index];
     let scrollResult = null;
-    let dragPoint = findTapPointFromText(currentUiDump, dragSpec.text);
-    if (tapPointNeedsScroll(dragPoint)) {
-      scrollResult = await cdp.send('LynxInput.scrollIntoView', {
-        text: dragSpec.text,
-        timeoutMs: Math.min(options.timeoutMs, 1000),
-      });
-      currentUiDump = scrollResult.uiDump;
-      dragPoint = scrollResult.tapPoint || findTapPointFromText(currentUiDump, dragSpec.text);
+    let dragPoint = null;
+    if (dragSpec.source === 'ui-dump') {
+      dragPoint = findTapPointFromText(currentUiDump, dragSpec.text);
+      if (tapPointNeedsScroll(dragPoint)) {
+        scrollResult = await cdp.send('LynxInput.scrollIntoView', {
+          text: dragSpec.text,
+          timeoutMs: Math.min(options.timeoutMs, 1000),
+        });
+        currentUiDump = scrollResult.uiDump;
+        dragPoint = scrollResult.tapPoint || findTapPointFromText(currentUiDump, dragSpec.text);
+      }
     }
     const beforeDragMetrics = await cdp.send('Lynx.getHeadlessMetrics', {});
     const beforeDragFrameCount = Number(beforeDragMetrics?.framesPresented ?? 0);
-    const start = { x: dragPoint.x, y: dragPoint.y };
-    const end = {
-      x: Math.round(dragPoint.x + Number(dragSpec.dx || 0)),
-      y: Math.round(dragPoint.y + Number(dragSpec.dy || 0)),
-    };
+    const start =
+      dragSpec.source === 'cli'
+        ? { x: Math.round(dragSpec.start.x), y: Math.round(dragSpec.start.y) }
+        : { x: dragPoint.x, y: dragPoint.y };
+    const end =
+      dragSpec.source === 'cli'
+        ? { x: Math.round(dragSpec.end.x), y: Math.round(dragSpec.end.y) }
+        : {
+            x: Math.round(dragPoint.x + Number(dragSpec.dx || 0)),
+            y: Math.round(dragPoint.y + Number(dragSpec.dy || 0)),
+          };
     trace('input.drag-target', {
       index: index + 1,
-      source: 'ui-dump',
-      targetText: dragPoint.targetText,
-      targetNodeId: dragPoint.targetNodeId,
-      targetType: dragPoint.targetType,
+      source: dragSpec.source,
+      targetText: dragPoint?.targetText,
+      targetNodeId: dragPoint?.targetNodeId,
+      targetType: dragPoint?.targetType,
       start,
       end,
       scrolled: Boolean(scrollResult),
@@ -1897,10 +2156,10 @@ async function runCdpSmoke(cdp, options) {
     const changed = screenshotChanged || uiDumpChanged;
     const dragResult = {
       index: index + 1,
-      source: 'ui-dump',
-      targetText: dragPoint.targetText,
-      targetNodeId: dragPoint.targetNodeId,
-      targetType: dragPoint.targetType,
+      source: dragSpec.source,
+      targetText: dragPoint?.targetText,
+      targetNodeId: dragPoint?.targetNodeId,
+      targetType: dragPoint?.targetType,
       start,
       end,
       dx: dragSpec.dx,
@@ -1926,14 +2185,22 @@ async function runCdpSmoke(cdp, options) {
     };
   }
 
-  return { source, completionSignal: 'on-first-screen', tapResult, textInputResult };
+  return {
+    source,
+    completionSignal: 'on-first-screen',
+    tapResult,
+    textInputResult,
+    keyInputResult,
+  };
 }
 
 function recordedInputActions(manifest) {
   return (manifest.actions || [])
     .filter(
       (action) =>
-        action?.method === 'Input.dispatchTouchEvent' || action?.method === 'Input.insertText'
+        action?.method === 'Input.dispatchTouchEvent' ||
+        action?.method === 'Input.insertText' ||
+        action?.method === 'Input.dispatchKeyEvent'
     )
     .map((action) => ({
       method: action.method,
@@ -2115,7 +2382,9 @@ async function main() {
   let completionSignal = null;
   let tapResult = null;
   let textInputResult = null;
+  let keyInputResult = null;
   const inputTextResults = [];
+  const inputKeyResults = [];
   let recordingResult = null;
   let replayActions = [];
 
@@ -2219,6 +2488,7 @@ async function main() {
       cdp: null,
       recorder: null,
       inputTextResults,
+      inputKeyResults,
     };
     const recorderController = createRecorderController(cdpState, options);
     cdpState.recorder = recorderController;
@@ -2251,6 +2521,7 @@ async function main() {
     completionSignal = smokeResult.completionSignal;
     tapResult = smokeResult.tapResult;
     textInputResult = smokeResult.textInputResult || null;
+    keyInputResult = smokeResult.keyInputResult || null;
     recordingResult = smokeResult.recordingResult || null;
   } catch (caught) {
     status = 'failed';
@@ -2318,6 +2589,11 @@ async function main() {
         textInputResult ||
         (inputTextResults.length > 0
           ? { sequence: inputTextResults, last: inputTextResults.at(-1) }
+          : null),
+      key:
+        keyInputResult ||
+        (inputKeyResults.length > 0
+          ? { sequence: inputKeyResults, last: inputKeyResults.at(-1) }
           : null),
       recording: recordingResult,
     },

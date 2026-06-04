@@ -39,6 +39,7 @@ export interface RunBundleOptions {
   tapTexts?: string[];
   insertText?: string;
   insertTexts?: string[];
+  pressKeys?: string[];
   dragText?: string | { text: string; dx?: number; dy?: number };
   dragTexts?: Array<string | { text: string; dx?: number; dy?: number }>;
   headed?: boolean;
