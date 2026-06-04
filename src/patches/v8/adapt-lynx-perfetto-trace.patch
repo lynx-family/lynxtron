@@ -1,0 +1,381 @@
+From dc863bc96cf09061421a39c8ef2890689b62e82a Mon Sep 17 00:00:00 2001
+From: tangyongjie <80395553+yongjieTang@users.noreply.github.com>
+Date: Tue, 3 Mar 2026 17:14:15 +0800
+Subject: [PATCH] adapt lynx perfetto trace
+
+---
+ BUILD.gn                               | 31 +++++++++++++++++-
+ gni/v8.gni                             |  2 +-
+ src/base/platform/time.cc              | 34 +++++++++++--------
+ src/ic/ic-stats.cc                     |  2 +-
+ src/inspector/v8-runtime-agent-impl.cc |  6 ++--
+ src/logging/runtime-call-stats.cc      |  2 +-
+ src/profiler/profile-generator.cc      |  6 ++--
+ src/tracing/trace-event.h              | 45 ++++++++++++++++++++++++--
+ src/tracing/traced-value.cc            | 12 ++++++-
+ src/tracing/traced-value.h             | 11 +++++--
+ 10 files changed, 122 insertions(+), 29 deletions(-)
+
+diff --git a/BUILD.gn b/BUILD.gn
+index 8dda88f8..031798e2 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -13,6 +13,7 @@ import("//build/config/rust.gni")
+ import("//build/config/sanitizers/sanitizers.gni")
+ import("//build_overrides/build.gni")
+ import("//third_party/icu/config.gni")
++import("//lynx/config.gni")
+ 
+ import("gni/snapshot_toolchain.gni")
+ import("gni/v8.gni")
+@@ -860,7 +861,16 @@ config("internal_config") {
+ 
+ # Should be applied to all targets that write trace events.
+ config("v8_tracing_config") {
+-  if (v8_use_perfetto) {
++  if (enable_trace == "perfetto") {
++    include_dirs = [
++      "//src",
++      "//",
++    ]
++    defines = [
++      "ENABLE_LYNX_TRACE",
++      "V8_RUNTIME_CALL_STATS",
++    ]
++  } else if (v8_use_perfetto) {
+     include_dirs = [
+       "//third_party/perfetto/include",
+       "$root_gen_dir/third_party/perfetto",
+@@ -7433,6 +7443,22 @@ if (current_toolchain == v8_generator_toolchain) {
+ }
+ 
+ if (current_toolchain == v8_snapshot_toolchain) {
++  # To enable perfetto tracing for v8 snapshot, need to link lynx_trace_for_v8_snapshot library separately
++  shared_library("lynx_trace_for_v8_snapshot") {
++    if(is_mac) {
++      deps = [
++        "//lynx/base/trace/darwin:LynxTrace",
++        "//lynx/base/src:base_group",
++        "//third_party/node/deps/uv:uv",
++      ]
++    } else if (is_win) {
++      deps = [
++        "//lynx/base/trace/native:trace",
++        "//lynx/base/src:base_group",
++        "//third_party/node/deps/uv:uv",
++      ]
++    }
++  }
+   v8_executable("mksnapshot") {
+     sources = [
+       "src/snapshot/builtins-effects-dummy.cc",
+@@ -7474,6 +7500,9 @@ if (current_toolchain == v8_snapshot_toolchain) {
+       ":v8_tracing",
+       "//build/win:default_exe_manifest",
+     ]
++    if (enable_trace == "perfetto") {
++      deps += [ ":lynx_trace_for_v8_snapshot" ]
++    }
+   }
+ 
+   # This config disables a link time optimization "ICF", which may merge
+diff --git a/gni/v8.gni b/gni/v8.gni
+index b940d52c..ebaa25e8 100644
+--- a/gni/v8.gni
++++ b/gni/v8.gni
+@@ -249,7 +249,7 @@ if (v8_enable_backtrace == "") {
+ # Chromium is configured to use the perfetto client library, v8 should also
+ # use perfetto for tracing.
+ if (build_with_chromium) {
+-  v8_use_perfetto = true
++  # v8_use_perfetto = true
+ }
+ 
+ # Includes profiles to optimize builtins if
+diff --git a/src/base/platform/time.cc b/src/base/platform/time.cc
+index c2d36cc2..e7a12448 100644
+--- a/src/base/platform/time.cc
++++ b/src/base/platform/time.cc
+@@ -718,10 +718,14 @@ int64_t FileTimeToMicroseconds(const FILETIME& ft) {
+ 
+ // static
+ TimeTicks TimeTicks::Now() {
+-  // Make sure we never return 0 here.
+-  TimeTicks ticks(g_time_ticks_now_function());
+-  DCHECK(!ticks.IsNull());
+-  return ticks;
++  LARGE_INTEGER freq;
++  ::QueryPerformanceFrequency(&freq);
++  LARGE_INTEGER counter;
++  ::QueryPerformanceCounter(&counter);
++  double elapsed_nanoseconds = (1e9 * static_cast<double>(counter.QuadPart)) /
++                               static_cast<double>(freq.QuadPart);
++  return TimeTicks(static_cast<uint64_t>(elapsed_nanoseconds /
++                                         Time::kNanosecondsPerMicrosecond));
+ }
+ 
+ // static
+@@ -734,17 +738,18 @@ bool TimeTicks::IsHighResolution() {
+ #else  // V8_OS_WIN
+ 
+ TimeTicks TimeTicks::Now() {
+-  int64_t ticks;
+ #if V8_OS_DARWIN
+-  static struct mach_timebase_info info;
+-  if (info.denom == 0) {
+-    kern_return_t result = mach_timebase_info(&info);
+-    DCHECK_EQ(KERN_SUCCESS, result);
+-    USE(result);
+-  }
+-  ticks = (mach_absolute_time() / Time::kNanosecondsPerMicrosecond *
+-           info.numer / info.denom);
+-#elif V8_OS_SOLARIS
++  auto init_time_factor = []() -> uint64_t {
++    mach_timebase_info_data_t timebase_info;
++    mach_timebase_info(&timebase_info);
++    return timebase_info.numer / timebase_info.denom;
++  };
++  static uint64_t monotonic_timebase_factor = init_time_factor();
++  return TimeTicks(mach_absolute_time() * monotonic_timebase_factor /
++                   Time::kNanosecondsPerMicrosecond);
++#else
++  int64_t ticks;
++#if V8_OS_SOLARIS
+   ticks = (gethrtime() / Time::kNanosecondsPerMicrosecond);
+ #elif V8_OS_FUCHSIA
+   ticks = zx_clock_get_monotonic() / Time::kNanosecondsPerMicrosecond;
+@@ -757,6 +762,7 @@ TimeTicks TimeTicks::Now() {
+ #endif  // V8_OS_DARWIN
+   // Make sure we never return 0 here.
+   return TimeTicks(ticks + 1);
++#endif
+ }
+ 
+ // static
+diff --git a/src/ic/ic-stats.cc b/src/ic/ic-stats.cc
+index 77fc17b2..b8071203 100644
+--- a/src/ic/ic-stats.cc
++++ b/src/ic/ic-stats.cc
+@@ -50,7 +50,7 @@ void ICStats::Dump() {
+   value->EndArray();
+ 
+   TRACE_EVENT_INSTANT1(TRACE_DISABLED_BY_DEFAULT("v8.ic_stats"), "V8.ICStats",
+-                       TRACE_EVENT_SCOPE_THREAD, "ic-stats", std::move(value));
++                       TRACE_EVENT_SCOPE_THREAD, "ic-stats", value->GetTracedValueString());
+   Reset();
+ }
+ 
+diff --git a/src/inspector/v8-runtime-agent-impl.cc b/src/inspector/v8-runtime-agent-impl.cc
+index 24d69d32..dbd6f575 100644
+--- a/src/inspector/v8-runtime-agent-impl.cc
++++ b/src/inspector/v8-runtime-agent-impl.cc
+@@ -663,7 +663,7 @@ Response V8RuntimeAgentImpl::setMaxCallStackSizeToCapture(int size) {
+   }
+   TRACE_EVENT_WITH_FLOW1(
+       TRACE_DISABLED_BY_DEFAULT("v8.inspector"),
+-      "V8RuntimeAgentImpl::setMaxCallStackSizeToCapture", this,
++      "V8RuntimeAgentImpl::setMaxCallStackSizeToCapture", reinterpret_cast<uint64_t>(this),
+       TRACE_EVENT_FLAG_FLOW_IN | TRACE_EVENT_FLAG_FLOW_OUT, "size", size);
+   if (!m_enabled) return Response::ServerError("Runtime agent is not enabled");
+   m_state->setInteger(V8RuntimeAgentImplState::maxCallStackSizeToCapture, size);
+@@ -1082,7 +1082,7 @@ void V8RuntimeAgentImpl::restore() {
+ Response V8RuntimeAgentImpl::enable() {
+   if (m_enabled) return Response::Success();
+   TRACE_EVENT_WITH_FLOW0(TRACE_DISABLED_BY_DEFAULT("v8.inspector"),
+-                         "V8RuntimeAgentImpl::enable", this,
++                         "V8RuntimeAgentImpl::enable", reinterpret_cast<uint64_t>(this),
+                          TRACE_EVENT_FLAG_FLOW_OUT);
+   m_inspector->client()->beginEnsureAllContextsInGroup(
+       m_session->contextGroupId());
+@@ -1102,7 +1102,7 @@ Response V8RuntimeAgentImpl::enable() {
+ Response V8RuntimeAgentImpl::disable() {
+   if (!m_enabled) return Response::Success();
+   TRACE_EVENT_WITH_FLOW0(TRACE_DISABLED_BY_DEFAULT("v8.inspector"),
+-                         "V8RuntimeAgentImpl::disable", this,
++                         "V8RuntimeAgentImpl::disable", reinterpret_cast<uint64_t>(this),
+                          TRACE_EVENT_FLAG_FLOW_IN);
+   m_enabled = false;
+   m_state->setBoolean(V8RuntimeAgentImplState::runtimeEnabled, false);
+diff --git a/src/logging/runtime-call-stats.cc b/src/logging/runtime-call-stats.cc
+index b2c04c85..71624e18 100644
+--- a/src/logging/runtime-call-stats.cc
++++ b/src/logging/runtime-call-stats.cc
+@@ -350,7 +350,7 @@ WorkerThreadRuntimeCallStatsScope::~WorkerThreadRuntimeCallStatsScope() {
+     table_->Dump(value.get());
+     TRACE_EVENT_INSTANT1(TRACE_DISABLED_BY_DEFAULT("v8.runtime_stats"),
+                          "V8.RuntimeStats", TRACE_EVENT_SCOPE_THREAD,
+-                         "runtime-call-stats", std::move(value));
++                         "runtime-call-stats", value->GetTracedValueString());
+   }
+ }
+ 
+diff --git a/src/profiler/profile-generator.cc b/src/profiler/profile-generator.cc
+index ab7c7a3b..54cd482f 100644
+--- a/src/profiler/profile-generator.cc
++++ b/src/profiler/profile-generator.cc
+@@ -591,7 +591,7 @@ CpuProfile::CpuProfile(CpuProfiler* profiler, ProfilerId id, const char* title,
+   auto value = TracedValue::Create();
+   value->SetDouble("startTime", start_time_.since_origin().InMicroseconds());
+   TRACE_EVENT_SAMPLE_WITH_ID1(TRACE_DISABLED_BY_DEFAULT("v8.cpu_profiler"),
+-                              "Profile", id_, "data", std::move(value));
++                              "Profile", id_, "data", value->GetTracedValueString());
+ 
+   DisallowHeapAllocation no_gc;
+   if (delegate_) {
+@@ -765,7 +765,7 @@ void CpuProfile::StreamPendingTraceEvents() {
+   }
+ 
+   TRACE_EVENT_SAMPLE_WITH_ID1(TRACE_DISABLED_BY_DEFAULT("v8.cpu_profiler"),
+-                              "ProfileChunk", id_, "data", std::move(value));
++                              "ProfileChunk", id_, "data", value->GetTracedValueString());
+ }
+ 
+ void CpuProfile::FinishProfile() {
+@@ -782,7 +782,7 @@ void CpuProfile::FinishProfile() {
+   // used instead (it is recorded nearly immediately after).
+   value->SetDouble("endTime", end_time_.since_origin().InMicroseconds());
+   TRACE_EVENT_SAMPLE_WITH_ID1(TRACE_DISABLED_BY_DEFAULT("v8.cpu_profiler"),
+-                              "ProfileChunk", id_, "data", std::move(value));
++                              "ProfileChunk", id_, "data", value->GetTracedValueString());
+ }
+ 
+ namespace {
+diff --git a/src/tracing/trace-event.h b/src/tracing/trace-event.h
+index 552afa6d..4bfd883d 100644
+--- a/src/tracing/trace-event.h
++++ b/src/tracing/trace-event.h
+@@ -11,7 +11,9 @@
+ // Include first to ensure that V8_USE_PERFETTO can be defined before use.
+ #include "v8config.h"  // NOLINT(build/include_directory)
+ 
+-#if defined(V8_USE_PERFETTO)
++#if defined(ENABLE_LYNX_TRACE)
++#include "shell/lynx/trace/lynx_trace_event.h"
++#elif defined(V8_USE_PERFETTO)
+ #include "protos/perfetto/trace/track_event/debug_annotation.pbzero.h"
+ #include "src/tracing/trace-categories.h"
+ #else
+@@ -41,14 +43,51 @@ enum CategoryGroupEnabledFlags {
+   kEnabledForETWExport_CategoryGroupEnabledFlags = 1 << 3,
+ };
+ 
++#if defined(ENABLE_LYNX_TRACE)
++#if defined(V8_RUNTIME_CALL_STATS)
++#define TRACE_EVENT_CALL_STATS_SCOPED(isolate, category, name)                \
++  struct INTERNAL_TRACE_EVENT_UID(ScopedEvent) {                              \
++    struct ScopedStats {                                                      \
++      ScopedStats(v8::internal::Isolate* isolate_arg, int) {                  \
++        TRACE_EVENT_BEGIN(category, name, [&](lynx::perfetto::EventContext) { \
++          isolate_ = isolate_arg;                                             \
++          internal::RuntimeCallStats* table =                                 \
++              isolate_->counters()->runtime_call_stats();                     \
++          has_parent_scope_ = table->InUse();                                 \
++          if (!has_parent_scope_) table->Reset();                             \
++        });                                                                   \
++      }                                                                       \
++      ~ScopedStats() {                                                        \
++        TRACE_EVENT_END(category, [&](lynx::perfetto::EventContext ctx) {     \
++          if (!has_parent_scope_ && isolate_) {                               \
++            /* TODO(skyostil): Write as typed event instead of JSON */        \
++            auto value = v8::tracing::TracedValue::Create();                  \
++            isolate_->counters()->runtime_call_stats()->Dump(value.get());    \
++            auto annotation = ctx.event()->add_debug_annotations();           \
++            annotation->set_name("runtime-call-stats");                       \
++            value->Add(annotation);                                           \
++          }                                                                   \
++        });                                                                   \
++      }                                                                       \
++      v8::internal::Isolate* isolate_;                                        \
++      bool has_parent_scope_;                                                 \
++    } stats;                                                                  \
++  } INTERNAL_TRACE_EVENT_UID(scoped_event) {                                  \
++    { isolate, 0 }                                                            \
++  }
++#else
++#define TRACE_EVENT_CALL_STATS_SCOPED(isolate, category, name)
++#endif
++#endif
+ #if !defined(V8_USE_PERFETTO)
++#if !defined(ENABLE_LYNX_TRACE)
+ 
+ // TODO(petermarshall): Remove with the old tracing implementation - Perfetto
+ // copies const char* arguments by default.
+ // By default, const char* argument values are assumed to have long-lived scope
+ // and will not be copied. Use this macro to force a const char* to be copied.
+ #define TRACE_STR_COPY(str) v8::internal::tracing::TraceStringWithCopy(str)
+-
++#endif
+ // By default, trace IDs are eventually converted to a single 64-bit number. Use
+ // this macro to add a scope string.
+ #define TRACE_ID_WITH_SCOPE(scope, id) \
+@@ -279,6 +318,7 @@ enum CategoryGroupEnabledFlags {
+   INTERNAL_TRACE_EVENT_ADD_WITH_ID_AND_TIMESTAMP(                      \
+       phase, category_group, name, id, timestamp, flags, ##__VA_ARGS__)
+ 
++#if !defined(ENABLE_LYNX_TRACE)      
+ #define TRACE_EVENT_CALL_STATS_SCOPED(isolate, category_group, name) \
+   INTERNAL_TRACE_EVENT_CALL_STATS_SCOPED(isolate, category_group, name)
+ 
+@@ -295,6 +335,7 @@ enum CategoryGroupEnabledFlags {
+ #else  // V8_RUNTIME_CALL_STATS
+ #define INTERNAL_TRACE_EVENT_CALL_STATS_SCOPED(isolate, category_group, name)
+ #endif  // V8_RUNTIME_CALL_STATS
++#endif  // !defined(ENABLE_LYNX_TRACE)
+ 
+ namespace v8 {
+ namespace internal {
+diff --git a/src/tracing/traced-value.cc b/src/tracing/traced-value.cc
+index d956b147..4666704b 100644
+--- a/src/tracing/traced-value.cc
++++ b/src/tracing/traced-value.cc
+@@ -217,7 +217,17 @@ void TracedValue::AppendAsTraceFormat(std::string* out) const {
+   *out += '}';
+ }
+ 
+-#ifdef V8_USE_PERFETTO
++const char* TracedValue::GetTracedValueString() const { return data_.c_str(); }
++
++#ifdef ENABLE_LYNX_TRACE
++void TracedValue::Add(lynx::perfetto::LynxDebugAnnotation* annotation) const {
++  std::string json;
++  json += "{";
++  json += data_;
++  json += "}";
++  annotation->set_legacy_json_value(json);
++}
++#elif defined(V8_USE_PERFETTO)
+ void TracedValue::Add(
+     perfetto::protos::pbzero::DebugAnnotation* annotation) const {
+   std::string json;
+diff --git a/src/tracing/traced-value.h b/src/tracing/traced-value.h
+index a043b4dd..fdd11be0 100644
+--- a/src/tracing/traced-value.h
++++ b/src/tracing/traced-value.h
+@@ -18,7 +18,10 @@ namespace v8 {
+ namespace tracing {
+ 
+ class V8_EXPORT_PRIVATE TracedValue : public ConvertableToTraceFormat
+-#ifdef V8_USE_PERFETTO
++#ifdef ENABLE_LYNX_TRACE
++    ,
++                                      public lynx::perfetto::LynxDebugAnnotation
++#elif defined(V8_USE_PERFETTO)
+     ,
+                                       public perfetto::DebugAnnotation
+ #endif  // V8_USE_PERFETTO
+@@ -63,7 +66,11 @@ class V8_EXPORT_PRIVATE TracedValue : public ConvertableToTraceFormat
+   // ConvertableToTraceFormat implementation.
+   void AppendAsTraceFormat(std::string* out) const override;
+ 
+-#ifdef V8_USE_PERFETTO
++  const char* GetTracedValueString() const;
++
++#ifdef ENABLE_LYNX_TRACE
++  void Add(lynx::perfetto::LynxDebugAnnotation*) const;
++#elif defined(V8_USE_PERFETTO)
+   // DebugAnnotation implementation.
+   void Add(perfetto::protos::pbzero::DebugAnnotation*) const override;
+ #endif  // V8_USE_PERFETTO
+-- 
+2.39.3 (Apple Git-145)
+

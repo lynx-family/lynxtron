@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+
+    "lib": ["ES2023"],
+    "target": "ES2022"
+  },
+  "include": [
+    "./lynx.config.ts",
+    "./vitest.config.ts",
+    "./rspack.config.ts"
+  ]
+}

@@ -1,0 +1,49 @@
+import("npm.gni")
+tsconfig = rebase_path("../tsconfig.json")
+yarn_lock_file = rebase_path("../yarn.lock")
+ambient_d_ts = rebase_path("../typings/internal-ambient.d.ts")
+lynxtron_d_ts = rebase_path("../typings/internal-lynxtron.d.ts")
+
+template("typescript_build") {
+  assert(defined(invoker.tsconfig), "Need tsconfig name to run")
+  assert(defined(invoker.sources), "Need tsc sources to run")
+  assert(defined(invoker.output_dir_name),
+         "Need output_dir_name to run, should be 'lib' or other top level dir")
+  assert(defined(invoker.output_gen_dir),
+         "Need output_gen_dir to run, should be relative to the root gen dir")
+
+  npm_action(target_name) {
+    forward_variables_from(invoker,
+                           [
+                             "deps",
+                             "public_deps",
+                             "outputs",
+                           ])
+    script = "tsc"
+
+    sources = invoker.sources
+    inputs = [
+      invoker.tsconfig,
+      tsconfig,
+      yarn_lock_file,
+      ambient_d_ts,
+      lynxtron_d_ts,
+    ]
+
+    base_out_path = invoker.output_gen_dir + "/lynxtron/"
+    args = [
+      "-p",
+      rebase_path(invoker.tsconfig),
+      "--outDir",
+      rebase_path("$base_out_path" + invoker.output_dir_name),
+    ]
+
+    outputs = []
+
+    foreach(invoker_source, invoker.sources) {
+      # The output of TSC is all inputs but with JS instead of TS as the extension
+      outputs += [ "$base_out_path" + invoker.output_dir_name + "/" +
+                   get_path_info(invoker_source, "name") + ".js" ]
+    }
+  }
+}

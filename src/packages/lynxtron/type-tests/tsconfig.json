@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": false,
+    "baseUrl": "..",
+    "paths": {
+      "@lynx-js/lynxtron": ["./apis/lynxtron.d.ts"],
+      "@lynx-js/lynxtron/lynx": ["./apis/lynx.d.ts"]
+    }
+  },
+  "include": ["./lynx-consumer.ts", "./main-consumer.ts"]
+}

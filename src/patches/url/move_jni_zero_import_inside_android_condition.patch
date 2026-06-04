@@ -1,0 +1,42 @@
+From 687d32c3c4ec3e307a1eefffe32d06f73e1506dd Mon Sep 17 00:00:00 2001
+From: zsy-json <186247581+zsy-jason@users.noreply.github.com>
+Date: Tue, 26 Aug 2025 11:45:21 +0800
+Subject: [PATCH] move jni_zero import inside android condition
+
+Remove unused deps from url_unittests test target
+---
+ BUILD.gn | 9 +--------
+ 1 file changed, 1 insertion(+), 8 deletions(-)
+
+diff --git a/BUILD.gn b/BUILD.gn
+index 2ab7a8e..82a19fa 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -8,9 +8,9 @@ import("//testing/test.gni")
+ import("features.gni")
+ 
+ import("//build/config/cronet/config.gni")
+-import("//third_party/jni_zero/jni_zero.gni")
+ 
+ if (is_android) {
++  import("//third_party/jni_zero/jni_zero.gni")
+   import("//build/config/android/rules.gni")
+ }
+ 
+@@ -239,13 +239,6 @@ test("url_unittests") {
+       "mojom/scheme_host_port_mojom_traits_unittest.cc",
+       "mojom/url_gurl_mojom_traits_unittest.cc",
+     ]
+-    deps += [
+-      "//mojo/core/embedder",
+-      "//mojo/public/cpp/test_support:test_utils",
+-      "//url/ipc:url_ipc_unittests",
+-      "//url/mojom:mojom_traits",
+-      "//url/mojom:test_url_mojom_gurl",
+-    ]
+   }
+ 
+   # TODO(crbug.com/40031409): Fix code that adds exit-time destructors and
+-- 
+2.51.0
+

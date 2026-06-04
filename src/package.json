@@ -1,0 +1,57 @@
+{
+  "name": "lynxtron-workspace",
+  "version": "0.0.0-development",
+  "repository": "https://github.com/lynx-family/lynxtron",
+  "description": "Build cross platform desktop apps with JavaScript, HTML, and CSS",
+  "private": true,
+  "devDependencies": {
+    "@changesets/cli": "^2.27.7",
+    "@electron/asar": "^3.2.13",
+    "@swc/core": "^1.15.40",
+    "@types/estree": "^1.0.5",
+    "@types/node": "^22.7.7",
+    "@types/semver": "^7.5.8",
+    "folder-hash": "^2.1.1",
+    "pre-flight": "^2.0.0",
+    "process": "^0.11.10",
+    "semver": "^7.6.3",
+    "ts-loader": "^8.0.2",
+    "ts-node": "6.2.0",
+    "typescript": "^5.6.2",
+    "webpack": "^5.95.0",
+    "webpack-cli": "^5.1.4",
+    "wrapper-webpack-plugin": "^2.2.0"
+  },
+  "scripts": {
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "changeset publish",
+    "generate-version-json": "node script/generate-version-json.js",
+    "pre-flight": "pre-flight",
+    "tsc": "tsc",
+    "webpack": "webpack",
+    "test": "node ./script/spec-runner.js",
+    "test:build:lynx": "npm --prefix spec/case/lynx-card run build --"
+  },
+  "license": "MIT",
+  "author": "Lynxtron Authors",
+  "keywords": [
+    "lynxtron"
+  ],
+  "workspaces": [
+    "packages/default_app/app",
+    "packages/lynxtron",
+    "packages/lynxtron-builder",
+    "packages/lynxtron-shell-demo",
+    "packages/lynxtron-dev-plugins",
+    "packages/create-lynxtron",
+    "spec/case/lynx-card",
+    "packages/extension-builder"
+  ],
+  "packageManager": "yarn@4.0.0",
+  "resolutions": {
+    "nan": "nodejs/nan#e14bdcd1f72d62bca1d541b66da43130384ec213",
+    "memfs": "4.56.10",
+    "@jsonjoy.com/fs-snapshot": "4.56.10"
+  }
+}

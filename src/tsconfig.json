@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2020",
+    "lib": [
+      "es2022",
+      "dom",
+      "dom.iterable"
+    ],
+    "sourceMap": true,
+    "experimentalDecorators": true,
+    "strict": true,
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
+    "allowJs": true,
+    "noUnusedLocals": true,
+    "outDir": "ts-gen",
+    "typeRoots" : ["./node_modules/@types", "./spec/node_modules/@types"],
+    "paths": {
+      "@lynxtron/internal/*": ["lib/*"],
+      "@node/*": ["../third_party/node/*"],
+      "lynxtron": ["typings/internal-lynxtron.d.ts"],
+    }
+  }
+}

@@ -1,0 +1,3 @@
+import("all.gn")
+is_official_build = true
+optimize_for_size = true

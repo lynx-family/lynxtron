@@ -1,0 +1,250 @@
+import os
+import platform
+import shutil
+
+machine = platform.machine().lower()
+machine = "x86_64" if machine == "amd64" else machine
+system = platform.system().lower()
+
+def symlink_googletest():
+    src = os.path.join(os.getcwd(), "../third_party/googletest/src/googletest")
+    dest = os.path.join(os.getcwd(), "../third_party/googletest/googletest")
+    symlink_dir(src, dest)
+
+
+def symlink_dir(src, dest):
+    src = os.path.normpath(src)
+    dest = os.path.normpath(dest)
+    
+    if os.path.exists(dest) or os.path.islink(dest):
+        if os.path.islink(dest):
+            os.unlink(dest)
+        elif os.path.isdir(dest):
+            # islink has some problem, so use unlink here
+            os.unlink(dest)
+            # shutil.rmtree(dest)
+        else:
+            os.remove(dest)
+    dest_parent = os.path.dirname(dest)
+    if dest_parent and not os.path.exists(dest_parent):
+        os.makedirs(dest_parent, exist_ok=True)
+    try:
+        if system == "windows":
+            import subprocess
+            subprocess.run(
+                ["mklink", "/J", dest, src],
+                check=True,
+                shell=True
+            )
+        else:
+            os.symlink(src, dest)
+    except Exception as e:
+        if system == "windows":
+            try:
+                os.symlink(src, dest)
+            except Exception as e2:
+                raise
+        else:
+            raise
+
+
+yarn_version = '4.0.0'
+chromium_git = 'https://chromium.googlesource.com'
+boringssl_git = 'https://github.com/google/boringssl.git'
+nodejs_git = 'https://github.com/nodejs'
+
+url_revision = 'e93dc734ccd3f4a5b1f554121697749018b61f36'
+crypto_revision = 'e023bab238d9800a0f59ee3ca5a527c5e93577a3'
+v8_revision = 'fdb12b460f148895f6af2ff0e0d870ff8889f154'
+node_version = 'c9ff1aecf268802fc29272c93aaa4b0691c7c6d8' #v22.18.0
+base_version = '94e25914771ed7d72590c5a7b75dcf0a8e7ac9bd'
+build_version = '5bb4abc6c9696e47a38e64ebc96451400037b3dc'
+testing_version = '4ba43a16dce6d48bda21a2192657c1b73c381b3d'
+tools_version = '979ea287cf0943e39dd22ff16c294fc9b3a01067'
+boringssl_revision = '71147d3763466094df692df97afef42e4ce26a4f'
+compiler_rt_revision = '4b7737323cd4916a55a1a234168eeec9bc51db04'
+dragonbox_revision = '6c7c925b571d54486b9ffae8d9d18a822801cbda'
+fast_float_revision = 'cb1d42aaa1e14b09e1452cfdef373d051b8c02a4'
+fp16_revision = 'b3720617faf1a4581ed7e6787cc51722ec7751f0'
+fuzztest_revision = '2bc33128266f1e4385d42dabc0999b42e463b708'
+google_benchmark_revision = '761305ec3b33abf30e08d50eb829e19a802581cc'
+googletest_revision = "7c3b4d54e3294990d9c3de583fccff97116efb6b"
+highway_revision = '00fe003dac355b979f36157f9407c7c46448958e'
+jsoncpp_revision = '42e892d96e47b1f6e29844cc705e148ec4856448'
+libcxx_revision = '6f8fe913d64254ab2231e0e98d2b6b5650ef4917'
+libcxxabi_revision = 'a6c815c69d55ec59d020abde636754d120b402ad'
+llvm_libc_revision = '6f9300acc74ac52d909e21b6d8bf2355fe6c78a7'
+catapult_revision = 'b768acbe184d829b6719faa0308668faaed1a6a8'
+nasm_revision = 'e2c93c34982b286b27ce8b56dd7159e0b90869a2'
+
+deps = {
+    '../url': {
+        'type': 'git',
+        'url': f'{chromium_git}/chromium/src/url.git',
+        'commit': url_revision,
+        'ignore_in_git': True,
+    },
+    '../crypto': {
+        'type': 'git',
+        'url': f'{chromium_git}/chromium/src/crypto.git',
+        'commit': crypto_revision,
+        'ignore_in_git': True,
+    },
+    '../v8': {
+        'type': 'git',
+        'url': f'{chromium_git}/v8/v8.git',
+        'commit': v8_revision,
+        'ignore_in_git': True,
+    },
+    '../third_party/node': {
+        'type': 'git',
+        'url': f'{nodejs_git}/node.git',
+        'commit': node_version,
+        'ignore_in_git': True,
+    },
+    '../base': {
+        'type': 'git',
+        'url': f'{chromium_git}/chromium/src/base.git',
+        'commit': base_version,
+        'ignore_in_git': True,
+    },
+    '../build': {
+        'type': 'git',
+        'url': f'{chromium_git}/chromium/src/build.git',
+        'commit': build_version,
+        'ignore_in_git': True,
+    },
+    '../testing': {
+        'type': 'git',
+        'url': f'{chromium_git}/chromium/src/testing.git',
+        'commit': testing_version,
+        'ignore_in_git': True,
+    },
+    '../tools': {
+        'type': 'git',
+        'url': f'{chromium_git}/chromium/src/tools.git',
+        'commit': tools_version,
+        'ignore_in_git': True,
+    },
+    '../third_party/rust': {
+        'type': 'git',
+        'url': f'{chromium_git}/chromium/src/third_party/rust.git',
+        'commit': '88f2fff708fb2748ecd986dff52001fe554bee8b',
+        'ignore_in_git': True,
+    },
+    '../third_party/protobuf': {
+        'type': 'git',
+        'url': f'{chromium_git}/chromium/src/third_party/protobuf.git',
+        'commit': '78c1ca719e3117e1c426a3da1e6938a5344061cb',
+        'ignore_in_git': True,
+    },
+    '../third_party/ced/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/google/compact_enc_det.git',
+        'commit': 'ba412eaaacd3186085babcd901679a48863c7dd5',
+        'ignore_in_git': True,
+    },
+    '../third_party/compiler-rt/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/llvm/llvm-project/compiler-rt.git',
+        'commit': compiler_rt_revision,
+        'ignore_in_git': True,
+    },
+    '../third_party/dragonbox/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/jk-jeon/dragonbox.git',
+        'commit': dragonbox_revision,
+        'ignore_in_git': True,
+    },
+    '../third_party/fast_float/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/fastfloat/fast_float.git',
+        'commit': fast_float_revision,
+        'ignore_in_git': True,
+    },
+    '../third_party/fp16/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/Maratyszcza/FP16.git',
+        'commit': fp16_revision,
+        'ignore_in_git': True,
+    },
+    '../third_party/fuzztest/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/google/fuzztest.git',
+        'commit': fuzztest_revision,
+        'ignore_in_git': True,
+    },
+    '../third_party/google_benchmark/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/google/benchmark.git',
+        'commit': google_benchmark_revision,
+        'ignore_in_git': True,
+    },
+    '../third_party/highway/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/google/highway.git',
+        'commit': highway_revision,
+        'ignore_in_git': True,
+    },
+    '../third_party/llvm-libc/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/llvm/llvm-project/libc.git',
+        'commit': llvm_libc_revision,
+        'ignore_in_git': True,
+    },
+    '../third_party/re2/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/google/re2.git',
+        'commit': '6569a9a3df256f4c0c3813cb8ee2f8eef6e2c1fb',
+        'ignore_in_git': True,
+    },
+    '../third_party/libc++/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/llvm/llvm-project/libcxx.git',
+        'commit': libcxx_revision,
+        'ignore_in_git': True,
+    },
+    '../third_party/libc++abi/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/llvm/llvm-project/libcxxabi.git',
+        'commit': libcxxabi_revision,
+        'ignore_in_git': True,
+    },
+    '../third_party/nasm': {
+        'type': 'git',
+        'url': f'{chromium_git}/chromium/deps/nasm.git',
+        'commit': nasm_revision,
+        'ignore_in_git': True,
+    },
+    '../third_party/sqlite/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/chromium/deps/sqlite.git',
+        'commit': 'cc08c79629643fdd5b592f1391e738815f5577b6',
+        'ignore_in_git': True,
+    },
+    '../third_party/catapult': {
+        'type': 'git',
+        'url': f'{chromium_git}/catapult.git',
+        'commit': catapult_revision,
+        'ignore_in_git': True,
+    },
+    '../third_party/zstd/src': {
+        'type': 'git',
+        'url': f'{chromium_git}/external/github.com/facebook/zstd.git',
+        'commit': 'e128976193546dceb24249206a02ff8f444f7120',
+        'ignore_in_git': True,
+    },
+    '../third_party/googletest/src': {
+        'type': 'git',
+        'url': 'https://github.com/google/googletest.git',
+        'commit': googletest_revision,
+        'ignore_in_git': True,
+    },
+    '../symlink_googletest': {
+        'type': 'action',
+        'cwd': os.getcwd(),
+        'function': symlink_googletest,
+        'ignore_in_git': True,
+        'require': ['../third_party/googletest/src'],
+    },
+}

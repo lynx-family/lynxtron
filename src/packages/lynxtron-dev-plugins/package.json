@@ -1,0 +1,33 @@
+{
+  "name": "@lynx-js/lynxtron-dev-plugins",
+  "version": "0.0.0-alpha.8",
+  "type": "module",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "files": [
+    "dist/",
+    "bin/",
+    "index.js",
+    "index.d.ts",
+    "README.md"
+  ],
+  "exports": {
+    "./rspeedy": {
+      "types": "./dist/rspeedy.d.ts",
+      "default": "./dist/rspeedy.js"
+    },
+    "./rspack": {
+      "types": "./dist/rspack.d.ts",
+      "default": "./dist/rspack.js"
+    }
+  },
+  "bin": {
+    "dev-ready-rspeedy": "bin/cli-rspeedy.js"
+  },
+  "peerDependencies": {
+    "@rsbuild/core": "^1.6.0"
+  }
+}

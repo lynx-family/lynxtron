@@ -1,0 +1,61 @@
+{
+  "name": "@lynx-js/lynxtron",
+  "version": "0.0.0-alpha",
+  "description": "lynxtron npm package test",
+  "type": "module",
+  "types": "./apis/lynxtron.d.ts",
+  "main": "lynxtron.js",
+  "bin": {
+    "lynxtron": "cli.js",
+    "lynxtron-fuses": "fuses-cli.js"
+  },
+  "scripts": {
+    "postinstall": "node install.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "extract-zip": "2.0.1",
+    "node-fetch": "3.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.3"
+  },
+  "author": "",
+  "license": "ISC",
+  "keywords": [
+    "lynxtron"
+  ],
+  "files": [
+    "apis",
+    "utils",
+    "cli.js",
+    "fuses.js",
+    "fuses-cli.js",
+    "install.js",
+    "lynx.js",
+    "lynxtron.js",
+    "lynxtron_bin.js",
+    "web-host",
+    "web-worker.js",
+    "context-bridge.js",
+    "README.md",
+    "package.json"
+  ],
+  "exports": {
+    ".": "./lynxtron.js",
+    "./lynx": {
+      "types": "./apis/lynx.d.ts",
+      "default": "./lynx.js"
+    },
+    "./fuses": "./fuses.js",
+    "./context-bridge": {
+      "browser": "./web-worker.js",
+      "default": "./context-bridge.js"
+    },
+    "./web-host": "./web-host/index.js",
+    "./web-worker": "./web-worker.js"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}

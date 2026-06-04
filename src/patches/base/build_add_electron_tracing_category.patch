@@ -1,0 +1,21 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samuel Attard <sattard@slack-corp.com>
+Date: Tue, 23 Apr 2019 09:51:43 -0700
+Subject: build_add_electron_tracing_category.patch
+
+All TRACE events in Chromium use a static assert to ensure that the
+categories in use are known / declared.  This patch is required for us
+to introduce a new Electron category for Electron-specific tracing.
+
+diff --git a/trace_event/builtin_categories.h b/trace_event/builtin_categories.h
+index e72bdff1c640ae6f6cbf91727a01985ccf9bd83b..40059b155b5ea9882a2ae4b624c68d3335fdc9f9 100644
+--- a/trace_event/builtin_categories.h
++++ b/trace_event/builtin_categories.h
+@@ -124,6 +124,7 @@ PERFETTO_DEFINE_CATEGORIES_IN_NAMESPACE_WITH_ATTRS(
+     perfetto::Category("drm"),
+     perfetto::Category("drmcursor"),
+     perfetto::Category("dwrite"),
++    perfetto::Category("electron"),
+     perfetto::Category("evdev").SetTags("input"),
+     perfetto::Category("event"),
+     perfetto::Category("exo"),

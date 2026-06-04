@@ -1,0 +1,39 @@
+// Copyright 2026 The Lynxtron Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
+export interface Task {
+  /**
+   * The command line arguments when `program` is executed.
+   */
+  arguments: string;
+  /**
+   * Description of this task.
+   */
+  description: string;
+  /**
+   * The icon index in the icon file. If an icon file consists of two or more icons,
+   * set this value to identify the icon. If an icon file consists of one icon, this
+   * value is 0.
+   */
+  iconIndex: number;
+  /**
+   * The absolute path to an icon to be displayed in a JumpList, which can be an
+   * arbitrary resource file that contains an icon. You can usually specify
+   * `process.execPath` to show the icon of the program.
+   */
+  iconPath: string;
+  /**
+   * Path of the program to execute, usually you should specify `process.execPath`
+   * which opens the current program.
+   */
+  program: string;
+  /**
+   * The string to be displayed in a JumpList.
+   */
+  title: string;
+  /**
+   * The working directory. Default is empty.
+   */
+  workingDirectory?: string;
+}

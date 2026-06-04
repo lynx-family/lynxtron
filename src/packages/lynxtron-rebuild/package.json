@@ -1,0 +1,20 @@
+{
+  "name": "@lynx-js/lynxtron-rebuild",
+  "version": "0.0.0-alpha",
+  "description": "Rebuild native modules for Lynxtron",
+  "main": "lib/index.js",
+  "bin": {
+    "lynxtron-rebuild": "bin/lynxtron-rebuild.js"
+  },
+  "type": "module",
+  "keywords": [
+    "lynxtron",
+    "rebuild"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "compressing": "^1.10.0",
+    "node-gyp": "^12.2.0"
+  }
+}

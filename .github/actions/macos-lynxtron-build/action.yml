@@ -1,0 +1,31 @@
+name: build macos lynxtron
+
+description: build macos lynxtron
+
+inputs:
+  build-arch:
+    description: The architecture of lynxtron we are building. It could be x64,arm64
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Prepare environment
+      shell: bash
+      run: |
+        set -x
+        cd ${{ github.workspace }}/lynxtron
+        git config --global user.name "Lynxtron Scripts"
+        git config --global user.email "scripts@lynxtron.com"
+        source lynxtron_tools/envsetup.sh
+        python3 lynxtron_tools/prepare_build_env.py
+    - name: Build macOS Lynxtron
+      shell: bash
+      run: |-
+        set -x
+        cd ${{ github.workspace }}/lynxtron
+        source lynxtron_tools/envsetup.sh
+        python3 lynxtron_tools/gn/gn.py --mac-cpu ${{ inputs.build-arch }}
+        ninja -C out/Release lynxtron_app
+        grep -q 'USE_PARTITION_ALLOC_AS_MALLOC() (0)' out/Release/gen/base/allocator/partition_allocator/src/partition_alloc/buildflags.h
+        grep -q 'ENABLE_BACKUP_REF_PTR_SUPPORT() (0)' out/Release/gen/base/allocator/partition_allocator/src/partition_alloc/buildflags.h

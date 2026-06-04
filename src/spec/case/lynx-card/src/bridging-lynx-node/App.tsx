@@ -1,0 +1,23 @@
+// Copyright 2026 The Lynxtron Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
+import { useEffect } from '@lynx-js/react';
+
+export default function App() {
+  useEffect(() => {
+    const bridge = (NativeModules as any).bridge as any;
+    bridge.call('onRender-test-event', { msg: 'test-test' }, (params: any) => {
+      bridge.send('callback', {
+        from: '-lynx-invoke-callback',
+        rawParams: params,
+      });
+    });
+  }, []);
+
+  return (
+    <view style={{ flexDirection: 'column' as const }} className="container">
+      <text>Hello, ReactLynx 3!</text>
+    </view>
+  );
+}

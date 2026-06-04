@@ -1,0 +1,68 @@
+import("../npm.gni")
+webpack_base_config = rebase_path("webpack.config.base.js")
+tsconfig = rebase_path("../../tsconfig.json")
+yarn_lock_file = rebase_path("../../yarn.lock")
+ambient_d_ts = rebase_path("../../typings/internal-ambient.d.ts")
+lynxtron_d_ts = rebase_path("../../typings/internal-lynxtron.d.ts")
+
+template("webpack_build") {
+  assert(defined(invoker.config_file), "Need webpack config file to run")
+  assert(defined(invoker.out_file), "Need output file to run")
+  assert(defined(invoker.inputs), "Need webpack inputs to run")
+
+  npm_action(target_name) {
+    forward_variables_from(invoker,
+                           [
+                             "deps",
+                             "public_deps",
+                           ])
+    script = "webpack"
+
+    inputs = [
+               invoker.config_file,
+               webpack_base_config,
+               tsconfig,
+               yarn_lock_file,
+               ambient_d_ts,
+               lynxtron_d_ts,
+             ] + invoker.inputs
+
+    mode = "development"
+    if (is_official_build) {
+      mode = "production"
+    }
+
+    args = [
+      "--config",
+      rebase_path(invoker.config_file),
+      "--output-filename",
+      get_path_info(invoker.out_file, "file"),
+      "--output-path",
+      rebase_path(get_path_info(invoker.out_file, "dir")),
+
+      # "--env",
+      # "buildflags=" + rebase_path("$target_gen_dir/buildflags/buildflags.h"),
+      "--env",
+      "mode=" + mode,
+    ]
+    if (defined(invoker.module_list_path)) {
+      args += [
+        "--env",
+        "moduleListPath=" + invoker.module_list_path,
+      ]
+    }
+    if (defined(invoker.extra_env)) {
+      foreach(e, invoker.extra_env) {
+        args += [
+          "--env",
+          e,
+        ]
+      }
+    }
+
+    # TODO(Guo Xi) : There is an override version in electron/buildflags; check if it is still needed.
+    # deps += [ "//electron/buildflags" ]
+
+    outputs = [ invoker.out_file ]
+  }
+}

@@ -1,0 +1,37 @@
+generate_template_script = rebase_path("generate-template.py")
+template("templated_file") {
+  assert(defined(invoker.template), "Need template file to run")
+  assert(defined(invoker.output), "Need output file to run")
+
+  if (defined(invoker.values)) {
+    args_path = "$target_gen_dir/$target_name.args"
+    write_file(args_path, invoker.values, "json")
+  }
+
+  action(target_name) {
+    forward_variables_from(invoker,
+                           [
+                             "deps",
+                             "public_deps",
+                           ])
+    inputs = [ invoker.template ]
+    if (defined(invoker.inputs)) {
+      inputs += invoker.inputs
+    }
+    outputs = [ invoker.output ]
+    script = generate_template_script
+    args = [
+      rebase_path(invoker.template),
+      rebase_path(invoker.output),
+    ]
+
+    if (defined(invoker.values)) {
+      args += rebase_path(args_path)
+    }
+
+    if (defined(invoker.args_files)) {
+      args += rebase_path(invoker.args_files)
+      inputs += invoker.args_files
+    }
+  }
+}

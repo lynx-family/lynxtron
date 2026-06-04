@@ -1,0 +1,53 @@
+From 5ed73dab313afca27689a5220b54ab5e057f8ded Mon Sep 17 00:00:00 2001
+From: tangyongjie <80395553+yongjieTang@users.noreply.github.com>
+Date: Tue, 3 Mar 2026 17:15:45 +0800
+Subject: [PATCH] adapt lynx trace
+
+---
+ secondary/lynx/base/src/BUILD.gn          | 5 +++++
+ secondary/lynx/base/trace/darwin/BUILD.gn | 5 +++++
+ secondary/lynx/base/trace/native/BUILD.gn | 5 +++++
+ 3 files changed, 15 insertions(+)
+ create mode 100644 secondary/lynx/base/src/BUILD.gn
+ create mode 100644 secondary/lynx/base/trace/darwin/BUILD.gn
+ create mode 100644 secondary/lynx/base/trace/native/BUILD.gn
+
+diff --git a/secondary/lynx/base/src/BUILD.gn b/secondary/lynx/base/src/BUILD.gn
+new file mode 100644
+index 0000000..233da0e
+--- /dev/null
++++ b/secondary/lynx/base/src/BUILD.gn
+@@ -0,0 +1,5 @@
++group("base_group") {
++  public_deps = [
++    "//lynx/lynx/base/src:base_group"
++  ]
++}
+\ No newline at end of file
+diff --git a/secondary/lynx/base/trace/darwin/BUILD.gn b/secondary/lynx/base/trace/darwin/BUILD.gn
+new file mode 100644
+index 0000000..2de6831
+--- /dev/null
++++ b/secondary/lynx/base/trace/darwin/BUILD.gn
+@@ -0,0 +1,5 @@
++group("LynxTrace") {
++  public_deps = [
++    "//lynx/lynx/base/trace/darwin:LynxTrace"
++  ]
++}
+\ No newline at end of file
+diff --git a/secondary/lynx/base/trace/native/BUILD.gn b/secondary/lynx/base/trace/native/BUILD.gn
+new file mode 100644
+index 0000000..85f68c5
+--- /dev/null
++++ b/secondary/lynx/base/trace/native/BUILD.gn
+@@ -0,0 +1,5 @@
++group("trace") {
++  public_deps = [
++    "//lynx/lynx/base/trace/native:trace"
++  ]
++}
+\ No newline at end of file
+-- 
+2.39.3 (Apple Git-145)
+

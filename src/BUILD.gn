@@ -1,0 +1,1109 @@
+# Copyright 2025 The Lynxtron Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+import("//build/config/win/manifest.gni")
+import("//lynx/config.gni")
+import("//testing/test.gni")
+import("//tools/v8_context_snapshot/v8_context_snapshot.gni")
+import("../config.gni")
+import("build/asar.gni")
+import("build/js2c_toolchain.gni")
+import("build/npm.gni")
+import("build/templated_file.gni")
+import("build/tsc.gni")
+import("build/webpack/webpack.gni")
+import("lynxtron_extra.gni")
+
+if (is_mac) {
+  import("//build/config/mac/rules.gni")
+  import("//third_party/icu/config.gni")
+  import("//v8/gni/v8.gni")
+
+  assert(
+      mac_deployment_target == "12.0",
+      "Chromium has updated the mac_deployment_target, please update this assert and flag this as a breaking change (docs/breaking-changes.md)")
+}
+
+lynxtron_project_name = "lynxtron"
+lynxtron_product_name = "Lynxtron"
+
+# TODO(Guo Xi): We need to consider how to generate version numbers, referring to Chrome's approach (as seen in chrome/VERSION)
+lynxtron_version = "1.0.0"
+
+declare_args() {
+  # Keep this list aligned with the localized InfoPlist.strings resources that
+  # we package into the macOS app bundle. The entries use Chromium locale names
+  # and are converted to Apple output names below.
+  lynxtron_mac_locales = [
+    "en-US",
+    "zh-CN",
+  ]
+}
+
+lynxtron_mac_locales_as_apple_outputs = []
+foreach(locale, lynxtron_mac_locales) {
+  if (locale == "en-US") {
+    lynxtron_mac_locales_as_apple_outputs += [ "en" ]
+  } else {
+    lynxtron_mac_locales_as_apple_outputs +=
+        [ string_replace(locale, "-", "_") ]
+  }
+}
+
+config("branding") {
+  defines = [
+    "LYNXTRON_PRODUCT_NAME=\"$lynxtron_product_name\"",
+    "LYNXTRON_PROJECT_NAME=\"$lynxtron_project_name\"",
+  ]
+}
+
+config("lynxtron_lib_config") {
+  include_dirs = [ "." ]
+  defines = []
+  if (enable_trace == "perfetto") {
+    defines += [ "ENABLE_TRACE_PERFETTO" ]
+  }
+}
+
+action("lynxtron_generate_node_defines") {
+  script = "build/generate_node_defines.py"
+
+  inputs = [
+    "//third_party/node/src/tracing/trace_event_common.h",
+    "//third_party/node/src/tracing/trace_event.h",
+    "//third_party/node/src/util.h",
+  ]
+
+  outputs = [
+    "$target_gen_dir/push_and_undef_node_defines.h",
+    "$target_gen_dir/pop_node_defines.h",
+  ]
+
+  args = [ rebase_path(target_gen_dir) ] + rebase_path(inputs)
+}
+
+npm_action("lynxtron_version_args") {
+  script = "generate-version-json"
+
+  outputs = [ "$target_gen_dir/lynxtron_version.args" ]
+
+  args = rebase_path(outputs) + [ "$lynxtron_version" ]
+
+  inputs = [ "script/generate-version-json.js" ]
+}
+
+templated_file("lynxtron_version_header") {
+  deps = [ ":lynxtron_version_args" ]
+
+  template = "build/templates/lynxtron_version.tmpl"
+  output = "$target_gen_dir/lynxtron_version.h"
+
+  args_files = get_target_outputs(":lynxtron_version_args")
+}
+
+copy("lynxtron_win_resource_files") {
+  sources = [
+    "shell/app/resources/win/lynxtron.ico",
+    "shell/app/resources/win/resource.h",
+  ]
+  outputs = [ "$target_gen_dir/win-resources/{{source_file_part}}" ]
+}
+
+templated_file("lynxtron_version_file") {
+  deps = [ ":lynxtron_version_args" ]
+
+  template = "build/templates/version_string.tmpl"
+  output = "$root_build_dir/version"
+
+  args_files = get_target_outputs(":lynxtron_version_args")
+}
+
+lynx_bts_bundle_deps = [
+  "lib/common/define-properties.ts",
+  "lib/lynxbts/api/context-bridge.ts",
+  "lib/lynxbts/api/exports/lynxtron.ts",
+  "lib/lynxbts/api/preload-runner.ts",
+  "lib/lynxbts/init.ts",
+  "lib/node/asar-fs-wrapper.ts",
+]
+
+webpack_build("lynxtron_bts_bundle") {
+  inputs = lynx_bts_bundle_deps
+
+  config_file = rebase_path("build/webpack/webpack.config.lynxbts.js")
+  out_file = "$root_gen_dir/lynxtron/js2c/lynxbts_init.js"
+}
+
+browser_bundle_deps = [
+  "lib/browser/api/app.ts",
+  "lib/browser/api/base-window.ts",
+  "lib/browser/api/dialog.ts",
+  "lib/browser/api/exports/lynxtron.ts",
+  "lib/browser/api/lynx-template-bundle.ts",
+  "lib/browser/api/lynx-template-data.ts",
+  "lib/browser/api/lynx-update-meta.ts",
+  "lib/browser/api/lynx-window.ts",
+  "lib/browser/api/menu-item-roles.ts",
+  "lib/browser/api/menu-item.ts",
+  "lib/browser/api/menu-utils.ts",
+  "lib/browser/api/menu.ts",
+  "lib/browser/api/module-list.ts",
+  "lib/browser/api/native-image.ts",
+  "lib/browser/api/notification.ts",
+  "lib/browser/api/power-monitor.ts",
+  "lib/browser/api/screen.ts",
+  "lib/browser/api/shell.ts",
+  "lib/browser/api/tray.ts",
+  "lib/browser/init.ts",
+  "lib/common/define-properties.ts",
+  "lib/common/webpack-globals-provider.ts",
+  "package.json",
+  "tsconfig.json",
+  "tsconfig.lynxtron.json",
+  "typings/internal-ambient.d.ts",
+  "typings/internal-lynxtron.d.ts",
+]
+
+webpack_build("lynxtron_browser_bundle") {
+  # deps = [ ":build_lynxtron_definitions" ]
+
+  inputs = browser_bundle_deps + lynxtron_lib_browser_module_list_path
+
+  foreach(p, lynxtron_lib_browser_module_list_path) {
+    if (get_path_info(p, "name") == "module-list" &&
+        get_path_info(p, "extension") == "ts") {
+      module_list_path = rebase_path(p)
+    }
+  }
+
+  config_file = rebase_path("build/webpack/webpack.config.browser.js")
+  out_file = "$root_gen_dir/lynxtron/js2c/browser_init.js"
+}
+
+node_bundle_deps = [
+  "lib/node/asar-fs-wrapper.ts",
+  "lib/node/init.ts",
+  "package.json",
+  "tsconfig.json",
+  "tsconfig.lynxtron.json",
+  "typings/internal-ambient.d.ts",
+  "typings/internal-lynxtron.d.ts",
+]
+
+webpack_build("lynxtron_node_bundle") {
+  # deps = [ ":build_lynxtron_definitions" ]
+
+  inputs = node_bundle_deps
+
+  config_file = "build/webpack/webpack.config.node.js"
+  out_file = "$root_gen_dir/lynxtron/js2c/node_init.js"
+}
+
+action("lynxtron_js2c") {
+  deps = [
+    ":lynxtron_browser_bundle",
+    ":lynxtron_bts_bundle",
+    ":lynxtron_node_bundle",
+    "//third_party/node:node_js2c($lynxtron_js2c_toolchain)",
+  ]
+
+  sources = [
+    "$root_gen_dir/lynxtron/js2c/browser_init.js",
+    "$root_gen_dir/lynxtron/js2c/lynxbts_init.js",
+    "$root_gen_dir/lynxtron/js2c/node_init.js",
+  ]
+
+  inputs = sources
+  outputs = [ "$root_gen_dir/lynxtron_natives.cc" ]
+
+  script = "build/js2c.py"
+  out_dir =
+      get_label_info(":anything($lynxtron_js2c_toolchain)", "root_out_dir")
+  args = [
+           rebase_path("$out_dir/node_js2c"),
+           rebase_path("$root_gen_dir"),
+         ] + rebase_path(outputs, root_gen_dir) +
+         rebase_path(sources, root_gen_dir)
+}
+
+target_gen_default_app_js = "$root_gen_dir/lynxtron/js/default_app"
+
+typescript_build("default_app_js") {
+  # deps = [ ":build_lynxtron_definitions" ]
+
+  sources = [
+    "packages/default_app/default_app.ts",
+    "packages/default_app/main.ts",
+  ]
+
+  output_gen_dir = "${target_gen_default_app_js}"
+  output_dir_name = "default_app"
+  tsconfig = "packages/default_app/tsconfig.json"
+}
+
+copy("default_app_static") {
+  exec_script("packages/default_app/app/build.py")
+  sources = [
+    "packages/default_app/app/dist/default_app.bundle",
+    "packages/default_app/icon.png",
+    "packages/default_app/package.json",
+  ]
+
+  outputs =
+      [ "$target_gen_default_app_js/lynxtron/default_app/{{source_file_part}}" ]
+}
+
+# copy("default_app_octicon_deps") {
+#   sources = filenames.default_app_octicon_sources
+#   outputs = [ "$target_gen_default_app_js/lynxtron/default_app/octicon/{{source_file_part}}" ]
+# }
+
+asar("default_app_asar") {
+  deps = [
+    ":default_app_js",
+    ":default_app_static",
+  ]
+  deps += lynxtron_asar_extra_deps
+
+  root = "$target_gen_default_app_js/lynxtron/default_app"
+  sources = get_target_outputs(":default_app_js") +
+            get_target_outputs(":default_app_static")
+  outputs = [ "$root_out_dir/resources/default_app.asar" ]
+}
+
+node_action("default_app_asar_win_integrity") {
+  hash_files = get_target_outputs(":default_app_asar_header_hash")
+
+  deps = [ ":default_app_asar_header_hash" ]
+  inputs = hash_files
+  outputs = [ "$target_gen_dir/win-resources/default_app.asar.integrity.json" ]
+
+  script = "script/gn-win-asar-integrity.js"
+  args = [
+    "resources/default_app.asar",
+    rebase_path(hash_files[0]),
+    rebase_path(outputs[0]),
+  ]
+}
+
+templated_file("lynxtron_win_rc") {
+  deps = [
+    ":default_app_asar_win_integrity",
+    ":lynxtron_version_args",
+  ]
+
+  template = "build/templates/lynxtron_rc.tmpl"
+  output = "$target_gen_dir/win-resources/lynxtron.rc"
+
+  inputs = get_target_outputs(":default_app_asar_win_integrity")
+  args_files = get_target_outputs(":lynxtron_version_args")
+}
+
+gin_helper_sources = [
+  "shell/common/gin_helper/arguments.cc",
+  "shell/common/gin_helper/arguments.h",
+  "shell/common/gin_helper/callback.cc",
+  "shell/common/gin_helper/callback.h",
+  "shell/common/gin_helper/cleaned_up_at_exit.cc",
+  "shell/common/gin_helper/cleaned_up_at_exit.h",
+  "shell/common/gin_helper/destroyable.cc",
+  "shell/common/gin_helper/destroyable.h",
+  "shell/common/gin_helper/error_thrower.cc",
+  "shell/common/gin_helper/error_thrower.h",
+  "shell/common/gin_helper/event.cc",
+  "shell/common/gin_helper/event.h",
+  "shell/common/gin_helper/event_emitter_caller.cc",
+  "shell/common/gin_helper/event_emitter_caller.h",
+  "shell/common/gin_helper/event_emitter_template.cc",
+  "shell/common/gin_helper/event_emitter_template.h",
+  "shell/common/gin_helper/function_template.cc",
+  "shell/common/gin_helper/function_template.h",
+  "shell/common/gin_helper/locker.cc",
+  "shell/common/gin_helper/locker.h",
+  "shell/common/gin_helper/object_template_builder.cc",
+  "shell/common/gin_helper/object_template_builder.h",
+  "shell/common/gin_helper/persistent_dictionary.cc",
+  "shell/common/gin_helper/persistent_dictionary.h",
+  "shell/common/gin_helper/promise.cc",
+  "shell/common/gin_helper/promise.h",
+  "shell/common/gin_helper/trackable_object.cc",
+  "shell/common/gin_helper/trackable_object.h",
+  "shell/common/gin_helper/wrappable.cc",
+  "shell/common/gin_helper/wrappable.h",
+]
+
+gin_converters_sources = [
+  "shell/common/gin_converters/accelerator_converter.cc",
+  "shell/common/gin_converters/accelerator_converter.h",
+  "shell/common/gin_converters/file_dialog_converter.cc",
+  "shell/common/gin_converters/file_dialog_converter.h",
+  "shell/common/gin_converters/gfx_converter.cc",
+  "shell/common/gin_converters/gfx_converter.h",
+  "shell/common/gin_converters/image_converter.cc",
+  "shell/common/gin_converters/image_converter.h",
+  "shell/common/gin_converters/login_item_settings_converter.cc",
+  "shell/common/gin_converters/login_item_settings_converter.h",
+  "shell/common/gin_converters/message_box_converter.cc",
+  "shell/common/gin_converters/message_box_converter.h",
+  "shell/common/gin_converters/value_converter.cc",
+  "shell/common/gin_converters/value_converter.h",
+]
+
+if (is_mac) {
+  ui_sources_macos = [
+    "shell/ui/gfx/native_ui_types_mac.mm",
+    "shell/ui/gfx/mac/coordinate_conversion.mm",
+    "shell/ui/gfx/mac/coordinate_conversion.h",
+  ]
+}
+
+source_set("lynxtron_lib") {
+  public_configs = [
+    ":lynxtron_lib_config",
+    ":branding",
+  ]
+
+  configs += [
+    "//v8:external_startup_data",
+    "//third_party/node:node_external_config",
+  ]
+
+  defines = [
+    "USE_PRIMJS_NAPI=1",
+    "USE_WEAK_SUFFIX_NAPI=1",
+    "NAPI_DISABLE_CPP_EXCEPTIONS",
+    "NAPI_DISABLE_CPP_RTTI",
+    "NAPI_CPP_CUSTOM_NAMESPACE=lynxtron",
+  ]
+
+  deps = [
+    ":lynxtron_generate_node_defines",
+    ":lynxtron_js2c",
+    ":lynxtron_version_header",
+    "shell/ui/display",
+    "shell/ui/gfx",
+    "shell/ui/gfx/codec",
+    "shell/ui/skia:skia_ext",
+    "//base",
+    "//base:i18n",
+    "//crypto",
+    "//gin",
+    "//third_party/libxml:xml_writer",
+    "//third_party/node:libnode",
+    "//third_party/re2",
+    "//url",
+    "//v8",
+    "//v8:v8_libplatform",
+  ]
+  deps += lynxtron_lib_extra_deps
+
+  deps += lynxtron_resource_fetcher_deps
+
+  include_dirs = [
+    ".",
+    "$root_gen_dir/lynxtron",
+    "$target_gen_dir",
+    "$target_gen_dir/lynxtron",
+    "//third_party/node/deps/uv/include",
+  ]
+
+  sources = [
+    "shell/api/api_app.cc",
+    "shell/api/api_app.h",
+    "shell/api/api_asar.cc",
+    "shell/api/api_base_window.cc",
+    "shell/api/api_base_window.h",
+    "shell/api/api_clipboard.cc",
+    "shell/api/api_clipboard.h",
+    "shell/api/api_command_line.cc",
+    "shell/api/api_dialog.cc",
+    "shell/api/api_environment.cc",
+    "shell/api/api_event_emitter.cc",
+    "shell/api/api_event_emitter.h",
+    "shell/api/api_lynx_extension_utils.cc",
+    "shell/api/api_lynx_template_bundle.cc",
+    "shell/api/api_lynx_template_bundle.h",
+    "shell/api/api_lynx_window.cc",
+    "shell/api/api_lynx_window.h",
+    "shell/api/api_menu.cc",
+    "shell/api/api_menu.h",
+    "shell/api/api_native_image.cc",
+    "shell/api/api_native_image.h",
+    "shell/api/api_notification.cc",
+    "shell/api/api_notification.h",
+    "shell/api/api_power_monitor.cc",
+    "shell/api/api_power_monitor.h",
+    "shell/api/api_screen.cc",
+    "shell/api/api_screen.h",
+    "shell/api/api_shell.cc",
+    "shell/api/api_tray.cc",
+    "shell/api/api_tray.h",
+    "shell/api/api_v8_util.cc",
+    "shell/api/api_v8_util.h",
+    "shell/api/lynx_view/devtool_event_simulation_proxy.cc",
+    "shell/api/lynx_view/devtool_event_simulation_proxy.h",
+    "shell/api/lynx_view/lynx_update_meta.cc",
+    "shell/api/lynx_view/lynx_update_meta.h",
+    "shell/api/lynx_view/lynx_view.cc",
+    "shell/api/lynx_view/lynx_view.h",
+    "shell/api/lynx_view/lynx_view_builder.cc",
+    "shell/api/lynx_view/lynx_view_builder.h",
+    "shell/api/lynx_view/lynx_view_client.h",
+    "shell/api/lynx_view/lynx_view_extension_register.cc",
+    "shell/api/lynx_view/lynx_view_extension_register.h",
+    "shell/api/lynx_view/lynx_view_impl.cc",
+    "shell/api/lynx_view/lynx_view_impl.h",
+    "shell/api/lynx_view/module/lynx_bridge_module.cc",
+    "shell/api/lynx_view/module/lynx_bridge_module.h",
+    "shell/api/lynx_view/module/lynx_emit_event.cc",
+    "shell/api/lynx_view/module/lynx_emit_event.h",
+    "shell/api/lynx_view/module/lynx_hybrid_monitor_module.cc",
+    "shell/api/lynx_view/module/lynx_hybrid_monitor_module.h",
+    "shell/api/lynx_view/module/lynx_module_utils.cc",
+    "shell/api/lynx_view/module/lynx_module_utils.h",
+    "shell/api/lynx_view/module/lynx_native_module.cc",
+    "shell/api/lynx_view/module/lynx_native_module.h",
+    "shell/api/lynx_view/module/lynx_node_module.cc",
+    "shell/api/lynx_view/module/lynx_node_module.h",
+    "shell/api/lynx_view_state_observer.h",
+    "shell/api/lynx_window_manager.cc",
+    "shell/api/lynx_window_manager.h",
+    "shell/api/lynxtron_bindings.cc",
+    "shell/api/lynxtron_bindings.h",
+    "shell/api/notifications/notification.cc",
+    "shell/api/notifications/notification.h",
+    "shell/api/notifications/notification_delegate.h",
+    "shell/api/notifications/platform_notification_service.cc",
+    "shell/api/notifications/platform_notification_service.h",
+    "shell/api/ui/file_dialog.h",
+    "shell/api/ui/message_box.h",
+    "shell/app/application.cc",
+    "shell/app/application.h",
+    "shell/app/icon_manager.cc",
+    "shell/app/icon_manager.h",
+    "shell/app/javascript_environment.cc",
+    "shell/app/javascript_environment.h",
+    "shell/app/library_main.cc",
+    "shell/app/main_parts.cc",
+    "shell/app/main_parts.h",
+    "shell/app/main_runner.cc",
+    "shell/app/main_runner.h",
+    "shell/app/microtasks_runner.cc",
+    "shell/app/microtasks_runner.h",
+    "shell/app/native_window.cc",
+    "shell/app/native_window.h",
+    "shell/app/native_window_observer.h",
+    "shell/app/node_main.cc",
+    "shell/app/node_main.h",
+    "shell/app/relauncher.cc",
+    "shell/app/relauncher.h",
+    "shell/app/window_list.cc",
+    "shell/app/window_list.h",
+    "shell/common/application_info.cc",
+    "shell/common/application_info.h",
+    "shell/common/asar/archive.cc",
+    "shell/common/asar/archive.h",
+    "shell/common/asar/asar_util.cc",
+    "shell/common/asar/asar_util.h",
+    "shell/common/asar/scoped_temporary_file.cc",
+    "shell/common/asar/scoped_temporary_file.h",
+    "shell/common/color_parser.cc",
+    "shell/common/color_parser.h",
+    "shell/common/data_url.cc",
+    "shell/common/data_url.h",
+    "shell/common/file_url_util.cc",
+    "shell/common/file_url_util.h",
+    "shell/common/fuses.cc",
+    "shell/common/fuses.h",
+    "shell/common/global_delegate_registry.cc",
+    "shell/common/global_delegate_registry.h",
+    "shell/common/global_thread.cc",
+    "shell/common/global_thread.h",
+    "shell/common/io_thread.cc",
+    "shell/common/io_thread.h",
+    "shell/common/key_weak_map.h",
+    "shell/common/logging.cc",
+    "shell/common/logging.h",
+    "shell/common/lynxtron_command_line.cc",
+    "shell/common/lynxtron_command_line.h",
+    "shell/common/lynxtron_config.cc",
+    "shell/common/lynxtron_config.h",
+    "shell/common/lynxtron_paths.h",
+    "shell/common/node_bindings.cc",
+    "shell/common/node_bindings.h",
+    "shell/common/node_util.cc",
+    "shell/common/node_util.h",
+    "shell/common/options_switches.h",
+    "shell/common/path_provider.cc",
+    "shell/common/path_provider.h",
+    "shell/common/platform_util.cc",
+    "shell/common/platform_util.h",
+    "shell/common/process_singleton/process_singleton.h",
+    "shell/common/process_singleton/process_singleton_internal.cc",
+    "shell/common/process_singleton/process_singleton_internal.h",
+    "shell/common/process_type_registry.cc",
+    "shell/common/process_type_registry.h",
+    "shell/common/size_constraints.cc",
+    "shell/common/size_constraints.h",
+    "shell/common/skia_util.cc",
+    "shell/common/skia_util.h",
+    "shell/common/v8_util.cc",
+    "shell/common/v8_util.h",
+    "shell/common/v8_value_converter.h",
+    "shell/common/v8_value_converter_impl.cc",
+    "shell/common/v8_value_converter_impl.h",
+    "shell/lynx/trace/runtime_profile_helper.cc",
+    "shell/lynx/trace/runtime_profile_helper.h",
+    "shell/ui/accelerator.cc",
+    "shell/ui/accelerator.h",
+    "shell/ui/accelerator_util.cc",
+    "shell/ui/accelerator_util.h",
+    "shell/ui/lynxtron_menu_model.cc",
+    "shell/ui/lynxtron_menu_model.h",
+    "shell/ui/tray_icon.cc",
+    "shell/ui/tray_icon.h",
+  ]
+
+  sources += gin_helper_sources
+
+  # sources += ui_sources
+  sources += gin_converters_sources
+
+  if (is_posix) {
+    sources += [ "shell/app/main_parts_posix.cc" ]
+  }
+
+  if (is_mac) {
+    sources += ui_sources_macos
+    sources += [
+      "shell/api/api_app_mac.mm",
+      "shell/api/api_clipboard_mac.mm",
+      "shell/api/api_menu_mac.h",
+      "shell/api/api_menu_mac.mm",
+      "shell/api/api_native_image_mac.mm",
+      "shell/api/api_power_monitor_mac.mm",
+      "shell/api/native_window_mac.h",
+      "shell/api/native_window_mac.mm",
+      "shell/api/notifications/notification_platform_bridge_mac.h",
+      "shell/api/notifications/notification_platform_bridge_mac.mm",
+      "shell/api/ui/file_dialog_mac.mm",
+      "shell/api/ui/mac/lynx_ns_window.h",
+      "shell/api/ui/mac/lynx_ns_window.mm",
+      "shell/api/ui/mac/lynx_ns_window_delegate.h",
+      "shell/api/ui/mac/lynx_ns_window_delegate.mm",
+      "shell/api/ui/message_box_mac.mm",
+      "shell/app/application_mac.mm",
+      "shell/app/icon_manager_mac.mm",
+      "shell/app/mac/dict_util.h",
+      "shell/app/mac/dict_util.mm",
+      "shell/app/mac/lynxtron_application.h",
+      "shell/app/mac/lynxtron_application.mm",
+      "shell/app/mac/lynxtron_application_delegate.h",
+      "shell/app/mac/lynxtron_application_delegate.mm",
+      "shell/app/main_parts_mac.mm",
+      "shell/app/relauncher_mac.cc",
+      "shell/app/uv_stdio_fix.cc",
+      "shell/app/uv_stdio_fix.h",
+      "shell/common/application_info_mac.mm",
+      "shell/common/asar/archive_mac.mm",
+      "shell/common/mac/main_application_bundle.h",
+      "shell/common/mac/main_application_bundle.mm",
+      "shell/common/mac/url_conversions.h",
+      "shell/common/mac/url_conversions.mm",
+      "shell/common/node_bindings_mac.cc",
+      "shell/common/node_bindings_mac.h",
+      "shell/common/platform_util_mac.mm",
+      "shell/common/process_singleton/process_singleton_lock_posix.cc",
+      "shell/common/process_singleton/process_singleton_lock_posix.h",
+      "shell/common/process_singleton/process_singleton_mac.mm",
+      "shell/common/process_singleton/process_singleton_posix.cc",
+      "shell/ui/cocoa/electron_bundle_mover.h",
+      "shell/ui/cocoa/electron_bundle_mover.mm",
+      "shell/ui/cocoa/lynxtron_menu_controller.h",
+      "shell/ui/cocoa/lynxtron_menu_controller.mm",
+      "shell/ui/cocoa/window_buttons_proxy.h",
+      "shell/ui/cocoa/window_buttons_proxy.mm",
+      "shell/ui/tray_icon_mac.h",
+      "shell/ui/tray_icon_mac.mm",
+    ]
+
+    frameworks = [
+      "Foundation.framework",
+      "CoreServices.framework",
+      "ApplicationServices.framework",
+      "AppKit.framework",
+      "ServiceManagement.framework",
+      "Carbon.framework",
+      "IOKit.framework",
+      "AppKit.framework",
+      "UniformTypeIdentifiers.framework",
+      "WebKit.framework",
+      "UserNotifications.framework",
+    ]
+
+    weak_frameworks = [ "QuickLookThumbnailing.framework" ]
+  }
+
+  if (is_win) {
+    sources += [
+      "shell/api/api_clipboard_win.cc",
+      "shell/api/api_native_image_win.cc",
+      "shell/api/api_power_monitor_win.cc",
+      "shell/api/dpi_win.cc",
+      "shell/api/dpi_win.h",
+      "shell/api/native_window_win.cc",
+      "shell/api/native_window_win.h",
+      "shell/api/notifications/notification_platform_bridge_win.cc",
+      "shell/api/notifications/notification_platform_bridge_win.h",
+      "shell/api/notifications/windows_toast_activator.cc",
+      "shell/api/notifications/windows_toast_activator.h",
+      "shell/api/notifications/windows_toast_notification.cc",
+      "shell/api/notifications/windows_toast_notification.h",
+      "shell/api/ui/file_dialog_win.cc",
+      "shell/api/ui/message_box_win.cc",
+      "shell/api/ui/win/dialog_thread.cc",
+      "shell/api/ui/win/dialog_thread.h",
+      "shell/api/ui/win/jump_list.cc",
+      "shell/api/ui/win/jump_list.h",
+      "shell/app/application_win.cc",
+      "shell/app/icon_manager_win.cc",
+      "shell/app/relauncher_win.cc",
+      "shell/app/win/reg_helper.cc",
+      "shell/app/win/reg_helper.h",
+      "shell/common/application_info_win.cc",
+      "shell/common/asar/archive_win.cc",
+      "shell/common/node_bindings_win.cc",
+      "shell/common/node_bindings_win.h",
+      "shell/common/nt_internals.h",
+      "shell/common/platform_util_win.cc",
+      "shell/common/process_singleton/chrome_process_finder.cc",
+      "shell/common/process_singleton/chrome_process_finder.h",
+      "shell/common/process_singleton/process_singleton_win.cc",
+      "shell/common/win_util.cc",
+      "shell/common/win_util.h",
+      "shell/ui/base/win/shell.cc",
+      "shell/ui/base/win/shell.h",
+      "shell/ui/tray_icon_win.cc",
+      "shell/ui/tray_icon_win.h",
+    ]
+    deps += [
+      "shell/ui",
+      # "shell/ui/gfx:gfx_skia",
+    ]
+  }
+  deps += [
+    "shell/ui",
+    "//third_party/skia",
+  ]
+}
+
+if (is_mac) {
+  lynxtron_mac_bundle_id = "com.github.Lynxtron"
+  lynxtron_framework_name = "$lynxtron_product_name Framework"
+
+  action("lynxtron_app_lproj_dirs") {
+    outputs = []
+    foreach(locale, lynxtron_mac_locales_as_apple_outputs) {
+      outputs += [ "$target_gen_dir/app_infoplist_strings/$locale.lproj" ]
+    }
+
+    script = "build/mac/make_locale_dirs.py"
+    args = rebase_path(outputs)
+  }
+
+  action("lynxtron_app_infoplist_strings") {
+    deps = [ ":lynxtron_app_lproj_dirs" ]
+    outputs = []
+    foreach(locale, lynxtron_mac_locales_as_apple_outputs) {
+      outputs += [
+        "$target_gen_dir/app_infoplist_strings/$locale.lproj/InfoPlist.strings",
+      ]
+    }
+
+    script = "build/mac/generate_infoplist_strings.py"
+    args = [
+             "--product-name",
+             lynxtron_product_name,
+           ] + rebase_path(outputs)
+  }
+
+  foreach(locale, lynxtron_mac_locales_as_apple_outputs) {
+    bundle_data("lynxtron_app_strings_${locale}_bundle_data") {
+      sources = [
+        "$target_gen_dir/app_infoplist_strings/$locale.lproj/InfoPlist.strings",
+      ]
+      outputs =
+          [ "{{bundle_resources_dir}}/$locale.lproj/{{source_file_part}}" ]
+      public_deps = [ ":lynxtron_app_infoplist_strings" ]
+    }
+  }
+
+  group("lynxtron_app_strings_bundle_data") {
+    public_deps = []
+    foreach(locale, lynxtron_mac_locales_as_apple_outputs) {
+      public_deps += [ ":lynxtron_app_strings_${locale}_bundle_data" ]
+    }
+  }
+
+  mac_framework_bundle("lynxtron_framework") {
+    # TODO(Guo Xi): using macro defines
+    output_name = "Lynxtron Framework"
+    framework_version = "1.0"
+    framework_contents = [
+      "Resources",
+      "Libraries",
+    ]
+
+    public_deps = [ ":lynxtron_lib" ]
+
+    deps = [
+      ":lynxtron_framework_resources",
+      "//base",
+      "//third_party/node:libnode",
+    ]
+    configs += lynxtron_lib_extra_configs
+
+    info_plist = "shell/common/resources/mac/Info.plist"
+
+    extra_substitutions = [
+      "LYNXTRON_BUNDLE_ID=$lynxtron_mac_bundle_id.framework",
+      "LYNXTRON_VERSION=$lynxtron_version",
+    ]
+
+    frameworks = []
+
+    include_dirs = [ "." ]
+
+    ldflags = [
+      "-Wl,-install_name,@rpath/$output_name.framework/$output_name",
+      # TOOD(Guo Xi): generate libuv.a
+      # Required for exporting all symbols of libuv.
+      # "-Wl,-force_load,obj/third_party/node/deps/uv/libuv.a",
+    ]
+
+    ldflags += [
+      "-Wl,-dead_strip",
+      "-Wl,-dead_strip_dylibs",
+    ]
+
+    frameworks += [
+      "Carbon.framework",
+      "Cocoa.framework",
+      "CoreVideo.framework",
+      "IOSurface.framework",
+      "Metal.framework",
+      "QuartzCore.framework",
+      "OpenGL.framework",
+      "JavaScriptCore.framework",
+      "WebKit.framework",
+    ]
+  }
+
+  bundle_data("lynxtron_framework_resources") {
+    public_deps = []
+    sources = []
+
+    if (icu_use_data_file) {
+      sources += [ "$root_out_dir/icudtl.dat" ]
+      public_deps += [ "//third_party/icu:icudata" ]
+    }
+    if (v8_use_external_startup_data) {
+      public_deps += [ "//v8" ]
+      sources += [ "$root_out_dir/snapshot_blob.bin" ]
+
+      # TODO(Guo Xi): review use_v8_context_snapshot
+      # if (use_v8_context_snapshot) {
+      #   sources += [ "$root_out_dir/$v8_context_snapshot_filename" ]
+      #   public_deps += [ "//tools/v8_context_snapshot" ]
+      # } else {
+      #   sources += [ "$root_out_dir/snapshot_blob.bin" ]
+      # }
+    }
+    outputs = [ "{{bundle_resources_dir}}/{{source_file_part}}" ]
+  }
+
+  bundle_data("lynxtron_app_framework_bundle_data") {
+    sources = [ "$root_out_dir/$lynxtron_framework_name.framework" ]
+
+    # if (!is_mas_build) {
+    #   sources += get_target_outputs(":stripped_mantle_framework") +
+    #              get_target_outputs(":stripped_reactiveobjc_framework") +
+    #              get_target_outputs(":stripped_squirrel_framework")
+    # }
+    outputs = [ "{{bundle_contents_dir}}/Frameworks/{{source_file_part}}" ]
+    public_deps = [
+      ":lynxtron_framework+link",
+      # ":stripped_mantle_framework",
+      # ":stripped_reactiveobjc_framework",
+      # ":stripped_squirrel_framework",
+    ]
+
+    # foreach(helper_params, content_mac_helpers) {
+    #   sources +=
+    #       [ "$root_out_dir/${lynxtron_helper_name}${helper_params[2]}.app" ]
+    #   public_deps += [ ":lynxtron_helper_app_${helper_params[0]}" ]
+    # }
+  }
+
+  bundle_data("lynxtron_app_resources") {
+    public_deps = [
+      ":default_app_asar",
+      ":lynxtron_app_strings_bundle_data",
+    ]
+    sources = [
+      "$root_out_dir/resources/default_app.asar",
+      "shell/app/resources/mac/lynxtron.icns",
+    ]
+
+    public_deps += lynxtron_app_resources_deps
+    outputs = [ "{{bundle_resources_dir}}/{{source_file_part}}" ]
+  }
+
+  asar_hashed_info_plist("lynxtron_app_plist") {
+    keys = [ "DEFAULT_APP_ASAR_HEADER_SHA" ]
+    hash_targets = [ ":default_app_asar_header_hash" ]
+    plist_file = "shell/app/resources/mac/Info.plist"
+  }
+
+  mac_app_bundle("lynxtron_app") {
+    output_name = "lynxtron"
+
+    include_dirs = [ "." ]
+
+    deps = [
+      ":lynxtron_app_framework_bundle_data",
+      ":lynxtron_app_plist",
+      ":lynxtron_app_resources",
+      ":lynxtron_framework+link",
+      "//base/allocator:early_zone_registration_apple",
+    ]
+
+    deps += lynxtron_app_extra_deps
+
+    info_plist_target = ":lynxtron_app_plist"
+
+    sources = [ "shell/app/main_mac.cc" ]
+
+    ldflags = [
+      "-rpath",
+      "@executable_path/../Frameworks",
+    ]
+
+    # TODO(Guo Xi): The bundle ID in info.plist needs to be replaced.
+    extra_substitutions = [
+      "LYNXTRON_BUNDLE_ID=$lynxtron_mac_bundle_id",
+      "LYNXTRON_VERSION=$lynxtron_version",
+    ]
+  }
+
+  action("copy_app_to_package") {
+    deps = [ ":lynxtron_app" ]
+    script = "tools/copy_to_package.py"
+    inputs = [ "$root_out_dir/lynxtron.app" ]
+    outputs = [ "$root_out_dir/.copied_to_package_$target_cpu" ]
+    args = [
+      rebase_path("$root_out_dir/lynxtron.app", root_build_dir),
+      rebase_path("//src/packages/lynxtron/dist/darwin/$target_cpu",
+                  root_build_dir),
+      rebase_path("$root_out_dir/.copied_to_package_$target_cpu",
+                  root_build_dir),
+    ]
+  }
+}
+
+if (is_win) {
+  group("lynxtron_win32_resources") {
+    public_deps = [
+      ":lynxtron_win_rc",
+      ":lynxtron_win_resource_files",
+    ]
+  }
+
+  windows_manifest("lynxtron_app_manifest") {
+    sources = [
+      "shell/app/resources/win/disable_window_filtering.manifest",
+      "shell/app/resources/win/dpi_aware.manifest",
+      as_invoker_manifest,
+      common_controls_manifest,
+      default_compatibility_manifest,
+    ]
+  }
+
+  executable("lynxtron_app") {
+    output_name = "lynxtron"
+    configs -= [ "//build/config/win:console" ]
+    configs += [
+      "//build/config/win:windowed",
+      "//build/config/win:delayloads",
+    ]
+
+    deps = [
+      ":default_app_asar",
+      ":lynxtron_app_manifest",
+      ":lynxtron_shared",
+      ":lynxtron_win32_resources",
+      "//base",
+    ]
+
+    include_dirs = [ "." ]
+
+    sources = [ "shell/app/main_win.cc" ]
+    sources += get_target_outputs(":lynxtron_win_rc")
+
+    ldflags = [ "/DEF:" + rebase_path("build/lynxtron.def", root_build_dir) ]
+    if (current_cpu == "x86") {
+      # Set the initial stack size to 0.5MiB, instead of the 1.5MiB needed by
+      # Chrome's main thread. This saves significant memory on threads (like
+      # those in the Windows thread pool, and others) whose stack size we can
+      # only control through this setting. Because Chrome's main thread needs
+      # a minimum 1.5 MiB stack, the main thread (in 32-bit builds only) uses
+      # fibers to switch to a 1.5 MiB stack before running any other code.
+      ldflags += [ "/STACK:0x80000" ]
+    } else {
+      # Increase the initial stack size. The default is 1MB, this is 8MB.
+      ldflags += [ "/STACK:0x800000" ]
+    }
+
+    inputs = [
+      "shell/app/resources/win/lynxtron.ico",
+      "build/lynxtron.def",
+    ]
+    data = [
+      "$root_out_dir/resources/default_app.asar",
+      "$root_out_dir/lynx_core.js",
+      "$root_out_dir/lynx_core_dev.js",
+      "$root_out_dir/icudtl.dat",
+      "$root_out_dir/parfait.dll",
+    ]
+  }
+
+  shared_library("lynxtron_shared") {
+    deps = [ ":lynxtron_lib" ]
+
+    configs += lynxtron_lib_extra_configs
+    configs += [ "//build/config/win:delayloads" ]
+    libs = [
+      "Comctl32.lib",
+      "Wintrust.lib",
+      "wtsapi32.lib",
+      "Dwmapi.lib",
+      "WebView2LoaderStatic.lib",
+      "runtimeobject.lib",
+      "propsys.lib",
+      "shlwapi.lib",
+    ]
+    lib_dirs = [ "//third_party/webview2/Microsoft.Web.WebView2.1.0.902.49/build/native/$current_cpu" ]
+    output_name = "lynxtron"
+    ldflags = []
+    if (current_cpu == "x86") {
+      # Set the initial stack size to 0.5MiB, instead of the 1.5MiB needed by
+      # Chrome's main thread. This saves significant memory on threads (like
+      # those in the Windows thread pool, and others) whose stack size we can
+      # only control through this setting. Because Chrome's main thread needs
+      # a minimum 1.5 MiB stack, the main thread (in 32-bit builds only) uses
+      # fibers to switch to a 1.5 MiB stack before running any other code.
+      ldflags += [ "/STACK:0x80000" ]
+    } else {
+      # Increase the initial stack size. The default is 1MB, this is 8MB.
+      ldflags += [ "/STACK:0x800000" ]
+    }
+  }
+}
+
+template("dist_zip") {
+  _runtime_deps_target = "${target_name}__deps"
+  _runtime_deps_file =
+      "$root_out_dir/gen.runtime/" + get_label_info(target_name, "dir") + "/" +
+      get_label_info(target_name, "name") + ".runtime_deps"
+
+  group(_runtime_deps_target) {
+    forward_variables_from(invoker,
+                           [
+                             "deps",
+                             "data_deps",
+                             "data",
+                             "testonly",
+                           ])
+    write_runtime_deps = _runtime_deps_file
+  }
+
+  action(target_name) {
+    script = "./build/zip.py"
+    deps = [ ":$_runtime_deps_target" ]
+    forward_variables_from(invoker,
+                           [
+                             "outputs",
+                             "testonly",
+                           ])
+    flatten = false
+    flatten_relative_to = false
+    if (defined(invoker.flatten)) {
+      flatten = invoker.flatten
+      if (defined(invoker.flatten_relative_to)) {
+        flatten_relative_to = invoker.flatten_relative_to
+      }
+    }
+    args = rebase_path(outputs + [ _runtime_deps_file ], root_build_dir) + [
+             target_cpu,
+             target_os,
+             "$flatten",
+             "$flatten_relative_to",
+           ]
+  }
+}
+
+dist_zip("lynxtron_dist_zip") {
+  data_deps = [
+    ":lynxtron_app",
+    # ":electron_version_file",
+    # ":licenses",
+  ]
+  deps = data_deps
+  outputs = [ "$root_build_dir/dist.zip" ]
+}
+
+test("lynxtron_unittests") {
+  deps = [
+    ":lynxtron_lib",
+    "//base",
+    "//base/test:test_support",
+    "//gin",
+    "//gin:gin_test",
+    "//testing/gmock",
+    "//testing/gtest",
+    "//v8",
+  ]
+  deps += lynxtron_lib_extra_deps
+  configs += lynxtron_lib_extra_configs
+  configs += [ "//v8:external_startup_data" ]
+
+  include_dirs = [
+    ".",
+    "./shell",
+  ]
+  if (is_mac) {
+    ldflags = [
+      "-Wl,-dead_strip",
+      "-rpath",
+      "@executable_path",
+    ]
+  }
+  if (is_win) {
+    libs = [ "Wintrust.lib" ]
+  }
+  sources = [
+    "shell/api/lynx_view/devtool_event_simulation_proxy_unittest.cc",
+    "shell/common/global_thread_unittest.cc",
+    "shell/common/v8_util_unittest.cc",
+    "shell/common/v8_value_converter_impl_unittest.cc",
+    "shell/test/lynxtron_test_suite.cc",
+    "shell/test/lynxtron_test_suite.h",
+    "shell/test/run_all_unittests.cc",
+    "shell/test/shell_test.h",
+    "shell/test/shell_v8_test.h",
+  ]
+}
+
+group("lynxtron_extension_group") {
+  deps = lynxtron_extension_extra_deps
+}

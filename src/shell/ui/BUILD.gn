@@ -1,0 +1,41 @@
+# Copyright 2025 The Lynxtron Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+
+config("ui_config") {
+  include_dirs = [ ".." ]
+}
+
+source_set("ui") {
+  public_configs = [ ":ui_config" ]
+  include_dirs = [
+    "../..",
+    ".",
+  ]
+  deps = [
+    "./skia:skia_ext",
+    "//base",
+  ]
+  sources = []
+  if (is_win) {
+    sources += [
+      "base/win/session_change_observer.cc",
+      "base/win/session_change_observer.h",
+      "gfx/win/hwnd_util.cc",
+      "gfx/win/hwnd_util.h",
+      "gfx/win/singleton_hwnd.cc",
+      "gfx/win/singleton_hwnd.h",
+      "gfx/win/singleton_hwnd_observer.cc",
+      "gfx/win/singleton_hwnd_observer.h",
+      "gfx/win/window_impl.cc",
+      "gfx/win/window_impl.h",
+      "platform_window/win/fullscreen_handler.cc",
+      "platform_window/win/fullscreen_handler.h",
+      "platform_window/win/hwnd_message_handler.cc",
+      "platform_window/win/hwnd_message_handler.h",
+      "platform_window/win/hwnd_message_handler_delegate.h",
+      "platform_window/win/scoped_fullscreen_visibility.cc",
+      "platform_window/win/scoped_fullscreen_visibility.h",
+    ]
+  }
+}

@@ -1,0 +1,387 @@
+# Copyright 2014 The Chromium Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import("//build/config/features.gni")
+import("//build/config/ozone.gni")
+import("//build/config/ui.gni")
+import("//testing/libfuzzer/fuzzer_test.gni")
+import("//testing/test.gni")
+
+config("gfx_config") {
+  include_dirs = [
+    "..",
+    "../..",
+    "../../..",
+  ]
+}
+
+# component("gfx_skia") {
+#   sources = [
+#     "gfx_skia_export.h",
+#     # "skia_span_util.cc",
+#     # "skia_span_util.h",
+#     # "skia_util.cc",
+#     # "skia_util.h",
+#   ]
+#   configs += [ "//build/config/compiler:wexit_time_destructors" ]
+#   public_deps = [
+#     "../skia:skia_ext",
+#     "//base",
+#   ]
+#   include_dirs = [ "../../../" ]
+#   defines = [ "GFX_SKIA_IMPLEMENTATION" ]
+# }
+
+if (is_win) {
+  config("gfx_win_linker_flags") {
+    # This is in a separate config so the flags can be applied to dependents.
+    # ldflags in GN aren't automatically inherited.
+    ldflags = [
+      # Linking with OneCore.lib causes the following dlls to load.
+      "/DELAYLOAD:api-ms-win-core-handle-l1-1-0.dll",
+    ]
+  }
+}
+
+# Binds together the `gfx` component.
+#
+# See also: `docs/component_build.md`
+config("gfx_impl_define") {
+  defines = [ "IS_GFX_IMPL" ]
+}
+component("color_utils") {
+  configs += [ ":gfx_config" ]
+  sources = [
+    "color_palette.h",
+    "color_utils.cc",
+    "color_utils.h",
+  ]
+  deps = [ "../skia:skia_ext" ]
+
+  # defines = [ "IS_GFX_COLOR_UTILS_IMPL" ]
+
+  # public_deps = [
+  #   "//base",
+  #   # "//skia",
+  #   # "//ui/gfx/geometry",
+  # ]
+}
+
+component("gfx") {
+  configs += [ ":gfx_config" ]
+  sources = [
+    # "break_list.h",
+    # "color_analysis.cc",
+    # "color_analysis.h",
+    # "color_conversions.cc",
+    # "color_conversions.h",
+    # "decorated_text.cc",
+    # "decorated_text.h",
+    # "delegated_ink_metadata.cc",
+    # "delegated_ink_metadata.h",
+    # "delegated_ink_point.cc",
+    # "delegated_ink_point.h",
+    # "extension_set.cc",
+    # "extension_set.h",
+    # "favicon_size.cc",
+    # "favicon_size.h",
+    # "font.cc",
+    # "font.h",
+    # "font_fallback.h",
+    # "font_list.cc",
+    # "font_list.h",
+    # "font_list_impl.cc",
+    # "font_list_impl.h",
+    # "font_render_params.cc",
+    # "font_render_params.h",
+    # "font_util.cc",
+    # "font_util.h",
+    # "frame_data.h",
+    # "gdi_util.cc",
+    # "gdi_util.h",
+    # "gpu_extra_info.cc",
+    # "gpu_extra_info.h",
+    "../base/resource/resource_scale_factor.cc",
+    "../base/resource/resource_scale_factor.h",
+    "image/buffer_w_stream.cc",
+    "image/buffer_w_stream.h",
+    "image/image.cc",
+    "image/image.h",
+    "image/image_family.cc",
+    "image/image_family.h",
+    "image/image_generic.cc",
+    "image/image_internal.h",
+    "image/image_platform.h",
+    "image/image_png_rep.cc",
+    "image/image_png_rep.h",
+    "image/image_skia.cc",
+    "image/image_skia.h",
+    "image/image_skia_operations.cc",
+    "image/image_skia_operations.h",
+    "image/image_skia_rep.h",
+    "image/image_skia_rep_default.cc",
+    "image/image_skia_rep_default.h",
+    "image/image_skia_source.cc",
+    "image/image_skia_source.h",
+    "image/image_util.cc",
+    "image/image_util.h",
+
+    # "interpolated_transform.cc",
+    # "interpolated_transform.h",
+    # "monogram_utils.cc",
+    # "monogram_utils.h",
+    # "native_ui_util.h",
+    # "native_widget_types.cc",
+    # "native_ui_types.h",
+    # "overlay_layer_id.cc",
+    # "overlay_layer_id.h",
+    # "overlay_plane_data.cc",
+    # "overlay_plane_data.h",
+    # "overlay_transform_utils.cc",
+    # "overlay_transform_utils.h",
+    # "platform_font.cc",
+    # "platform_font.h",
+    # "scrollbar_size.cc",
+    # "scrollbar_size.h",
+    # "selection_model.cc",
+    # "selection_model.h",
+    # "sequential_id_generator.cc",
+    # "sequential_id_generator.h",
+    # "shadow_value.cc",
+    # "shadow_value.h",
+    "skbitmap_operations.cc",
+    "skbitmap_operations.h",
+
+    # "skia_color_space_util.cc",
+    # "skia_color_space_util.h",
+    # "swap_result.cc",
+    # "text_constants.h",
+    # "text_elider.cc",
+    # "text_elider.h",
+    # "text_utils.cc",
+    # "text_utils.h",
+    # "ubidi_deleter.h",
+    # "ui_gfx_exports.cc",
+    # "utf16_indexing.cc",
+    # "utf16_indexing.h",
+    # "vector_icon_types.cc",
+    # "vector_icon_types.h",
+    # "vector_icon_utils.cc",
+    # "vector_icon_utils.h",
+    # "video_types.h",
+    # "vsync_provider.cc",
+    # "vsync_provider.h",
+    "display_color_spaces.cc",
+    "display_color_spaces.h",
+  ]
+
+  if (is_mac) {
+    sources += [
+      # "ca_layer_result.h",
+      # "decorated_text_mac.h",
+      # "decorated_text_mac.mm",
+      # "font_fallback_mac.mm",
+      "image/image_mac.mm",
+      "image/image_skia_util_mac.h",
+      "image/image_skia_util_mac.mm",
+      "image/image_util_mac.mm",
+
+      # "mac/coordinate_conversion.h",
+      # "mac/coordinate_conversion.mm",
+      # "mac/nswindow_frame_controls.h",
+      # "mac/nswindow_frame_controls.mm",
+      # "mac/scoped_cocoa_disable_screen_updates.h",
+      # "mac/scoped_cocoa_disable_screen_updates.mm",
+      # "native_ui_util_mac.mm",
+      # "platform_font_mac.h",
+      # "platform_font_mac.mm",
+      # "scoped_cg_context_save_gstate_mac.h",
+      # "scoped_ns_graphics_context_save_gstate_mac.h",
+      # "scoped_ns_graphics_context_save_gstate_mac.mm",
+    ]
+  }
+  if (is_win) {
+    sources += [
+      # "font_fallback_win.cc",
+      # "font_fallback_win.h",
+      # "font_render_params_win.cc",
+      # "font_util_win.cc",
+      # "font_util_win.h",
+      # "path_win.cc",
+      # "path_win.h",
+      # "system_fonts_win.cc",
+      # "system_fonts_win.h",
+      # "win/crash_id_helper.cc",
+      # "win/crash_id_helper.h",
+      # "win/d3d_shared_fence.cc",
+      # "win/d3d_shared_fence.h",
+      # "win/direct_write.cc",
+      # "win/direct_write.h",
+      # "win/get_elevation_icon.cc",
+      # "win/get_elevation_icon.h",
+      # "win/hwnd_util.cc",
+      # "win/hwnd_util.h",
+      # "win/msg_util.h",
+      # "win/physical_size.cc",
+      # "win/physical_size.h",
+      # "win/rendering_window_manager.cc",
+      # "win/rendering_window_manager.h",
+      # "win/scoped_set_map_mode.h",
+
+      "icon_util.cc",
+      "icon_util.h",
+      "shadow_value.cc",
+      "shadow_value.h",
+      "win/singleton_hwnd.cc",
+      "win/singleton_hwnd.h",
+      "win/singleton_hwnd_observer.cc",
+      "win/singleton_hwnd_observer.h",
+      "win/window_impl.cc",
+      "win/window_impl.h",
+    ]
+  }
+  if (is_apple) {
+    sources += []  #"font_render_params_mac.cc"
+  }
+
+  configs += [
+    ":gfx_impl_define",
+    "//build/config:precompiled_headers",
+    "//build/config/compiler:wexit_time_destructors",
+  ]
+
+  public_deps = [
+    ":color_space",
+    ":color_utils",
+
+    #    ":gfx_skia",
+
+    # ":gfx_switches",
+    # ":memory_buffer_sources",
+    # ":native_widget_types_sources",
+    # ":resize_image_dimensions",
+    # ":selection_bound_sources",
+    "//base",
+
+    # "//ui/gfx/animation",
+    # "//ui/gfx/codec",
+    "../skia:skia_ext",
+    "./geometry",
+    "./geometry:geometry_skia",
+    "//third_party/icu",
+
+    # "//ui/gfx/range",
+  ]
+  deps = [
+    "//base",
+    "//base:base_static",
+    "//base:i18n",
+    "//build:blink_buildflags",
+
+    # "//device/vr/buildflags",
+    # "//mojo/public/cpp/bindings:struct_traits",
+    "../skia:skia_ext",
+    "//third_party/zlib",
+
+    # "//ui/base:features",
+    # "//ui/base:ozone_buildflags",
+    # "//ui/base:ui_data_pack",
+  ]
+
+  # if (is_mac) {
+  #   deps += [
+  #     "//electron/build/config:generate_mas_config"
+  #   ]
+  # }
+
+  if (!is_apple) {
+    sources += [
+      # "platform_font_skia.cc",
+      # "platform_font_skia.h",
+    ]
+  }
+
+  # Windows.
+  if (is_win) {
+    libs = [
+      "setupapi.lib",
+      "dwmapi.lib",
+      "dwrite.lib",
+      "onecore.lib",
+    ]
+
+    all_dependent_configs = [ ":gfx_win_linker_flags" ]
+
+    # public_deps += [ "//components/crash/core/common" ]
+  } else {
+    sources -= [
+      # "gdi_util.cc",
+      # "gdi_util.h",
+      # "icon_util.cc",
+      # "icon_util.h",
+    ]
+  }
+
+  if (is_apple) {
+    frameworks = [ "IOSurface.framework" ]
+    # deps += [ "//ui/base:features" ]
+  }
+  if (is_mac) {
+    frameworks += [
+      "AppKit.framework",
+      "CoreFoundation.framework",
+      "CoreGraphics.framework",
+      "CoreText.framework",
+    ]
+  }
+}
+
+component("color_space") {
+  configs += [ ":gfx_config" ]
+  sources = [
+    "color_space.cc",
+    "color_space.h",
+    "color_space_export.h",
+
+    # "color_transform.cc",
+    # "color_transform.h",
+    #"display_color_spaces.cc",
+    #"display_color_spaces.h",
+
+    # "hdr_metadata.cc",
+    # "hdr_metadata.h",
+    # "hdr_metadata_agtm.cc",
+    # "hdr_metadata_agtm.h",
+    "hdr_static_metadata.cc",
+    "hdr_static_metadata.h",
+    "icc_profile.cc",
+    "icc_profile.h",
+
+    # "skia_color_space_util.cc",
+    # "skia_color_space_util.h",
+  ]
+  if (is_win) {
+    sources += [
+      # "color_space.cc",
+      # "color_space.h",
+      "color_space_win.cc",
+      "color_space_win.h",
+      "skia_color_space_util.cc",
+      "skia_color_space_util.h",
+    ]
+  }
+
+  deps = [ "../skia:skia_ext" ]
+
+  # deps = [
+  #   "//skia:skcms",
+  #   "//ui/gfx:buffer_types",
+  #   "//ui/gfx:gfx_switches",
+  #   "//ui/gfx/geometry:geometry_skia",
+  # ]
+  public_deps = [
+    "../skia:skia_ext",
+    "//base",
+  ]
+}

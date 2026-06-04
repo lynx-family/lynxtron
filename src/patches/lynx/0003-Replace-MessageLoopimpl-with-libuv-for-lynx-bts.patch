@@ -1,0 +1,232 @@
+From eaddb026c4ef4065a12c475cb366def84e9eec50 Mon Sep 17 00:00:00 2001
+From: tangyongjie <80395553+yongjieTang@users.noreply.github.com>
+Date: Mon, 8 Dec 2025 15:49:17 +0800
+Subject: [PATCH 3/5] Replace MessageLoopimpl with libuv for lynx bts
+
+Delegate the MessageLoopimpl of LynxJS threads to libuv.
+On PC, run both NodeJS and Lynx BTS message loops within the same libuv event loop to unify and optimize event handling.
+
+issue: m-6796469046
+---
+ .../fml/platform/node/message_loop_node.h     | 43 ++++++++++
+ base/src/BUILD.gn                             |  5 ++
+ .../fml/platform/node/message_loop_node.cc    | 83 +++++++++++++++++++
+ core/base/BUILD.gn                            |  5 ++
+ .../base/node/js_thread_config_getter_node.cc | 33 ++++++++
+ 5 files changed, 169 insertions(+)
+ create mode 100644 base/include/fml/platform/node/message_loop_node.h
+ create mode 100644 base/src/fml/platform/node/message_loop_node.cc
+ create mode 100644 core/base/node/js_thread_config_getter_node.cc
+
+diff --git a/base/include/fml/platform/node/message_loop_node.h b/base/include/fml/platform/node/message_loop_node.h
+new file mode 100644
+index 00000000..fbb52133
+--- /dev/null
++++ b/base/include/fml/platform/node/message_loop_node.h
+@@ -0,0 +1,43 @@
++// Copyright 2023 The Lynx Authors. All rights reserved.
++// Licensed under the Apache License Version 2.0 that can be found in the
++// LICENSE file in the root directory of this source tree.
++
++#ifndef LYNX_BASE_INCLUDE_FML_PLATFORM_NODE_MESSAGE_LOOP_NODE_H_
++#define LYNX_BASE_INCLUDE_FML_PLATFORM_NODE_MESSAGE_LOOP_NODE_H_
++
++#include <fcntl.h>
++#include <uv.h>
++
++#include "base/include/fml/macros.h"
++#include "base/include/fml/message_loop_impl.h"
++
++namespace lynx {
++namespace fml {
++
++class MessageLoopNode : public MessageLoopImpl {
++ public:
++  MessageLoopNode();
++  ~MessageLoopNode() override;
++
++  void Run() override;
++  void Terminate() override;
++
++  uv_loop_t* GetUVLoop() { return &uv_loop_; }
++
++ protected:
++  void WakeUp(fml::TimePoint time_point) override;
++
++ private:
++  uv_loop_t uv_loop_{};
++  uv_timer_t timer_{};
++  uv_async_t async_{};
++
++  bool running_{false};
++
++  void OnEventFired();
++};
++
++}  // namespace fml
++}  // namespace lynx
++
++#endif  // LYNX_BASE_INCLUDE_FML_PLATFORM_NODE_MESSAGE_LOOP_NODE_H_
+diff --git a/base/src/BUILD.gn b/base/src/BUILD.gn
+index 99ff9133..85b9fcc5 100644
+--- a/base/src/BUILD.gn
++++ b/base/src/BUILD.gn
+@@ -306,6 +306,11 @@ lynx_base_source_set("base_core") {
+     ]
+   }
+ 
++  if (is_apple || is_win) {
++    include_dirs = [ "//third_party/node/deps/uv/include" ]
++    sources += [ "fml/platform/node/message_loop_node.cc" ]
++  }
++
+   deps = [ ":datauri_utils" ]
+ 
+   libs = []
+diff --git a/base/src/fml/platform/node/message_loop_node.cc b/base/src/fml/platform/node/message_loop_node.cc
+new file mode 100644
+index 00000000..da6279ad
+--- /dev/null
++++ b/base/src/fml/platform/node/message_loop_node.cc
+@@ -0,0 +1,83 @@
++// Copyright 2025 The Lynx Authors. All rights reserved.
++// Licensed under the Apache License Version 2.0 that can be found in the
++// LICENSE file in the root directory of this source tree.
++
++#include "base/include/fml/platform/node/message_loop_node.h"
++
++namespace lynx {
++namespace fml {
++
++MessageLoopNode::MessageLoopNode() {
++  [[maybe_unused]] int r = uv_loop_init(&uv_loop_);
++  LYNX_BASE_CHECK(r == 0);
++
++  [[maybe_unused]] int timer_init = uv_timer_init(&uv_loop_, &timer_);
++  LYNX_BASE_CHECK(timer_init == 0);
++  timer_.data = this;
++
++  [[maybe_unused]] int async_init =
++      uv_async_init(&uv_loop_, &async_, [](uv_async_t* h) {
++        auto* self = static_cast<MessageLoopNode*>(h->data);
++        self->OnEventFired();
++      });
++  async_.data = this;
++
++  LYNX_BASE_CHECK(async_init == 0);
++}
++
++MessageLoopNode::~MessageLoopNode() {
++  if (running_) {
++    Terminate();
++  }
++
++  uv_walk(
++      &uv_loop_,
++      [](uv_handle_t* h, void*) {
++        if (!uv_is_closing(h)) {
++          uv_close(h, nullptr);
++        }
++      },
++      nullptr);
++
++  uv_run(&uv_loop_, UV_RUN_NOWAIT);
++  uv_loop_close(&uv_loop_);
++}
++
++void MessageLoopNode::Run() {
++  running_ = true;
++  uv_run(&uv_loop_, UV_RUN_DEFAULT);
++  running_ = false;
++}
++
++void MessageLoopNode::Terminate() {
++  running_ = false;
++
++  int stop_res = uv_timer_stop(&timer_);
++  uv_close(reinterpret_cast<uv_handle_t*>(&timer_), nullptr);
++  uv_close(reinterpret_cast<uv_handle_t*>(&async_), nullptr);
++  uv_run(&uv_loop_, UV_RUN_NOWAIT);
++
++  uv_stop(&uv_loop_);
++}
++
++void MessageLoopNode::WakeUp(fml::TimePoint time_point) {
++  auto now = fml::TimePoint::Now();
++  if (now >= time_point) {
++    uv_async_send(&async_);
++    return;
++  }
++
++  int start_res = uv_timer_start(
++      &timer_,
++      [](uv_timer_t* handle) {
++        auto* self = reinterpret_cast<MessageLoopNode*>(handle->data);
++        self->OnEventFired();
++      },
++      (time_point - now).ToMilliseconds(), 0);
++  LYNX_BASE_CHECK(start_res == 0);
++}
++
++void MessageLoopNode::OnEventFired() { RunExpiredTasksNow(); }
++
++}  // namespace fml
++}  // namespace lynx
+diff --git a/core/base/BUILD.gn b/core/base/BUILD.gn
+index 21729947..3bcfc969 100644
+--- a/core/base/BUILD.gn
++++ b/core/base/BUILD.gn
+@@ -136,6 +136,11 @@ lynx_core_source_set("base") {
+       ":observer",
+     ]
+   } else {
++    if (is_mac || is_win) {
++      include_dirs = [ "//third_party/node/deps/uv/include" ]
++      base_shared_sources -= [ "threading/js_thread_config_getter.cc" ]
++      base_shared_sources += [ "node/js_thread_config_getter_node.cc" ]
++    }
+     sources += base_shared_sources
+     public_deps += [ "../../base/trace/native:trace_public_headers" ]
+     if (is_android) {
+diff --git a/core/base/node/js_thread_config_getter_node.cc b/core/base/node/js_thread_config_getter_node.cc
+new file mode 100644
+index 00000000..dac117c0
+--- /dev/null
++++ b/core/base/node/js_thread_config_getter_node.cc
+@@ -0,0 +1,33 @@
++// Copyright 2025 The Lynx Authors. All rights reserved.
++// Licensed under the Apache License Version 2.0 that can be found in the
++// LICENSE file in the root directory of this source tree.
++
++#include "base/include/fml/platform/node/message_loop_node.h"
++#include "base/include/log/logging.h"
++#include "core/base/threading/js_thread_config_getter.h"
++
++namespace lynx {
++namespace base {
++
++namespace {
++void SetupNodeRuntime() {
++  //   TRACE_EVENT_BEGIN(LYNX_TRACE_CATEGORY, SETUP_ARK_TS_RUNTIME);
++  LOGI("Start setup node runtime.");
++
++  auto message_loop = fml::MakeRefCounted<fml::MessageLoopNode>();
++
++  fml::MessageLoop::EnsureInitializedForCurrentThread(message_loop);
++
++  LOGI("Start setup node runtime done.");
++}
++}  // namespace
++
++fml::Thread::ThreadConfig GetJSThreadConfig(const std::string& worker_name) {
++  return fml::Thread::ThreadConfig{
++      worker_name, fml::Thread::ThreadPriority::HIGH,
++      std::make_shared<base::closure>(
++          static_cast<void (*)()>(SetupNodeRuntime))};
++}
++
++}  // namespace base
++}  // namespace lynx
+-- 
+2.50.1 (Apple Git-155)
+

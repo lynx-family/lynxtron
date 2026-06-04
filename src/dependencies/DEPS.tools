@@ -1,0 +1,90 @@
+import os
+import platform
+
+system = platform.system().lower()
+machine = platform.machine().lower()
+machine = "x86_64" if machine == "amd64" else machine
+
+python_path = "python3"
+if system == "windows":
+    python_path = "python"
+
+deps = {
+    'update_lastchange': {
+        "type": "action",
+        "cwd": root_dir,
+        "commands": [
+            "python3 ../build/util/lastchange.py -o ../build/util/LASTCHANGE",
+        ],
+    },
+    'generate_gclient_args': {
+        "type": "action",
+        "cwd": root_dir,
+        "commands": [
+            "python3 tools/gn/generate_gn_args.py -f ../build/config/gclient_args.gni" + " "
+            "-p "
+            "build_with_chromium=true "
+            "generate_location_tags=true "
+        ],
+    },
+    '../tools/clang/dsymutil/bin': {
+        "type": "http",
+        "url": f"https://github.com/zsy-jason/buildtools/releases/download/dsymutil-8e05e94b/dsymutil-{system}-{machine}.tar.gz",
+        "ignore_in_git": True,
+        "condition": system in ['darwin'],
+    },
+    'change_dsymutil_executable_permission': {
+        "type": "action",
+        "cwd": root_dir,
+        "commands": [
+            f"mv ../tools/clang/dsymutil/bin/dsymutil-{system}-{machine} ../tools/clang/dsymutil/bin/dsymutil",
+            "chmod +x ../tools/clang/dsymutil/bin/dsymutil",
+        ],
+        "require": ["../tools/clang/dsymutil/bin"],
+        "condition": system in ['darwin'],
+    },
+    '../third_party/llvm-build/Release+Asserts': {
+        "type": "http",
+        "url": f"https://github.com/zsy-jason/buildtools/releases/download/chromium-140/clang-{system}-{machine}.tar.gz",
+        "ignore_in_git": True,
+        "condition": system in ['linux', 'darwin', 'windows'],
+    },
+    '../third_party/llvm-build/Release+Asserts/clangd.tar.gz': {
+        "type": "http",
+        "url": f"https://github.com/zsy-jason/buildtools/releases/download/chromium-140/clangd-{system}-{machine}.tar.gz",
+        "ignore_in_git": True,
+        "condition": system in ['linux', 'darwin', 'windows'],
+        "decompress": False,
+        "require": ["../third_party/llvm-build/Release+Asserts"],
+    },
+    'decompress_clangd': {
+        "type": "action",
+        "cwd": root_dir,
+        "commands": [
+            "python3 tools/decompress_helper.py --file_path ../third_party/llvm-build/Release+Asserts/clangd.tar.gz --output_dir ../third_party/llvm-build/Release+Asserts/",
+        ],
+        "require": ['../third_party/llvm-build/Release+Asserts/clangd.tar.gz']
+    },
+    '../third_party/llvm-build/Release+Asserts/llvmobjdump.tar.gz': {
+        "type": "http",
+        "url": f"https://github.com/zsy-jason/buildtools/releases/download/chromium-140/llvmobjdump-{system}-{machine}.tar.gz",
+        "ignore_in_git": True,
+        "condition": system in ['linux', 'darwin', 'windows'],
+        "decompress": False,
+        "require": ["../third_party/llvm-build/Release+Asserts"],
+    },
+    'decompress_llvmobjdump': {
+        "type": "action",
+        "cwd": root_dir,
+        "commands": [
+            "python3 tools/decompress_helper.py --file_path ../third_party/llvm-build/Release+Asserts/llvmobjdump.tar.gz --output_dir ../third_party/llvm-build/Release+Asserts/",
+        ],
+        "require": ['../third_party/llvm-build/Release+Asserts/llvmobjdump.tar.gz']
+    },
+    '../third_party/rust-toolchain': {
+        "type": "http",
+        "url": f"https://github.com/zsy-jason/buildtools/releases/download/chromium-140/rust-toolchain-{system}-{machine}.tar.gz",
+        "ignore_in_git": True,
+        "condition": system in ['linux', 'darwin', 'windows'],
+    },
+}

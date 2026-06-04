@@ -1,0 +1,36 @@
+{
+  "name": "@lynx-js/cef-x-webview",
+  "author": "Lynxtron Authors",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "a x-webview element based on cef",
+  "main": "index.cjs",
+  "scripts": {
+    "postinstall": "node scripts/install.js"
+  },
+  "keywords": [
+    "lynx",
+    "cef",
+    "x-webview"
+  ],
+  "files": [
+    "index.cjs",
+    "README.md",
+    "scripts/**/*",
+    "utils/**/*"
+  ],
+  "dependencies": {
+    "js-yaml": "^4.1.1",
+    "plist": "^3.1.0",
+    "extract-zip": "2.0.1",
+    "node-fetch": "3.3.2"
+  },
+  "devDependencies": {
+    "node-addon-api": "^7.0.0",
+    "cmake-js": "^7.4.0",
+    "@lynx-js/lynxtron": "0.0.2-rc.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

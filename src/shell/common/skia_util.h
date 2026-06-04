@@ -1,0 +1,53 @@
+// Copyright (c) 2019 GitHub, Inc.
+// Use of this source code is governed by the MIT license that can be
+// found in the LICENSE file.
+
+// Copyright 2026 The Lynxtron Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
+#ifndef LYNXTRON_SHELL_COMMON_SKIA_UTIL_H_
+#define LYNXTRON_SHELL_COMMON_SKIA_UTIL_H_
+
+#include <cstdint>
+
+#include "base/containers/span.h"
+
+#if BUILDFLAG(IS_WIN)
+#include <windows.h>
+#endif
+
+namespace base {
+class FilePath;
+}  // namespace base
+
+namespace gfx {
+class ImageSkia;
+}
+
+namespace lynxtron::util {
+
+bool PopulateImageSkiaRepsFromPath(gfx::ImageSkia* image,
+                                   const base::FilePath& path);
+
+bool AddImageSkiaRepFromBuffer(gfx::ImageSkia* image,
+                               base::span<const uint8_t> data,
+                               int width,
+                               int height,
+                               double scale_factor);
+
+bool AddImageSkiaRepFromJPEG(gfx::ImageSkia* image,
+                             base::span<const uint8_t> data,
+                             double scale_factor);
+
+bool AddImageSkiaRepFromPNG(gfx::ImageSkia* image,
+                            base::span<const uint8_t> data,
+                            double scale_factor);
+
+#if BUILDFLAG(IS_WIN)
+bool ReadImageSkiaFromICO(gfx::ImageSkia* image, HICON icon);
+#endif
+
+}  // namespace lynxtron::util
+
+#endif  // LYNXTRON_SHELL_COMMON_SKIA_UTIL_H_

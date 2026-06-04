@@ -1,0 +1,86 @@
+From f6b97cd0870cd38cd2942f8a33e51e0ac890dc3f Mon Sep 17 00:00:00 2001
+From: tangyongjie <80395553+yongjieTang@users.noreply.github.com>
+Date: Mon, 8 Dec 2025 14:43:22 +0800
+Subject: [PATCH 2/5] Add overload to initialize MessageLoop with
+ MessageLoopImpl and remove void* constructor
+
+Introduce an overload of EnsureInitializedForCurrentThread that accepts
+an fml::RefPtr<MessageLoopImpl>, enabling direct initialization without
+void*. The previous void*-based EnsureInitializedForCurrentThread now
+delegates to MessageLoopImpl::Create and the new overload.
+
+issue: m-6796469046
+
+AutoSubmit: true
+---
+ base/include/fml/message_loop.h |  5 ++++-
+ base/src/fml/message_loop.cc    | 19 ++++++++++++++++---
+ 2 files changed, 20 insertions(+), 4 deletions(-)
+
+diff --git a/base/include/fml/message_loop.h b/base/include/fml/message_loop.h
+index 3aaec337..b2a86d23 100644
+--- a/base/include/fml/message_loop.h
++++ b/base/include/fml/message_loop.h
+@@ -55,6 +55,9 @@ class BASE_EXPORT MessageLoop {
+   /// FlushTasks
+   void SetMessageLoopRestrictionDuration(fml::TimeDelta restriction_duration);
+ 
++  static MessageLoop& EnsureInitializedForCurrentThread(
++      fml::RefPtr<MessageLoopImpl> platform_loop);
++
+   static MessageLoop& EnsureInitializedForCurrentThread(
+       void* platform_loop = nullptr);
+   const fml::RefPtr<MessageLoopImpl>& GetLoopImpl() const;
+@@ -82,7 +85,7 @@ class BASE_EXPORT MessageLoop {
+   fml::RefPtr<MessageLoopImpl> loop_;
+   fml::RefPtr<fml::TaskRunner> task_runner_;
+ 
+-  explicit MessageLoop(void* platform_loop = nullptr);
++  explicit MessageLoop(fml::RefPtr<MessageLoopImpl> platform_loop);
+ 
+   BASE_DISALLOW_COPY_AND_ASSIGN(MessageLoop);
+ };
+diff --git a/base/src/fml/message_loop.cc b/base/src/fml/message_loop.cc
+index f3943ca7..9513167e 100644
+--- a/base/src/fml/message_loop.cc
++++ b/base/src/fml/message_loop.cc
+@@ -35,11 +35,24 @@ MessageLoop& MessageLoop::GetCurrent() {
+   return *loop;
+ }
+ 
++MessageLoop& MessageLoop::EnsureInitializedForCurrentThread(
++    fml::RefPtr<MessageLoopImpl> platform_loop) {
++  auto& looper_storage = GetThreadLocalLooper();
++  if (looper_storage == nullptr) {
++    if (platform_loop == nullptr) {
++      platform_loop = MessageLoopImpl::Create(nullptr);
++    }
++    looper_storage.reset(new MessageLoop(std::move(platform_loop)));
++  }
++  return *looper_storage;
++}
++
+ MessageLoop& MessageLoop::EnsureInitializedForCurrentThread(
+     void* platform_loop) {
+   auto& looper_storage = GetThreadLocalLooper();
+   if (looper_storage == nullptr) {
+-    looper_storage.reset(new MessageLoop(platform_loop));
++    return EnsureInitializedForCurrentThread(
++        MessageLoopImpl::Create(platform_loop));
+   }
+   return *looper_storage;
+ }
+@@ -48,8 +61,8 @@ MessageLoop* MessageLoop::IsInitializedForCurrentThread() {
+   return GetThreadLocalLooper().get();
+ }
+ 
+-MessageLoop::MessageLoop(void* platform_loop)
+-    : loop_(MessageLoopImpl::Create(platform_loop)),
++MessageLoop::MessageLoop(fml::RefPtr<MessageLoopImpl> platform_loop)
++    : loop_(std::move(platform_loop)),
+       task_runner_(fml::MakeRefCounted<fml::TaskRunner>(loop_)) {
+   // TODO(zhengsenyao): Replace LYNX_BASE_CHECK with CHECK when CHECK available.
+   LYNX_BASE_CHECK(loop_);
+-- 
+2.50.1 (Apple Git-155)
+

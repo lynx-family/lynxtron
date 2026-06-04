@@ -1,0 +1,154 @@
+// Copyright 2012 The Chromium Authors
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+// Copyright 2026 The Lynxtron Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
+#include "shell/ui/base/win/shell.h"
+
+#include <dwmapi.h>
+#include <propkey.h>
+#include <shellapi.h>
+#include <shlobj.h>  // Must be before propkey.
+#include <wrl/client.h>
+
+#include "base/debug/alias.h"
+#include "base/files/file.h"
+#include "base/files/file_path.h"
+#include "base/native_library.h"
+#include "base/strings/strcat.h"
+#include "base/strings/string_number_conversions_win.h"
+#include "base/strings/string_util.h"
+#include "base/threading/scoped_blocking_call.h"
+#include "base/threading/scoped_thread_priority.h"
+#include "base/win/win_util.h"
+#include "base/win/windows_version.h"
+
+namespace ui::win {
+
+namespace {
+
+// Default ShellExecuteEx flags used with "openas", "explore", and default
+// verbs.
+//
+// SEE_MASK_NOASYNC is specified so that ShellExecuteEx can be invoked from a
+// thread whose message loop may not wait around long enough for the
+// asynchronous tasks initiated by ShellExecuteEx to complete. Using this flag
+// causes ShellExecuteEx() to block until these tasks complete.
+const DWORD kDefaultShellExecuteFlags = SEE_MASK_NOASYNC;
+
+// Invokes ShellExecuteExW() with the given parameters.
+bool InvokeShellExecute(const std::wstring& path,
+                        const std::wstring& working_directory,
+                        const std::wstring& args,
+                        const std::wstring& verb,
+                        const std::wstring& class_name,
+                        DWORD mask) {
+  base::ScopedBlockingCall scoped_blocking_call(FROM_HERE,
+                                                base::BlockingType::WILL_BLOCK);
+
+  SHELLEXECUTEINFO sei = {sizeof(sei)};
+  if (!class_name.empty()) {
+    sei.lpClass = class_name.c_str();
+    mask = (mask | SEE_MASK_CLASSNAME);
+  }
+
+  sei.fMask = mask;
+  sei.nShow = SW_SHOWNORMAL;
+  sei.lpVerb = (verb.empty() ? nullptr : verb.c_str());
+  sei.lpFile = path.c_str();
+  sei.lpDirectory =
+      (working_directory.empty() ? nullptr : working_directory.c_str());
+  sei.lpParameters = (args.empty() ? nullptr : args.c_str());
+
+  // Mitigate the issues caused by loading DLLs on a background thread
+  // (http://crbug/973868).
+  SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
+
+  return ::ShellExecuteExW(&sei);
+}
+
+}  // namespace
+
+bool OpenFileViaShell(const base::FilePath& full_path) {
+  // Invoke the default verb on the file with no arguments.
+  return InvokeShellExecute(full_path.value(), full_path.DirName().value(),
+                            std::wstring(), std::wstring(), std::wstring(),
+                            kDefaultShellExecuteFlags);
+}
+
+bool OpenFolderViaShell(const base::FilePath& full_path) {
+  // The "explore" verb causes the folder at |full_path| to be displayed in a
+  // file browser. This will fail if |full_path| is not a directory.
+  return InvokeShellExecute(full_path.value(), full_path.value(),
+                            std::wstring(), L"explore", L"folder",
+                            kDefaultShellExecuteFlags);
+}
+
+bool PreventWindowFromPinning(HWND hwnd) {
+  DCHECK(hwnd);
+
+  Microsoft::WRL::ComPtr<IPropertyStore> pps;
+  if (FAILED(SHGetPropertyStoreForWindow(hwnd, IID_PPV_ARGS(&pps)))) {
+    return false;
+  }
+
+  return base::win::SetBooleanValueForPropertyStore(
+      pps.Get(), PKEY_AppUserModel_PreventPinning, true);
+}
+
+void ClearWindowPropertyStore(HWND hwnd) {
+  DCHECK(hwnd);
+
+  Microsoft::WRL::ComPtr<IPropertyStore> pps;
+  if (FAILED(SHGetPropertyStoreForWindow(hwnd, IID_PPV_ARGS(&pps)))) {
+    return;
+  }
+
+  DWORD property_count;
+  if (FAILED(pps->GetCount(&property_count))) {
+    return;
+  }
+
+  PROPVARIANT empty_property_variant = {};
+  for (DWORD i = property_count; i > 0; i--) {
+    PROPERTYKEY key;
+    if (SUCCEEDED(pps->GetAt(i - 1, &key))) {
+      // Removes the value from |pps|'s array.
+      pps->SetValue(key, empty_property_variant);
+    }
+  }
+  if (FAILED(pps->Commit())) {
+    return;
+  }
+
+  // Verify none of the keys are leaking.
+  DCHECK(FAILED(pps->GetCount(&property_count)) || property_count == 0);
+}
+
+bool IsAeroGlassEnabled() {
+  // For testing in Win8 (where it is not possible to disable composition) the
+  // user can specify this command line switch to mimic the behavior.  In this
+  // mode, cross-HWND transparency is not supported and various types of
+  // widgets fallback to more simplified rendering behavior.
+  // if (base::CommandLine::ForCurrentProcess()->HasSwitch(
+  //        switches::kDisableDwmComposition))
+  //  return false;
+
+  // If composition is not enabled, we behave like on XP.
+  return IsDwmCompositionEnabled();
+}
+
+bool IsDwmCompositionEnabled() {
+  // As of Windows 8, DWM composition is always enabled.
+  // In Windows 7 this can change at runtime.
+  if (base::win::GetVersion() >= base::win::Version::WIN8) {
+    return true;
+  }
+  BOOL is_enabled;
+  return SUCCEEDED(DwmIsCompositionEnabled(&is_enabled)) && is_enabled;
+}
+
+}  // namespace ui::win

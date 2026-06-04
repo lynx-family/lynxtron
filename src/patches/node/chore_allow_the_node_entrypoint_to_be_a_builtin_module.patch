@@ -1,0 +1,34 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samuel Attard <sattard@slack-corp.com>
+Date: Wed, 22 May 2019 13:34:18 -0700
+Subject: chore: allow the node entrypoint to be a builtin_module
+
+This allows embedders to tell Node.js what the first "real" file is  when
+they use themselves as the entry point. We should try to upstream some form
+of this.
+
+diff --git a/lib/internal/process/pre_execution.js b/lib/internal/process/pre_execution.js
+index 0cda54fd85e1e0bff13d4718a269eb3e7c60312a..3636eb0667984ace91773f652dcbd7246d7ce865 100644
+--- a/lib/internal/process/pre_execution.js
++++ b/lib/internal/process/pre_execution.js
+@@ -245,12 +245,14 @@ function patchProcessObject(expandArgv1) {
+   // the entry point.
+   if (expandArgv1 && process.argv[1] && process.argv[1][0] !== '-') {
+     // Expand process.argv[1] into a full path.
+-    const path = require('path');
+-    try {
+-      mainEntry = path.resolve(process.argv[1]);
+-      process.argv[1] = mainEntry;
+-    } catch {
+-      // Continue regardless of error.
++    if (!process.argv[1] || !process.argv[1].startsWith('lynxtron/js2c')) {
++      const path = require('path');
++      try {
++        mainEntry = path.resolve(process.argv[1]);
++        process.argv[1] = mainEntry;
++      } catch {
++        // Continue regardless of error.
++      }
+     }
+   }
+ 

@@ -1,0 +1,225 @@
+From 513e48a941f0acb8debbc7fdee219abe154ac908 Mon Sep 17 00:00:00 2001
+From: tangyongjie <80395553+yongjieTang@users.noreply.github.com>
+Date: Mon, 20 Apr 2026 16:06:20 +0800
+Subject: [PATCH] Adapt lynxtron base 140
+
+---
+ BUILD.gn                      |  1 +
+ google/zip_internal.cc        |  3 +--
+ google/zip_reader.cc          | 10 +++++-----
+ google/zip_reader.h           |  3 ++-
+ google/zip_reader_unittest.cc | 12 ++++++------
+ google/zip_unittest.cc        |  3 ++-
+ google/zip_writer.cc          |  4 ++--
+ 7 files changed, 19 insertions(+), 17 deletions(-)
+
+diff --git a/BUILD.gn b/BUILD.gn
+index dd626ff..63cb27d 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -382,6 +382,7 @@ config("minizip_warnings") {
+     cflags = [
+       # zlib uses `if ((a == b))` for some reason.
+       "-Wno-parentheses-equality",
++      "-Wno-misleading-indentation",
+       "-Wno-deprecated-non-prototype",
+     ]
+   }
+diff --git a/google/zip_internal.cc b/google/zip_internal.cc
+index 9b20b42..5779b04 100644
+--- a/google/zip_internal.cc
++++ b/google/zip_internal.cc
+@@ -13,7 +13,6 @@
+ #include "base/files/file_path.h"
+ #include "base/logging.h"
+ #include "base/notreached.h"
+-#include "base/strings/string_piece.h"
+ #include "base/strings/string_util.h"
+ #include "base/strings/utf_string_conversions.h"
+ 
+@@ -398,7 +397,7 @@ Compression GetCompressionMethod(const base::FilePath& path) {
+   if (ext.empty())
+     return kDeflated;
+ 
+-  using StringPiece = base::FilePath::StringPieceType;
++  using StringPiece = base::FilePath::StringViewType;
+ 
+   // Skip the leading dot.
+   StringPiece ext_without_dot = ext;
+diff --git a/google/zip_reader.cc b/google/zip_reader.cc
+index 9b1030a..09cea28 100644
+--- a/google/zip_reader.cc
++++ b/google/zip_reader.cc
+@@ -5,6 +5,7 @@
+ #include "third_party/zlib/google/zip_reader.h"
+ 
+ #include <algorithm>
++#include <string_view>
+ #include <utility>
+ 
+ #include "base/check.h"
+@@ -15,7 +16,6 @@
+ #include "base/logging.h"
+ #include "base/numerics/safe_conversions.h"
+ #include "base/strings/strcat.h"
+-#include "base/strings/string_piece.h"
+ #include "base/strings/string_util.h"
+ #include "base/strings/utf_string_conversions.h"
+ #include "base/task/sequenced_task_runner.h"
+@@ -267,7 +267,7 @@ bool ZipReader::OpenEntry() {
+   return true;
+ }
+ 
+-void ZipReader::Normalize(base::StringPiece16 in) {
++void ZipReader::Normalize(std::u16string_view in) {
+   entry_.is_unsafe = true;
+ 
+   // Directory entries in ZIP have a path ending with "/".
+@@ -281,15 +281,15 @@ void ZipReader::Normalize(base::StringPiece16 in) {
+ 
+   for (;;) {
+     // Consume initial path separators.
+-    const base::StringPiece16::size_type i = in.find_first_not_of(u'/');
+-    if (i == base::StringPiece16::npos)
++    const std::u16string_view::size_type i = in.find_first_not_of(u'/');
++    if (i == std::u16string_view::npos)
+       break;
+ 
+     in.remove_prefix(i);
+     DCHECK(!in.empty());
+ 
+     // Isolate next path component.
+-    const base::StringPiece16 part = in.substr(0, in.find_first_of(u'/'));
++    const std::u16string_view part = in.substr(0, in.find_first_of(u'/'));
+     DCHECK(!part.empty());
+ 
+     in.remove_prefix(part.size());
+diff --git a/google/zip_reader.h b/google/zip_reader.h
+index b7680cc..0dbf50b 100644
+--- a/google/zip_reader.h
++++ b/google/zip_reader.h
+@@ -10,6 +10,7 @@
+ #include <limits>
+ #include <memory>
+ #include <string>
++#include <string_view>
+ 
+ #include "base/files/file.h"
+ #include "base/files/file_path.h"
+@@ -281,7 +282,7 @@ class ZipReader {
+ 
+   // Normalizes the given path passed as UTF-16 string piece. Sets entry_.path,
+   // entry_.is_directory and entry_.is_unsafe.
+-  void Normalize(base::StringPiece16 in);
++  void Normalize(std::u16string_view in);
+ 
+   // Runs the ListenerCallback at a throttled rate.
+   void ReportProgress(ListenerCallback listener_callback, uint64_t bytes) const;
+diff --git a/google/zip_reader_unittest.cc b/google/zip_reader_unittest.cc
+index b917504..356b820 100644
+--- a/google/zip_reader_unittest.cc
++++ b/google/zip_reader_unittest.cc
+@@ -10,6 +10,7 @@
+ 
+ #include <iterator>
+ #include <string>
++#include <string_view>
+ #include <vector>
+ 
+ #include "base/check.h"
+@@ -21,7 +22,6 @@
+ #include "base/hash/md5.h"
+ #include "base/path_service.h"
+ #include "base/run_loop.h"
+-#include "base/strings/string_piece.h"
+ #include "base/strings/stringprintf.h"
+ #include "base/strings/utf_string_conversions.h"
+ #include "base/test/bind.h"
+@@ -164,7 +164,7 @@ class ZipReaderTest : public PlatformTest {
+   }
+ 
+   static Paths GetPaths(const base::FilePath& zip_path,
+-                        base::StringPiece encoding = {}) {
++                        std::string_view encoding = {}) {
+     Paths paths;
+ 
+     if (ZipReader reader; reader.Open(zip_path)) {
+@@ -428,7 +428,7 @@ TEST_F(ZipReaderTest, EncryptedFile_WrongPassword) {
+     EXPECT_EQ("This is not encrypted.\n", contents);
+   }
+ 
+-  for (const base::StringPiece path : {
++  for (const std::string_view path : {
+            "Encrypted AES-128.txt",
+            "Encrypted AES-192.txt",
+            "Encrypted AES-256.txt",
+@@ -464,7 +464,7 @@ TEST_F(ZipReaderTest, EncryptedFile_RightPassword) {
+   }
+ 
+   // TODO(crbug.com/1296838) Support AES encryption.
+-  for (const base::StringPiece path : {
++  for (const std::string_view path : {
+            "Encrypted AES-128.txt",
+            "Encrypted AES-192.txt",
+            "Encrypted AES-256.txt",
+@@ -719,12 +719,12 @@ TEST_F(ZipReaderTest, ExtractCurrentEntryToString) {
+     if (i > 0) {
+       // Exact byte read limit: must pass.
+       EXPECT_TRUE(reader.ExtractCurrentEntryToString(i, &contents));
+-      EXPECT_EQ(std::string(base::StringPiece("0123456", i)), contents);
++      EXPECT_EQ(std::string(std::string_view("0123456", i)), contents);
+     }
+ 
+     // More than necessary byte read limit: must pass.
+     EXPECT_TRUE(reader.ExtractCurrentEntryToString(&contents));
+-    EXPECT_EQ(std::string(base::StringPiece("0123456", i)), contents);
++    EXPECT_EQ(std::string(std::string_view("0123456", i)), contents);
+   }
+   reader.Close();
+ }
+diff --git a/google/zip_unittest.cc b/google/zip_unittest.cc
+index d0fc02f..c98f48a 100644
+--- a/google/zip_unittest.cc
++++ b/google/zip_unittest.cc
+@@ -8,6 +8,7 @@
+ #include <iomanip>
+ #include <limits>
+ #include <string>
++#include <string_view>
+ #include <unordered_map>
+ #include <unordered_set>
+ #include <vector>
+@@ -1290,7 +1291,7 @@ TEST_F(ZipTest, Compressed) {
+   EXPECT_TRUE(base::CreateDirectory(src_dir));
+ 
+   // Create some dummy source files.
+-  for (const base::StringPiece s : {"foo", "bar.txt", ".hidden"}) {
++  for (const std::string_view s : {"foo", "bar.txt", ".hidden"}) {
+     base::File f(src_dir.AppendASCII(s),
+                  base::File::FLAG_CREATE | base::File::FLAG_WRITE);
+     ASSERT_TRUE(f.SetLength(5000));
+diff --git a/google/zip_writer.cc b/google/zip_writer.cc
+index 31161ae..e37f81e 100644
+--- a/google/zip_writer.cc
++++ b/google/zip_writer.cc
+@@ -193,7 +193,7 @@ bool ZipWriter::AddMixedEntries(Paths paths) {
+   while (!paths.empty()) {
+     // Work with chunks of 50 paths at most.
+     const size_t n = std::min<size_t>(paths.size(), 50);
+-    const Paths relative_paths = paths.subspan(0, n);
++    const Paths relative_paths = paths.subspan(size_t{0}, n);
+     paths = paths.subspan(n, paths.size() - n);
+ 
+     files.clear();
+@@ -233,7 +233,7 @@ bool ZipWriter::AddFileEntries(Paths paths) {
+   while (!paths.empty()) {
+     // Work with chunks of 50 paths at most.
+     const size_t n = std::min<size_t>(paths.size(), 50);
+-    const Paths relative_paths = paths.subspan(0, n);
++    const Paths relative_paths = paths.subspan(size_t{0}, n);
+     paths = paths.subspan(n, paths.size() - n);
+ 
+     DCHECK_EQ(relative_paths.size(), n);
+-- 
+2.49.0
+

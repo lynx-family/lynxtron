@@ -1,0 +1,99 @@
+From 75a69160d68cc0912cf5aa7692080845499d360d Mon Sep 17 00:00:00 2001
+From: zhixuan <201550585+icecreamx10@users.noreply.github.com>
+Date: Wed, 27 May 2026 11:34:00 +0800
+Subject: [PATCH] build: add Lynxtron size optimization defaults
+
+---
+ config/BUILDCONFIG.gn    | 28 +++++++++++++++++++++++++++-
+ config/compiler/BUILD.gn | 18 ++++++++++++++++++
+ 2 files changed, 46 insertions(+), 1 deletion(-)
+
+diff --git a/config/BUILDCONFIG.gn b/config/BUILDCONFIG.gn
+index bb32ad6..61dbcf0 100644
+--- a/config/BUILDCONFIG.gn
++++ b/config/BUILDCONFIG.gn
+@@ -360,6 +360,13 @@ is_win = current_os == "win" || current_os == "winuwp"
+ is_apple = is_ios || is_mac || is_watchos
+ is_posix = !is_win && !is_fuchsia
+ 
++declare_args() {
++  lynxtron_optimize_min_size_target_patterns = [
++    "//lynx",
++    "//lynx/*",
++  ]
++}
++
+ # =============================================================================
+ # TARGET DEFAULTS
+ # =============================================================================
+@@ -595,7 +602,8 @@ foreach(_target_type,
+           "static_library",
+         ]) {
+   template(_target_type) {
+-    target(_target_type, target_name) {
++    _target_name = target_name
++    target(_target_type, _target_name) {
+       forward_variables_from(invoker,
+                              "*",
+                              TESTONLY_AND_VISIBILITY + [ "use_clang_modules" ])
+@@ -611,6 +619,15 @@ foreach(_target_type,
+         public_deps = []
+       }
+ 
++      if (!is_debug) {
++        _target_dir = get_label_info(":$_target_name", "dir")
++        if (filter_include([ _target_dir ],
++                           lynxtron_optimize_min_size_target_patterns) != []) {
++          configs -= [ "//build/config/compiler:default_optimization" ]
++          configs += [ "//build/config/compiler:optimize_min_size" ]
++        }
++      }
++
+       if (use_clang_modules) {
+         # When Clang modules are used, libc++ headers must be copied (to the gen
+         # directory) regardless of whether the libc++ module is used in this
+@@ -703,6 +720,15 @@ foreach(_target_type,
+         inputs = []
+       }
+ 
++      if (!is_debug) {
++        _target_dir = get_label_info(":$_target_name", "dir")
++        if (filter_include([ _target_dir ],
++                           lynxtron_optimize_min_size_target_patterns) != []) {
++          configs -= [ "//build/config/compiler:default_optimization" ]
++          configs += [ "//build/config/compiler:optimize_min_size" ]
++        }
++      }
++
+       # Consumed by the unsafe-buffers plugin during compile.
+       #
+       # TODO(crbug.com/326584510): Reclient doesn't respect this variable, see
+diff --git a/config/compiler/BUILD.gn b/config/compiler/BUILD.gn
+index c0d9e43..adc7cb6 100644
+--- a/config/compiler/BUILD.gn
++++ b/config/compiler/BUILD.gn
+@@ -2863,6 +2863,24 @@ config("optimize_max") {
+   rustflags = [ "-Copt-level=3" ]
+ }
+ 
++# Minimize code size for targets where package size is more important than
++# peak runtime performance. Targets opt into this by replacing
++# default_optimization with optimize_min_size.
++config("optimize_min_size") {
++  ldflags = common_optimize_on_ldflags
++  if (is_win) {
++    cflags = [ "/O1" ] + common_optimize_on_cflags
++    if (is_clang) {
++      cflags += [ "/clang:-Oz" ]
++    }
++  } else if (optimize_for_fuzzing) {
++    cflags = [ "-O1" ] + common_optimize_on_cflags
++  } else {
++    cflags = [ "-Oz" ] + common_optimize_on_cflags
++  }
++  rustflags = [ "-Copt-level=z" ]
++}
++
+ # This config can be used to override the default settings for per-component
+ # and whole-program optimization, optimizing the particular target for speed
+ # instead of code size. This config is exactly the same as "optimize_max"

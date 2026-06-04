@@ -1,0 +1,16 @@
+import os
+import platform
+
+machine = platform.machine().lower()
+machine = "x86_64" if machine == "amd64" else machine
+system = platform.system().lower()
+
+deps = {
+    '../lynx': {
+        'type': 'solution',
+        'url': 'https://github.com/lynx-family/lynx.git',
+        'commit': 'a9c771ccc3eb03f082e0cd44e15c160eb3044b75',
+        "deps_file": "dependencies/DEPS.lynxtron",
+        "ignore_in_git": True,
+    },
+}

@@ -1,0 +1,143 @@
+// Copyright 2026 The Lynxtron Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
+import { EventEmitter } from 'events';
+import type { BaseWindow as LTLWT } from 'lynxtron';
+const { BaseWindow } = process._linkedBinding('lynxtron_base_window') as {
+  BaseWindow: typeof LTLWT;
+};
+
+Object.setPrototypeOf(BaseWindow.prototype, EventEmitter.prototype);
+
+BaseWindow.prototype._init = function () {};
+
+// Properties
+
+Object.defineProperty(BaseWindow.prototype, 'autoHideMenuBar', {
+  get: function () {
+    return this.isMenuBarAutoHide();
+  },
+  set: function (autoHide) {
+    this.setAutoHideMenuBar(autoHide);
+  },
+});
+
+Object.defineProperty(BaseWindow.prototype, 'visibleOnAllWorkspaces', {
+  get: function () {
+    return this.isVisibleOnAllWorkspaces();
+  },
+  set: function (visible) {
+    this.setVisibleOnAllWorkspaces(visible);
+  },
+});
+
+Object.defineProperty(BaseWindow.prototype, 'fullScreen', {
+  get: function () {
+    return this.isFullScreen();
+  },
+  set: function (full) {
+    this.setFullScreen(full);
+  },
+});
+
+Object.defineProperty(BaseWindow.prototype, 'simpleFullScreen', {
+  get: function () {
+    return this.isSimpleFullScreen();
+  },
+  set: function (simple) {
+    this.setSimpleFullScreen(simple);
+  },
+});
+
+Object.defineProperty(BaseWindow.prototype, 'focusable', {
+  get: function () {
+    return this.isFocusable();
+  },
+  set: function (focusable) {
+    this.setFocusable(focusable);
+  },
+});
+
+Object.defineProperty(BaseWindow.prototype, 'shadow', {
+  get: function () {
+    return this.hasShadow();
+  },
+  set: function (shadow) {
+    this.setHasShadow(shadow);
+  },
+});
+
+Object.defineProperty(BaseWindow.prototype, 'minimizable', {
+  get: function () {
+    return this.isMinimizable();
+  },
+  set: function (min) {
+    this.setMinimizable(min);
+  },
+});
+
+Object.defineProperty(BaseWindow.prototype, 'title', {
+  get: function () {
+    return this.getTitle();
+  },
+  set: function (title) {
+    this.setTitle(title);
+  },
+});
+
+Object.defineProperty(BaseWindow.prototype, 'maximizable', {
+  get: function () {
+    return this.isMaximizable();
+  },
+  set: function (max) {
+    this.setMaximizable(max);
+  },
+});
+
+Object.defineProperty(BaseWindow.prototype, 'resizable', {
+  get: function () {
+    return this.isResizable();
+  },
+  set: function (res) {
+    this.setResizable(res);
+  },
+});
+
+// Object.defineProperty(BaseWindow.prototype, 'menuBarVisible', {
+//   get: function () { return this.isMenuBarVisible(); },
+//   set: function (visible) { this.setMenuBarVisibility(visible); }
+// });
+
+Object.defineProperty(BaseWindow.prototype, 'fullScreenable', {
+  get: function () {
+    return this.isFullScreenable();
+  },
+  set: function (full) {
+    this.setFullScreenable(full);
+  },
+});
+
+Object.defineProperty(BaseWindow.prototype, 'closable', {
+  get: function () {
+    return this.isClosable();
+  },
+  set: function (close) {
+    this.setClosable(close);
+  },
+});
+
+Object.defineProperty(BaseWindow.prototype, 'movable', {
+  get: function () {
+    return this.isMovable();
+  },
+  set: function (move) {
+    this.setMovable(move);
+  },
+});
+
+BaseWindow.getFocusedWindow = () => {
+  return BaseWindow.getAllWindows().find((win) => win.isFocused()) || null;
+};
+
+module.exports = BaseWindow;

@@ -1,0 +1,18 @@
+{
+  "name": "spec-lynx-card",
+  "private": true,
+  "scripts": {
+    "build": "node ./build-all.js"
+  },
+  "devDependencies": {
+    "@lynx-js/react": "0.115.4",
+    "@lynx-js/react-rsbuild-plugin": "^0.12.5",
+    "@lynx-js/rspeedy": "^0.13.0",
+    "@lynx-js/types": "3.6.0",
+    "@rsbuild/plugin-type-check": "1.3.1",
+    "typescript": "~5.9.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

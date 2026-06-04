@@ -1,0 +1,53 @@
+From 5970f45fd498d29c58c258d47fdd5e0f44595e43 Mon Sep 17 00:00:00 2001
+From: tangyongjie <80395553+yongjieTang@users.noreply.github.com>
+Date: Tue, 13 Jan 2026 15:55:56 +0800
+Subject: [PATCH 5/5] Change COREPACK_ENABLE_NETWORK to 1 form 0
+
+---
+ devtool/base_devtool/js_libraries/logbox/build.py | 2 +-
+ tools/buildtools_helper.py                        | 2 +-
+ tools/js_tools/pnpm_helper.py                     | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/devtool/base_devtool/js_libraries/logbox/build.py b/devtool/base_devtool/js_libraries/logbox/build.py
+index 4d26ebe5..56fa9349 100644
+--- a/devtool/base_devtool/js_libraries/logbox/build.py
++++ b/devtool/base_devtool/js_libraries/logbox/build.py
+@@ -40,7 +40,7 @@ def git_root_dir():
+ def build():
+     env = get_pnpm_env()
+     env['COREPACK_HOME'] = os.path.join(git_root_dir(), 'buildtools', 'corepack')
+-    env['COREPACK_ENABLE_NETWORK'] = '0'
++    env['COREPACK_ENABLE_NETWORK'] = '1'
+     # Change to the root directory
+     os.chdir(root_path)
+ 
+diff --git a/tools/buildtools_helper.py b/tools/buildtools_helper.py
+index 5c1cf6df..6e0ccbd8 100644
+--- a/tools/buildtools_helper.py
++++ b/tools/buildtools_helper.py
+@@ -7,7 +7,7 @@ import os
+ import sys
+ 
+ def directory_really_is_buildtools(directory):
+-  return os.path.exists(os.path.join(directory, 'gn')) and os.path.exists(os.path.join(directory, 'ninja'))
++  return os.path.exists(os.path.join(directory, 'corepack')) and os.path.exists(os.path.join(directory, 'node'))
+ 
+ def get_buildtools_path():
+   """Search for buildtools """
+diff --git a/tools/js_tools/pnpm_helper.py b/tools/js_tools/pnpm_helper.py
+index 03716b01..0a075641 100644
+--- a/tools/js_tools/pnpm_helper.py
++++ b/tools/js_tools/pnpm_helper.py
+@@ -31,7 +31,7 @@ def run_pnpm_command(command, cwd, env=None):
+         env = get_pnpm_env().copy()
+     corepack_env = {
+         "COREPACK_HOME": os.path.join(get_buildtools_path(), "corepack"),
+-        "COREPACK_ENABLE_NETWORK": "0",
++        "COREPACK_ENABLE_NETWORK": "1",
+     }
+ 
+     # check the pnpm cache
+-- 
+2.50.1 (Apple Git-155)
+

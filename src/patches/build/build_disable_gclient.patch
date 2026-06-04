@@ -1,0 +1,36 @@
+From ee10ec815e8110abd08552e098c8296c93786ec1 Mon Sep 17 00:00:00 2001
+From: zsy-jason <186247581+zsy-jason@users.noreply.github.com>
+Date: Mon, 20 Oct 2025 11:52:35 +0800
+Subject: [PATCH] build: disable gclient
+
+This patch disables gclient usage in lastchange.py.
+---
+ util/lastchange.py | 5 -----
+ 1 file changed, 5 deletions(-)
+
+diff --git a/util/lastchange.py b/util/lastchange.py
+index 3321a3e..4321ce9 100755
+--- a/util/lastchange.py
++++ b/util/lastchange.py
+@@ -21,8 +21,6 @@ _ROOT_DIR = os.path.abspath(
+ 
+ sys.path.insert(0, _ROOT_DIR)
+ 
+-import gclient_utils
+-
+ VersionInfo = collections.namedtuple(
+     "VersionInfo", ("revision_id", "revision", "commit_position", "timestamp"))
+ _EMPTY_VERSION_INFO = VersionInfo('0' * 40, '0' * 40, '', 0)
+@@ -264,9 +262,6 @@ def GetVersion(source_dir, commit_filter, merge_base_ref):
+   if 'BASE_COMMIT_SUBMISSION_MS' in os.environ:
+     return GetVersionInfoFromEnv()
+ 
+-  if gclient_utils.IsEnvCog():
+-    return _EMPTY_VERSION_INFO
+-
+   git_top_dir = None
+   try:
+     git_top_dir = GetGitTopDirectory(source_dir)
+-- 
+2.49.0
+

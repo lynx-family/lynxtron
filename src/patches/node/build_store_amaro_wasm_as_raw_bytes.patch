@@ -1,0 +1,175 @@
+From cd1bfd5146009e1d94a84f6b6fc343c25dc834f7 Mon Sep 17 00:00:00 2001
+From: Lynxtron Scripts <scripts@lynxtron>
+Date: Tue, 26 May 2026 11:41:35 +0800
+Subject: [PATCH] build: store Amaro wasm as raw bytes
+
+---
+ src/node_builtins.cc | 26 ++++++++++++++++++++++++++
+ src/node_builtins.h  |  4 ++++
+ unofficial.gni       | 43 +++++++++++++++++++++++++++++++++++++++++--
+ 3 files changed, 71 insertions(+), 2 deletions(-)
+
+diff --git a/src/node_builtins.cc b/src/node_builtins.cc
+index 35cf42a5..da55d123 100644
+--- a/src/node_builtins.cc
++++ b/src/node_builtins.cc
+@@ -1,4 +1,7 @@
+ #include "node_builtins.h"
++#if HAVE_AMARO
++#include "amaro_wasm_data.h"
++#endif
+ #include "debug_utils-inl.h"
+ #include "env-inl.h"
+ #include "node_external_reference.h"
+@@ -7,6 +10,8 @@
+ #include "simdutf.h"
+ #include "util-inl.h"
+ 
++#include <cstring>
++
+ namespace node {
+ namespace builtins {
+ 
+@@ -715,6 +720,20 @@ void BuiltinLoader::HasCachedBuiltins(const FunctionCallbackInfo<Value>& args) {
+       args.GetIsolate(), instance->code_cache_->has_code_cache));
+ }
+ 
++#if HAVE_AMARO
++void BuiltinLoader::GetAmaroWasmBytes(
++    const FunctionCallbackInfo<Value>& args) {
++  Isolate* isolate = args.GetIsolate();
++  auto backing = v8::ArrayBuffer::NewBackingStore(
++      isolate,
++      amaro_wasm_size,
++      v8::BackingStoreInitializationMode::kUninitialized);
++  memcpy(backing->Data(), amaro_wasm_data, amaro_wasm_size);
++  args.GetReturnValue().Set(
++      v8::ArrayBuffer::New(isolate, std::move(backing)));
++}
++#endif  // HAVE_AMARO
++
+ void SetInternalLoaders(const FunctionCallbackInfo<Value>& args) {
+   Realm* realm = Realm::GetCurrent(args);
+   CHECK(args[0]->IsFunction());
+@@ -767,6 +786,10 @@ void BuiltinLoader::CreatePerIsolateProperties(IsolateData* isolate_data,
+   SetMethod(isolate, target, "getCacheUsage", BuiltinLoader::GetCacheUsage);
+   SetMethod(isolate, target, "compileFunction", BuiltinLoader::CompileFunction);
+   SetMethod(isolate, target, "hasCachedBuiltins", HasCachedBuiltins);
++#if HAVE_AMARO
++  SetMethod(isolate, target, "getAmaroWasmBytes",
++            BuiltinLoader::GetAmaroWasmBytes);
++#endif  // HAVE_AMARO
+   SetMethod(isolate, target, "setInternalLoaders", SetInternalLoaders);
+ }
+ 
+@@ -786,6 +809,9 @@ void BuiltinLoader::RegisterExternalReferences(
+   registry->Register(GetCacheUsage);
+   registry->Register(CompileFunction);
+   registry->Register(HasCachedBuiltins);
++#if HAVE_AMARO
++  registry->Register(GetAmaroWasmBytes);
++#endif  // HAVE_AMARO
+   registry->Register(SetInternalLoaders);
+   registry->Register(GetNatives);
+ 
+diff --git a/src/node_builtins.h b/src/node_builtins.h
+index 35cb7766..9d6aa319 100644
+--- a/src/node_builtins.h
++++ b/src/node_builtins.h
+@@ -182,6 +182,10 @@ class NODE_EXTERN_PRIVATE BuiltinLoader {
+   static void CompileFunction(const v8::FunctionCallbackInfo<v8::Value>& args);
+   static void HasCachedBuiltins(
+       const v8::FunctionCallbackInfo<v8::Value>& args);
++#if HAVE_AMARO
++  static void GetAmaroWasmBytes(
++      const v8::FunctionCallbackInfo<v8::Value>& args);
++#endif
+   // For legacy process.binding('natives')
+   static void GetNatives(v8::Local<v8::Name> property,
+                          const v8::PropertyCallbackInfo<v8::Value>& info);
+diff --git a/unofficial.gni b/unofficial.gni
+index 0eb89b89..b2aecd03 100644
+--- a/unofficial.gni
++++ b/unofficial.gni
+@@ -185,6 +185,10 @@ template("node_gn_build") {
+       "$root_gen_dir/lynxtron_natives.cc",
+       "$target_gen_dir/node_javascript.cc",
+     ] + gypi_values.node_sources
++    if (node_use_amaro) {
++      deps += [ ":node_js2c_amaro_raw_wasm" ]
++      sources += [ "$target_gen_dir/amaro_wasm_data.cc" ]
++    }
+ 
+     if (is_win) {
+       libs = [ "psapi.lib" ]
+@@ -330,7 +334,14 @@ template("node_gn_build") {
+     }
+   }
+ 
++  amaro_dist_index_file = "deps/amaro/dist/index.js"
+   node_deps_files = gypi_values.deps_files + node_builtin_shareable_builtins
++  node_js2c_copy_deps_files = []
++  foreach(file, node_deps_files) {
++    if (!(node_use_amaro && file == amaro_dist_index_file)) {
++      node_js2c_copy_deps_files += [ file ]
++    }
++  }
+   node_library_files = exec_script("./tools/search_files.py",
+                                     [ rebase_path(".", root_build_dir),
+                                       rebase_path("lib", root_build_dir),
+@@ -360,7 +371,7 @@ template("node_gn_build") {
+   }
+ 
+   copy("node_js2c_inputs") {
+-    sources = node_deps_files + node_library_files
++    sources = node_js2c_copy_deps_files + node_library_files
+     outputs = [
+       "$target_gen_dir/js2c_inputs/{{source_target_relative}}",
+     ]
+@@ -379,17 +390,45 @@ template("node_gn_build") {
+     args = [rebase_path("$target_gen_dir/js2c_inputs")] + fs_files
+   }
+ 
++  node_js2c_amaro_deps = []
++  node_js2c_amaro_outputs = []
++  if (node_use_amaro) {
++    action("node_js2c_amaro_raw_wasm") {
++      script = "//src/script/node/generate_amaro_raw_wasm.py"
++      inputs = [ amaro_dist_index_file ]
++      outputs = [
++        "$target_gen_dir/js2c_inputs/$amaro_dist_index_file",
++        "$target_gen_dir/amaro_wasm_data.cc",
++        "$target_gen_dir/amaro_wasm_data.h",
++      ]
++      args = [
++        "--input",
++        rebase_path(amaro_dist_index_file),
++        "--output-js",
++        rebase_path("$target_gen_dir/js2c_inputs/$amaro_dist_index_file"),
++        "--output-cc",
++        rebase_path("$target_gen_dir/amaro_wasm_data.cc"),
++        "--output-h",
++        rebase_path("$target_gen_dir/amaro_wasm_data.h"),
++      ]
++    }
++    node_js2c_amaro_deps = [ ":node_js2c_amaro_raw_wasm" ]
++    node_js2c_amaro_outputs = get_target_outputs(":node_js2c_amaro_raw_wasm")
++  }
++
+   action("run_node_js2c") {
+     script = "//src/build/run-in-dir.py"
+     deps = [
++      ":node_js2c_inputs",
+       ":node_js2c_original_fs",
+       ":node_js2c($host_toolchain)",
+       ":generate_config_gypi",
+-    ]
++    ] + node_js2c_amaro_deps
+ 
+     config_gypi = [ "$target_gen_dir/config.gypi" ]
+     inputs = node_library_files +
+              node_deps_files +
++             node_js2c_amaro_outputs +
+              get_target_outputs(":node_js2c_original_fs") +
+              config_gypi
+     outputs = [ "$target_gen_dir/node_javascript.cc" ]

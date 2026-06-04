@@ -1,0 +1,3468 @@
+From 1dd28194885ac3420e4b767c120ab3dad987331f Mon Sep 17 00:00:00 2001
+From: tangyongjie <80395553+yongjieTang@users.noreply.github.com>
+Date: Fri, 14 Nov 2025 14:46:37 +0800
+Subject: [PATCH] adapt lynx compile
+
+---
+ apple/resources/Info.plist                    |  20 ++
+ apple/resources/compiler-Info.plist           |  33 ++
+ apple/script/compile_storyboard.py            |  63 ++++
+ apple/script/hardlink.py                      |  71 ++++
+ apple/script/merge_plist.py                   | 138 ++++++++
+ apple/script/metal_compiler.py                | 106 ++++++
+ apple/script/write_pkg_info.py                |  56 +++
+ apple/templates/asset_catalog.gni             | 149 ++++++++
+ apple/templates/darwin_binary_bundle.gni      | 184 ++++++++++
+ apple/templates/darwin_general_bundle.gni     | 156 +++++++++
+ apple/templates/merge_plist.gni               |  85 +++++
+ apple/templates/metal_compiler.gni            |  88 +++++
+ apple/templates/storyboards.gni               |  50 +++
+ apple/templates/xib.gni                       |  55 +++
+ build_config.h                                |   1 +
+ config/BUILD.gn                               |   4 +
+ config/BUILDCONFIG.gn                         |  27 ++
+ config/clang/BUILD.gn                         |  28 +-
+ config/compiler/BUILD.gn                      | 232 +++++++------
+ config/ios/bundle_identifier_prefix.gni       |   8 +
+ config/mac/BUILD.gn                           |  20 ++
+ config/mac/script/sdk_info.py                 | 130 +++++++
+ config/mac/sdk_info.gni                       |  14 +
+ config/mac/templates/mac_app_bundle.gni       | 116 +++++++
+ config/profiler.gni                           |   1 +
+ config/win/win.gni                            |   7 +
+ fuchsia/sdk.gni                               | 326 ++++++++++++++++++
+ ls.py                                         |  38 ++
+ secondary/lynx/testing/FuzzFramework/BUILD.gn |  90 +++++
+ .../lynx/testing/FuzzFramework/fuzz_test.gni  |  30 ++
+ .../lynx/third_party/googletest/BUILD.gn      | 160 +++++++++
+ secondary/lynx/third_party/ocmock/BUILD.gn    | 124 +++++++
+ secondary/third_party/boringssl/BUILD.gn      | 119 +++++++
+ secondary/third_party/discount/BUILD.gn       |   9 +
+ secondary/third_party/glfw/BUILD.gn           |   5 +
+ secondary/third_party/jsoncpp/BUILD.gn        |   9 +
+ secondary/third_party/khronos/BUILD.gn        |   5 +
+ secondary/third_party/libwebp/BUILD.gn        |   5 +
+ secondary/third_party/markdown/BUILD.gn       |  16 +
+ secondary/third_party/ocmock/BUILD.gn         |   5 +
+ .../vulkan_memory_allocator/BUILD.gn          |   5 +
+ secondary/third_party/wuffs/BUILD.gn          |  61 ++++
+ toolchain/clang.gni                           |  41 +++
+ util/write_cmake_config.gni                   |   1 +
+ util/write_cmake_config.py                    | 131 +++++++
+ 45 files changed, 2907 insertions(+), 115 deletions(-)
+ create mode 100644 apple/resources/Info.plist
+ create mode 100644 apple/resources/compiler-Info.plist
+ create mode 100644 apple/script/compile_storyboard.py
+ create mode 100644 apple/script/hardlink.py
+ create mode 100644 apple/script/merge_plist.py
+ create mode 100644 apple/script/metal_compiler.py
+ create mode 100644 apple/script/write_pkg_info.py
+ create mode 100644 apple/templates/asset_catalog.gni
+ create mode 100644 apple/templates/darwin_binary_bundle.gni
+ create mode 100644 apple/templates/darwin_general_bundle.gni
+ create mode 100644 apple/templates/merge_plist.gni
+ create mode 100644 apple/templates/metal_compiler.gni
+ create mode 100644 apple/templates/storyboards.gni
+ create mode 100644 apple/templates/xib.gni
+ create mode 100644 config/ios/bundle_identifier_prefix.gni
+ create mode 100644 config/mac/script/sdk_info.py
+ create mode 100644 config/mac/sdk_info.gni
+ create mode 100644 config/mac/templates/mac_app_bundle.gni
+ create mode 100644 config/profiler.gni
+ create mode 100644 config/win/win.gni
+ create mode 100644 fuchsia/sdk.gni
+ create mode 100755 ls.py
+ create mode 100644 secondary/lynx/testing/FuzzFramework/BUILD.gn
+ create mode 100644 secondary/lynx/testing/FuzzFramework/fuzz_test.gni
+ create mode 100644 secondary/lynx/third_party/googletest/BUILD.gn
+ create mode 100644 secondary/lynx/third_party/ocmock/BUILD.gn
+ create mode 100644 secondary/third_party/boringssl/BUILD.gn
+ create mode 100644 secondary/third_party/discount/BUILD.gn
+ create mode 100644 secondary/third_party/glfw/BUILD.gn
+ create mode 100644 secondary/third_party/jsoncpp/BUILD.gn
+ create mode 100644 secondary/third_party/khronos/BUILD.gn
+ create mode 100644 secondary/third_party/libwebp/BUILD.gn
+ create mode 100644 secondary/third_party/markdown/BUILD.gn
+ create mode 100644 secondary/third_party/ocmock/BUILD.gn
+ create mode 100644 secondary/third_party/vulkan_memory_allocator/BUILD.gn
+ create mode 100644 secondary/third_party/wuffs/BUILD.gn
+ create mode 100644 toolchain/clang.gni
+ create mode 100644 util/write_cmake_config.gni
+ create mode 100644 util/write_cmake_config.py
+
+diff --git a/apple/resources/Info.plist b/apple/resources/Info.plist
+new file mode 100644
+index 0000000..75b54f5
+--- /dev/null
++++ b/apple/resources/Info.plist
+@@ -0,0 +1,20 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
++<plist version="1.0">
++<dict>
++	<key>CFBundleDevelopmentRegion</key>
++	<string>$(DEVELOPMENT_LANGUAGE)</string>
++	<key>CFBundleIdentifier</key>
++	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
++	<key>CFBundleInfoDictionaryVersion</key>
++	<string>6.0</string>
++	<key>CFBundleName</key>
++	<string>$(PRODUCT_NAME)</string>
++	<key>CFBundlePackageType</key>
++	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
++	<key>CFBundleShortVersionString</key>
++	<string>1.0</string>
++	<key>CFBundleVersion</key>
++	<string>$(CURRENT_PROJECT_VERSION)</string>
++</dict>
++</plist>
+diff --git a/apple/resources/compiler-Info.plist b/apple/resources/compiler-Info.plist
+new file mode 100644
+index 0000000..0a02517
+--- /dev/null
++++ b/apple/resources/compiler-Info.plist
+@@ -0,0 +1,33 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
++<plist version="1.0">
++<dict>
++	<key>DTSDKName</key>
++	<string>$(SDK_NAME)</string>
++	<key>DTXcode</key>
++	<string>$(XCODE_VERSION)</string>
++	<key>DTSDKBuild</key>
++	<string>$(SDK_BUILD)</string>
++	<key>BuildMachineOSBuild</key>
++	<string>$(MACOS_BUILD)</string>
++	<key>DTPlatformName</key>
++	<string>$(PLATFORM_NAME)</string>
++	<key>DTCompiler</key>
++	<string>$(COMPILER_NAME)</string>
++	<key>DTPlatformVersion</key>
++	<string>$(PLATFORM_VERSION)</string>
++	<key>DTXcodeBuild</key>
++	<string>$(XCODE_BUILD)</string>
++	<key>DTPlatformBuild</key>
++	<string>$(PLATFORM_BUILD)</string>
++	<key>CFBundleSupportedPlatforms</key>
++	<array>
++		<string>$(PLATFORM_DISPLAY_NAME)</string>
++	</array>
++	<key>UIDeviceFamily</key>
++	<array>
++		<string>1</string>
++		<string>2</string>
++	</array>
++</dict>
++</plist>
+diff --git a/apple/script/compile_storyboard.py b/apple/script/compile_storyboard.py
+new file mode 100644
+index 0000000..56b1dcb
+--- /dev/null
++++ b/apple/script/compile_storyboard.py
+@@ -0,0 +1,63 @@
++# Copyright 2019 The Chromium Authors. All rights reserved.
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++"""
++Compiles a .storyboard file.
++"""
++
++import argparse
++import os
++import subprocess
++import sys
++
++
++def CompileStoryboard(storyboard, out, deployment_target, platform):
++  """Compiles |storyboard| storyboard to |out| for |deployment_target|."""
++  if platform == 'ios':
++    subprocess.check_call([
++        'ibtool', '--target-device', 'iphone', '--target-device', 'ipad',
++        '--auto-activate-custom-fonts', '--minimum-deployment-target',
++        deployment_target, '--compilation-directory', out,
++        storyboard,
++    ])
++  elif platform == 'mac':
++    subprocess.check_call([
++        'ibtool', '--target-device', 'mac', '--auto-activate-custom-fonts',
++        '--minimum-deployment-target', deployment_target,
++        '--compilation-directory', out, storyboard,
++    ])
++
++def ParseArgs(argv):
++  """Parses command line arguments."""
++  parser = argparse.ArgumentParser(
++      description=__doc__,
++      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
++
++  parser.add_argument(
++      'input',
++      help='path to the .storyboard file to compile')
++  parser.add_argument(
++      '-o', '--output', required=True,
++      help='path to the result')
++  parser.add_argument(
++      '-p', '--platform', required=True,
++      help='target platform of the .storyboard file to compile')
++  parser.add_argument(
++      '-t', '--minimum-deployment-target', required=True,
++      help='iOS deployment target')
++
++  return parser.parse_args(argv)
++
++
++def main(argv):
++  args = ParseArgs(argv)
++
++  CompileStoryboard(
++      os.path.abspath(args.input),
++      os.path.dirname(os.path.abspath(args.output)),
++      args.minimum_deployment_target,
++      args.platform)
++
++if __name__ == '__main__':
++  sys.exit(main(sys.argv[1:]))
+diff --git a/apple/script/hardlink.py b/apple/script/hardlink.py
+new file mode 100644
+index 0000000..7f1be59
+--- /dev/null
++++ b/apple/script/hardlink.py
+@@ -0,0 +1,71 @@
++# Copyright 2017 The Chromium Authors
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++"""Recursively create hardlink to target named output."""
++
++
++import argparse
++import os
++import shutil
++
++
++def CreateHardlinkHelper(target, output):
++  """Recursively create a hardlink named output pointing to target.
++
++  Args:
++    target: path to an existing file or directory
++    output: path to the newly created hardlink
++
++  This function assumes that output does not exists but that the parent
++  directory containing output does. If those conditions are false, then
++  the function will fails with an exception corresponding to an OS error.
++  """
++  if os.path.islink(target):
++    os.symlink(os.readlink(target), output)
++  elif not os.path.isdir(target):
++    try:
++      os.link(target, output)
++    except:
++      shutil.copy(target, output)
++  else:
++    os.mkdir(output)
++    for name in os.listdir(target):
++      CreateHardlinkHelper(
++          os.path.join(target, name),
++          os.path.join(output, name))
++
++
++def CreateHardlink(target, output):
++  """Recursively create a hardlink named output pointing to target.
++
++  Args:
++    target: path to an existing file or directory
++    output: path to the newly created hardlink
++
++  If output already exists, it is first removed. In all cases, the
++  parent directory containing output is created.
++  """
++  if os.path.isdir(output):
++    shutil.rmtree(output)
++  elif os.path.exists(output):
++    os.unlink(output)
++
++  parent_dir = os.path.dirname(os.path.abspath(output))
++  if not os.path.isdir(parent_dir):
++    os.makedirs(parent_dir)
++
++  CreateHardlinkHelper(target, output)
++
++
++def Main():
++  parser = argparse.ArgumentParser()
++  parser.add_argument('target', help='path to the file or directory to link to')
++  parser.add_argument('output', help='name of the hardlink to create')
++  args = parser.parse_args()
++
++  CreateHardlink(args.target, args.output)
++
++
++if __name__ == '__main__':
++  Main()
+diff --git a/apple/script/merge_plist.py b/apple/script/merge_plist.py
+new file mode 100644
+index 0000000..f13ce00
+--- /dev/null
++++ b/apple/script/merge_plist.py
+@@ -0,0 +1,138 @@
++# Copyright 2019 The Chromium Authors. All rights reserved.
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++"""
++Merges multiple Apple Property List files (.plist) and perform variables
++substitutions $(VARIABLE) in the Property List string values.
++"""
++
++import argparse
++import json
++import re
++import subprocess
++import sys
++
++
++# Pattern representing a variable to substitue in a string value.
++VARIABLE_PATTERN = re.compile(r'\$\(([^)]*)\)')
++
++
++def GetCommandOutput(command):
++  """Returns the output of `command` as a string."""
++  return subprocess.check_output(command, encoding='utf-8')
++
++
++def LoadPlist(plist_path):
++  """Loads Apple Property List file at |plist_path|."""
++  return json.loads(
++      GetCommandOutput(['plutil', '-convert', 'json', '-o', '-', plist_path]))
++
++
++def SavePlist(plist_path, content, format):
++  """Saves |content| as Apple Property List in |format| at |plist_path|."""
++  proc = subprocess.Popen(
++      ['plutil', '-convert', format, '-o', plist_path, '-'],
++      stdin=subprocess.PIPE)
++  output, _ = proc.communicate(json.dumps(content).encode('utf-8'))
++  if proc.returncode:
++    raise subprocess.CalledProcessError(
++        proc.returncode,
++        ['plutil', '-convert', format, '-o', plist_path, '-'],
++        output)
++
++
++def MergeObjects(obj1, obj2):
++  """Merges two objects (either dictionary, list, string or numbers)."""
++  if type(obj1) != type(obj2):
++    return obj2
++
++  if isinstance(obj2, dict):
++    result = dict(obj1)
++    for key in obj2:
++      value1 = obj1.get(key, None)
++      value2 = obj2.get(key, None)
++      result[key] = MergeObjects(value1, value2)
++    return result
++
++  if isinstance(obj2, list):
++    return obj1 + obj2
++
++  return obj2
++
++
++def MergePlists(plist_paths):
++  """Loads and merges all Apple Property List files at |plist_paths|."""
++  plist = {}
++  for plist_path in plist_paths:
++    plist = MergeObjects(plist, LoadPlist(plist_path))
++  return plist
++
++
++def PerformSubstitutions(plist, substitutions):
++  """Performs variables substitutions in |plist| given by |substitutions|."""
++  if isinstance(plist, dict):
++    result = dict(plist)
++    for key in plist:
++      result[key] = PerformSubstitutions(plist[key], substitutions)
++    return result
++
++  if isinstance(plist, list):
++    return [ PerformSubstitutions(item, substitutions) for item in plist ]
++
++  if isinstance(plist, str):
++    result = plist
++    while True:
++      match = VARIABLE_PATTERN.search(result)
++      if not match:
++        break
++
++      extent = match.span()
++      expand = substitutions[match.group(1)]
++      result = result[:extent[0]] + expand + result[extent[1]:]
++    return result
++
++  return plist
++
++
++def PerformSubstitutionsFrom(plist, substitutions_path):
++  """Performs variable substitutions in |plist| from |substitutions_path|."""
++  with open(substitutions_path) as substitutions_file:
++    return PerformSubstitutions(plist, json.load(substitutions_file))
++
++
++def ParseArgs(argv):
++  """Parses command line arguments."""
++  parser = argparse.ArgumentParser(
++      description=__doc__,
++      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
++
++  parser.add_argument(
++      '-s', '--substitutions',
++      help='path to a JSON file containing variable substitutions')
++  parser.add_argument(
++      '-f', '--format', default='json', choices=('json', 'binary1', 'xml1'),
++      help='format of the generated file')
++  parser.add_argument(
++      '-o', '--output', default='-',
++      help='path to the result; - means stdout')
++  parser.add_argument(
++      'inputs', nargs='+',
++      help='path of the input files to merge')
++
++  return parser.parse_args(argv)
++
++
++def main(argv):
++  args = ParseArgs(argv)
++
++  data = MergePlists(args.inputs)
++  if args.substitutions:
++    data = PerformSubstitutionsFrom(
++        data, args.substitutions)
++
++  SavePlist(args.output, data, args.format)
++
++
++if __name__ == '__main__':
++  sys.exit(main(sys.argv[1:]))
+diff --git a/apple/script/metal_compiler.py b/apple/script/metal_compiler.py
+new file mode 100644
+index 0000000..f963dd3
+--- /dev/null
++++ b/apple/script/metal_compiler.py
+@@ -0,0 +1,106 @@
++# Copyright 2023 The Lynxtron Authors. All rights reserved.
++#
++
++"""
++Use metal command to compile a .metal file to .metallib files
++"""
++
++import argparse
++import os
++import subprocess
++import sys
++
++def LinkMetal(metal_path, air_path, target, output_path):
++  """
++  link an .air file to .metallib file
++  """
++  output = output_path + '/default.metallib'
++  command = [metal_path,
++             '-target',
++             target,
++             '-MO',
++             '-o',
++             output,
++             air_path
++            ]
++
++  job = subprocess.Popen(command,
++                       stdout=subprocess.PIPE,
++                       stderr=subprocess.DEVNULL)
++  out, err = job.communicate()
++  return job.returncode
++
++def CompileMetal(metal_path, input_path, output_path, include_paths, deps_paths, sysroot, deployment_target, type, target_os):
++  """
++  compile a .metal file to .dia and .air files
++  """
++  dir_name, file_name = os.path.split(input_path)
++  name, ext = os.path.splitext(file_name)
++  dia_path = os.path.join(output_path, name + '.dia')
++  air_path = os.path.join(output_path, name + '.air')
++  dat_path = os.path.join(output_path, name + '.dat')
++  target = 'air64-apple-%s%s' % (target_os, deployment_target)
++  if type == 'simulator':
++    target = target + '-simulator'
++  includes = []
++  for include_path in include_paths:
++    includes.append('-I'+include_path)
++  deps = []
++  for deps_path in deps_paths:
++    deps.append('-F'+deps_path)
++
++  command = [metal_path,
++             '-c',
++             '-target',
++             target,
++             '-gline-tables-only',
++             '-frecord-sources',
++             '-isysroot',
++             sysroot,
++             '-serialize-diagnostics',
++             dia_path,
++             '-o',
++             air_path
++            ]
++
++  for i in includes:
++    command.append(i)
++  for d in deps:
++    command.append(d)
++  command.extend(['-MMD', '-MT', 'dependencies', '-MF'])
++  command.append(dat_path)
++  command.append(input_path)
++  job = subprocess.Popen(command,
++                       stdout=subprocess.PIPE,
++                       stderr=subprocess.DEVNULL)
++  out, err = job.communicate()
++  if job.returncode != 0:
++    return job.returncode
++  return LinkMetal(metal_path, air_path, target, output_path)
++
++def main():
++  parser = argparse.ArgumentParser()
++  parser.add_argument('--metal-path', help='The path of metal tool')
++  parser.add_argument('--input-path', help='The input path of .metal file')
++  parser.add_argument('--output-path', help='The output path of build product')
++  parser.add_argument('--include-paths', nargs='+', help='Headers search path')
++  parser.add_argument('--deps-paths', nargs='+', help='dependencies path')
++  parser.add_argument('--sysroot', help='sysroot path')
++  parser.add_argument('--minimum-deployment-target', help='minimum deployment target')
++  parser.add_argument('--type', help='target type. simulator or device')
++  parser.add_argument('--target-os', help='target os. ios or tvos')
++  args = parser.parse_args()
++  metal_path = args.metal_path
++  input_path = args.input_path
++  output_path = args.output_path
++  include_paths = args.include_paths
++  deps_paths = args.deps_paths
++  sysroot = args.sysroot
++  minimum_deployment_target = args.minimum_deployment_target
++  type = args.type
++  target_os = args.target_os
++
++  return CompileMetal(metal_path, input_path, output_path, include_paths, deps_paths, sysroot, minimum_deployment_target, type, target_os)
++
++if __name__ == '__main__':
++  sys.exit(main())
+diff --git a/apple/script/write_pkg_info.py b/apple/script/write_pkg_info.py
+new file mode 100644
+index 0000000..ae7c527
+--- /dev/null
++++ b/apple/script/write_pkg_info.py
+@@ -0,0 +1,56 @@
++# Copyright 2016 The Chromium Authors
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++import argparse
++import os
++import plistlib
++import sys
++
++# This script creates a PkgInfo file for an OS X .app bundle's plist.
++# Usage: python write_pkg_info.py --plist Foo.app/Contents/Info.plist \
++#           --output Foo.app/Contents/PkgInfo
++
++def LoadPList(path):
++  """Loads Plist at |path| and returns it as a dictionary."""
++  with open(path, 'rb') as f:
++    return plistlib.load(f)
++
++def Main():
++  parser = argparse.ArgumentParser(
++      description='A script to write PkgInfo files for .app bundles.')
++  parser.add_argument('--plist',
++                      required=True,
++                      help='Path to the Info.plist for the .app.')
++  parser.add_argument('--output',
++                      required=True,
++                      help='Path to the desired output file.')
++  args = parser.parse_args()
++
++  # Remove the output if it exists already.
++  try:
++    os.unlink(args.output)
++  except FileNotFoundError:
++    pass
++
++  plist = LoadPList(args.plist)
++  package_type = plist['CFBundlePackageType']
++  if package_type != 'APPL':
++    raise ValueError('Expected CFBundlePackageType to be %s, got %s' % \
++        ('APPL', package_type))
++
++  # The format of PkgInfo is eight characters, representing the bundle type
++  # and bundle signature, each four characters. If that is missing, four
++  # '?' characters are used instead.
++  signature_code = plist.get('CFBundleSignature', '????')
++  if len(signature_code) != 4:
++    raise ValueError('CFBundleSignature should be exactly four characters, ' +
++                     'got %s' % signature_code)
++
++  with open(args.output, 'w') as fp:
++    fp.write('%s%s' % (package_type, signature_code))
++  return 0
++
++
++if __name__ == '__main__':
++  sys.exit(Main())
+diff --git a/apple/templates/asset_catalog.gni b/apple/templates/asset_catalog.gni
+new file mode 100644
+index 0000000..ccd271f
+--- /dev/null
++++ b/apple/templates/asset_catalog.gni
+@@ -0,0 +1,149 @@
++# Copyright 2017 The Chromium Authors
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++
++# This template declares a bundle_data target that references an asset
++# catalog so that it is compiled to the asset catalog of the generated
++# bundle.
++#
++# The create_bundle target requires that all asset catalogs are part of an
++# .xcasset bundle. This requirement comes from actool that only receives
++# the path to the .xcasset bundle directory and not to the individual
++# assets directories.
++#
++# The requirement is a bit problematic as it prevents compiling only a
++# subset of the asset catakig that are contained in a .xcasset. This template
++# fixes that by instead copying the content of the asset catalog to temporary
++# .xcasset directory (below $root_out_dir) and defining a bundle_data
++# target that refers to those copies (this is efficient as the "copy" is
++# implemented by hardlinking if possible on macOS).
++#
++# Since the create_data target will only refer to the .xcasset directory
++# and additional "action" target that runs a dummy script is defined. It
++# does nothing but pretends to generate the .xcassets directory (while
++# it is really created as a side-effect of the "copy" step). This allows
++# to workaround the check in "gn" that all inputs below $root_out_dir have
++# to be outputs of another target with a public dependency path.
++#
++# This template also ensures that the file are only copied once when the
++# build targets multiple architectures at the same time (aka "fat build").
++#
++# Arguments
++#
++#     sources:
++#       required, list of strings, paths to the file contained in the
++#       asset catalog directory; this must contain the Contents.json file
++#       and all the image referenced by it (not enforced by the template).
++#
++#     asset_type:
++#       required, string, type of the asset catalog, that is the extension
++#       of the directory containing the images and the Contents.json file.
++#
++template("asset_catalog") {
++  assert(defined(invoker.sources) && invoker.sources != [],
++         "sources must be defined and not empty for $target_name")
++
++  assert(defined(invoker.asset_type) && invoker.asset_type != "",
++         "asset_type must be defined and not empty for $target_name")
++
++  _copy_target_name = target_name + "__copy"
++  _data_target_name = target_name
++
++  _sources = invoker.sources
++  _outputs = []
++
++  # The compilation of resources into Assets.car is enabled automatically
++  # by the "create_bundle" target if any of the "bundle_data" sources's
++  # path is in a .xcassets directory and matches one of the know asset
++  # catalog type.
++  _xcassets_dir = "$target_gen_dir/${target_name}.xcassets"
++  _output_dir = "$_xcassets_dir/" +
++                get_path_info(get_path_info(_sources[0], "dir"), "file")
++
++  foreach(_source, invoker.sources) {
++    _dir = get_path_info(_source, "dir")
++    _outputs += [ "$_output_dir/" + get_path_info(_source, "file") ]
++
++    assert(get_path_info(_dir, "extension") == invoker.asset_type,
++            "$_source dirname must have .${invoker.asset_type} extension")
++  }
++
++  action(_copy_target_name) {
++    # Forward "deps", "public_deps" and "testonly" in case some of the
++    # source files are generated.
++    forward_variables_from(invoker,
++                            [
++                              "deps",
++                              "public_deps",
++                              "testonly",
++                            ])
++
++    script = "//build/apple/script/hardlink.py"
++
++    visibility = [ ":$_data_target_name" ]
++    sources = _sources
++    outputs = _outputs + [ _xcassets_dir ]
++
++    args = [
++      rebase_path(get_path_info(_sources[0], "dir"), root_build_dir),
++      rebase_path(_output_dir, root_build_dir),
++    ]
++  }
++
++  bundle_data(_data_target_name) {
++    forward_variables_from(invoker,
++                            "*",
++                            [
++                              "deps",
++                              "outputs",
++                              "public_deps",
++                              "sources",
++                            ])
++
++    sources = _outputs
++    outputs = [ "{{bundle_resources_dir}}/{{source_file_part}}" ]
++    public_deps = [ ":$_copy_target_name" ]
++  }
++}
++
++# Those templates are specialisation of the asset_catalog template for known
++# types of asset catalog types (imageset, launchimage, appiconset).
++#
++# Arguments
++#
++#     sources:
++#       required, list of strings, paths to the file contained in the
++#       asset catalog directory; this must contain the Contents.json file
++#       and all the image referenced by it (not enforced by the template).
++#
++template("appiconset") {
++  asset_catalog(target_name) {
++    forward_variables_from(invoker, "*", [ "asset_type" ])
++    asset_type = "appiconset"
++  }
++}
++template("colorset") {
++  asset_catalog(target_name) {
++    forward_variables_from(invoker, "*", [ "asset_type" ])
++    asset_type = "colorset"
++  }
++}
++template("imageset") {
++  asset_catalog(target_name) {
++    forward_variables_from(invoker, "*", [ "asset_type" ])
++    asset_type = "imageset"
++  }
++}
++template("launchimage") {
++  asset_catalog(target_name) {
++    forward_variables_from(invoker, "*", [ "asset_type" ])
++    asset_type = "launchimage"
++  }
++}
++template("symbolset") {
++  asset_catalog(target_name) {
++    forward_variables_from(invoker, "*", [ "asset_type" ])
++    asset_type = "symbolset"
++  }
++}
+diff --git a/apple/templates/darwin_binary_bundle.gni b/apple/templates/darwin_binary_bundle.gni
+new file mode 100644
+index 0000000..914204d
+--- /dev/null
++++ b/apple/templates/darwin_binary_bundle.gni
+@@ -0,0 +1,184 @@
++# Copyright 2019 The Chromium Authors. All rights reserved.
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++import("//build/apple/templates/merge_plist.gni")
++
++# Template to create an Apple bundle containing a binary file (e.g. .app or
++# .framework bundle).
++#
++# Arguments
++#
++#   - bundle_extension
++#
++#       extension of the bundle (e.g. "app", "framework", ...); must not
++#       include the dot preceding the extension
++#
++#   - bundle_type
++#
++#       four letter code corresponding to the bundle type ("FMWK", "AAPL",
++#       ...); used to fill the "Bundle OS Type code" value in the generated
++#       Info.plist for the bundle
++#
++#   - bundle_identitier
++#
++#       bundle identitifier
++#
++#   - product_type
++#
++#       type of the generated bundle (used for Xcode project)
++#
++#   - output_name (optional)
++#
++#       name of the bundle without the extension; the bundle binary (i.e.
++#       the application or the library) must have the same name; defaults
++#       to $target_name
++#
++#   - deployment_target (optional)
++#
++#       minimum system version
++#
++#   - display_name (optional)
++#
++#       display name of the bundle (e.g. the name that is displayed to the
++#       user); defaults to $output_name
++#
++#   - info_plist (optional)
++#
++#       path to additional Info.plist to merge into the final bundle Info.plist
++#
++
++template("darwin_binary_bundle") {
++  assert(
++      defined(invoker.bundle_extension),
++      "bundle_extension must be defined for ios_binary_bundle ($target_name)")
++  assert(
++      defined(invoker.bundle_identifier),
++      "bundle_identifier must be defined for ios_binary_bundle ($target_name)")
++  assert(defined(invoker.bundle_type),
++         "bundle_type must be defined for ios_binary_bundle ($target_name)")
++  assert(defined(invoker.product_type),
++         "product_type must be defined for ios_binary_bundle ($target_name)")
++
++  _output_name = target_name
++  if (defined(invoker.output_name)) {
++    _output_name = invoker.output_name
++  }
++
++  _display_name = _output_name
++  if (defined(invoker.display_name)) {
++    _display_name = invoker.display_name
++  }
++
++  _plist_target = target_name + "_plist"
++  _plist_bundle = target_name + "_plist_bundle"
++
++  merge_plist(_plist_target) {
++    substitutions = {
++      CURRENT_PROJECT_VERSION = "1"
++      DEVELOPMENT_LANGUAGE = "en"
++      EXECUTABLE_NAME = "$_output_name"
++      PRODUCT_BUNDLE_IDENTIFIER = invoker.bundle_identifier
++      PRODUCT_BUNDLE_PACKAGE_TYPE = invoker.bundle_type
++      PRODUCT_NAME = "$_display_name"
++    }
++    if (defined(invoker.deployment_target)) {
++      if (is_ios) {
++        substitutions.IPHONEOS_DEPLOYMENT_TARGET = invoker.deployment_target
++      } else if (is_mac) {
++        substitutions.MACOSX_DEPLOYMENT_TARGET = invoker.deployment_target
++      } else if (is_tvos) {
++        substitutions.APPLETVOS_DEPLOYMENT_TARGET = invoker.deployment_target
++      }
++    }
++
++    format = "binary1"
++    output = "$target_out_dir/$_plist_target/Info.plist"
++    plists = [ "//build/apple/resources/Info.plist" ]
++    if (is_ios) {
++      plists += [
++        get_label_info("//build/config/ios:compiler_plist", "target_out_dir") +
++            "/compiler_plist/Info.plist",
++      ]
++
++      deps = [ "//build/config/ios:compiler_plist" ]
++    } else if (is_mac) {
++      plists += [
++        get_label_info("//build/config/mac:compiler_plist", "target_out_dir") +
++            "/compiler_plist/Info.plist",
++      ]
++
++      deps = [ "//build/config/mac:compiler_plist" ]
++    } else if (is_tvos) {
++      plists += [
++        get_label_info("//build/config/tvos:compiler_plist", "target_out_dir") +
++            "/compiler_plist/Info.plist",
++      ]
++
++      deps = [ "//build/config/tvos:compiler_plist" ]
++    }
++
++    if (defined(invoker.info_plist)) {
++      plists += [ invoker.info_plist ]
++    }
++  }
++
++  bundle_data(_plist_bundle) {
++    public_deps = [ ":$_plist_target" ]
++    sources = [ "$target_out_dir/$_plist_target/Info.plist" ]
++    outputs = [ "{{bundle_contents_dir}}/Info.plist" ]
++  }
++
++  _pkg_info_target = target_name + "_pkg_info"
++  action(_pkg_info_target) {
++    forward_variables_from(invoker, [ "testonly" ])
++    script = "//build/apple/script/write_pkg_info.py"
++    sources = [ "$target_out_dir/$_plist_target/Info.plist" ]
++    outputs = [ "$target_gen_dir/$_pkg_info_target" ]
++    args = [ "--plist" ] + rebase_path(sources, root_build_dir) +
++            [ "--output" ] + rebase_path(outputs, root_build_dir)
++    deps = [ ":$_plist_target" ]
++  }
++
++  _pkg_info_bundle_data = _pkg_info_target + "_bundle_data"
++  bundle_data(_pkg_info_bundle_data) {
++    sources = get_target_outputs(":$_pkg_info_target")
++    outputs = [ "{{bundle_contents_dir}}/PkgInfo" ]
++    public_deps = [ ":$_pkg_info_target" ]
++  }
++
++  create_bundle(target_name) {
++    forward_variables_from(invoker,
++                           "*",
++                           [
++                             "display_name",
++                             "output_name",
++                             "bundle_extension",
++                             "bundle_type",
++                           ])
++
++    if (!defined(public_deps)) {
++      public_deps = []
++    }
++    public_deps += [
++      ":$_plist_bundle",
++      ":$_pkg_info_bundle_data",
++    ]
++    bundle_root_dir = "$root_out_dir/$_output_name.${invoker.bundle_extension}"
++    if (is_ios || is_tvos) {
++      bundle_contents_dir = bundle_root_dir
++      bundle_resources_dir = bundle_contents_dir
++      bundle_executable_dir = bundle_contents_dir
++    } else {
++      bundle_contents_dir  = "$bundle_root_dir/Contents"
++      bundle_resources_dir = "$bundle_contents_dir/Resources"
++      bundle_executable_dir = "$bundle_contents_dir/MacOS"
++    }
++
++    xcode_extra_attributes = {
++      CODE_SIGN_IDENTITY = ""
++      CODE_SIGNING_REQUIRED = "NO"
++      CODE_SIGNING_ALLOWED = "NO"
++    }
++  }
++}
+diff --git a/apple/templates/darwin_general_bundle.gni b/apple/templates/darwin_general_bundle.gni
+new file mode 100644
+index 0000000..13e3e8b
+--- /dev/null
++++ b/apple/templates/darwin_general_bundle.gni
+@@ -0,0 +1,156 @@
++# Copyright 2023 The Lynxtron Authors. All rights reserved.
++#
++
++import("//build/apple/templates/merge_plist.gni")
++import("//build/config/mac/sdk_info.gni")
++
++# Template to create a general apple resources bundle (e.g. .bundle)
++#
++# Arguments
++#
++#   - bundle_identitier
++#
++#       bundle identitifier
++#
++#   - deployment_target (optional)
++#
++#       minimum system version
++#
++#   - display_name (optional)
++#
++#       display name of the bundle (e.g. the name that is displayed to the
++#       user); defaults to $output_name
++#
++#   - output_name (optional)
++#
++#       name of the bundle without the extension; defaults to $target_name
++#
++#   - resources(optional)
++#
++#       Path to the resources file or folder that you want to put into the bundle
++
++
++template("darwin_general_bundle") {
++  assert(
++      defined(invoker.bundle_identifier),
++      "bundle_identifier must be defined for darwin_general_bundle ($target_name)")
++
++  _output_name = target_name
++  if (defined(invoker.output_name)) {
++    _output_name = invoker.output_name
++  }
++
++  _display_name = _output_name
++  if (defined(invoker.display_name)) {
++    _display_name = invoker.display_name
++  }
++
++  _plist_target = target_name + "_plist"
++  _plist_bundle = target_name + "_plist_bundle"
++
++  merge_plist(_plist_target) {
++    substitutions = {
++      CURRENT_PROJECT_VERSION = "1"
++      DEVELOPMENT_LANGUAGE = "en"
++      EXECUTABLE_NAME = "$_output_name"
++      PRODUCT_BUNDLE_IDENTIFIER = invoker.bundle_identifier
++      PRODUCT_BUNDLE_PACKAGE_TYPE = "BNDL"
++      PRODUCT_NAME = "$_display_name"
++
++      COMPILER_NAME = sdk_info.compiler
++      MACOS_BUILD = sdk_info.macos_build
++      PLATFORM_BUILD = sdk_info.sdk_build
++      PLATFORM_DISPLAY_NAME = "MacOSX"
++      PLATFORM_NAME = "macosx"
++      PLATFORM_VERSION = sdk_info.sdk_version
++      SDK_BUILD = sdk_info.sdk_build
++      SDK_NAME = sdk_info.sdk
++      XCODE_BUILD = sdk_info.xcode_build
++      XCODE_VERSION = sdk_info.xcode_version
++    }
++    if (defined(invoker.deployment_target)) {
++      if (is_ios) {
++        substitutions.IPHONEOS_DEPLOYMENT_TARGET = invoker.deployment_target
++      } else if (is_mac) {
++        substitutions.MACOSX_DEPLOYMENT_TARGET = invoker.deployment_target
++      } else if (is_tvos) {
++        substitutions.APPLETVOS_DEPLOYMENT_TARGET = invoker.deployment_target
++      }
++    }
++
++    format = "binary1"
++    output = "$target_out_dir/$_plist_target/Info.plist"
++    plists = [ "//build/apple/resources/Info.plist" ]
++    if (is_ios) {
++      plists += [
++        get_label_info("//build/config/ios:compiler_plist", "target_out_dir") +
++            "/compiler_plist/Info.plist",
++      ]
++
++      deps = [ "//build/config/ios:compiler_plist" ]
++    } else if (is_mac) {
++      format = "xml1"
++      plists += [
++        get_label_info("//build/config/mac:compiler_plist", "target_out_dir") +
++            "/compiler_plist/Info.plist",
++      ]
++
++      deps = [ "//build/config/mac:compiler_plist" ]
++    } else if (is_tvos) {
++      plists += [
++        get_label_info("//build/config/tvos:compiler_plist", "target_out_dir") +
++            "/compiler_plist/Info.plist",
++      ]
++
++      deps = [ "//build/config/tvos:compiler_plist" ]
++    }
++
++    if (defined(invoker.info_plist)) {
++      plists += [ invoker.info_plist ]
++    }
++  }
++
++  bundle_data(_plist_bundle) {
++    public_deps = [ ":$_plist_target" ]
++    sources = [ "$target_out_dir/$_plist_target/Info.plist" ]
++    outputs = [ "{{bundle_contents_dir}}/Info.plist" ]
++  }
++
++  if (defined(invoker.resources)) {
++    _resources_bundle = target_name + "_resources_bundle"
++    bundle_data(_resources_bundle) {
++      sources = invoker.resources
++      outputs = [ "{{bundle_resources_dir}}/{{source_file_part}}" ]
++    }
++  }
++
++  create_bundle(target_name) {
++    forward_variables_from(invoker,
++                           "*",
++                           [
++                             "display_name",
++                             "output_name",
++                           ])
++
++    if (!defined(public_deps)) {
++      public_deps = []
++    }
++    public_deps += [ ":$_plist_bundle" ]
++    if (defined(invoker.resources)) {
++      public_deps += [ ":$_resources_bundle" ]
++    }
++
++    bundle_extension = "bundle"
++    product_type = "com.apple.product-type.bundle"
++
++    bundle_root_dir = "$root_out_dir/$_output_name.${bundle_extension}"
++    bundle_executable_dir = bundle_root_dir
++    if (is_ios || is_tvos) {
++      bundle_contents_dir = bundle_root_dir
++      bundle_resources_dir = bundle_contents_dir
++    } else if (is_mac) {
++      bundle_contents_dir  = "$bundle_root_dir/Contents"
++      bundle_resources_dir = "$bundle_contents_dir/Resources"
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/apple/templates/merge_plist.gni b/apple/templates/merge_plist.gni
+new file mode 100644
+index 0000000..2010faa
+--- /dev/null
++++ b/apple/templates/merge_plist.gni
+@@ -0,0 +1,85 @@
++# Copyright 2019 The Chromium Authors. All rights reserved.
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++# Template to merge multiple Apple Property List file into a single file.
++#
++# Arguments
++#
++#   - output
++#
++#       path of the file that will be generated (must be in a sub-directory
++#       of root_build_dir)
++#
++#   - plists
++#
++#       list of path to Apple Property List file to merge (the file may be
++#       in either "json", "binary1" or "xml1" format)
++#
++#   - format (optional)
++#
++#       format in which the file must be saved; must be one of "json",
++#       "binary1" or "xml1" (default to "json" if omitted)
++#
++#   - substitutions (optional)
++#
++#       a scope defining variable substitutions to perform when merging the
++#       Property List files (i.e. if scope define foo = "bar", occurences
++#       of $(foo) in any string in a property list will be replaced by
++#       bar)
++#
++template("merge_plist") {
++  assert(defined(invoker.output) && invoker.output != "",
++         "output must be defined for merge_plist ($target_name)")
++  assert(defined(invoker.plists) && invoker.plists != [],
++         "plists must be defined for merge_plist ($target_name)")
++
++  if (defined(invoker.substitutions)) {
++    assert(!defined(invoker.substitutions_json),
++           "cannot define both substitutions and substitutions_json")
++
++    _substitutions_json = "$target_out_dir/$target_name/substitutions.json"
++    write_file(_substitutions_json, invoker.substitutions, "json")
++  }
++
++  if (defined(invoker.substitutions_json)) {
++    _substitutions_json = invoker.substitutions_json
++  }
++
++  action(target_name) {
++    forward_variables_from(invoker,
++                           "*",
++                           [
++                             "args",
++                             "format",
++                             "inputs",
++                             "output",
++                             "plists",
++                             "script",
++                             "sources",
++                             "substitutions",
++                             "substitutions_json",
++                           ])
++
++    script = "//build/apple/script/merge_plist.py"
++    sources = invoker.plists
++    outputs = [ invoker.output ]
++
++    _format = "json"
++    if (defined(invoker.format)) {
++      _format = invoker.format
++    }
++
++    args = [
++      "-f=" + _format,
++      "-o=" + rebase_path(invoker.output, root_build_dir),
++    ]
++
++    if (defined(_substitutions_json)) {
++      inputs = [ _substitutions_json ]
++      args += [ "-s=" + rebase_path(_substitutions_json) ]
++    }
++
++    args += rebase_path(sources, root_build_dir)
++  }
++}
+diff --git a/apple/templates/metal_compiler.gni b/apple/templates/metal_compiler.gni
+new file mode 100644
+index 0000000..da77906
+--- /dev/null
++++ b/apple/templates/metal_compiler.gni
+@@ -0,0 +1,88 @@
++# Copyright 2023 The Lynxtron Authors. All rights reserved.
++#
++
++if (is_tvos) {
++  import("//build/config/tvos/deployment_target.gni")
++  import("//build/config/tvos/tvos_sdk.gni")
++} else if (is_ios) {
++  import("//build/config/ios/deployment_target.gni")
++  import("//build/config/ios/ios_sdk.gni")
++}
++
++# This template will compile a metal file to metallib
++# This template accepts a source input and some dependencies.
++# The source will be compiled to a .dat file and then linked to a .metallib file
++# The product will be output to path of root_build_dir/metal/$source_name. The source_name indicates the name of the input file
++
++# Arguments
++#
++#     source:
++#       required, the path of .metal file
++#     include_dirs:
++#       optional, headers path
++#     lib_dirs:
++#       optional, dependent static library path
++#
++
++template("metal_compiler") {
++  assert(defined(invoker.source),
++         "source must be defined and not empty for $target_name")
++
++  find_xcode_executable = "//build/mac/find_xcode_executable.py"
++  metal_exec = exec_script(find_xcode_executable, ["metal"], "trim string")
++
++  _include_dirs = []
++  if (defined(invoker.include_dirs)) {
++    _include_dirs = invoker.include_dirs
++  }
++  _lib_dirs = []
++  if (defined(invoker.lib_dirs)) {
++    _lib_dirs = invoker.lib_dirs
++  }
++
++  _source_name = get_path_info(invoker.source, "name")
++  action(target_name) {
++    script = "//build/apple/script/metal_compiler.py"
++    outputs = [
++      "$root_build_dir/metal/$_source_name/default.metallib",
++      "$root_build_dir/metal/$_source_name/$_source_name.dat",
++    ]
++    sdk_path = ""
++    deployment_target = ""
++    environment = ""
++    if (is_tvos) {
++      sdk_path = tvos_sdk_path
++      deployment_target = tvos_deployment_target
++      environment = tv_target_environment
++    } else if (is_ios) {
++      sdk_path = ios_sdk_path
++      deployment_target = ios_deployment_target
++      environment = target_environment
++    }
++    args = [
++      "--metal-path",
++      metal_exec,
++      "--input-path",
++      rebase_path(invoker.source, root_build_dir),
++      "--output-path",
++      rebase_path("$root_build_dir/metal/$_source_name", root_build_dir),
++      "--sysroot",
++      sdk_path
++      "--minimum-deployment-target",
++      deployment_target,
++      "--type",
++      environment,
++      "--target-os",
++      target_os,
++    ]
++
++    args += [ "--include-paths" ]
++    foreach(include, _include_dirs) {
++      args += [ rebase_path(include, root_build_dir) ]
++    }
++    args += [ "--deps-paths" ]
++    foreach(lib, _lib_dirs) {
++      args += [ rebase_path(lib, root_build_dir) ]
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/apple/templates/storyboards.gni b/apple/templates/storyboards.gni
+new file mode 100644
+index 0000000..8be6246
+--- /dev/null
++++ b/apple/templates/storyboards.gni
+@@ -0,0 +1,50 @@
++# Copyright 2019 The Chromium Authors. All rights reserved.
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++if (is_ios) {
++  import("//build/config/ios/deployment_target.gni")
++} else if (is_tvos) {
++  import("//build/config/tvos/deployment_target.gni")
++} else if (is_mac) {
++  import("//build/config/mac/mac_sdk.gni")
++}
++
++template("storyboards") {
++  assert(defined(invoker.sources),
++         "sources must be defined for storyboard ($target_name)")
++
++  _compile_target = target_name + "_compile"
++  _compile_output =
++      "$target_out_dir/$_compile_target/{{source_name_part}}.storyboardc"
++
++  action_foreach(_compile_target) {
++    script = "//build/apple/script/compile_storyboard.py"
++    sources = invoker.sources
++    outputs = [ _compile_output ]
++    deployment_target = ""
++    if (is_ios) {
++      deployment_target = ios_deployment_target
++    } else if (is_tvos) {
++      deployment_target = tvos_deployment_target
++    } else if (is_mac) {
++      deployment_target = mac_deployment_target
++    }
++    args = [
++      "{{source}}",
++      "-o=" + rebase_path(_compile_output, root_build_dir),
++      "--minimum-deployment-target=$deployment_target",
++      "-p=${target_os}",
++    ]
++  }
++
++  bundle_data(target_name) {
++    public_deps = [ ":$_compile_target" ]
++    sources = get_target_outputs(":$_compile_target")
++    if (is_ios || is_tvos) {
++      outputs = [ "{{bundle_root_dir}}/Base.lproj/{{source_file_part}}" ]
++    } else if (is_mac) {
++      outputs = [ "{{bundle_resources_dir}}/Base.lproj/{{source_file_part}}" ]
++    }
++  }
++}
+diff --git a/apple/templates/xib.gni b/apple/templates/xib.gni
+new file mode 100644
+index 0000000..6beb472
+--- /dev/null
++++ b/apple/templates/xib.gni
+@@ -0,0 +1,55 @@
++# Copyright 2019 The Chromium Authors. All rights reserved.
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++if (is_ios) {
++  import("//build/config/ios/deployment_target.gni")
++} else if (is_mac) {
++  import("//build/config/mac/mac_sdk.gni")
++}
++
++# Template to build .xib file for darwin platform
++#
++# Arguments
++#
++#   - sources
++#
++#       xib sources to be compiled. It will be compiled into .nib file
++#
++
++template("xib_processer") {
++  assert(defined(invoker.sources),
++         "sources must be defined for storyboard ($target_name)")
++
++  _compile_target = target_name + "_compile"
++  _compile_output =
++      "$target_out_dir/$_compile_target/{{source_name_part}}.nib"
++
++  action_foreach(_compile_target) {
++    script = "//build/apple/script/compile_storyboard.py"
++    sources = invoker.sources
++    outputs = [ _compile_output ]
++    deployment_target = ""
++    if (is_ios) {
++      deployment_target = ios_deployment_target
++    } else if (is_mac) {
++      deployment_target = mac_deployment_target
++    }
++    args = [
++      "{{source}}",
++      "-o=" + rebase_path(_compile_output, root_build_dir),
++      "--minimum-deployment-target=$deployment_target",
++      "-p=${target_os}",
++    ]
++  }
++
++  bundle_data(target_name) {
++    public_deps = [ ":$_compile_target" ]
++    sources = get_target_outputs(":$_compile_target")
++    if (is_ios) {
++      outputs = [ "{{bundle_root_dir}}/Base.lproj/{{source_file_part}}" ]
++    } else if (is_mac) {
++      outputs = [ "{{bundle_resources_dir}}/Base.lproj/{{source_file_part}}" ]
++    }
++  }
++}
+diff --git a/build_config.h b/build_config.h
+index 9b40479..38bc688 100644
+--- a/build_config.h
++++ b/build_config.h
+@@ -86,6 +86,7 @@
+ #endif  // defined(TARGET_OS_WATCH) && TARGET_OS_WATCH
+ #else
+ #define OS_MAC 1
++#define OS_MACOSX 1
+ #endif  // defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+ #elif defined(__linux__)
+ #if !defined(OS_CHROMEOS)
+diff --git a/config/BUILD.gn b/config/BUILD.gn
+index 56ca3ca..2769caf 100644
+--- a/config/BUILD.gn
++++ b/config/BUILD.gn
+@@ -430,3 +430,7 @@ config("precompiled_headers") {
+ config("compress_debug_sections") {
+   ldflags = [ "-gz" ]
+ }
++
++
++config("symbol_visibility_hidden") {
++}
+diff --git a/config/BUILDCONFIG.gn b/config/BUILDCONFIG.gn
+index 5af7954..bb32ad6 100644
+--- a/config/BUILDCONFIG.gn
++++ b/config/BUILDCONFIG.gn
+@@ -14,6 +14,11 @@
+ # every other file in the build. So variables declared here (that don't start
+ # with an underscore) will be implicitly global.
+ 
++import("//lynx/build/util/cmake_target_template.gni")
++
++# import podspec and cmake template
++import("//lynx/build/util/podspec_target_template.gni")
++
+ # =============================================================================
+ # PLATFORM SELECTION
+ # =============================================================================
+@@ -168,6 +172,20 @@ declare_args() {
+ declare_args() {
+   # Debug build. Enabling official builds automatically sets is_debug to false.
+   is_debug = !is_official_build
++
++  # the path of lynx directory
++  lynx_dir = "//lynx"
++
++  # Whether to set _LIBCPP_ABI_NAMESPACE cr
++  enable_libcpp_abi_namespace_cr = false
++
++  # Define this to allow Fuchsia's fork of harfbuzz to build.
++  # shlib_toolchain is a Fuchsia-specific symbol and not used by Flutter.
++  shlib_toolchain = false
++
++  default_library_type = "static_library"
++
++  use_flutter_cxx = false
+ }
+ 
+ declare_args() {
+@@ -327,6 +345,8 @@ is_fuchsia = current_os == "fuchsia"
+ is_ios = current_os == "ios"
+ is_linux = current_os == "linux"
+ is_mac = current_os == "mac"
++is_harmony = current_os == "harmony"
++is_tvos = current_os == "tvos"
+ 
+ # TODO(crbug.com/40511454): Remove is_nacl from all build files, then
+ #                           remove the is_nacl variable.
+@@ -384,6 +404,7 @@ default_compiler_configs = [
+   "//build/config/coverage:default_coverage",
+   "//build/config/sanitizers:default_sanitizer_flags",
+   "//build/config:feature_flags",
++  "//build/config:symbol_visibility_hidden",
+ ]
+ 
+ if (is_win) {
+@@ -432,6 +453,11 @@ if (is_debug) {
+   default_compiler_configs += [ "//build/config:release" ]
+ }
+ 
++default_compiler_configs += [
++  "//build/config/compiler:cxx_version_default",
++  "//build/config/compiler:lynx_disable_warning_config",
++]
++
+ # Static libraries and source sets use only the compiler ones.
+ set_defaults("static_library") {
+   configs = default_compiler_configs
+diff --git a/config/clang/BUILD.gn b/config/clang/BUILD.gn
+index 7aaa873..109c340 100644
+--- a/config/clang/BUILD.gn
++++ b/config/clang/BUILD.gn
+@@ -92,22 +92,22 @@ clang_plugin("raw_ptr_check") {
+ }
+ 
+ clang_plugin("find_bad_constructs") {
+-  if (clang_use_chrome_plugins) {
+-    # The plugin is built directly into clang, so there's no need to load it
+-    # dynamically.
+-    plugin = "find-bad-constructs"
+-    plugin_arguments = [
+-      "raw-ref-template-as-trivial-member",
+-      "raw-span-template-as-trivial-member",
+-      "check-stack-allocated",
+-    ]
++  # if (clang_use_chrome_plugins) {
++  #   # The plugin is built directly into clang, so there's no need to load it
++  #   # dynamically.
++  #   plugin = "find-bad-constructs"
++  #   plugin_arguments = [
++  #     "raw-ref-template-as-trivial-member",
++  #     "raw-span-template-as-trivial-member",
++  #     "check-stack-allocated",
++  #   ]
+ 
+-    if (is_linux || is_chromeos || is_android || is_fuchsia) {
+-      plugin_arguments += [ "check-ipc" ]
+-    }
++  #   if (is_linux || is_chromeos || is_android || is_fuchsia) {
++  #     plugin_arguments += [ "check-ipc" ]
++  #   }
+ 
+-    configs = [ ":raw_ptr_check" ]
+-  }
++  #   configs = [ ":raw_ptr_check" ]
++  # }
+ }
+ 
+ # A plugin for incrementally applying the -Wunsafe-buffer-usage warning.
+diff --git a/config/compiler/BUILD.gn b/config/compiler/BUILD.gn
+index 32c9abd..c0d9e43 100644
+--- a/config/compiler/BUILD.gn
++++ b/config/compiler/BUILD.gn
+@@ -284,9 +284,127 @@ config("default_include_dirs") {
+   include_dirs = [
+     "//",
+     root_gen_dir,
++    "//$target_gen_dir/lynx/oss/",
++    "//lynx/oss/",
++    "//lynx/lynx/",
++    "//lynx/",
++    "//$root_gen_dir/lynx/oss/",
++    "//lynx/lynx/third_party/jsoncpp/include",
++    "//lynx/third_party/jsoncpp/include",
+   ]
+ }
+ 
++# lynx_disable_warning_config --------------------------------------------------
++#
++# This config disables some warnings that are enabled by default in clang.
++config("lynx_disable_warning_config") {
++  if (is_mac) {
++    config_flags = [
++      "-Wno-nonportable-include-path",
++      "-Wno-deprecated-this-capture",
++      "-Wno-c99-designator",
++      "-Wno-implicit-fallthrough",
++      "-Wno-shadow",
++      "-Wno-deprecated-declarations",
++      "-Wno-missing-designated-field-initializers",
++      "-Wno-unreachable-code-return",
++      "-Wno-objc-property-assign-on-object-type",
++      "-Wno-unreachable-code-break",
++      "-Wno-gnu-case-range",
++      "-Wno-unused-private-field",
++      "-Wno-character-conversion",
++      "-Wno-array-parameter",
++      "-Wno-implicit-retain-self",
++      "-Wno-header-hygiene",
++      "-Wno-gnu-auto-type",
++      "-Wno-unreachable-code",
++      "-Wno-vla-cxx-extension",
++      "-Wno-unused-but-set-variable",
++      "-Wno-implicit-const-int-float-conversion",
++      "-Wno-deprecated-anon-enum-enum-conversion",
++      "-Wno-deprecated-pragma",
++      "-Wno-deprecated-enum-enum-conversion",
++      "-Wno-rewrite-not-bool",
++      "-Wno-ambiguous-reversed-operator",
++      "-Wno-deprecated-enum-float-conversion",
++      "-Wno-deprecated-array-compare",
++      "-Wno-array-compare",
++      "-Wno-sign-compare",
++      "-Wno-unnecessary-virtual-specifier",
++      "-Wno-sign-conversion",
++      "-Wno-arc-bridge-casts-disallowed-in-nonarc",
++      "-Wno-implicit-function-declaration",
++      "-Wno-thread-safety-analysis",
++      "-Wno-nontrivial-memcall",
++      "-Wno-switch",
++      "-Wno-deprecated-declarations",
++      "-Wno-undef",
++    ]
++  } else if (is_win) {
++    config_flags = [
++      "-Wno-unknown-argument",
++      "-Wno-vla-cxx-extension",
++      "-Wno-c++98-compat-pedantic",
++      "-Wno-c++98-compat",
++      "-Wno-pre-c++14-compat",
++      "-Wno-ms-bitfield-padding",
++      "-Wno-c99-extensions",
++      "-Wno-character-conversion",
++      "-Wno-deprecated-copy-with-user-provided-dtor",
++      "-Wno-deprecated-declarations",
++      "-Wno-deprecated-redundant-constexpr-static-def",
++      "-Wno-deprecated-this-capture",
++      "-Wno-deprecated-volatile",
++      "-Wno-embedded-directive",
++      "-Wno-exit-time-destructors",
++      "-Wno-extra-semi",
++      "-Wno-extra-semi-stmt",
++      "-Wno-float-conversion",
++      "-Wno-gnu-anonymous-struct",
++      "-Wno-header-hygiene",
++      "-Wno-implicit-const-int-float-conversion",
++      "-Wno-implicit-int-enum-cast",
++      "-Wno-implicit-int-float-conversion",
++      "-Wno-inconsistent-dllimport",
++      "-Wno-macro-redefined",
++      "-Wno-microsoft-cast",
++      "-Wno-missing-designated-field-initializers",
++      "-Wno-missing-field-initializers",
++      "-Wno-missing-noreturn",
++      "-Wno-ms-bitfield-padding",
++      "-Wno-nested-anon-types",
++      "-Wno-nontrivial-memcall",
++      "-Wno-non-virtual-dtor",
++      "-Wno-nrvo",
++      "-Wno-nullability-extension",
++      "-Wno-padded",
++      "-Wno-reserved-identifier",
++      "-Wno-reserved-macro-identifier",
++      "-Wno-return-stack-address",
++      "-Wno-shadow-field",
++      "-Wno-shadow-field-in-constructor",
++      "-Wno-shadow-uncaptured-local",
++      "-Wno-sign-conversion",
++      "-Wno-string-conversion",
++      "-Wno-switch",
++      "-Wno-switch-default",
++      "-Wno-tautological-constant-out-of-range-compare",
++      "-Wno-tautological-type-limit-compare",
++      "-Wno-thread-safety-negative",
++      "-Wno-undef",
++      "-Wno-unique-object-duplication",
++      "-Wno-unknown-warning-option",
++      "-Wno-unsafe-buffer-usage",
++      "-Wno-unsafe-buffer-usage-in-libc-call",
++    ]
++  }
++  cflags = config_flags
++  cflags_cc = config_flags
++  cflags_c = config_flags
++  cflags_objc = config_flags
++  cflags_objcc = config_flags
++}
++
+ # Compiler instrumentation can introduce dependencies in DSOs to symbols in
+ # the executable they are loaded into, so they are unresolved at link-time.
+ config("no_unresolved_symbols") {
+@@ -306,6 +424,19 @@ config("no_unresolved_symbols") {
+ # See also "runtime_library" below for related stuff and a discussion about
+ # where stuff should go. Put warning related stuff in the "warnings" config.
+ 
++config("cxx_version_default") {
++}
++
++config("cxx_version_17") {
++  if (is_win) {
++    cc_std = [ "/std:c++17" ]
++  } else {
++    cc_std = [ "-std=c++17" ]
++  }
++  cflags_cc = cc_std
++  cflags_objcc = cc_std
++}
++
+ config("compiler") {
+   asmflags = []
+   cflags = []
+@@ -2281,107 +2412,6 @@ config("prevent_unsafe_narrowing") {
+ # part of Chromium.
+ 
+ config("chromium_code") {
+-  if (is_win) {
+-    if (is_clang) {
+-      cflags = [ "/W4" ]  # Warning level 4.
+-
+-      # Opt in to additional [[nodiscard]] on standard library methods.
+-      defines = [ "_HAS_NODISCARD" ]
+-    }
+-  } else {
+-    cflags = [ "-Wall" ]
+-    if (is_clang) {
+-      # Enable extra warnings for chromium_code when we control the compiler.
+-      cflags += [ "-Wextra" ]
+-    }
+-
+-    # In Chromium code, we define __STDC_foo_MACROS in order to get the
+-    # C99 macros on Mac and Linux.
+-    defines = [
+-      "__STDC_CONSTANT_MACROS",
+-      "__STDC_FORMAT_MACROS",
+-    ]
+-
+-    if (!is_debug && !using_sanitizer && current_cpu != "s390x" &&
+-        current_cpu != "s390" && current_cpu != "ppc64" &&
+-        current_cpu != "mips" && current_cpu != "mips64" &&
+-        current_cpu != "riscv64" && current_cpu != "loong64") {
+-      # Non-chromium code is not guaranteed to compile cleanly with
+-      # _FORTIFY_SOURCE. Also, fortified build may fail when optimizations are
+-      # disabled, so only do that for Release build.
+-      fortify_level = "2"
+-
+-      # ChromeOS's toolchain supports a high-quality _FORTIFY_SOURCE=3
+-      # implementation with a few custom glibc patches. Use that if it's
+-      # available.
+-      if (is_chromeos_device && !lacros_use_chromium_toolchain) {
+-        fortify_level = "3"
+-      }
+-      defines += [ "_FORTIFY_SOURCE=" + fortify_level ]
+-    }
+-
+-    if (is_apple) {
+-      cflags_objc = [ "-Wimplicit-retain-self" ]
+-      cflags_objcc = [ "-Wimplicit-retain-self" ]
+-    }
+-
+-    if (is_mac) {
+-      cflags_objc += [ "-Wobjc-missing-property-synthesis" ]
+-      cflags_objcc += [ "-Wobjc-missing-property-synthesis" ]
+-    }
+-
+-    if (is_ios) {
+-      cflags_objc += [ "-Widiomatic-parentheses" ]
+-      cflags_objcc += [ "-Widiomatic-parentheses" ]
+-    }
+-  }
+-
+-  if (is_clang) {
+-    cflags += [
+-      # Warn on missing break statements at the end of switch cases.
+-      # For intentional fallthrough, use [[fallthrough]].
+-      "-Wimplicit-fallthrough",
+-
+-      # Warn on unnecessary extra semicolons outside of function definitions.
+-      "-Wextra-semi",
+-
+-      # Warn on unreachable code, including unreachable breaks and returns.
+-      # See https://crbug.com/346399#c148 for suppression strategies.
+-      "-Wunreachable-code-aggressive",
+-
+-      # Warn on GNU extensions.
+-      "-Wgnu",
+-
+-      # TODO(crbug.com/357081796): Try to enable these.
+-      "-Wno-gnu-anonymous-struct",
+-      "-Wno-gnu-conditional-omitted-operand",
+-      "-Wno-gnu-include-next",
+-      "-Wno-gnu-label-as-value",
+-      "-Wno-gnu-redeclared-enum",
+-      "-Wno-gnu-statement-expression",
+-      "-Wno-gnu-zero-variadic-macro-arguments",
+-      "-Wno-zero-length-array",
+-
+-      # Thread safety analysis. See base/thread_annotations.h and
+-      # https://clang.llvm.org/docs/ThreadSafetyAnalysis.html
+-      "-Wthread-safety",
+-    ]
+-
+-    if (is_chromeos) {
+-      cflags += [ "-Wno-gnu-offsetof-extensions" ]
+-    }
+-    if (is_ios) {
+-      cflags += [ "-Wno-gnu-case-range" ]
+-    }
+-  }
+-
+-  configs = [
+-    ":default_warnings",
+-    ":noshadowing",
+-  ]
+-  if (treat_warnings_as_errors) {
+-    configs += [ ":treat_warnings_as_errors" ]
+-  }
+ }
+ 
+ config("no_chromium_code") {
+diff --git a/config/ios/bundle_identifier_prefix.gni b/config/ios/bundle_identifier_prefix.gni
+new file mode 100644
+index 0000000..97c47cc
+--- /dev/null
++++ b/config/ios/bundle_identifier_prefix.gni
+@@ -0,0 +1,8 @@
++# Copyright 2019 The Chromium Authors. All rights reserved.
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++declare_args() {
++  # Default bundle identifier prefix.
++  default_bundle_identifier_prefix = "com.google"
++}
+diff --git a/config/mac/BUILD.gn b/config/mac/BUILD.gn
+index d9218b3..11e19f2 100644
+--- a/config/mac/BUILD.gn
++++ b/config/mac/BUILD.gn
+@@ -8,6 +8,26 @@ import("//build/config/mac/mac_sdk.gni")
+ import("//build/config/sysroot.gni")
+ import("//build/toolchain/rbe.gni")
+ import("//build/toolchain/siso.gni")
++import("//build/apple/templates/merge_plist.gni")
++import("//build/config/mac/sdk_info.gni")
++
++merge_plist("compiler_plist") {
++  substitutions = {
++    COMPILER_NAME = sdk_info.compiler
++    MACOS_BUILD = sdk_info.macos_build
++    PLATFORM_BUILD = sdk_info.sdk_build
++    PLATFORM_DISPLAY_NAME = "MacOSX"
++    PLATFORM_NAME = "macosx"
++    PLATFORM_VERSION = sdk_info.sdk_version
++    SDK_BUILD = sdk_info.sdk_build
++    SDK_NAME = sdk_info.sdk
++    XCODE_BUILD = sdk_info.xcode_build
++    XCODE_VERSION = sdk_info.xcode_version
++  }
++
++  output = "$target_out_dir/compiler_plist/Info.plist"
++  plists = [ "//build/apple/resources/compiler-Info.plist" ]
++}
+ 
+ # This is included by reference in the //build/config/compiler config that
+ # is applied to all targets. It is here to separate out the logic.
+diff --git a/config/mac/script/sdk_info.py b/config/mac/script/sdk_info.py
+new file mode 100644
+index 0000000..7d1eff9
+--- /dev/null
++++ b/config/mac/script/sdk_info.py
+@@ -0,0 +1,130 @@
++# Copyright 2019 The Chromium Authors. All rights reserved.
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++"""Collects information about the SDK and return them as JSON file."""
++
++import argparse
++import json
++import os
++import re
++import subprocess
++import sys
++
++# Patterns used to extract the Xcode version and build version.
++XCODE_VERSION_PATTERN = re.compile(r'Xcode (\d+)\.(\d+)')
++XCODE_BUILD_PATTERN = re.compile(r'Build version (.*)')
++
++
++def GetCommandOutput(command):
++  """Returns the output of `command` as a string."""
++  return subprocess.check_output(command, encoding='utf-8')
++
++
++def GetAppleCpuName(target_cpu):
++  """Returns the name of the |target_cpu| using Apple's convention."""
++  return {
++      'x64': 'x86_64',
++      'arm': 'armv7',
++      'x86': 'i386',
++  }.get(target_cpu, target_cpu)
++
++
++def ExtractOSVersion():
++  """Extract the version of macOS of the current machine."""
++  return GetCommandOutput(['sw_vers', '-buildVersion']).strip()
++
++
++def ExtractXcodeInfo():
++  """Extract Xcode version and build version."""
++  version, build = None, None
++  for line in GetCommandOutput(['xcodebuild', '-version']).splitlines():
++    match = XCODE_VERSION_PATTERN.search(line)
++    if match:
++      major, minor = match.group(1), match.group(2)
++      version = major.rjust(2, '0') + minor.ljust(2, '0')
++      continue
++
++    match = XCODE_BUILD_PATTERN.search(line)
++    if match:
++      build = match.group(1)
++      continue
++
++  assert version is not None and build is not None
++  return version, build
++
++
++def ExtractSDKInfo(info, sdk):
++  """Extract information about the SDK."""
++  return GetCommandOutput(['xcrun', '--sdk', sdk, '--show-sdk-' + info]).strip()
++
++
++def GetDeveloperDir():
++  """Returns the developer dir."""
++  return GetCommandOutput(['xcode-select', '-print-path']).strip()
++
++
++def GetSDKInfoForCpu(target_cpu, sdk_version, deployment_target):
++  """Returns a dictionary with information about the SDK."""
++  sdk_version = sdk_version or ExtractSDKInfo('version', 'macosx')
++  deployment_target = deployment_target or sdk_version
++
++  target = target_cpu + '-apple-macos' + deployment_target
++
++  xcode_version, xcode_build = ExtractXcodeInfo()
++  effective_sdk = 'macosx' + sdk_version
++
++  sdk_info = {}
++  sdk_info['compiler'] = 'com.apple.compilers.llvm.clang.1_0'
++  sdk_info['macos_build'] = ExtractOSVersion()
++  sdk_info['sdk'] = effective_sdk
++  sdk_info['sdk_build'] = ExtractSDKInfo('build-version', effective_sdk)
++  sdk_info['sdk_path'] = ExtractSDKInfo('path', effective_sdk)
++  sdk_info['toolchain_path'] = os.path.join(
++      GetDeveloperDir(), 'Toolchains/XcodeDefault.xctoolchain')
++  sdk_info['sdk_version'] = sdk_version
++  sdk_info['target'] = target
++  sdk_info['xcode_build'] = xcode_build
++  sdk_info['xcode_version'] = xcode_version
++
++  return sdk_info
++
++
++def ParseArgs(argv):
++  """Parses command line arguments."""
++  parser = argparse.ArgumentParser(
++      description=__doc__,
++      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
++
++  parser.add_argument(
++      '-t', '--target-cpu', default='x64',
++      choices=('x86', 'x64', 'arm', 'arm64'),
++      help='target cpu')
++  parser.add_argument(
++      '-s', '--sdk-version',
++      help='version of the sdk')
++  parser.add_argument(
++      '-d', '--deployment-target',
++      help='macOS deployment target')
++  parser.add_argument(
++      '-o', '--output', default='-',
++      help='path of the output file to create; - means stdout')
++
++  return parser.parse_args(argv)
++
++
++def main(argv):
++  args = ParseArgs(argv)
++
++  sdk_info = GetSDKInfoForCpu(
++      GetAppleCpuName(args.target_cpu), args.sdk_version, args.deployment_target)
++
++  if args.output == '-':
++    sys.stdout.write(json.dumps(sdk_info))
++  else:
++    with open(args.output, 'w') as output:
++      output.write(json.dumps(sdk_info))
++
++
++if __name__ == '__main__':
++  sys.exit(main(sys.argv[1:]))
+diff --git a/config/mac/sdk_info.gni b/config/mac/sdk_info.gni
+new file mode 100644
+index 0000000..e94b9f5
+--- /dev/null
++++ b/config/mac/sdk_info.gni
+@@ -0,0 +1,14 @@
++# Copyright 2019 The Chromium Authors. All rights reserved.
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++import("//build/config/mac/mac_sdk.gni")
++
++sdk_info = exec_script("//build/config/mac/script/sdk_info.py",
++                       [
++                         "--target-cpu",
++                         current_cpu,
++                         "--deployment-target",
++                         mac_deployment_target,
++                       ],
++                       "json")
+diff --git a/config/mac/templates/mac_app_bundle.gni b/config/mac/templates/mac_app_bundle.gni
+new file mode 100644
+index 0000000..bdcacf0
+--- /dev/null
++++ b/config/mac/templates/mac_app_bundle.gni
+@@ -0,0 +1,116 @@
++# Copyright 2023 The Lynxtron Authors. All rights reserved.
++#
++
++import("//build/apple/templates/darwin_binary_bundle.gni")
++import("//build/config/ios/bundle_identifier_prefix.gni")
++import("//build/config/mac/mac_sdk.gni")
++
++# Template to create a Mac executable application bundle.
++#
++# Arguments
++#
++#     bundle_identifier_prefix:(optional)
++#          prefix for the bundle identifier (the full identifier will be defined
++#          to $bundle_identifier_prefix.$output_name); if unset will defaults to
++#          default_bundle_identifier_prefix
++#
++#     info_plist: (optional)
++#         string, path to the Info.plist file that will be used for
++#         the bundle.
++#
++#     output_name: (optional)
++#         name of the bundle without the extension; defaults to $target_name
++#
++
++template("mac_app_bundle") {
++  _output_name = target_name
++  if (defined(invoker.output_name)) {
++    _output_name = invoker.output_name
++  }
++
++  _bundle_identifier_prefix = default_bundle_identifier_prefix
++  if (defined(invoker.bundle_identifier_prefix)) {
++    _bundle_identifier_prefix = invoker.bundle_identifier_prefix
++  }
++
++  _bundle_identifier = "$_bundle_identifier_prefix.$_output_name"
++
++  _app_prefix_target = target_name + "_app_prefix"
++  _app_prefix_output = "$target_out_dir/$_app_prefix_target/app_prefix.json"
++
++  action(_app_prefix_target) {
++    script = "//build/config/ios/scripts/find_app_identifier_prefix.py"
++    sources = []
++    outputs = [ _app_prefix_output ]
++    args = [
++      "-b=" + _bundle_identifier,
++      "-o=" + rebase_path(_app_prefix_output, root_build_dir),
++    ]
++  }
++
++  _executable_target = target_name + "_executable"
++  _executable_bundle = target_name + "_executable_bundle"
++
++  executable(_executable_target) {
++    forward_variables_from(invoker,
++                           "*",
++                           [
++                             "bundle_extension",
++                             "bundle_identifier_prefix",
++                             "bundle_type",
++                             "configs",
++                             "display_name",
++                             "info_plist",
++                             "output_name",
++                             "public_headers",
++                           ])
++
++    output_extension = ""
++    output_name = _output_name
++    output_prefix_override = true
++    output_dir = "$target_out_dir/$_executable_target"
++
++    if (!defined(configs)) {
++      configs = []
++    }
++    if (defined(invoker.configs)) {
++      configs += invoker.configs
++    }
++
++    if (!defined(exclude_configs)) {
++      exclude_configs = []
++    }
++    configs -= exclude_configs
++  }
++
++  bundle_data(_executable_bundle) {
++    public_deps = [ ":$_executable_target" ]
++    sources = [ "$target_out_dir/$_executable_target/$_output_name" ]
++    outputs = [ "{{bundle_executable_dir}}/{{source_file_part}}" ]
++  }
++
++  darwin_binary_bundle(target_name) {
++    forward_variables_from(invoker,
++                           "*",
++                           [
++                             "bundle_extension",
++                             "bundle_identifier_prefix",
++                             "bundle_type",
++                             "deps",
++                             "output_name",
++                             "public_deps",
++                             "public_headers",
++                           ])
++
++    output_name = _output_name
++    product_type = "com.apple.product-type.application"
++    deployment_target = mac_deployment_target
++
++    bundle_identifier = _bundle_identifier
++    bundle_extension = "app"
++    bundle_type = "APPL"
++
++    public_deps = [ ":$_executable_bundle" ]
++  }
++
++}
+\ No newline at end of file
+diff --git a/config/profiler.gni b/config/profiler.gni
+new file mode 100644
+index 0000000..7ebe021
+--- /dev/null
++++ b/config/profiler.gni
+@@ -0,0 +1 @@
++import("//build/config/compiler/compiler.gni")
+diff --git a/config/win/win.gni b/config/win/win.gni
+new file mode 100644
+index 0000000..591bb6c
+--- /dev/null
++++ b/config/win/win.gni
+@@ -0,0 +1,7 @@
++# Copyright 2023 The Lynxtron Authors. All rights reserved.
++#
++
++declare_args() {
++  # Specify Windows Runtime Library, either mt or md, mt by default
++  windows_runtime_library_mode = "mt"
++}
+\ No newline at end of file
+diff --git a/fuchsia/sdk.gni b/fuchsia/sdk.gni
+new file mode 100644
+index 0000000..49960a1
+--- /dev/null
++++ b/fuchsia/sdk.gni
+@@ -0,0 +1,326 @@
++# Copyright 2013 The Flutter Authors. All rights reserved.
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++declare_args() {
++  # The path to where GN targets derived from the Fuchsia SDK are instantiated.
++  fuchsia_sdk_root = "//build/fuchsia"
++
++  # The Flutter buildroot is outside the Fuchsia root and can only use the SDK.
++  using_fuchsia_sdk = true
++
++  # This is set by the dart sources. Once the engine repo switches to using the GN SDK,
++  # this flag can be unified with `using_fuchsia_sdk`.
++  using_fuchsia_gn_sdk = false
++
++  # The following variables are Flutter buildroot specific.
++  fuchsia_sdk_path = "//fuchsia/sdk/$host_os"
++  fuchsia_toolchain_path = "//buildtools/${host_os}-${host_cpu}/clang"
++}
++
++declare_args() {
++  # The Skia buildroot uses this flag to decide if it should be using the
++  # Fuchsia SDK to build its translation units.
++  skia_using_fuchsia_sdk = using_fuchsia_sdk
++}
++
++_fuchsia_sdk_path = "//fuchsia/sdk/$host_os"
++
++template("_fuchsia_sysroot") {
++  assert(defined(invoker.meta), "The meta.json file path must be specified.")
++  assert(target_cpu == "x64" || target_cpu == "arm64",
++         "We currently only support 'x64' and 'arm64' targets for fuchsia.")
++
++  meta_json = read_file(invoker.meta, "json")
++
++  assert(meta_json.type == "sysroot")
++
++  meta_json_versions = meta_json.versions
++  if (target_cpu == "x64") {
++    defs = meta_json_versions.x64
++  } else {
++    defs = meta_json_versions.arm64
++  }
++
++  _libs = []
++  _lib_dirs = []
++  _include_dirs = []
++
++  foreach(link_lib, defs.link_libs) {
++    if (link_lib != "arch/${target_cpu}/sysroot/lib/Scrt1.o") {
++      _libs += [ "$_fuchsia_sdk_path/$link_lib" ]
++    }
++  }
++
++  defs_include_dir = defs.include_dir
++  _include_dirs += [ "$_fuchsia_sdk_path/$defs_include_dir" ]
++
++  config_name = "config_$target_name"
++  config(config_name) {
++    lib_dirs = _lib_dirs
++    libs = _libs
++    include_dirs = _include_dirs
++  }
++
++  group(target_name) {
++    public_configs = [ ":$config_name" ]
++  }
++}
++
++template("_fuchsia_fidl_library") {
++  assert(defined(invoker.meta), "The meta.json file path must be specified.")
++  assert(target_cpu == "x64" || target_cpu == "arm64",
++         "We currently only support 'x64' and 'arm64' targets for fuchsia.")
++
++  meta_json = read_file(invoker.meta, "json")
++
++  assert(meta_json.type == "fidl_library")
++
++  _deps = [ "../pkg:fidl_cpp" ]
++
++  library_name = meta_json.name
++  library_name_json = "${meta_json.name}.json"
++
++  foreach(dep, meta_json.deps) {
++    _deps += [ ":$dep" ]
++  }
++
++  config_name = "config_$target_name"
++  config(config_name) {
++    include_dirs = [ target_gen_dir ]
++  }
++
++  fidl_gen_target_name = "fidlgen_$target_name"
++  action(fidl_gen_target_name) {
++    script = "//build/fuchsia/fidl_gen_cpp.py"
++
++    library_name_slashes = string_replace(library_name, ".", "/")
++
++    inputs = [
++      invoker.meta,
++    ]
++
++    outputs = [
++      "$target_gen_dir/$library_name_slashes/c/fidl.h",
++      "$target_gen_dir/$library_name_slashes/cpp/fidl.h",
++      "$target_gen_dir/$library_name_slashes/cpp/fidl.cc",
++      "$target_gen_dir/$library_name_slashes/cpp/tables.c",
++    ]
++
++    args = [
++      "--fidlc-bin",
++      rebase_path("$_fuchsia_sdk_path/tools/fidlc"),
++      "--fidlgen-bin",
++      rebase_path("$_fuchsia_sdk_path/tools/fidlgen"),
++      "--sdk-base",
++      rebase_path(_fuchsia_sdk_path),
++      "--root",
++      rebase_path(invoker.meta),
++      "--json",
++      rebase_path("$target_gen_dir/$library_name_json"),
++      "--include-base",
++      rebase_path("$target_gen_dir"),
++      "--output-base-cc",
++      rebase_path("$target_gen_dir/$library_name_slashes/cpp/fidl"),
++      "--output-c-header",
++      rebase_path("$target_gen_dir/$library_name_slashes/c/fidl.h"),
++      "--output-c-tables",
++      rebase_path("$target_gen_dir/$library_name_slashes/cpp/tables.c"),
++    ]
++  }
++
++  source_set(target_name) {
++    public_configs = [ ":$config_name" ]
++
++    sources = get_target_outputs(":$fidl_gen_target_name")
++
++    deps = [
++      ":$fidl_gen_target_name",
++    ]
++
++    public_deps = _deps
++  }
++}
++
++template("_fuchsia_cc_source_library") {
++  assert(defined(invoker.meta), "The meta.json file path must be specified.")
++
++  meta_json = read_file(invoker.meta, "json")
++
++  assert(meta_json.type == "cc_source_library")
++
++  _output_name = meta_json.name
++  _include_dirs = []
++  _public_headers = []
++  _sources = []
++  _deps = []
++
++  meta_json_include_dir = meta_json.include_dir
++  _include_dirs += [ "$_fuchsia_sdk_path/$meta_json_include_dir" ]
++
++  foreach(header, meta_json.headers) {
++    rebased_header = []
++    rebased_header = [ "$_fuchsia_sdk_path/$header" ]
++    _public_headers += rebased_header
++    _sources += rebased_header
++  }
++
++  foreach(source, meta_json.sources) {
++    _sources += [ "$_fuchsia_sdk_path/$source" ]
++  }
++
++  config_name = "config_$target_name"
++  config(config_name) {
++    include_dirs = _include_dirs
++  }
++
++  foreach(dep, meta_json.deps) {
++    _deps += [ "../pkg:$dep" ]
++  }
++
++  foreach(dep, meta_json.fidl_deps) {
++    _deps += [ "../fidl:$dep" ]
++  }
++
++  source_set(target_name) {
++    output_name = _output_name
++    public = _public_headers
++    sources = _sources
++    public_configs = [ ":$config_name" ]
++    public_deps = _deps
++  }
++}
++
++template("_fuchsia_cc_prebuilt_library") {
++  assert(defined(invoker.meta), "The meta.json file path must be specified.")
++  meta_json = read_file(invoker.meta, "json")
++
++  _include_dirs = []
++  _deps = []
++  _libs = []
++
++  meta_json_include_dir = meta_json.include_dir
++  _include_dirs += [ "$_fuchsia_sdk_path/$meta_json_include_dir" ]
++
++  if (target_name == "vulkan") {
++    _include_dirs += [ "//build/fuchsia/vulkan/include" ]
++  }
++
++  foreach(dep, meta_json.deps) {
++    _deps += [ ":$dep" ]
++  }
++
++  meta_json_binaries = meta_json.binaries
++  if (target_cpu == "x64") {
++    meta_json_binaries_arch = meta_json_binaries.x64
++  } else {
++    meta_json_binaries_arch = meta_json_binaries.arm64
++  }
++  prebuilt_lib = meta_json_binaries_arch.link
++  _libs = [ "$_fuchsia_sdk_path/$prebuilt_lib" ]
++
++  config_name = "config_$target_name"
++  config(config_name) {
++    include_dirs = _include_dirs
++    libs = _libs
++  }
++
++  group(target_name) {
++    public_configs = [ ":$config_name" ]
++    public_deps = _deps
++  }
++}
++
++template("fuchsia_sdk") {
++  assert(defined(invoker.meta), "The meta.json file path must be specified.")
++  assert(defined(invoker.enabled_parts),
++         "A list containing the parts of the SDK to generate targets for.")
++
++  meta_json = read_file(invoker.meta, "json")
++
++  foreach(part, meta_json.parts) {
++    part_meta_json = {
++    }
++
++    part_meta = part.meta
++    part_meta_rebased = "$_fuchsia_sdk_path/$part_meta"
++
++    part_meta_json = read_file(part_meta_rebased, "json")
++    subtarget_name = part_meta_json.name
++
++    foreach(enabled_part, invoker.enabled_parts) {
++      if (part.type == "cc_source_library") {
++        if (part.type == enabled_part) {
++          _fuchsia_cc_source_library(subtarget_name) {
++            meta = part_meta_rebased
++          }
++        }
++      } else if (part.type == "sysroot") {
++        if (part.type == enabled_part) {
++          _fuchsia_sysroot(subtarget_name) {
++            meta = part_meta_rebased
++          }
++        }
++      } else if (part.type == "fidl_library") {
++        if (part.type == enabled_part) {
++          _fuchsia_fidl_library(subtarget_name) {
++            meta = part_meta_rebased
++          }
++        }
++      } else if (part.type == "cc_prebuilt_library") {
++        if (part.type == enabled_part) {
++          _fuchsia_cc_prebuilt_library(subtarget_name) {
++            meta = part_meta_rebased
++          }
++        }
++      }
++    }
++  }
++
++  group(target_name) {
++  }
++}
++
++template("fuchsia_repo") {
++  assert(defined(invoker.archives),
++         "The list of archives to publish must be specified.")
++  assert(defined(invoker.repo), "The location of the repo should be specified.")
++
++  action(target_name) {
++    script = "//flutter/tools/fuchsia/gen_repo.py"
++
++    pm_binary = rebase_path("$_fuchsia_sdk_path/tools/pm")
++    repo_directory = invoker.repo
++
++    inputs = [
++      pm_binary,
++    ]
++
++    archive_flags = []
++
++    foreach(archive, invoker.archives) {
++      assert(get_path_info(archive, "extension") == "far",
++             "Archive '$archive' does not have the .far extension.")
++      inputs += [ archive ]
++      archive_flags += [
++        "--archive",
++        rebase_path(archive),
++      ]
++    }
++
++    outputs = [
++      repo_directory,
++    ]
++
++    args = [
++             "--pm-bin",
++             pm_binary,
++             "--repo-dir",
++             rebase_path(repo_directory),
++           ] + archive_flags
++
++    if (defined(invoker.deps)) {
++      deps = invoker.deps
++    }
++  }
++}
+diff --git a/ls.py b/ls.py
+new file mode 100755
+index 0000000..6c05ecc
+--- /dev/null
++++ b/ls.py
+@@ -0,0 +1,38 @@
++#!/usr/bin/python
++# Copyright 2015 The Chromium Authors. All rights reserved.
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++"""Recursively list files of the target directory. Ignores dot files."""
++
++import argparse
++import os
++import sys
++
++def main(target_directory, file_extension):
++  for root, dirs, files in os.walk(target_directory):
++    files = [f for f in files if not f[0] == '.']
++    dirs[:] = [d for d in dirs if not d[0] == '.']
++    for f in files:
++      if file_extension is None or os.path.splitext(f)[-1] == file_extension:
++        path = os.path.join(root, f)
++        print(path)
++
++if __name__ == '__main__':
++  parser = argparse.ArgumentParser(
++      description="Recursively list files of the target directory")
++  parser.add_argument("--target-directory",
++                      dest="target_directory",
++                      metavar="<target-directory>",
++                      type=str,
++                      required=True,
++                      help="The target directory")
++  parser.add_argument("--file-extension",
++                      dest="file_extension",
++                      metavar="<file-extension>",
++                      type=str,
++                      required=False,
++                      help="File extension to filter")
++
++  args = parser.parse_args()
++  sys.exit(main(args.target_directory, args.file_extension))
+diff --git a/secondary/lynx/testing/FuzzFramework/BUILD.gn b/secondary/lynx/testing/FuzzFramework/BUILD.gn
+new file mode 100644
+index 0000000..12b89bb
+--- /dev/null
++++ b/secondary/lynx/testing/FuzzFramework/BUILD.gn
+@@ -0,0 +1,90 @@
++# Copyright 2014 The Lynxtron Authors. All rights reserved.
++# Licensed under the Apache License Version 2.0 that can be found in the
++# LICENSE file in the root directory of this source tree.
++
++config("fuzz_config") {
++  ldflags = [ "-fsanitize=fuzzer" ]
++  cflags = [ "-fsanitize=fuzzer-no-link" ]
++  if (is_linux) {
++    ldflags += [ "-nostdlib++" ]
++
++    # https://clang.llvm.org/docs/SourceBasedCodeCoverage.html#running-the-instrumented-program
++    cflags += [
++      "-mllvm",
++      "-runtime-counter-relocation",
++    ]
++  }
++}
++
++source_set("fuzz_test_framework_base") {
++  sources = [
++    "//third_party/FuzzFramework/src/base/FuzzerBuiltins.h",
++    "//third_party/FuzzFramework/src/base/FuzzerBuiltinsMsvc.h",
++    "//third_party/FuzzFramework/src/base/FuzzerCommand.h",
++    "//third_party/FuzzFramework/src/base/FuzzerCorpus.h",
++    "//third_party/FuzzFramework/src/base/FuzzerCrossOver.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerDataFlowTrace.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerDataFlowTrace.h",
++    "//third_party/FuzzFramework/src/base/FuzzerDefs.h",
++    "//third_party/FuzzFramework/src/base/FuzzerDictionary.h",
++    "//third_party/FuzzFramework/src/base/FuzzerDriver.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerExtFunctions.h",
++    "//third_party/FuzzFramework/src/base/FuzzerExtFunctionsDlsym.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerExtFunctionsWeak.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerExtFunctionsWindows.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerExtraCounters.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerExtraCountersDarwin.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerExtraCountersWindows.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerFork.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerFork.h",
++    "//third_party/FuzzFramework/src/base/FuzzerIO.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerIO.h",
++    "//third_party/FuzzFramework/src/base/FuzzerIOPosix.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerIOWindows.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerInterceptors.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerInterface.h",
++    "//third_party/FuzzFramework/src/base/FuzzerInternal.h",
++    "//third_party/FuzzFramework/src/base/FuzzerLoop.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerMain.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerMerge.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerMerge.h",
++    "//third_party/FuzzFramework/src/base/FuzzerMutate.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerMutate.h",
++    "//third_party/FuzzFramework/src/base/FuzzerOptions.h",
++    "//third_party/FuzzFramework/src/base/FuzzerPlatform.h",
++    "//third_party/FuzzFramework/src/base/FuzzerRandom.h",
++    "//third_party/FuzzFramework/src/base/FuzzerSHA1.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerSHA1.h",
++    "//third_party/FuzzFramework/src/base/FuzzerTracePC.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerTracePC.h",
++    "//third_party/FuzzFramework/src/base/FuzzerUtil.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerUtil.h",
++    "//third_party/FuzzFramework/src/base/FuzzerUtilDarwin.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerUtilFuchsia.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerUtilLinux.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerUtilPosix.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerUtilWindows.cpp",
++    "//third_party/FuzzFramework/src/base/FuzzerValueBitMap.h",
++    "//third_party/FuzzFramework/src/base/FuzzerDataBuilder.cc",
++    "//third_party/FuzzFramework/src/base/FuzzerDataBuilder.h",
++  ]
++
++  deps = [
++    # TODO(yongjie): remove lynx deps here
++    "//lynx/third_party/rapidjson:rapidjson"
++  ]
++}
++
++config("fuzz_test_framework_public_config") {
++  include_dirs = [ "//third_party/FuzzFramework/src" ]
++}
++
++source_set("fuzz_test_framework") {
++  sources = [
++    "//third_party/FuzzFramework/src/fuzztest.cc",
++    "//third_party/FuzzFramework/src/fuzztest.h",
++    "//third_party/FuzzFramework/src/fuzztestHelper.h",
++  ]
++
++  public_configs = [ ":fuzz_test_framework_public_config" ]
++}
+diff --git a/secondary/lynx/testing/FuzzFramework/fuzz_test.gni b/secondary/lynx/testing/FuzzFramework/fuzz_test.gni
+new file mode 100644
+index 0000000..4ce30c1
+--- /dev/null
++++ b/secondary/lynx/testing/FuzzFramework/fuzz_test.gni
+@@ -0,0 +1,30 @@
++# Copyright 2023 The Lynxtron Authors. All rights reserved.
++
++template("fuzz_test") {
++  assert(defined(invoker.sources), "missing sources for ${target_name}")
++  assert(defined(invoker.deps), "missing deps for ${target_name}")
++  executable("${target_name}") {
++    forward_variables_from(invoker,
++                           "*",
++                           [
++                             "deps",
++                             "configs",
++                           ])
++    testonly = true
++    deps = invoker.deps
++
++    # llvm for linux devices includes the fuzzer library.
++    if (!is_linux) {
++      deps += [ "//testing/FuzzFramework:fuzz_test_framework_base" ]
++    }
++    deps += [ "//testing/FuzzFramework:fuzz_test_framework"]
++    configs += [ "//testing/FuzzFramework:fuzz_config" ]
++    if (defined(invoker.configs)) {
++      configs += invoker.configs
++    }
++
++    if (defined(configs_to_exclude)) {
++      configs -= configs_to_exclude
++    }
++  }
++}
+diff --git a/secondary/lynx/third_party/googletest/BUILD.gn b/secondary/lynx/third_party/googletest/BUILD.gn
+new file mode 100644
+index 0000000..a245aeb
+--- /dev/null
++++ b/secondary/lynx/third_party/googletest/BUILD.gn
+@@ -0,0 +1,160 @@
++# Copyright 2023 The Lynxtron Authors. All rights reserved.
++
++config("gtest_private_config") {
++  visibility = [ ":*" ]
++  include_dirs = [
++    "//third_party/googletest/googletest",
++    ".",
++  ]
++}
++
++config("gtest_config") {
++  include_dirs = [ "//third_party/googletest/src/googletest/include" ]
++}
++
++config("gtest_custom_config") {
++  include_dirs = [ "//third_party/googletest_custom" ]
++}
++
++gtest_public_headers = [
++  "//third_party/googletest/src/googletest/include/gtest/gtest-spi.h",
++  "//third_party/googletest/src/googletest/include/gtest/gtest.h",
++]
++
++gtest_shared_sources = [
++  "//third_party/googletest/src/googletest/include/gtest/gtest-assertion-result.h",
++  "//third_party/googletest/src/googletest/include/gtest/gtest-death-test.h",
++  "//third_party/googletest/src/googletest/include/gtest/gtest-matchers.h",
++  "//third_party/googletest/src/googletest/include/gtest/gtest-message.h",
++  "//third_party/googletest/src/googletest/include/gtest/gtest-param-test.h",
++  "//third_party/googletest/src/googletest/include/gtest/gtest-printers.h",
++  "//third_party/googletest/src/googletest/include/gtest/gtest-spi.h",
++  "//third_party/googletest/src/googletest/include/gtest/gtest-test-part.h",
++  "//third_party/googletest/src/googletest/include/gtest/gtest-typed-test.h",
++  "//third_party/googletest/src/googletest/include/gtest/gtest.h",
++  "//third_party/googletest/src/googletest/include/gtest/gtest_pred_impl.h",
++  "//third_party/googletest/src/googletest/include/gtest/gtest_prod.h",
++  "//third_party/googletest/src/googletest/include/gtest/internal/custom/gtest-port.h",
++  "//third_party/googletest/src/googletest/include/gtest/internal/custom/gtest-printers.h",
++  "//third_party/googletest/src/googletest/include/gtest/internal/custom/gtest.h",
++  "//third_party/googletest/src/googletest/include/gtest/internal/gtest-death-test-internal.h",
++  "//third_party/googletest/src/googletest/include/gtest/internal/gtest-filepath.h",
++  "//third_party/googletest/src/googletest/include/gtest/internal/gtest-internal.h",
++  "//third_party/googletest/src/googletest/include/gtest/internal/gtest-param-util.h",
++  "//third_party/googletest/src/googletest/include/gtest/internal/gtest-port-arch.h",
++  "//third_party/googletest/src/googletest/include/gtest/internal/gtest-port.h",
++  "//third_party/googletest/src/googletest/include/gtest/internal/gtest-string.h",
++  "//third_party/googletest/src/googletest/include/gtest/internal/gtest-type-util.h",
++  "//third_party/googletest/googletest/src/gtest-assertion-result.cc",
++  "//third_party/googletest/googletest/src/gtest-death-test.cc",
++  "//third_party/googletest/googletest/src/gtest-filepath.cc",
++  "//third_party/googletest/googletest/src/gtest-internal-inl.h",
++  "//third_party/googletest/googletest/src/gtest-matchers.cc",
++  "//third_party/googletest/googletest/src/gtest-printers.cc",
++  "//third_party/googletest/googletest/src/gtest-test-part.cc",
++  "//third_party/googletest/googletest/src/gtest-typed-test.cc",
++  "//third_party/googletest/googletest/src/gtest.cc",
++]  # gtest_shared_sources end
++
++static_library("gtest") {
++  testonly = true
++
++  public = gtest_public_headers
++
++  sources = gtest_shared_sources
++  sources += [ "//third_party/googletest/googletest/src/gtest-port.cc" ]
++
++  all_dependent_configs = [ ":gtest_config" ]
++  configs += [ ":gtest_private_config" ]
++  configs -= [ "//build/config/compiler:no_rtti" ]
++  configs += [ "//build/config/compiler:rtti" ]
++}
++
++source_set("gtest_sources") {
++  public = gtest_public_headers
++
++  sources = gtest_shared_sources
++
++  all_dependent_configs = []
++  # third_party/googletest_custom of Lynx supports unit testing for method
++  # which calls through the JNI into Java code, so place `//third_party/googletest_custom`
++  # before `//third_party/googletest/src/googletest/include` to prioritize finding headers
++  # in `googletest_custom` to support JNI-related functions.
++  if (is_android) {
++    public_deps = [ "//third_party/googletest_custom:gtest_custom" ]
++    all_dependent_configs += [ ":gtest_custom_config" ]
++  }
++  all_dependent_configs += [ ":gtest_config" ]
++  configs += [ ":gtest_private_config" ]
++}
++
++source_set("gtest_main") {
++  testonly = true
++  sources = [ "//third_party/googletest/googletest/src/gtest_main.cc" ]
++  deps = [ ":gtest" ]
++  configs += [ ":gtest_private_config" ]
++}
++
++config("gmock_private_config") {
++  visibility = [ ":*" ]
++  include_dirs = [
++    "//third_party/googletest/googlemock",
++    ".",
++  ]
++}
++
++config("gmock_config") {
++  include_dirs = [ "//third_party/googletest/googlemock/include" ]
++
++  cflags_cc = [
++    # The MOCK_METHODn() macros do not specify "override", which triggers this
++    # warning in users: "error: 'Method' overrides a member function but is not
++    # marked 'override' [-Werror,-Winconsistent-missing-override]". Suppress
++    # these warnings until https://github.com/google/googletest/issues/533 is
++    # fixed.
++    "-Wno-inconsistent-missing-override",
++  ]
++}
++
++static_library("gmock") {
++  testonly = true
++
++  public = [ "//third_party/googletest/src/googletest/include/gmock/gmock.h" ]
++
++  sources = [
++    "//third_party/googletest/googlemock/include/gmock/gmock-actions.h",
++    "//third_party/googletest/googlemock/include/gmock/gmock-cardinalities.h",
++    "//third_party/googletest/googlemock/include/gmock/gmock-function-mocker.h",
++    "//third_party/googletest/googlemock/include/gmock/gmock-generated-actions.h",
++    "//third_party/googletest/googlemock/include/gmock/gmock-matchers.h",
++    "//third_party/googletest/googlemock/include/gmock/gmock-more-matchers.h",
++    "//third_party/googletest/googlemock/include/gmock/gmock-nice-strict.h",
++    "//third_party/googletest/googlemock/include/gmock/gmock-spec-builders.h",
++    "//third_party/googletest/googlemock/include/gmock/gmock.h",
++    "//third_party/googletest/googlemock/include/gmock/internal/custom/gmock-generated-actions.h",
++    "//third_party/googletest/googlemock/include/gmock/internal/custom/gmock-matchers.h",
++    "//third_party/googletest/googlemock/include/gmock/internal/custom/gmock-port.h",
++    "//third_party/googletest/googlemock/include/gmock/internal/gmock-internal-utils.h",
++    "//third_party/googletest/googlemock/include/gmock/internal/gmock-port.h",
++    "//third_party/googletest/googlemock/include/gmock/internal/gmock-pp.h",
++    "//third_party/googletest/googlemock/src/gmock-cardinalities.cc",
++    "//third_party/googletest/googlemock/src/gmock-internal-utils.cc",
++    "//third_party/googletest/googlemock/src/gmock-matchers.cc",
++    "//third_party/googletest/googlemock/src/gmock-spec-builders.cc",
++    "//third_party/googletest/googlemock/src/gmock.cc",
++  ]
++
++  all_dependent_configs = [ ":gmock_config" ]
++  configs += [ ":gmock_private_config" ]
++
++  deps = [ ":gtest" ]
++}
++
++static_library("gmock_main") {
++  testonly = true
++  sources = [ "//third_party/googletest/googlemock/src/gmock_main.cc" ]
++  configs += [ ":gmock_private_config" ]
++  configs -= [ "//build/config/compiler:no_rtti" ]
++  configs += [ "//build/config/compiler:rtti" ]
++  deps = [ ":gmock" ]
++}
+diff --git a/secondary/lynx/third_party/ocmock/BUILD.gn b/secondary/lynx/third_party/ocmock/BUILD.gn
+new file mode 100644
+index 0000000..446c47a
+--- /dev/null
++++ b/secondary/lynx/third_party/ocmock/BUILD.gn
+@@ -0,0 +1,124 @@
++# Copyright 2013 The Flutter Authors. All rights reserved.
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++ocmock_path = "//third_party/ocmock/Source"
++
++# OCMock headers use `#import <OCMock/Foo.h>`.
++config("ocmock_config") {
++  include_dirs = [ "$ocmock_path" ]
++}
++
++# Target that compiles all sources to .o files but does not produce a static
++# library for use in macOS desktop tests.
++source_set("ocmock_src") {
++  configs -= [
++    "//build/config/compiler:chromium_code",
++    "//build/config/gcc:symbol_visibility_hidden",
++  ]
++  all_dependent_configs = [ ":ocmock_config" ]
++  cflags = [
++    "-fvisibility=default",
++    "-Wno-misleading-indentation",
++  ]
++  if (is_ios) {
++    cflags += [ "-mios-simulator-version-min=$ios_testing_deployment_target" ]
++  }
++
++  sources = [
++    "$ocmock_path/OCMock/NSInvocation+OCMAdditions.h",
++    "$ocmock_path/OCMock/NSInvocation+OCMAdditions.m",
++    "$ocmock_path/OCMock/NSMethodSignature+OCMAdditions.h",
++    "$ocmock_path/OCMock/NSMethodSignature+OCMAdditions.m",
++    "$ocmock_path/OCMock/NSNotificationCenter+OCMAdditions.h",
++    "$ocmock_path/OCMock/NSNotificationCenter+OCMAdditions.m",
++    "$ocmock_path/OCMock/NSObject+OCMAdditions.h",
++    "$ocmock_path/OCMock/NSObject+OCMAdditions.m",
++    "$ocmock_path/OCMock/NSValue+OCMAdditions.h",
++    "$ocmock_path/OCMock/NSValue+OCMAdditions.m",
++    "$ocmock_path/OCMock/OCClassMockObject.h",
++    "$ocmock_path/OCMock/OCClassMockObject.m",
++    "$ocmock_path/OCMock/OCMArg.h",
++    "$ocmock_path/OCMock/OCMArg.m",
++    "$ocmock_path/OCMock/OCMArgAction.h",
++    "$ocmock_path/OCMock/OCMArgAction.m",
++    "$ocmock_path/OCMock/OCMBlockArgCaller.h",
++    "$ocmock_path/OCMock/OCMBlockArgCaller.m",
++    "$ocmock_path/OCMock/OCMBlockCaller.h",
++    "$ocmock_path/OCMock/OCMBlockCaller.m",
++    "$ocmock_path/OCMock/OCMBoxedReturnValueProvider.h",
++    "$ocmock_path/OCMock/OCMBoxedReturnValueProvider.m",
++    "$ocmock_path/OCMock/OCMConstraint.h",
++    "$ocmock_path/OCMock/OCMConstraint.m",
++    "$ocmock_path/OCMock/OCMExceptionReturnValueProvider.h",
++    "$ocmock_path/OCMock/OCMExceptionReturnValueProvider.m",
++    "$ocmock_path/OCMock/OCMExpectationRecorder.h",
++    "$ocmock_path/OCMock/OCMExpectationRecorder.m",
++    "$ocmock_path/OCMock/OCMFunctions.h",
++    "$ocmock_path/OCMock/OCMFunctions.m",
++    "$ocmock_path/OCMock/OCMFunctionsPrivate.h",
++    "$ocmock_path/OCMock/OCMIndirectReturnValueProvider.h",
++    "$ocmock_path/OCMock/OCMIndirectReturnValueProvider.m",
++    "$ocmock_path/OCMock/OCMInvocationExpectation.h",
++    "$ocmock_path/OCMock/OCMInvocationExpectation.m",
++    "$ocmock_path/OCMock/OCMInvocationMatcher.h",
++    "$ocmock_path/OCMock/OCMInvocationMatcher.m",
++    "$ocmock_path/OCMock/OCMInvocationStub.h",
++    "$ocmock_path/OCMock/OCMInvocationStub.m",
++    "$ocmock_path/OCMock/OCMLocation.h",
++    "$ocmock_path/OCMock/OCMLocation.m",
++    "$ocmock_path/OCMock/OCMMacroState.h",
++    "$ocmock_path/OCMock/OCMMacroState.m",
++    "$ocmock_path/OCMock/OCMNonRetainingObjectReturnValueProvider.h",
++    "$ocmock_path/OCMock/OCMNonRetainingObjectReturnValueProvider.m",
++    "$ocmock_path/OCMock/OCMNotificationPoster.h",
++    "$ocmock_path/OCMock/OCMNotificationPoster.m",
++    "$ocmock_path/OCMock/OCMObjectReturnValueProvider.h",
++    "$ocmock_path/OCMock/OCMObjectReturnValueProvider.m",
++    "$ocmock_path/OCMock/OCMObserverRecorder.h",
++    "$ocmock_path/OCMock/OCMObserverRecorder.m",
++    "$ocmock_path/OCMock/OCMPassByRefSetter.h",
++    "$ocmock_path/OCMock/OCMPassByRefSetter.m",
++    "$ocmock_path/OCMock/OCMQuantifier.h",
++    "$ocmock_path/OCMock/OCMQuantifier.m",
++    "$ocmock_path/OCMock/OCMRealObjectForwarder.h",
++    "$ocmock_path/OCMock/OCMRealObjectForwarder.m",
++    "$ocmock_path/OCMock/OCMRecorder.h",
++    "$ocmock_path/OCMock/OCMRecorder.m",
++    "$ocmock_path/OCMock/OCMStubRecorder.h",
++    "$ocmock_path/OCMock/OCMStubRecorder.m",
++    "$ocmock_path/OCMock/OCMVerifier.h",
++    "$ocmock_path/OCMock/OCMVerifier.m",
++    "$ocmock_path/OCMock/OCMock.h",
++    "$ocmock_path/OCMock/OCMockObject.h",
++    "$ocmock_path/OCMock/OCMockObject.m",
++    "$ocmock_path/OCMock/OCObserverMockObject.h",
++    "$ocmock_path/OCMock/OCObserverMockObject.m",
++    "$ocmock_path/OCMock/OCPartialMockObject.h",
++    "$ocmock_path/OCMock/OCPartialMockObject.m",
++    "$ocmock_path/OCMock/OCProtocolMockObject.h",
++    "$ocmock_path/OCMock/OCProtocolMockObject.m",
++  ]
++
++  frameworks = [ "Foundation.framework" ]
++}
++
++shared_library("ocmock_shared") {
++  deps = [ ":ocmock_src" ]
++  cflags = [ "-fvisibility=default" ]
++  ldflags = [ "-Wl,-install_name,@rpath/Frameworks/libocmock_shared.dylib" ]
++}
++
++# Generates a static library, used in iOS unit test targets
++static_library("ocmock") {
++  # Force the static lib to include code from dependencies
++  complete_static_lib = true
++  if (is_ios) {
++    cflags = [
++      "-mios-simulator-version-min=$ios_testing_deployment_target",
++    ]
++  }
++  public_deps = [
++    ":ocmock_src",
++  ]
++}
+diff --git a/secondary/third_party/boringssl/BUILD.gn b/secondary/third_party/boringssl/BUILD.gn
+new file mode 100644
+index 0000000..e2b7cc1
+--- /dev/null
++++ b/secondary/third_party/boringssl/BUILD.gn
+@@ -0,0 +1,119 @@
++# Copyright 2014 The Chromium Authors
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++import("//build/config/android/config.gni")
++import("//build/config/arm.gni")
++import("//build/config/compiler/compiler.gni")
++import("//build/config/sanitizers/sanitizers.gni")
++import("//third_party/boringssl/src/gen/sources.gni")
++
++# Config for us and everybody else depending on BoringSSL.
++config("external_config") {
++  include_dirs = [ "//third_party/boringssl/src/include" ]
++  if (is_component_build) {
++    defines = [ "BORINGSSL_SHARED_LIBRARY" ]
++  }
++}
++
++# The config used by the :boringssl component itself, and the fuzzer copies.
++config("component_config") {
++  visibility = [ ":*" ]
++  configs = [ ":internal_config" ]
++  defines = [ "BORINGSSL_IMPLEMENTATION" ]
++}
++
++# This config is used by anything that consumes internal headers. Tests consume
++# this rather than :component_config.
++config("internal_config") {
++  visibility = [ ":*" ]
++  defines = [ "OPENSSL_SMALL" ]
++}
++
++config("no_asm_config") {
++  visibility = [ ":*" ]
++  defines = [ "OPENSSL_NO_ASM" ]
++}
++
++# TODO(crbug.com/42290535): Move Chromium's use of libpki to the public API and
++# unexport pki_internal_headers.
++all_sources = bcm_internal_headers + bcm_sources + crypto_internal_headers +
++              crypto_sources + ssl_internal_headers + ssl_sources + pki_sources
++all_headers = crypto_headers + ssl_headers + pki_headers + pki_internal_headers
++
++all_sources += [
++  "//third_party/boringssl/src/decrepit/evp/evp_do_all.cc",
++  "//third_party/boringssl/src/decrepit/xts/xts.cc",
++]
++
++all_sources += [
++  "//third_party/boringssl/src/decrepit/blowfish/blowfish.cc",
++  "//third_party/boringssl/src/decrepit/cfb/cfb.cc",
++  "//third_party/boringssl/src/decrepit/ripemd/internal.h",
++  "//third_party/boringssl/src/decrepit/ripemd/ripemd.cc",
++]
++
++if (is_msan) {
++  # MSan instrumentation is incompatible with assembly optimizations.
++  # BoringSSL's GAS-compatible assembly knows how to detect MSan, but the NASM
++  # assembly does not, so we check for MSan explicitly.
++  source_set("boringssl_asm") {
++    public_configs = [ ":no_asm_config" ]
++  }
++  source_set("test_support_asm") {
++    visibility = [ ":*" ]
++    testonly = true
++  }
++} else if (is_win && (current_cpu == "x86" || current_cpu == "x64")) {
++  # Windows' x86 and x86_64 assembly is built with NASM.
++  import("//third_party/nasm/nasm_assemble.gni")
++  nasm_assemble("boringssl_asm") {
++    sources = rebase_path(bcm_sources_nasm + crypto_sources_nasm, "//third_party/boringssl", "//third_party/boringssl/src")
++  }
++  nasm_assemble("test_support_asm") {
++    visibility = [ ":*" ]
++    sources = rebase_path(test_support_sources_nasm, "//third_party/boringssl", "//third_party/boringssl/src")
++  }
++} else {
++  # All other targets use GAS-compatible assembler. BoringSSL's assembly files
++  # are all wrapped in processor checks for the corresponding target, so there
++  # is no need to add target conditions in the build.
++  source_set("boringssl_asm") {
++    sources = rebase_path(bcm_sources_asm + crypto_sources_asm, "//third_party/boringssl", "//third_party/boringssl/src")
++    include_dirs = [ "//third_party/boringssl/src/include" ]
++  }
++  source_set("test_support_asm") {
++    visibility = [ ":*" ]
++    sources = rebase_path(test_support_sources_asm, "//third_party/boringssl", "//third_party/boringssl/src")
++    include_dirs = [ "//third_party/boringssl/src/include" ]
++  }
++}
++
++component("boringssl") {
++  sources = rebase_path(all_sources, "//third_party/boringssl", "//third_party/boringssl/src")
++  public = rebase_path(all_headers, "//third_party/boringssl", "//third_party/boringssl/src")
++  deps = [ "//third_party/boringssl/src/third_party/fiat:fiat_license" ]
++
++  # Mark boringssl_asm as a public dependency so the OPENSSL_NO_ASM
++  # config is forwarded to callers. In particular, boringssl_crypto_tests
++  # requires it.
++  public_deps = [ ":boringssl_asm" ]
++
++  public_configs = [ ":external_config" ]
++  configs += [ ":component_config" ]
++
++  configs -= [ "//build/config/compiler:chromium_code" ]
++  configs += [ "//build/config/compiler:no_chromium_code" ]
++
++  if (!is_debug && !(is_fuchsia && optimize_for_size)) {
++    configs -= [ "//build/config/compiler:default_optimization" ]
++    configs += [ "//build/config/compiler:optimize_max" ]
++  }
++
++  if (is_linux && is_component_build) {
++    version_script = "boringssl.map"
++    inputs = [ version_script ]
++    ldflags = [ "-Wl,--version-script=" +
++                rebase_path(version_script, root_build_dir) ]
++  }
++}
+diff --git a/secondary/third_party/discount/BUILD.gn b/secondary/third_party/discount/BUILD.gn
+new file mode 100644
+index 0000000..aa1574e
+--- /dev/null
++++ b/secondary/third_party/discount/BUILD.gn
+@@ -0,0 +1,9 @@
++# Copyright 2026 The Lynxtron Authors. All rights reserved.
++# Licensed under the Apache License Version 2.0 that can be found in the
++# LICENSE file in the root directory of this source tree.
++
++group("discount_lite") {
++  public_deps = [
++    "//lynx/third_party/discount:discount_lite",
++  ]
++}
+diff --git a/secondary/third_party/glfw/BUILD.gn b/secondary/third_party/glfw/BUILD.gn
+new file mode 100644
+index 0000000..fa8e399
+--- /dev/null
++++ b/secondary/third_party/glfw/BUILD.gn
+@@ -0,0 +1,5 @@
++group("glfw") {
++  deps = [
++    "//lynx/build/secondary/third_party/glfw:glfw",
++  ]
++}
+diff --git a/secondary/third_party/jsoncpp/BUILD.gn b/secondary/third_party/jsoncpp/BUILD.gn
+new file mode 100644
+index 0000000..93aba4f
+--- /dev/null
++++ b/secondary/third_party/jsoncpp/BUILD.gn
+@@ -0,0 +1,9 @@
++group("jsoncpp") {
++  public_deps = [
++    "//lynx/third_party/jsoncpp:jsoncpp",
++  ]
++}
++
++config("jsoncpp_config") {
++  include_dirs = [ "//lynx/third_party/jsoncpp/include" ]
++}
+\ No newline at end of file
+diff --git a/secondary/third_party/khronos/BUILD.gn b/secondary/third_party/khronos/BUILD.gn
+new file mode 100644
+index 0000000..1363914
+--- /dev/null
++++ b/secondary/third_party/khronos/BUILD.gn
+@@ -0,0 +1,5 @@
++config("khronos_headers") {
++  configs = [
++    "//lynx/third_party/khronos:khronos_headers",
++  ]
++}
+\ No newline at end of file
+diff --git a/secondary/third_party/libwebp/BUILD.gn b/secondary/third_party/libwebp/BUILD.gn
+new file mode 100644
+index 0000000..589e07e
+--- /dev/null
++++ b/secondary/third_party/libwebp/BUILD.gn
+@@ -0,0 +1,5 @@
++group("libwebp") {
++  public_deps = [
++    "//lynx/build/secondary/third_party/libwebp:libwebp",
++  ]
++}
+diff --git a/secondary/third_party/markdown/BUILD.gn b/secondary/third_party/markdown/BUILD.gn
+new file mode 100644
+index 0000000..eb09bcf
+--- /dev/null
++++ b/secondary/third_party/markdown/BUILD.gn
+@@ -0,0 +1,16 @@
++# Copyright 2026 The Lynxtron Authors. All rights reserved.
++# Licensed under the Apache License Version 2.0 that can be found in the
++# LICENSE file in the root directory of this source tree.
++
++config("markdown_private_config") {
++  configs = [
++    "//lynx/third_party/markdown:markdown_private_config",
++  ]
++}
++
++group("markdown") {
++  public_deps = [
++    "//lynx/third_party/markdown:markdown",
++  ]
++}
++
+diff --git a/secondary/third_party/ocmock/BUILD.gn b/secondary/third_party/ocmock/BUILD.gn
+new file mode 100644
+index 0000000..75a929f
+--- /dev/null
++++ b/secondary/third_party/ocmock/BUILD.gn
+@@ -0,0 +1,5 @@
++group("ocmock") {
++  public_deps = [
++    "//lynx/build/secondary/third_party/ocmock:ocmock",
++  ]
++}
+diff --git a/secondary/third_party/vulkan_memory_allocator/BUILD.gn b/secondary/third_party/vulkan_memory_allocator/BUILD.gn
+new file mode 100644
+index 0000000..0e584dd
+--- /dev/null
++++ b/secondary/third_party/vulkan_memory_allocator/BUILD.gn
+@@ -0,0 +1,5 @@
++group("vulkan_memory_allocator") {
++  public_deps = [
++    "//lynx/build/secondary/third_party/vulkan_memory_allocator:vulkan_memory_allocator",
++  ]
++}
+diff --git a/secondary/third_party/wuffs/BUILD.gn b/secondary/third_party/wuffs/BUILD.gn
+new file mode 100644
+index 0000000..1a57a31
+--- /dev/null
++++ b/secondary/third_party/wuffs/BUILD.gn
+@@ -0,0 +1,61 @@
++# Copyright 2013 The Flutter Authors. All rights reserved.
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++config("wuffs_public") {
++  include_dirs = [ "release/c" ]
++
++  cflags = []
++
++  if (is_clang) {
++    cflags += [
++      "-Wno-unused-function",
++      "-Wno-c++11-narrowing",
++    ]
++  }
++}
++
++source_set("wuffs") {
++  public_configs = [ ":wuffs_public" ]
++
++  defines = [
++    # Copy/pasting from "../externals/wuffs/release/c/wuffs-*.c":
++    #
++    # ----
++    #
++    # Wuffs ships as a "single file C library" or "header file library" as per
++    # https://github.com/nothings/stb/blob/master/docs/stb_howto.txt
++    #
++    # To use that single file as a "foo.c"-like implementation, instead of a
++    # "foo.h"-like header, #define WUFFS_IMPLEMENTATION before #include'ing or
++    # compiling it.
++    #
++    # ----
++    "WUFFS_IMPLEMENTATION",
++
++    # Continuing to copy/paste:
++    #
++    # ----
++    #
++    # Defining the WUFFS_CONFIG__MODULE* macros are optional, but it lets users
++    # of Wuffs' .c file explicitly include which parts of Wuffs to build. That
++    # file contains the entire Wuffs standard library, implementing a variety of
++    # codecs and file formats. Without this macro definition, an optimizing
++    # compiler or linker may very well discard Wuffs code for unused codecs,
++    # but listing the Wuffs modules we use makes that process explicit.
++    # Preprocessing means that such code simply isn't compiled.
++    #
++    # ----
++    #
++    # For Skia, we're only interested in particular image codes (e.g. GIF) and
++    # their dependencies (e.g. BASE, LZW).
++    "WUFFS_CONFIG__MODULES",
++    "WUFFS_CONFIG__MODULE__BASE",
++    "WUFFS_CONFIG__MODULE__GIF",
++    "WUFFS_CONFIG__MODULE__LZW",
++  ]
++
++  sources = [
++    "release/c/wuffs-v0.3.c",
++  ]
++}
+diff --git a/toolchain/clang.gni b/toolchain/clang.gni
+new file mode 100644
+index 0000000..50b93ea
+--- /dev/null
++++ b/toolchain/clang.gni
+@@ -0,0 +1,41 @@
++# Copyright (c) 2013 The Chromium Authors. All rights reserved.
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++import("//config.gni")
++
++declare_args() {
++  # Enable the optional type profiler in Clang, which will tag heap allocations
++  # with the allocation type.
++  use_clang_type_profiler = false
++
++  # Enable Link Time Optimzations. This significantly slows down linking but
++  # results in a smaller binary.
++  enable_lto = !(is_debug || enable_unittests)
++
++  # Generate code with instrumentation for code coverage generation using LLVM.
++  enable_coverage = false
++
++  # Set this flag to enable bitcode. Only valid for iOS ARM builds.
++  enable_bitcode = false
++
++  # Set this flag to cause bitcode to be marker only.
++  bitcode_marker = false
++
++  # Output linker map files for binary size analysis.
++  enable_linker_map = false
++
++  # Whether enable android-packed-relocations optimization
++  enable_pack_relocs = false
++}
++
++declare_args() {
++  # Xcode is required if using bitcode, and Xcode builds cannot use goma.
++  # TODO(dnfield): We shouldn't need Xcode for bitcode_marker builds, but we do
++  # until libpng and dart have explicitly added LLVM asm sections to their
++  # assembly sources. https://github.com/flutter/flutter/issues/39281
++
++  # ChangeLog: 2023/9/18
++  # Force to use Xcode toolchain to build for Apple TV.
++  use_xcode = enable_bitcode || is_tvos
++}
+diff --git a/util/write_cmake_config.gni b/util/write_cmake_config.gni
+new file mode 100644
+index 0000000..091c93d
+--- /dev/null
++++ b/util/write_cmake_config.gni
+@@ -0,0 +1 @@
++import("//lynx/build/util/write_cmake_config.gni")
+\ No newline at end of file
+diff --git a/util/write_cmake_config.py b/util/write_cmake_config.py
+new file mode 100644
+index 0000000..e2a27fa
+--- /dev/null
++++ b/util/write_cmake_config.py
+@@ -0,0 +1,131 @@
++#!/usr/bin/env python3
++r"""Emulates the bits of CMake's configure_file() function needed in LLVM.
++
++The CMake build uses configure_file() for several things.  This emulates that
++function for the GN build.  In the GN build, this runs at build time instead
++of at generator time.
++
++Takes a list of KEY=VALUE pairs (where VALUE can be empty).
++
++The sequence `\` `n` in each VALUE is replaced by a newline character.
++
++On each line, replaces '${KEY}' or '@KEY@' with VALUE.
++
++Then, handles these special cases (note that FOO= sets the value of FOO to the
++empty string, which is falsy, but FOO=0 sets it to '0' which is truthy):
++
++1.) #cmakedefine01 FOO
++    Checks if key FOO is set to a truthy value, and depending on that prints
++    one of the following two lines:
++
++        #define FOO 1
++        #define FOO 0
++
++2.) #cmakedefine FOO [...]
++    Checks if key FOO is set to a truthy value, and depending on that prints
++    one of the following two lines:
++
++        #define FOO [...]
++        /* #undef FOO */
++
++Fails if any of the KEY=VALUE arguments aren't needed for processing the
++input file, or if the input file references keys that weren't passed in.
++"""
++
++from __future__ import print_function
++
++import argparse
++import os
++import re
++import sys
++
++def strtobool(val):
++    val = val.lower()
++    if val in ('y', 'yes', 't', 'true', 'on', '1'):
++        return 1
++    elif val in ('n', 'no', 'f', 'false', 'off', '0'):
++        return 0
++    else:
++        raise ValueError("invalid truth value %r" % (val,))
++
++def main():
++    parser = argparse.ArgumentParser(
++                 epilog=__doc__,
++                 formatter_class=argparse.RawDescriptionHelpFormatter)
++    parser.add_argument('input', help='input file')
++    parser.add_argument('values', nargs='*', help='several KEY=VALUE pairs')
++    parser.add_argument('-o', '--output', required=True,
++                        help='output file')
++    args = parser.parse_args()
++
++    values = {}
++    for value in args.values:
++        key, val = value.split('=', 1)
++        if key in values:
++            print('duplicate key "%s" in args' % key, file=sys.stderr)
++            # Allowing value to be overwritten by last definition is reasonable
++        values[key] = val.replace('\\n', '\n')
++    unused_values = set(values.keys())
++
++    # Matches e.g. '${FOO}' or '@FOO@' and captures FOO in group 1 or 2.
++    var_re = re.compile(r'\$\{([^}]*)\}|@([^@]*)@')
++
++    with open(args.input) as f:
++        in_lines = f.readlines()
++    out_lines = []
++    for in_line in in_lines:
++        def repl(m):
++            key = m.group(1) or m.group(2)
++            unused_values.discard(key)
++            return values.get(key, '')
++        in_line = var_re.sub(repl, in_line)
++        if in_line.startswith('#cmakedefine01 '):
++            _, var = in_line.split()
++            bool_value = values.get(var, '0')
++            try:
++                bool_value = strtobool(bool_value)
++            except:
++                pass
++            in_line = '#define %s %d\n' % (var, 1 if bool_value else 0)
++            unused_values.discard(var)
++        elif in_line.startswith('#cmakedefine '):
++            _, var = in_line.split(None, 1)
++            try:
++                var, val = var.split(None, 1)
++                in_line = '#define %s %s' % (var, val)  # val ends in \n.
++            except:
++                var = var.rstrip()
++                in_line = '#define %s\n' % var
++            defined_value = values.get(var, '')
++            if not defined_value:
++                in_line = '/* #undef %s */\n' % var
++            unused_values.discard(var)
++        out_lines.append(in_line)
++
++    if unused_values:
++        print('unused values args:', file=sys.stderr)
++        print('    ' + '\n    '.join(unused_values), file=sys.stderr)
++        return 1
++
++    output = ''.join(out_lines)
++
++    leftovers = var_re.findall(output)
++    if leftovers:
++        print(
++            'unprocessed values:\n',
++            '\n'.join([x[0] or x[1] for x in leftovers]),
++            file=sys.stderr)
++        return 1
++
++    def read(filename):
++        with open(args.output) as f:
++            return f.read()
++
++    if not os.path.exists(args.output) or read(args.output) != output:
++        with open(args.output, 'w') as f:
++            f.write(output)
++        os.chmod(args.output, os.stat(args.input).st_mode & 0o777)
++
++
++if __name__ == '__main__':
++    sys.exit(main())
+\ No newline at end of file
+-- 
+2.39.3 (Apple Git-145)

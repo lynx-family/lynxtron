@@ -1,0 +1,23 @@
+From da234a677c5b0236c151f33879d05d28488dfae1 Mon Sep 17 00:00:00 2001
+From: zsy-json <186247581+zsy-jason@users.noreply.github.com>
+Date: Wed, 22 Oct 2025 09:48:12 +0800
+Subject: [PATCH] build: change mac_sdk_min to 14 from 15.
+
+---
+ config/mac/mac_sdk_overrides.gni | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/config/mac/mac_sdk_overrides.gni b/config/mac/mac_sdk_overrides.gni
+index 8f8ac1c21..dde0d50e4 100644
+--- a/config/mac/mac_sdk_overrides.gni
++++ b/config/mac/mac_sdk_overrides.gni
+@@ -7,5 +7,5 @@
+ 
+ declare_args() {
+   # Minimum supported version of the Mac SDK.
+-  mac_sdk_min = "15"
++  mac_sdk_min = "14"
+ }
+-- 
+2.49.0
+

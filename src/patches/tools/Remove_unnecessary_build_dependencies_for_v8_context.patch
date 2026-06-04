@@ -1,0 +1,46 @@
+From a10dcbd46ead6f530e734b239ab6103bd42340b5 Mon Sep 17 00:00:00 2001
+From: zsy-json <186247581+zsy-jason@users.noreply.github.com>
+Date: Thu, 11 Sep 2025 14:39:18 +0800
+Subject: [PATCH] Remove unnecessary build dependencies for v8 context snapshot
+
+---
+ v8_context_snapshot/BUILD.gn | 15 ++-------------
+ 1 file changed, 2 insertions(+), 13 deletions(-)
+
+diff --git a/v8_context_snapshot/BUILD.gn b/v8_context_snapshot/BUILD.gn
+index 8a265c5..4b496a6 100644
+--- a/v8_context_snapshot/BUILD.gn
++++ b/v8_context_snapshot/BUILD.gn
+@@ -73,17 +73,9 @@ if (use_v8_context_snapshot) {
+       # of the generator executable or the shared libraries get updated. Note
+       # that it's possible that some of the shared libraries are updated
+       # without having the executable updated.
+-      inputs = [
+-        "$root_out_dir/${shlib_prefix}blink_core${shlib_extension}",
+-        "$root_out_dir/${shlib_prefix}blink_modules${shlib_extension}",
+-        "$root_out_dir/${shlib_prefix}blink_platform${shlib_extension}",
+-        "$root_out_dir/${shlib_prefix}v8${shlib_extension}",
+-      ]
++      inputs = [ "$root_out_dir/${shlib_prefix}v8${shlib_extension}" ]
+ 
+-      deps += [
+-        "//third_party/blink/renderer/bindings:v8_context_snapshot_influential_libs",
+-        "//v8",
+-      ]
++      deps += [ "//v8" ]
+     }
+ 
+     outputs = [ output_file ]
+@@ -95,9 +87,6 @@ if (use_v8_context_snapshot) {
+ 
+       deps = [
+         "//gin",
+-        "//mojo/core/embedder",
+-        "//services/service_manager/public/cpp",
+-        "//third_party/blink/public:blink",
+         "//v8",
+       ]
+ 
+-- 
+2.51.0
+

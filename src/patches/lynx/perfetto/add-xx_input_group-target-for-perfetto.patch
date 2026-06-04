@@ -1,0 +1,57 @@
+From 39e78eb40c3404349be7172d1eac25f9db477df6 Mon Sep 17 00:00:00 2001
+From: tangyongjie <80395553+yongjieTang@users.noreply.github.com>
+Date: Fri, 6 Mar 2026 16:25:01 +0800
+Subject: [PATCH] add xx_input_group target for perfetto
+
+---
+ gn/proto_library.gni | 6 ++++++
+ sdk/BUILD.gn         | 9 ++++++---
+ 2 files changed, 12 insertions(+), 3 deletions(-)
+
+diff --git a/gn/proto_library.gni b/gn/proto_library.gni
+index 14da599bd..08f0e38b2 100644
+--- a/gn/proto_library.gni
++++ b/gn/proto_library.gni
+@@ -333,6 +333,12 @@ template("perfetto_proto_library") {
+     }
+   }
+ 
++  # This group is necessary for Chrome proto_library build rule to work
++  # correctly.
++  group("${source_set_target_name}_input_group") {
++    public_deps = [ ":${source_set_target_name}" ]
++  }
++
+   # Generate the descriptor if the option is set.
+   if (defined(invoker.generate_descriptor)) {
+     target_name_ = string_replace(target_name, expansion_token, "descriptor")
+diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
+index fd0ea8d7a..1efcbb476 100644
+--- a/sdk/BUILD.gn
++++ b/sdk/BUILD.gn
+@@ -4,16 +4,19 @@
+ 
+ perfetto_header_files = [ "perfetto.h" ]
+ 
+-perfetto_shared_sources = [ "perfetto.cc" ]
+-
+ config("allow_sign_compare") {
+   cflags = [ "-Wno-sign-compare" ]
+ }
+ 
+ source_set("perfetto") {
+-  sources = perfetto_shared_sources + perfetto_header_files
++  sources = perfetto_header_files
+ 
+   # On some platfoms, cmsg = CMSG_NXTHDR(&msg_hdr, cmsg)) will cause build break:
+   #  comparison of integers of different signs: 'unsigned long' and 'long'
+   configs += [ ":allow_sign_compare" ]
++  deps = [ 
++    "//third_party/zlib",
++    "//third_party/perfetto:libperfetto",
++    "//third_party/perfetto/include/perfetto/protozero",
++  ]
+ }
+-- 
+2.39.3 (Apple Git-145)
+

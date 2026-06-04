@@ -1,0 +1,53 @@
+# Copyright 2013 The Chromium Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import("//build/buildflag_header.gni")
+import("//build/config/compiler/compiler.gni")
+import("//build/config/features.gni")
+
+config("skia_ext_config") {
+  include_dirs = [ ".." ]
+}
+component("skia_ext") {
+  public_configs = [ ":skia_ext_config" ]
+  public_deps = [
+    "//base",
+    "//third_party/skia",
+  ]
+  public = [
+    "ext/convolver.h",
+    "ext/image_operations.h",
+    "ext/skcolorspace_primaries.h",
+  ]
+  sources = [
+    "ext/SkMemory_new_handler.cpp",
+    "ext/convolver.cc",
+    "ext/image_operations.cc",
+    "ext/skcolorspace_primaries.cc",
+  ]
+
+  if (is_mac) {
+    public += [ "ext/skia_utils_mac.h" ]
+    sources += [ "ext/skia_utils_mac.mm" ]
+  }
+
+  if (is_win) {
+    public += [ "ext/skia_utils_win.h" ]
+    sources += [ "ext/skia_utils_win.cc" ]
+  }
+
+  if (current_cpu == "x86" || current_cpu == "x64") {
+    sources += [
+      "ext/convolver_SSE2.cc",
+      "ext/convolver_SSE2.h",
+    ]
+  } else if (current_cpu == "arm" || current_cpu == "arm64") {
+    if (arm_use_neon) {
+      sources += [
+        "ext/convolver_neon.cc",
+        "ext/convolver_neon.h",
+      ]
+    }
+  }
+}

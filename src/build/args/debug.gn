@@ -1,0 +1,4 @@
+import("all.gn")
+is_official_build = false
+is_debug = true
+symbol_level = 2

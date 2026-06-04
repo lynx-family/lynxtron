@@ -1,0 +1,52 @@
+// Copyright (c) 2019 Slack Technologies, Inc.
+// Use of this source code is governed by the MIT license that can be
+// found in the LICENSE file.
+
+// Copyright 2026 The Lynxtron Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
+#include "shell/api/api_event_emitter.h"
+
+#include "base/functional/bind.h"
+#include "base/no_destructor.h"
+#include "gin/dictionary.h"
+#include "shell/app/javascript_environment.h"
+#include "shell/common/gin_converters/callback_converter.h"
+#include "shell/common/node_includes.h"
+#include "v8/include/v8.h"
+
+namespace {
+
+v8::Global<v8::Object>* GetEventEmitterPrototypeReference() {
+  static base::NoDestructor<v8::Global<v8::Object>> event_emitter_prototype;
+  return event_emitter_prototype.get();
+}
+
+void SetEventEmitterPrototype(v8::Isolate* isolate,
+                              v8::Local<v8::Object> proto) {
+  GetEventEmitterPrototypeReference()->Reset(isolate, proto);
+}
+
+void Initialize(v8::Local<v8::Object> exports,
+                v8::Local<v8::Value> unused,
+                v8::Local<v8::Context> context,
+                void* priv) {
+  v8::Isolate* const isolate = lynxtron::JavascriptEnvironment::GetIsolate();
+  gin::Dictionary dict{isolate, exports};
+  dict.Set("setEventEmitterPrototype",
+           base::BindRepeating(&SetEventEmitterPrototype));
+}
+
+}  // namespace
+
+namespace lynxtron {
+
+v8::Local<v8::Object> GetEventEmitterPrototype(v8::Isolate* isolate) {
+  CHECK(!GetEventEmitterPrototypeReference()->IsEmpty());
+  return GetEventEmitterPrototypeReference()->Get(isolate);
+}
+
+}  // namespace lynxtron
+
+NODE_LINKED_BINDING_CONTEXT_AWARE(lynxtron_binding_event_emitter, Initialize)

@@ -1,0 +1,13 @@
+tools_shared/
+spec/.hash
+packages/default_app/app/dist
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/patches
+.DS_Store
+spec/.yarn/
+.venv
+node_modules/
+__pycache__/

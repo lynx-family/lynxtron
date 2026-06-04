@@ -1,0 +1,22 @@
+{
+  "name": "create-browser-demo",
+  "version": "0.0.0-alpha.12",
+  "type": "module",
+  "bin": "./cli.js",
+  "scripts": {
+    "start": "node ./cli.js",
+    "build": "node ./scripts/generate-template.js && node ./scripts/generate-versions.js"
+  },
+  "description": "Create a new browser Lynxtron application from the official template",
+  "license": "MIT",
+  "files": [
+    "cli.js",
+    "dist/"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "prompts": "^2.4.2"
+  }
+}

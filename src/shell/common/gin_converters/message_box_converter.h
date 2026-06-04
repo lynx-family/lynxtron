@@ -1,0 +1,26 @@
+// Copyright (c) 2019 GitHub, Inc.
+// Use of this source code is governed by the MIT license that can be
+// found in the LICENSE file.
+
+// Copyright 2026 The Lynxtron Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
+#ifndef LYNXTRON_SHELL_COMMON_GIN_CONVERTERS_MESSAGE_BOX_CONVERTER_H_
+#define LYNXTRON_SHELL_COMMON_GIN_CONVERTERS_MESSAGE_BOX_CONVERTER_H_
+
+#include "gin/converter.h"
+#include "shell/api/ui/message_box.h"
+
+namespace gin {
+
+template <>
+struct Converter<lynxtron::MessageBoxSettings> {
+  static bool FromV8(v8::Isolate* isolate,
+                     v8::Local<v8::Value> val,
+                     lynxtron::MessageBoxSettings* out);
+};
+
+}  // namespace gin
+
+#endif  // LYNXTRON_SHELL_COMMON_GIN_CONVERTERS_MESSAGE_BOX_CONVERTER_H_

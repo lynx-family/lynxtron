@@ -1,0 +1,25 @@
+From e1ed74bd051184e3aaeb6301b522a8ac01b6feba Mon Sep 17 00:00:00 2001
+From: zsy-json <186247581+zsy-jason@users.noreply.github.com>
+Date: Thu, 23 Oct 2025 15:25:57 +0800
+Subject: [PATCH] fix windows build problem.
+
+---
+ tools/generate_config_gypi.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tools/generate_config_gypi.py b/tools/generate_config_gypi.py
+index ac8edb689..296ec4c17 100755
+--- a/tools/generate_config_gypi.py
++++ b/tools/generate_config_gypi.py
+@@ -19,7 +19,7 @@ import getnapibuildversion
+ 
+ # Regex used for parsing results of "gn args".
+ GN_RE = re.compile(r'(\w+)\s+=\s+(.*?)$', re.MULTILINE)
+-GN = 'gn.bat' if sys.platform == 'win32' else 'gn'
++GN = 'gn.exe' if sys.platform == 'win32' else 'gn'
+ 
+ def bool_to_number(v):
+   return 1 if v else 0
+-- 
+2.49.0
+

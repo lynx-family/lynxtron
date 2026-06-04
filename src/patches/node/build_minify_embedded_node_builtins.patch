@@ -1,0 +1,287 @@
+From c48ef04d392ad7a7d9c682f2282e5d9d3b5aa6c7 Mon Sep 17 00:00:00 2001
+From: zhixuan <201550585+icecreamx10@users.noreply.github.com>
+Date: Tue, 26 May 2026 15:53:53 +0800
+Subject: [PATCH] build: minify embedded node builtins
+
+---
+ src/node_union_bytes.h          | 23 +++++++++++--
+ src/util.cc                     |  6 ++++
+ test/cctest/test_per_process.cc |  4 +--
+ tools/js2c.cc                   | 58 +++++++++++++++++++++++++++------
+ unofficial.gni                  | 44 ++++++++++++++++++-------
+ 5 files changed, 109 insertions(+), 26 deletions(-)
+
+diff --git a/src/node_union_bytes.h b/src/node_union_bytes.h
+index 4a3f6798..d6932f18 100644
+--- a/src/node_union_bytes.h
++++ b/src/node_union_bytes.h
+@@ -55,23 +55,40 @@ using StaticExternalTwoByteResource =
+ // via ToStringChecked.
+ class UnionBytes {
+  public:
++  enum class Encoding {
++    kOneByte,
++    kUtf8,
++    kTwoByte,
++  };
++
+   explicit UnionBytes(StaticExternalOneByteResource* one_byte_resource)
+-      : one_byte_resource_(one_byte_resource), two_byte_resource_(nullptr) {}
++      : one_byte_resource_(one_byte_resource),
++        two_byte_resource_(nullptr),
++        encoding_(Encoding::kOneByte) {}
++  explicit UnionBytes(StaticExternalOneByteResource* one_byte_resource,
++                      Encoding encoding)
++      : one_byte_resource_(one_byte_resource),
++        two_byte_resource_(nullptr),
++        encoding_(encoding) {}
+   explicit UnionBytes(StaticExternalTwoByteResource* two_byte_resource)
+-      : one_byte_resource_(nullptr), two_byte_resource_(two_byte_resource) {}
++      : one_byte_resource_(nullptr),
++        two_byte_resource_(two_byte_resource),
++        encoding_(Encoding::kTwoByte) {}
+ 
+   UnionBytes(const UnionBytes&) = default;
+   UnionBytes& operator=(const UnionBytes&) = default;
+   UnionBytes(UnionBytes&&) = default;
+   UnionBytes& operator=(UnionBytes&&) = default;
+ 
+-  bool is_one_byte() const { return one_byte_resource_ != nullptr; }
++  bool is_one_byte() const { return encoding_ == Encoding::kOneByte; }
++  bool is_utf8() const { return encoding_ == Encoding::kUtf8; }
+ 
+   v8::Local<v8::String> ToStringChecked(v8::Isolate* isolate) const;
+ 
+  private:
+   StaticExternalOneByteResource* one_byte_resource_;
+   StaticExternalTwoByteResource* two_byte_resource_;
++  Encoding encoding_;
+ };
+ 
+ }  // namespace node
+diff --git a/src/util.cc b/src/util.cc
+index 5ca32f02..b3e85e85 100644
+--- a/src/util.cc
++++ b/src/util.cc
+@@ -705,6 +705,12 @@ Local<String> UnionBytes::ToStringChecked(Isolate* isolate) const {
+   if (is_one_byte()) {
+     return String::NewExternalOneByte(isolate, one_byte_resource_)
+         .ToLocalChecked();
++  } else if (is_utf8()) {
++    return String::NewFromUtf8(isolate,
++                               one_byte_resource_->data(),
++                               v8::NewStringType::kNormal,
++                               one_byte_resource_->length())
++        .ToLocalChecked();
+   } else {
+     return String::NewExternalTwoByte(isolate, two_byte_resource_)
+         .ToLocalChecked();
+diff --git a/test/cctest/test_per_process.cc b/test/cctest/test_per_process.cc
+index 34cf163a..c1cd4268 100644
+--- a/test/cctest/test_per_process.cc
++++ b/test/cctest/test_per_process.cc
+@@ -25,8 +25,8 @@ TEST_F(PerProcessTest, EmbeddedSources) {
+   })) << "BuiltinLoader::source_ should have some 8bit items";
+ 
+   ASSERT_TRUE(std::any_of(sources.cbegin(), sources.cend(), [](auto p) {
+-    return !p.second.is_one_byte();
+-  })) << "BuiltinLoader::source_ should have some 16bit items";
++    return p.second.is_utf8();
++  })) << "BuiltinLoader::source_ should have some UTF-8 items";
+ }
+ 
+ }  // end namespace
+diff --git a/tools/js2c.cc b/tools/js2c.cc
+index 1296a545..0a3724da 100755
+--- a/tools/js2c.cc
++++ b/tools/js2c.cc
+@@ -486,8 +486,9 @@ constexpr std::string_view array_literal_end = "\n};\n\n";
+ // raw strings (i.e. R"JS2C1b732aee(...)JS2C1b732aee") rather than as an
+ // array. This speeds up compilation for gcc/clang.
+ enum class CodeType {
+-  kAscii,   // Code points are all within 0-127
+-  kLatin1,  // Code points are all within 0-255
++  kAscii,  // Code points are all within 0-127
++  kLatin1, // Code points are all within 0-255
++  kUtf8,
+   kTwoByte,
+ };
+ template <typename T>
+@@ -534,6 +535,9 @@ Fragment GetDefinitionImpl(const std::vector<char>& code,
+     case CodeType::kLatin1:
+       start_string_view = latin1_string_literal_start;
+       break;
++    case CodeType::kUtf8:
++      start_string_view = ascii_string_literal_start;
++      break;
+     case CodeType::kTwoByte:
+       start_string_view = utf16_string_literal_start;
+       break;
+@@ -572,6 +576,9 @@ Fragment GetDefinitionImpl(const std::vector<char>& code,
+     case CodeType::kLatin1:
+       string_literal_end = latin1_string_literal_end;
+       break;
++    case CodeType::kUtf8:
++      string_literal_end = utf_string_literal_end;
++      break;
+     case CodeType::kTwoByte:
+       string_literal_end = utf_string_literal_end;
+       break;
+@@ -676,8 +683,17 @@ bool Simplify(const std::vector<char>& code,
+   return false;
+ }
+ 
+-Fragment GetDefinition(const std::string& var, const std::vector<char>& code) {
++Fragment GetDefinition(const std::string& var,
++                       const std::vector<char>& code,
++                       bool* is_utf8 = nullptr,
++                       bool prefer_utf8_storage = false) {
+   Debug("GetDefinition %s, code size %zu\n", var.c_str(), code.size());
++  bool ignored_is_utf8 = false;
++  if (is_utf8 == nullptr) {
++    is_utf8 = &ignored_is_utf8;
++  }
++  *is_utf8 = false;
++
+   bool is_ascii = simdutf::validate_ascii(code.data(), code.size());
+ 
+   if (is_ascii) {
+@@ -685,6 +701,20 @@ Fragment GetDefinition(const std::string& var, const std::vector<char>& code) {
+     return GetDefinitionImpl<char>(code, var, CodeType::kAscii);
+   }
+ 
++  if (prefer_utf8_storage) {
++    // V8 external one-byte strings are Latin-1. Keep non-ASCII JS sources in
++    // UTF-8 bytes and decode only when the builtin is loaded.
++    std::vector<char> simplified;
++    if (Simplify(code, var, &simplified)) {  // Changed.
++      Debug("%s is simplified, re-generate definition\n", var.c_str());
++      return GetDefinition(var, simplified, is_utf8, prefer_utf8_storage);
++    }
++
++    *is_utf8 = true;
++    Debug("UTF-8, static size %zu\n", code.size());
++    return GetDefinitionImpl<char>(code, var, CodeType::kUtf8);
++  }
++
+   std::vector<char> latin1(code.size());
+   auto result = simdutf::convert_utf8_to_latin1_with_errors(
+       code.data(), code.size(), latin1.data());
+@@ -704,7 +734,7 @@ Fragment GetDefinition(const std::string& var, const std::vector<char>& code) {
+   std::vector<char> simplified;
+   if (Simplify(code, var, &simplified)) {  // Changed.
+     Debug("%s is simplified, re-generate definition\n", var.c_str());
+-    return GetDefinition(var, simplified);
++    return GetDefinition(var, simplified, is_utf8, prefer_utf8_storage);
+   }
+ 
+   // Simplification did not turn the code into 1-byte string. Just
+@@ -730,16 +760,24 @@ int AddModule(const std::string& filename,
+   std::string file_id = GetFileId(filename);
+   std::string var = GetVariableName(file_id);
+ 
+-  definitions->emplace_back(GetDefinition(var, code));
++  bool is_utf8 = false;
++  definitions->emplace_back(GetDefinition(var, code, &is_utf8, true));
+ 
+   // Initializers of the BuiltinSourceMap:
+   // {"fs", UnionBytes{&fs_resource}},
+   Fragment& init_buf = initializers->emplace_back(Fragment(256, 0));
+-  int init_size = snprintf(init_buf.data(),
+-                           init_buf.size(),
+-                           "    {\"%s\", UnionBytes(&%s_resource) },",
+-                           file_id.c_str(),
+-                           var.c_str());
++  int init_size =
++      is_utf8 ? snprintf(init_buf.data(),
++                         init_buf.size(),
++                         "    {\"%s\", UnionBytes(&%s_resource, "
++                         "UnionBytes::Encoding::kUtf8) },",
++                         file_id.c_str(),
++                         var.c_str())
++              : snprintf(init_buf.data(),
++                         init_buf.size(),
++                         "    {\"%s\", UnionBytes(&%s_resource) },",
++                         file_id.c_str(),
++                         var.c_str());
+   init_buf.resize(init_size);
+ 
+   // Registrations:
+diff --git a/unofficial.gni b/unofficial.gni
+index b2aecd03..02406185 100644
+--- a/unofficial.gni
++++ b/unofficial.gni
+@@ -391,7 +391,6 @@ template("node_gn_build") {
+   }
+ 
+   node_js2c_amaro_deps = []
+-  node_js2c_amaro_outputs = []
+   if (node_use_amaro) {
+     action("node_js2c_amaro_raw_wasm") {
+       script = "//src/script/node/generate_amaro_raw_wasm.py"
+@@ -413,24 +412,47 @@ template("node_gn_build") {
+       ]
+     }
+     node_js2c_amaro_deps = [ ":node_js2c_amaro_raw_wasm" ]
+-    node_js2c_amaro_outputs = get_target_outputs(":node_js2c_amaro_raw_wasm")
+   }
+ 
+-  action("run_node_js2c") {
+-    script = "//src/build/run-in-dir.py"
++  node_js2c_files = node_deps_files + original_fs_files + node_library_files
++  node_js2c_minify_inputs = []
++  node_js2c_minify_outputs = []
++  foreach(file, node_js2c_files) {
++    node_js2c_minify_inputs += [ "$target_gen_dir/js2c_inputs/$file" ]
++    node_js2c_minify_outputs += [ "$target_gen_dir/js2c_minified_inputs/$file" ]
++  }
++
++  action("node_js2c_minify_inputs") {
++    script = "//src/build/run-node.py"
+     deps = [
+       ":node_js2c_inputs",
+       ":node_js2c_original_fs",
++    ] + node_js2c_amaro_deps
++
++    inputs = node_js2c_minify_inputs + [
++               "//src/script/node/minify_node_js2c_inputs.js",
++             ]
++    outputs = node_js2c_minify_outputs
++
++    args = [
++             "script/node/minify_node_js2c_inputs.js",
++             "--input-dir",
++             rebase_path("$target_gen_dir/js2c_inputs"),
++             "--output-dir",
++             rebase_path("$target_gen_dir/js2c_minified_inputs"),
++           ] + node_js2c_files
++  }
++
++  action("run_node_js2c") {
++    script = "//src/build/run-in-dir.py"
++    deps = [
++      ":node_js2c_minify_inputs",
+       ":node_js2c($host_toolchain)",
+       ":generate_config_gypi",
+-    ] + node_js2c_amaro_deps
++    ]
+ 
+     config_gypi = [ "$target_gen_dir/config.gypi" ]
+-    inputs = node_library_files +
+-             node_deps_files +
+-             node_js2c_amaro_outputs +
+-             get_target_outputs(":node_js2c_original_fs") +
+-             config_gypi
++    inputs = node_js2c_minify_outputs + config_gypi
+     outputs = [ "$target_gen_dir/node_javascript.cc" ]
+ 
+     # Get the path to node_js2c executable of the host toolchain.
+@@ -444,7 +466,7 @@ template("node_gn_build") {
+         get_label_info(":node_js2c($host_toolchain)", "name") +
+         host_executable_suffix
+ 
+-    args = [ rebase_path("$target_gen_dir/js2c_inputs"),
++    args = [ rebase_path("$target_gen_dir/js2c_minified_inputs"),
+              rebase_path(node_js2c_path),
+              rebase_path("$target_gen_dir/node_javascript.cc")] +
+              rebase_path(config_gypi) + node_deps_files +

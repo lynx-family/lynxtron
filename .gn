@@ -1,0 +1,29 @@
+buildconfig = "//build/config/BUILDCONFIG.gn"
+
+default_args = {
+  enable_js_protobuf = false
+
+  v8_imminent_deprecation_warnings = false
+
+  v8_enable_gdbjit = false
+
+  # Disable ANGLE vulkan
+  angle_enable_vulkan = false
+  angle_build_vulkan_system_info = false
+
+  # Do not build ANGLE tests
+  angle_build_all = false
+
+  # Clay
+  skia_enable_flutter_defines = true
+  skia_use_dng_sdk = false
+  skia_use_sfntly = false
+  skia_enable_pdf = false
+  skia_use_x11 = false
+  skia_use_wuffs = true
+  skia_use_expat = true
+
+}
+
+script_executable = "python3"
+secondary_source = "//build/secondary/"

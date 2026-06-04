@@ -1,0 +1,30 @@
+// Copyright 2019 The Chromium Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE.chromium file.
+
+// Copyright 2026 The Lynxtron Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
+#include "shell/common/gin_helper/arguments.h"
+
+#include <string_view>
+
+#include "v8/include/v8-exception.h"
+
+namespace gin_helper {
+
+void Arguments::ThrowError() const {
+  // Gin advances |next_| counter when conversion fails while we do not, so we
+  // have to manually advance the counter here to make gin report error with the
+  // correct index.
+  const_cast<Arguments*>(this)->Skip();
+  gin::Arguments::ThrowError();
+}
+
+void Arguments::ThrowError(const std::string_view message) const {
+  isolate()->ThrowException(
+      v8::Exception::Error(gin::StringToV8(isolate(), message)));
+}
+
+}  // namespace gin_helper

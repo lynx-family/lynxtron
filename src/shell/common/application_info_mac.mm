@@ -1,0 +1,51 @@
+// Copyright (c) 2013 GitHub, Inc.
+// Use of this source code is governed by the MIT license that can be
+// found in the LICENSE file.
+
+// Copyright 2026 The Lynxtron Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
+#import "shell/common/application_info.h"
+
+#include <algorithm>
+#include <string>
+
+#import "base/apple/foundation_util.h"
+#import "base/strings/sys_string_conversions.h"
+#import "shell/common/mac/main_application_bundle.h"
+
+namespace lynxtron {
+
+namespace {
+
+std::string ApplicationInfoDictionaryValue(NSString* key) {
+  return base::SysNSStringToUTF8(
+      [MainApplicationBundle().infoDictionary objectForKey:key]);
+}
+
+std::string ApplicationInfoDictionaryValue(CFStringRef key) {
+  NSString* key_ns = const_cast<NSString*>((__bridge const NSString*)(key));
+  return ApplicationInfoDictionaryValue(key_ns);
+}
+
+}  // namespace
+
+std::string GetApplicationName() {
+  return ApplicationInfoDictionaryValue(kCFBundleNameKey);
+}
+
+std::string GetApplicationVersion() {
+  return ApplicationInfoDictionaryValue(@"CFBundleShortVersionString");
+}
+
+std::string GetApplicationId() {
+  std::string app_id = ApplicationInfoDictionaryValue(kCFBundleIdentifierKey);
+  // Check if app_id is purely numeric
+  if (!app_id.empty() && std::all_of(app_id.begin(), app_id.end(), ::isdigit)) {
+    return app_id;
+  }
+  return "";
+}
+
+}  // namespace lynxtron
