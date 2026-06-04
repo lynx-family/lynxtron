@@ -12,6 +12,7 @@ source_set("resource_fetcher") {
   sources = [
     "lynx_generic_resource_fetcher_impl.cc",
     "lynx_generic_resource_fetcher_impl.h",
+    "lynx_protocol_resource_handler.h",
   ]
 
   deps = [
