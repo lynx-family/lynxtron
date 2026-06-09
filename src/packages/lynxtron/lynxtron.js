@@ -12,6 +12,7 @@ export const shell = lynxtron.shell;
 export const dialog = lynxtron.dialog;
 export const screen = lynxtron.screen;
 export const nativeImage = lynxtron.nativeImage;
+export const protocol = lynxtron.protocol;
 export const Dock = lynxtron.Dock;
 export const CommandLine = lynxtron.CommandLine;
 export const splitPath = lynxtron.splitPath;
