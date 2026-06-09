@@ -19,7 +19,7 @@ type DefaultAppOptions = {
   interactive: boolean;
   abi: boolean;
   modules: string[];
-}
+};
 
 // Parse command line options.
 const argv = process.argv.slice(1);
@@ -31,7 +31,7 @@ const option: DefaultAppOptions = {
   webdriver: false,
   interactive: false,
   abi: false,
-  modules: []
+  modules: [],
 };
 
 let nextArgIsRequire = false;
@@ -76,17 +76,17 @@ if (option.modules.length > 0) {
   (Module as any)._preloadModules(option.modules);
 }
 
-async function loadApplicationByFile (appPath: string) {
+async function loadApplicationByFile(appPath: string) {
   const { loadFile } = await import('./default_app.js');
   loadFile(appPath);
 }
 
-async function loadApplicationPackage (packagePath: string) {
+async function loadApplicationPackage(packagePath: string) {
   // Add a flag indicating app is started from default app.
   Object.defineProperty(process, 'defaultApp', {
     configurable: false,
     enumerable: true,
-    value: true
+    value: true,
   });
 
   try {
@@ -96,17 +96,13 @@ async function loadApplicationPackage (packagePath: string) {
     let appPath;
     if (fs.existsSync(packageJsonPath)) {
       let packageJson;
-      const emitWarning = process.emitWarning;
       try {
-        process.emitWarning = () => {};
-        packageJson = (await import(url.pathToFileURL(packageJsonPath).toString(), {
-          with: { type: 'json' }
-        })).default;
+        packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
       } catch (e) {
-        showErrorMessage(`Unable to parse ${packageJsonPath}\n\n${(e as Error).message}`);
+        showErrorMessage(
+          `Unable to parse ${packageJsonPath}\n\n${(e as Error).message}`
+        );
         return;
-      } finally {
-        process.emitWarning = emitWarning;
       }
 
       if (packageJson.version) {
@@ -126,7 +122,11 @@ async function loadApplicationPackage (packagePath: string) {
       filePath = (Module as any)._resolveFilename(packagePath, null, true);
       app.setAppPath(appPath || path.dirname(filePath));
     } catch (e) {
-      showErrorMessage(`Unable to find Lynxtron app at ${packagePath}\n\n${(e as Error).message}`);
+      showErrorMessage(
+        `Unable to find Lynxtron app at ${packagePath}\n\n${
+          (e as Error).message
+        }`
+      );
       return;
     }
 
@@ -139,13 +139,13 @@ async function loadApplicationPackage (packagePath: string) {
   }
 }
 
-function showErrorMessage (message: string) {
+function showErrorMessage(message: string) {
   // app.focus();
   console.log('Error launching app', message);
   process.exit(1);
 }
 
-async function startRepl () {
+async function startRepl() {
   if (process.platform === 'win32') {
     console.error('Lynxtron REPL not currently supported on Windows');
     process.exit(1);
@@ -168,12 +168,12 @@ async function startRepl () {
 
   const { start } = await import('node:repl');
   const repl = start({
-    prompt: '> '
+    prompt: '> ',
   }).on('exit', () => {
     process.exit(0);
   });
 
-  function defineBuiltin (context: any, name: string, getter: Function) {
+  function defineBuiltin(context: any, name: string, getter: Function) {
     const setReal = (val: any) => {
       // Deleting the property before re-assigning it disables the
       // getter/setter mechanism.
@@ -190,14 +190,14 @@ async function startRepl () {
           get: () => lib,
           set: setReal,
           configurable: true,
-          enumerable: false
+          enumerable: false,
         });
 
         return lib;
       },
       set: setReal,
       configurable: true,
-      enumerable: false
+      enumerable: false,
     });
   }
 
@@ -211,14 +211,49 @@ async function startRepl () {
   // we only trigger custom tab-completion when no common words are
   // potentially matches.
   const commonWords = [
-    'async', 'await', 'break', 'case', 'catch', 'const', 'continue',
-    'debugger', 'default', 'delete', 'do', 'else', 'export', 'false',
-    'finally', 'for', 'function', 'if', 'import', 'in', 'instanceof', 'let',
-    'new', 'null', 'return', 'switch', 'this', 'throw', 'true', 'try',
-    'typeof', 'var', 'void', 'while', 'with', 'yield'
+    'async',
+    'await',
+    'break',
+    'case',
+    'catch',
+    'const',
+    'continue',
+    'debugger',
+    'default',
+    'delete',
+    'do',
+    'else',
+    'export',
+    'false',
+    'finally',
+    'for',
+    'function',
+    'if',
+    'import',
+    'in',
+    'instanceof',
+    'let',
+    'new',
+    'null',
+    'return',
+    'switch',
+    'this',
+    'throw',
+    'true',
+    'try',
+    'typeof',
+    'var',
+    'void',
+    'while',
+    'with',
+    'yield',
   ];
 
-  const lynxtronBuiltins = [...Object.keys(lynxtron), 'original-fs', 'lynxtron'];
+  const lynxtronBuiltins = [
+    ...Object.keys(lynxtron),
+    'original-fs',
+    'lynxtron',
+  ];
 
   const defaultComplete: Function = repl.completer;
   (repl as any).completer = (line: string, callback: Function) => {
@@ -249,7 +284,7 @@ if (option.file) {
   // } else if (extension === '.html' || extension === '.htm') {
   //   await loadApplicationByFile(path.resolve(file));
   // } else {
-    await loadApplicationPackage(file);
+  await loadApplicationPackage(file);
   // }
 } else if (option.version) {
   console.log('v' + process.versions.lynxtron);
@@ -281,6 +316,10 @@ Options:
   }
 
   const currentFilePath = url.fileURLToPath(import.meta.url);
-  const appPath = path.join(path.dirname(path.dirname(currentFilePath)), 'default_app.asar', 'default_app.bundle');
+  const appPath = path.join(
+    path.dirname(path.dirname(currentFilePath)),
+    'default_app.asar',
+    'default_app.bundle'
+  );
   await loadApplicationByFile(appPath);
 }
