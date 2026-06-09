@@ -24,6 +24,7 @@ export * from './api/screen';
 export * from './api/asar';
 export * from './api/dialog';
 export * from './api/shell';
+export * from './api/protocol';
 export * from './api/lynx-extension-utils';
 export * from './api/environment';
 export * from './api/utility-process';
