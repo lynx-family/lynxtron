@@ -12,6 +12,8 @@ source_set("protocol_resource_handler") {
   sources = [
     "lynx_protocol_resource_handler.cc",
     "lynx_protocol_resource_handler.h",
+    "lynx_resource_response_utils.cc",
+    "lynx_resource_response_utils.h",
   ]
 
   deps = [

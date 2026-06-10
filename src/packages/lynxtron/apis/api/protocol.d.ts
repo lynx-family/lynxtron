@@ -16,7 +16,7 @@ export interface ResourceResponse {
 
 export type ProtocolHandler = (
   request: ResourceRequest
-) => ResourceResponse | false | undefined;
+) => ResourceResponse | Promise<ResourceResponse> | false | undefined;
 
 export interface ProtocolRewriteRequest {
   scheme: string;
@@ -32,7 +32,8 @@ export interface Protocol {
    * Register a resource handler for a URL scheme such as `app`.
    *
    * Returning `false` or `undefined` falls back to the normal Lynx resource
-   * loading path.
+   * loading path. Return a Promise when the response data is produced
+   * asynchronously.
    */
   handle(scheme: string, handler: ProtocolHandler): void;
   /**
