@@ -15,10 +15,8 @@ v8::MaybeLocal<v8::Value> InvokeHandler(v8::Isolate* isolate,
                                         const std::string& url,
                                         const std::string& resource_type);
 
-v8::MaybeLocal<v8::Value> InvokeRequestRewriter(
-    v8::Isolate* isolate,
-    const std::string& url,
-    const std::string& resource_type);
+v8::MaybeLocal<v8::Value> InvokeRequestRewriter(v8::Isolate* isolate,
+                                                const std::string& url);
 
 }  // namespace lynxtron::api::protocol
 
