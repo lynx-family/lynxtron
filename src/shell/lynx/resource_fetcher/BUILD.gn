@@ -2,6 +2,24 @@
 # Licensed under the Apache License Version 2.0 that can be found in the
 # LICENSE file in the root directory of this source tree.
 
+source_set("protocol_resource_handler") {
+  include_dirs = [
+    "../../../",
+    "../../",
+    "//node/deps/uv/include",
+  ]
+
+  sources = [
+    "lynx_protocol_resource_handler.cc",
+    "lynx_protocol_resource_handler.h",
+  ]
+
+  deps = [
+    "//base",
+    "//third_party/node:libnode",
+  ]
+}
+
 source_set("resource_fetcher") {
   include_dirs = [
     "../../../",
@@ -15,6 +33,7 @@ source_set("resource_fetcher") {
   ]
 
   deps = [
+    ":protocol_resource_handler",
     "//base",
     "//third_party/node:libnode",
   ]

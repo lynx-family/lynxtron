@@ -64,7 +64,7 @@ v8::MaybeLocal<v8::Object> CreateResourceRequest(
     v8::Isolate* isolate,
     const std::string& url,
     const std::string& scheme,
-    const std::string& resource_type) {
+    const std::string* resource_type) {
   v8::Local<v8::Context> context = isolate->GetCurrentContext();
   v8::Local<v8::Object> request = v8::Object::New(isolate);
   const auto set_string = [&](const char* key, const std::string& value) {
@@ -73,8 +73,10 @@ v8::MaybeLocal<v8::Object> CreateResourceRequest(
               v8::String::NewFromUtf8(isolate, value.c_str()).ToLocalChecked())
         .FromMaybe(false);
   };
-  if (!set_string("url", url) || !set_string("scheme", scheme) ||
-      !set_string("resourceType", resource_type)) {
+  if (!set_string("url", url) || !set_string("scheme", scheme)) {
+    return v8::MaybeLocal<v8::Object>();
+  }
+  if (resource_type && !set_string("resourceType", *resource_type)) {
     return v8::MaybeLocal<v8::Object>();
   }
   return request;
@@ -84,7 +86,7 @@ v8::MaybeLocal<v8::Value> InvokeCallback(v8::Isolate* isolate,
                                          v8::Local<v8::Function> callback,
                                          const std::string& url,
                                          const std::string& scheme,
-                                         const std::string& resource_type) {
+                                         const std::string* resource_type) {
   v8::Local<v8::Context> context = isolate->GetCurrentContext();
   v8::Local<v8::Object> request;
   if (!CreateResourceRequest(isolate, url, scheme, resource_type)
@@ -175,20 +177,18 @@ v8::MaybeLocal<v8::Value> InvokeHandler(v8::Isolate* isolate,
   }
 
   return InvokeCallback(isolate, it->second.Get(isolate), url, scheme,
-                        resource_type);
+                        &resource_type);
 }
 
-v8::MaybeLocal<v8::Value> InvokeRequestRewriter(
-    v8::Isolate* isolate,
-    const std::string& url,
-    const std::string& resource_type) {
+v8::MaybeLocal<v8::Value> InvokeRequestRewriter(v8::Isolate* isolate,
+                                                const std::string& url) {
   auto& request_rewriter = GetRequestRewriter();
   if (request_rewriter.IsEmpty()) {
     return v8::Undefined(isolate);
   }
 
   return InvokeCallback(isolate, request_rewriter.Get(isolate), url,
-                        ExtractSchemeFromURL(url), resource_type);
+                        ExtractSchemeFromURL(url), nullptr);
 }
 
 }  // namespace lynxtron::api::protocol

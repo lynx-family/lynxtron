@@ -18,8 +18,13 @@ export type ProtocolHandler = (
   request: ResourceRequest
 ) => ResourceResponse | false | undefined;
 
+export interface ProtocolRewriteRequest {
+  scheme: string;
+  url: string;
+}
+
 export type ProtocolRequestRewriter = (
-  request: ResourceRequest
+  request: ProtocolRewriteRequest
 ) => string | false | undefined;
 
 export interface Protocol {

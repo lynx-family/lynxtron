@@ -18,6 +18,7 @@
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/global_thread.h"
 #include "shell/lynx/resource_fetcher/lynx_generic_resource_fetcher_factory.h"
+#include "shell/lynx/resource_fetcher/lynx_protocol_resource_handler.h"
 #include "v8.h"
 
 namespace lynxtron {
@@ -119,7 +120,8 @@ void LynxGenericResourceFetcherImpl::FetchResource(
             if (!lynx_window) {
               return;
             }
-            std::string url = std::string(request->GetUrl());
+            std::string url =
+                resource_fetcher::RewriteRequestUrl(request->GetUrl());
             v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
             v8::Locker locker(isolate);
             v8::Isolate::Scope isolate_scope(isolate);
