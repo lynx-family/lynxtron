@@ -4,6 +4,8 @@
 
 #include "shell/api/lynx_view/module/lynx_module_utils.h"
 
+#include <cstdlib>
+
 #include "third_party/napi/include/napi_env_v8.h"
 #include "v8.h"
 
@@ -44,7 +46,9 @@ V8SerializerValue SerializeValue(v8::Isolate* isolate,
     return {};
   }
 
-  auto data = serializer.Release();
-  return V8SerializerValue(data.first, data.first + data.second);
+  auto [buffer, size] = serializer.Release();
+  V8SerializerValue result(buffer, buffer + size);
+  std::free(buffer);
+  return result;
 }
 }  // namespace lynxtron
