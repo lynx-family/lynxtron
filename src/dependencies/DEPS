@@ -1,6 +1,7 @@
 import os
 import platform
 import shutil
+import sys
 
 machine = platform.machine().lower()
 machine = "x86_64" if machine == "amd64" else machine
