@@ -1,5 +1,7 @@
 import os
 import platform
+import sys
+sys.path.insert(0, os.path.join(root_dir, '..', 'lynx'))
 
 machine = platform.machine().lower()
 machine = "x86_64" if machine == "amd64" else machine
@@ -9,7 +11,7 @@ deps = {
     '../lynx': {
         'type': 'solution',
         'url': 'https://github.com/lynx-family/lynx.git',
-        'commit': '9523003cb8285000d2a44171efb2c366624144de',
+        'commit': '2b855a08e9d08261d0012a06369841e8ecb3c77a',
         "deps_file": "dependencies/DEPS.lynxtron",
         "ignore_in_git": True,
     },

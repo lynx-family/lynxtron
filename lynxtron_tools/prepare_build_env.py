@@ -65,11 +65,24 @@ def main():
         return return_code
     print(f"{COLORED_YELLOW_MSG}sync lynx dependencies............{COLORED_PRINT_END}")
     if system == "windows":
-        return_code = os.system(f"powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File \"{hab}\" sync . -f --no-history --target lynx --target-only")
+        lynx_sync_cmd = f"powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File \"{hab}\" sync . -f --no-history --target lynx --target-only"
     else:
-        return_code = os.system(f"\"{hab}\" sync . -f --no-history --target lynx --target-only")
+        lynx_sync_cmd = f"\"{hab}\" sync . -f --no-history --target lynx --target-only"
+    # The lynx repo is large, so the first sync occasionally fails
+    # (network / lock / path race). Retry at most once before giving up.
+    for attempt in range(2):
+        if attempt > 0:
+            print(
+                f"{COLORED_YELLOW_MSG}retry sync lynx dependencies (attempt {attempt + 1}/2)............{COLORED_PRINT_END}"
+            )
+        return_code = os.system(lynx_sync_cmd)
+        if return_code == 0:
+            break
+        print(
+            f"{COLORED_YELLOW_MSG}sync lynx dependencies failed (return_code={return_code}), will retry...{COLORED_PRINT_END}"
+        )
     if return_code != 0:
-        print(f"{COLORED_YELLOW_MSG}sync lynx dependencies failed, exit{COLORED_PRINT_END}")
+        print(f"{COLORED_RED_MSG}sync lynx dependencies failed after retry, exit{COLORED_PRINT_END}")
         return return_code
     
     print(f"{COLORED_YELLOW_MSG}install lynxtron npm dependencies............{COLORED_PRINT_END}")
