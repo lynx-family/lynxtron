@@ -83,4 +83,6 @@ if ($is_sync_command) {
     }
 }
 
-& $HABITAT_BIN $args
+& $HABITAT_BIN @args
+$exit_code = $LASTEXITCODE
+exit $exit_code

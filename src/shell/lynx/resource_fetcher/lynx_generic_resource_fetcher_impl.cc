@@ -88,11 +88,12 @@ void LynxGenericResourceFetcherImpl::FetchResource(
                                             "Invalid reply payload");
                         }
                       });
-                  lynx_window->EmitWithoutEvent(
-                      "-on-fetch-resource", node_emit_event,
+                  std::string resource_type =
                       resource_fetcher::GetResourceTypeString(
-                          request->GetType()),
-                      url);
+                          request->GetType());
+                  lynx_window->EmitWithoutEvent("-on-fetch-resource",
+                                                node_emit_event, resource_type,
+                                                url);
                 });
           },
           request, response, lynx_window_));
