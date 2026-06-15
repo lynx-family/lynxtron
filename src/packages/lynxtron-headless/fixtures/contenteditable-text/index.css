@@ -35,6 +35,31 @@
   margin-bottom: 8px;
 }
 
+.activeToolButton {
+  background-color: #8a3d0c;
+}
+
+.disabledToolButton {
+  background-color: #9aa6b2;
+}
+
+.debugPanel {
+  width: 100%;
+  min-height: 48px;
+  background-color: #e8edf2;
+  border-width: 1px;
+  border-color: #c3ccd6;
+  border-radius: 6px;
+  padding: 8px;
+  margin-bottom: 12px;
+}
+
+.debugText {
+  color: #26364a;
+  font-size: 11px;
+  line-height: 16px;
+}
+
 .editorText {
   width: 100%;
   min-height: 180px;
