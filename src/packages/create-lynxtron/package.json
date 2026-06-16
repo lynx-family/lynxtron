@@ -2,6 +2,10 @@
   "name": "create-lynxtron",
   "version": "0.0.0-alpha.12",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lynx-family/lynxtron.git"
+  },
   "bin": "./cli.js",
   "scripts": {
     "start": "node ./cli.js",
