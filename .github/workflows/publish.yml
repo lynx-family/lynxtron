@@ -1,0 +1,213 @@
+name: publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'release tag (e.g. v1.2.3)'
+        required: true
+        type: string
+
+defaults:
+  run:
+    working-directory: lynxtron
+
+jobs:
+  get-version:
+    runs-on: lynx-ubuntu-22.04-medium
+    env:
+      INPUT_TAG: ${{ github.event.inputs.tag }}
+    outputs:
+      version: ${{ steps.set-version.outputs.version }}
+      tag: ${{ steps.set-version.outputs.tag }}
+    steps:
+      - name: Validate and set version
+        id: set-version
+        run: |
+          if [ -z "$INPUT_TAG" ]; then
+            echo "tag input is required."
+            exit 1
+          fi
+          tag="$INPUT_TAG"
+          version="${tag#v}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  build-macos:
+    needs: get-version
+    timeout-minutes: 120
+    runs-on: lynx-darwin-14-medium
+    strategy:
+      matrix:
+        arch: [arm64, x64]
+    steps:
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+        with:
+          path: lynxtron
+          ref: ${{ needs.get-version.outputs.tag }}
+      - name: Build macOS Lynxtron
+        uses: ./lynxtron/.github/actions/macos-lynxtron-build
+        with:
+          build-arch: ${{ matrix.arch }}
+      - name: Package macOS binary
+        run: |
+          set -x
+          cd ${{ github.workspace }}/lynxtron
+          VERSION=${{ needs.get-version.outputs.version }}
+          mkdir -p publish
+          cd out/Release
+          # Find the main app bundle and package it
+          if [ -d "Lynxtron.app" ]; then
+            APP_NAME="Lynxtron.app"
+          elif [ -d "lynxtron.app" ]; then
+            APP_NAME="lynxtron.app"
+          else
+            echo "No app bundle found in out/Release"
+            ls -la
+            exit 1
+          fi
+          # Create a temporary directory with clean layout for the zip
+          mkdir -p dist/lynxtron
+          cp -R "$APP_NAME" dist/lynxtron/
+          cd dist
+          zip -ry "$OLDPWD/../../publish/lynxtron-v${VERSION}-darwin-${{ matrix.arch }}.zip" lynxtron
+          ls -lh "$OLDPWD/../../publish/"
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lynxtron-darwin-${{ matrix.arch }}
+          path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-darwin-${{ matrix.arch }}.zip
+
+  build-windows:
+    needs: get-version
+    timeout-minutes: 120
+    runs-on: lynx-windows-2022-large
+    strategy:
+      matrix:
+        arch: [x64]
+    steps:
+      - name: Configure Git
+        shell: PowerShell
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+          git config --global http.sslBackend "schannel"
+        working-directory: ./
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+        with:
+          path: lynxtron
+          ref: ${{ needs.get-version.outputs.tag }}
+      - name: Build Windows Lynxtron
+        uses: ./lynxtron/.github/actions/windows-lynxtron-build
+        with:
+          build-arch: ${{ matrix.arch }}
+      - name: Package Windows binary
+        shell: PowerShell
+        run: |
+          $VERSION = "${{ needs.get-version.outputs.version }}"
+          $workspace = "${{ github.workspace }}\lynxtron"
+          New-Item -ItemType Directory -Force -Path "$workspace\publish" | Out-Null
+          $releaseDir = "$workspace\out\Release"
+          # Create clean dist layout for packaging
+          $distDir = "$releaseDir\dist\lynxtron"
+          New-Item -ItemType Directory -Force -Path $distDir | Out-Null
+          # Find executable files (lynxtron.exe / Lynxtron.exe) and copy them
+          $exeFiles = Get-ChildItem -Path $releaseDir -Filter "*.exe" -Recurse -Depth 2 | Where-Object { $_.Name -match "^[Ll]ynxtron" }
+          if ($exeFiles) {
+            foreach ($f in $exeFiles) {
+              Copy-Item -Path $f.FullName -Destination $distDir -Force
+              Write-Host "Copied $($f.FullName)"
+            }
+          } else {
+            Write-Host "No matching .exe found, listing directory:"
+            Get-ChildItem -Path $releaseDir | Select-Object Name
+          }
+          # Also copy any required .dll / resources files from the Release folder (top-level only)
+          $dllFiles = Get-ChildItem -Path $releaseDir -Filter "*.dll"
+          foreach ($f in $dllFiles) {
+            Copy-Item -Path $f.FullName -Destination $distDir -Force
+          }
+          $pakFiles = Get-ChildItem -Path $releaseDir -Filter "*.pak"
+          foreach ($f in $pakFiles) {
+            Copy-Item -Path $f.FullName -Destination $distDir -Force
+          }
+          if (Test-Path "$releaseDir\locales") {
+            Copy-Item -Recurse -Path "$releaseDir\locales" -Destination $distDir -Force
+          }
+          # Compress
+          $zipPath = "$workspace\publish\lynxtron-v${VERSION}-win32-${{ matrix.arch }}.zip"
+          Compress-Archive -Path "$releaseDir\dist\*" -DestinationPath $zipPath -Force
+          Write-Host "Created $zipPath"
+          Get-Item $zipPath | Select-Object Name, Length
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lynxtron-win32-${{ matrix.arch }}
+          path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-win32-${{ matrix.arch }}.zip
+
+  create-release:
+    needs: [get-version, build-macos, build-windows]
+    runs-on: lynx-ubuntu-22.04-medium
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: List artifacts
+        run: ls -lhR artifacts/
+      - name: Create GitHub Release and upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.get-version.outputs.tag }}
+          name: Release ${{ needs.get-version.outputs.tag }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            artifacts/**/*.zip
+
+  publish-npm:
+    needs: [get-version, create-release]
+    runs-on: lynx-ubuntu-22.04-medium
+    defaults:
+      run:
+        working-directory: lynxtron/src/packages/lynxtron
+    steps:
+      - name: Python Setup
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+        with:
+          path: lynxtron
+          ref: ${{ needs.get-version.outputs.tag }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+      - name: Install Common Dependencies
+        uses: ./lynxtron/.github/actions/common-deps
+        with:
+          target: 'tools_shared'
+          target_only: 'true'
+      - name: Sync version from tag
+        run: |
+          VERSION=${{ needs.get-version.outputs.version }}
+          cd ${{ github.workspace }}/lynxtron
+          source lynxtron_tools/envsetup.sh
+          python3 src/script/generate-version-json.js --version "$VERSION" || true
+          # Update package.json version field
+          cd ${{ github.workspace }}/lynxtron/src/packages/lynxtron
+          node -e "const p=require('./package.json');p.version='${VERSION}';require('fs').writeFileSync('package.json',JSON.stringify(p,null,2)+'\n');"
+          cat package.json
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          cd ${{ github.workspace }}/lynxtron/src/packages/lynxtron
+          npm whoami
+          npm publish --access public
