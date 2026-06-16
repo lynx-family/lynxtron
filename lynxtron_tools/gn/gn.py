@@ -34,6 +34,7 @@ def get_default_gn_args(is_debug, enable_enlarge_stack):
   gn_args += 'use_ndk_static_cxx=false '
   gn_args += 'enable_linker_map=false '
   gn_args += 'enable_clay=true '
+  gn_args += 'enable_skity=true '
   gn_args += 'clay_enable_skshaper=true '
   gn_args += 'is_headless=true '
   gn_args += 'skia_enable_flutter_defines=true '
@@ -60,7 +61,7 @@ def get_default_gn_args(is_debug, enable_enlarge_stack):
     gn_args += 'enable_enlarge_stack=true '
 
   if get_current_os() == 'mac':
-    gn_args += 'skia_gl_standard=""'
+    gn_args += 'skia_gl_standard="" '
     gn_args += 'skia_use_metal=true '
     gn_args += 'shell_enable_metal=true '
     gn_args += 'use_clang_static_analyzer=false '
