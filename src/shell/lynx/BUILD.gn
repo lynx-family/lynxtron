@@ -1,7 +1,10 @@
 # Copyright 2025 The Lynxtron Authors. All rights reserved.
 # Licensed under the Apache License Version 2.0 that can be found in the
 # LICENSE file in the root directory of this source tree.
+
+import("//lynx/config.gni")
 import("//lynx/oliver/oliver.gni")
+
 if (is_mac) {
   import("//build/apple/templates/darwin_general_bundle.gni")
 
@@ -26,17 +29,86 @@ if (is_mac) {
     public_deps = [ ":lynx_core_js" ]
   }
 
+  if (enable_inspector) {
+    action("arrange_devtool_resources") {
+      script = "//lynx/devtool/lynx_devtool/resources/arrange_resources.py"
+      args = [
+        rebase_path("$root_build_dir/devtool_resources"),
+        rebase_path("$root_build_dir/devtool_resources"),
+      ]
+      inputs = [
+        "$root_build_dir/devtool_resources/logbox.zip",
+        "$root_build_dir/devtool_resources/lynx-error-parser.js",
+        "$root_build_dir/devtool_resources/notification_cancel.png",
+        "$root_build_dir/devtool_resources/switchPage/devtoolSwitch.lynx.bundle",
+      ]
+      outputs = [
+        "$root_build_dir/devtool_resources/logbox",
+        "$root_build_dir/devtool_resources/switchPage",
+      ]
+      public_deps = [ "//lynx/devtool/lynx_devtool:devtool_assets" ]
+    }
+
+    bundle_data("devtool_resources") {
+      sources = [
+        "$root_build_dir/devtool_resources/logbox",
+        "$root_build_dir/devtool_resources/notification_cancel.png",
+        "$root_build_dir/devtool_resources/switchPage",
+      ]
+      outputs = [ "{{bundle_resources_dir}}/Resource/{{source_file_part}}" ]
+      public_deps = [ ":arrange_devtool_resources" ]
+    }
+
+    bundle_data("lynx_core_dev_js") {
+      sources = [ "$root_build_dir/lynx_lynxtron/lynx_core_dev.js" ]
+      outputs = [ "{{bundle_resources_dir}}/lynx_core_dev.js" ]
+      public_deps = [ ":lynx_core" ]
+    }
+
+    darwin_general_bundle("lynx_debug_resources_bundle_for_lynxtron") {
+      bundle_identifier = "com.lynx.LynxDebugResources"
+      info_plist =
+          "//lynx/explorer/darwin/macos/lynx_explorer/Resource/Info.plist"
+      deployment_target = mac_deployment_target
+      output_name = "lynx_lynxtron/LynxDebugResources"
+      public_deps = [
+        ":devtool_resources",
+        ":lynx_core_dev_js",
+      ]
+    }
+  }
+
   bundle_data("lynx_resources") {
     sources = [ "$root_build_dir/lynx_lynxtron/LynxResources.bundle" ]
 
     outputs = [ "{{bundle_contents_dir}}/Resources/{{source_file_part}}" ]
     public_deps = [ ":lynx_resources_bundle_for_lynxtron" ]
+    if (enable_inspector) {
+      sources += [ "$root_build_dir/lynx_lynxtron/LynxDebugResources.bundle" ]
+      public_deps += [ ":lynx_debug_resources_bundle_for_lynxtron" ]
+    }
   }
 } else if (is_win) {
   build_kernel_js("lynx_core") {
     script = "//lynx/tools/js_tools/build.py"
     platform = "ios"
     output_path = "$root_build_dir"
+  }
+
+  if (enable_inspector) {
+    action("copy_devtool_resources") {
+      script = "//lynx/devtool/lynx_devtool/resources/arrange_resources.py"
+      args = [
+        rebase_path("$root_build_dir/devtool_resources"),
+        rebase_path("$root_build_dir/resources"),
+      ]
+      inputs = [
+        "$root_build_dir/devtool_resources/logbox.zip",
+        "$root_build_dir/devtool_resources/lynx-error-parser.js",
+      ]
+      outputs = [ "$root_build_dir/resources/logbox/lynx-error-parser.js" ]
+      deps = [ "//lynx/devtool/lynx_devtool:devtool_assets" ]
+    }
   }
 }
 
@@ -49,6 +121,9 @@ group("lynx_lib") {
       ":lynx_core",
       "//lynx/platform/windows:lynx_windows_group",
     ]
+    if (enable_inspector) {
+      deps += [ ":copy_devtool_resources" ]
+    }
   }
   public_configs = [ "//lynx/platform/embedder:public_api" ]
 }
