@@ -129,15 +129,25 @@ function runBuild(arch) {
 
     if (!config.electronDownload) {
       const lynxtronVersion = getLynxtronVersion();
-      const archFlag = arch ? arch.replace('--', '') : process.arch;
-      const resolvedArch = archFlag;
+      const effectiveVersion = config.electronVersion || lynxtronVersion;
+      if (!config.electronVersion) {
+        config.electronVersion = effectiveVersion;
+      }
+      const args = process.argv.slice(2);
+      let resolvedArch = arch ? arch.replace('--', '') : process.arch;
+      if (args.includes('--x64')) {
+        resolvedArch = 'x64';
+      } else if (args.includes('--arm64')) {
+        resolvedArch = 'arm64';
+      } else if (args.includes('--ia32')) {
+        resolvedArch = 'ia32';
+      }
       const resolvedPlatform = process.platform;
-      config.electronVersion = lynxtronVersion;
       config.electronDownload = {
-        version: lynxtronVersion,
+        version: effectiveVersion,
         mirror: '',
-        customDir: `v${lynxtronVersion}`,
-        customFilename: `lynxtron-v${lynxtronVersion}-${resolvedPlatform}-${resolvedArch}.zip`,
+        customDir: `v${effectiveVersion}`,
+        customFilename: `lynxtron-v${effectiveVersion}-${resolvedPlatform}-${resolvedArch}.zip`,
       };
     }
     fs.writeFileSync(tempConfigPath, JSON.stringify(config, null, 2));
