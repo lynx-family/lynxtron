@@ -27,3 +27,4 @@ chore_add_missing_include_of_iterator.patch
 fix_windows_build_problem.patch
 build_store_amaro_wasm_as_raw_bytes.patch
 build_minify_embedded_node_builtins.patch
+fix_handle_filesystem_errors_in_cpsynccopydir.patch
