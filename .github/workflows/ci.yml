@@ -6,6 +6,10 @@ on:
     branches:
       - CQ-*
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 defaults:
   run:
     working-directory: lynxtron
@@ -18,7 +22,7 @@ jobs:
       - name: Python Setup
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: '3.13'
       - name: Download Source
         uses: actions/checkout@v4.2.2
         with:
@@ -28,12 +32,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          registry-url: "https://registry.npmjs.org"
+          registry-url: 'https://registry.npmjs.org'
       - name: Install Common Dependencies
         uses: ./lynxtron/.github/actions/common-deps
         with:
-          target: "tools_shared"
-          target_only: "true"
+          target: 'tools_shared'
+          target_only: 'true'
       - name: Run file type check
         run: |
           cd ${{ github.workspace }}/lynxtron
