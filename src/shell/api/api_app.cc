@@ -30,6 +30,7 @@
 #include "shell/app/main_parts.h"
 #include "shell/app/native_window.h"
 #include "shell/app/relauncher.h"
+#include "shell/common/gin_converters/callback_converter.h"
 #include "shell/common/gin_converters/file_path_converter.h"
 #include "shell/common/gin_converters/image_converter.h"
 #include "shell/common/gin_converters/login_item_settings_converter.h"

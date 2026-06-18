@@ -244,16 +244,14 @@ bool SetLoginItemEnabled(const std::string& type,
                          const std::string& service_name,
                          bool enabled) {
   if (@available(macOS 13, *)) {
-    // TODO(Guo Xi): add IS_MAS_BUILD()
-    // #if IS_MAS_BUILD()
-    //     // If the app was previously set as a LoginItem with the old API,
-    //     remove it
-    //     // as a LoginItem via the old API before re-enabling with the new
-    //     API. if (GetLoginItemEnabledDeprecated() && enabled) {
-    //       NSString* identifier = GetLoginHelperBundleIdentifier();
-    //       SMLoginItemSetEnabled((__bridge CFStringRef)identifier, false);
-    //     }
-    // #endif
+#if defined(MAS_BUILD)
+    // If the app was previously set as a LoginItem with the old API, remove it
+    // as a LoginItem via the old API before re-enabling with the new API.
+    if (GetLoginItemEnabledDeprecated() && enabled) {
+      NSString* identifier = GetLoginHelperBundleIdentifier();
+      SMLoginItemSetEnabled((__bridge CFStringRef)identifier, false);
+    }
+#endif
     SMAppService* service = GetServiceForType(type, service_name);
     NSError* error = nil;
     bool result = enabled ? [service registerAndReturnError:&error]

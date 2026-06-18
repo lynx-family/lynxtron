@@ -62,6 +62,9 @@ config("lynxtron_lib_config") {
   if (enable_trace == "perfetto") {
     defines += [ "ENABLE_TRACE_PERFETTO" ]
   }
+  if (is_mac && is_mas_build) {
+    defines += [ "MAS_BUILD" ]
+  }
 }
 
 action("lynxtron_generate_node_defines") {
@@ -629,6 +632,10 @@ source_set("lynxtron_lib") {
       "shell/ui/tray_icon_mac.mm",
     ]
 
+    if (is_mas_build) {
+      sources += [ "shell/api/api_app_mas.mm" ]
+    }
+
     frameworks = [
       "Foundation.framework",
       "CoreServices.framework",
@@ -808,24 +815,8 @@ if (is_mac) {
   bundle_data("lynxtron_app_framework_bundle_data") {
     sources = [ "$root_out_dir/$lynxtron_framework_name.framework" ]
 
-    # if (!is_mas_build) {
-    #   sources += get_target_outputs(":stripped_mantle_framework") +
-    #              get_target_outputs(":stripped_reactiveobjc_framework") +
-    #              get_target_outputs(":stripped_squirrel_framework")
-    # }
     outputs = [ "{{bundle_contents_dir}}/Frameworks/{{source_file_part}}" ]
-    public_deps = [
-      ":lynxtron_framework+link",
-      # ":stripped_mantle_framework",
-      # ":stripped_reactiveobjc_framework",
-      # ":stripped_squirrel_framework",
-    ]
-
-    # foreach(helper_params, content_mac_helpers) {
-    #   sources +=
-    #       [ "$root_out_dir/${lynxtron_helper_name}${helper_params[2]}.app" ]
-    #   public_deps += [ ":lynxtron_helper_app_${helper_params[0]}" ]
-    # }
+    public_deps = [ ":lynxtron_framework+link" ]
   }
 
   bundle_data("lynxtron_app_resources") {
