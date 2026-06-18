@@ -6,4 +6,6 @@ import("//lynx/config.gni")
 
 declare_args() {
   enable_enlarge_stack = false
+
+  is_mas_build = false
 }

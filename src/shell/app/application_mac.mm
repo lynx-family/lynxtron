@@ -40,8 +40,6 @@
 #include "url/gurl.h"
 #include "url/url_canon.h"
 
-// TODO(Guo Xi): add IS_MAS_BUILD()
-#define IS_MAS_BUILD() false
 namespace lynxtron {
 
 namespace {
@@ -413,7 +411,7 @@ v8::Local<v8::Value> Application::GetLoginItemSettings(
     return v8::Local<v8::Value>();
   }
 
-#if IS_MAS_BUILD()
+#if defined(MAS_BUILD)
   const std::string status =
       platform_util::GetLoginItemEnabled(options.type, options.service_name);
   settings.open_at_login =
@@ -449,7 +447,7 @@ void Application::SetLoginItemSettings(LoginItemSettings settings) {
         .ThrowTypeError("'name' is required when type is not mainAppService");
     return;
   }
-#if IS_MAS_BUILD()
+#if defined(MAS_BUILD)
   platform_util::SetLoginItemEnabled(settings.type, settings.service_name,
                                      settings.open_at_login);
 #else
