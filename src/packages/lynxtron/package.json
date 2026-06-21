@@ -5,6 +5,10 @@
   "type": "module",
   "types": "./apis/lynxtron.d.ts",
   "main": "lynxtron.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lynx-family/lynxtron.git"
+  },
   "bin": {
     "lynxtron": "cli.js",
     "lynxtron-fuses": "fuses-cli.js"

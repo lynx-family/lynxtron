@@ -3,6 +3,10 @@
   "version": "0.0.0-alpha",
   "description": "Rebuild native modules for Lynxtron",
   "main": "lib/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lynx-family/lynxtron.git"
+  },
   "bin": {
     "lynxtron-rebuild": "bin/lynxtron-rebuild.js"
   },
