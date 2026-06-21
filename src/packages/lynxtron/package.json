@@ -46,17 +46,24 @@
     "package.json"
   ],
   "exports": {
-    ".": "./lynxtron.js",
+    ".": {
+      "types": "./apis/lynxtron.d.ts",
+      "default": "./lynxtron.js"
+    },
     "./lynx": {
       "types": "./apis/lynx.d.ts",
       "default": "./lynx.js"
     },
     "./fuses": "./fuses.js",
     "./context-bridge": {
+      "types": "./apis/api/context-bridge.d.ts",
       "browser": "./web-worker.js",
       "default": "./context-bridge.js"
     },
-    "./web-host": "./web-host/index.js",
+    "./web-host": {
+      "types": "./apis/web-host.d.ts",
+      "default": "./web-host/index.js"
+    },
     "./web-worker": "./web-worker.js"
   },
   "engines": {
