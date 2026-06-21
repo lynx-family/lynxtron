@@ -143,17 +143,20 @@ function runBuild(arch) {
         resolvedArch = 'ia32';
       }
       const resolvedPlatform = process.platform;
+      const isMas = args.includes('--mas');
       config.electronDownload = {
         version: effectiveVersion,
         mirror: '',
         customDir: `v${effectiveVersion}`,
-        customFilename: `lynxtron-v${effectiveVersion}-${resolvedPlatform}-${resolvedArch}.zip`,
+        customFilename: isMas
+          ? `lynxtron-v${effectiveVersion}-${resolvedPlatform}-mas-${resolvedArch}.zip`
+          : `lynxtron-v${effectiveVersion}-${resolvedPlatform}-${resolvedArch}.zip`,
       };
     }
     fs.writeFileSync(tempConfigPath, JSON.stringify(config, null, 2));
 
     const electronBuilderPath = require.resolve('electron-builder/out/cli/cli.js');
-    const args = process.argv.slice(2).filter(arg => arg !== '--universal');
+    const args = process.argv.slice(2).filter(arg => arg !== '--universal' && arg !== '--mas');
     const finalArgs = ['-c', tempConfigPath, ...args];
     if (arch) {
       finalArgs.push(arch);
