@@ -1,0 +1,2 @@
+0001-Remove-WUFFS_IMPLEMENTATION-to-avoid-duplicate-symbols.patch
+0002-Add-string-include-for-windows-build.patch

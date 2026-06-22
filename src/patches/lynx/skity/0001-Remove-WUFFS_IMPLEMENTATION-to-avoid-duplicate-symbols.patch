@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: lynxtron <lynxtron@lynxjs.com>
+Date: Mon, 22 Jun 2026 00:00:00 +0800
+Subject: [PATCH] Remove WUFFS_IMPLEMENTATION to avoid duplicate symbols
+
+WUFFS_IMPLEMENTATION is defined in the main wuffs target (//third_party/wuffs)
+to avoid duplicate symbols when linking with skia's wuffs.
+
+---
+ module/codec/src/codec/wuffs/wuffs_module.cc  | 4 +++-
+ module/codec/src/codec/wuffs/wuffs_module.hpp | 3 +++
+ 2 files changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/module/codec/src/codec/wuffs/wuffs_module.cc b/module/codec/src/codec/wuffs/wuffs_module.cc
+index fd0a9de..f099dd5 100644
+--- a/module/codec/src/codec/wuffs/wuffs_module.cc
++++ b/module/codec/src/codec/wuffs/wuffs_module.cc
+@@ -2,7 +2,9 @@
+ // Licensed under the Apache License Version 2.0 that can be found in the
+ // LICENSE file in the root directory of this source tree.
+
+-#define WUFFS_IMPLEMENTATION  // implementation in this source file
++// WUFFS_IMPLEMENTATION is defined in the main wuffs target (//third_party/wuffs)
++// to avoid duplicate symbols when linking with skia's wuffs.
++// Do NOT define WUFFS_IMPLEMENTATION here.
+
+ // after wuffs macros
+ #include "src/codec/wuffs/wuffs_module.hpp"
+diff --git a/module/codec/src/codec/wuffs/wuffs_module.hpp b/module/codec/src/codec/wuffs/wuffs_module.hpp
+index 79f734f..db8f803 100644
+--- a/module/codec/src/codec/wuffs/wuffs_module.hpp
++++ b/module/codec/src/codec/wuffs/wuffs_module.hpp
+@@ -11,6 +11,9 @@
+ #define WUFFS_BASE__HAVE_UNIQUE_PTR  // use std::unique_ptr
+ #include "wuffs-v0.3.c"              // NOLINT
+
++// Note: WUFFS_IMPLEMENTATION is defined in the main wuffs target
++// to avoid duplicate symbols when linking with skia's wuffs
++
+ namespace skity {
+
+ using WuffsImageDecoder = wuffs_base__image_decoder::unique_ptr;
+--
+2.39.3
