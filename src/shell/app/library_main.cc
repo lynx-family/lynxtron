@@ -58,6 +58,7 @@ void InstallConsoleControlHandler() {
 
 #if BUILDFLAG(IS_MAC)
 #include "base/apple/bundle_locations.h"
+#include "base/apple/foundation_util.h"
 #include "shell/common/mac/main_application_bundle.h"
 #endif
 
@@ -82,6 +83,17 @@ int LynxtronMain() {
 #elif BUILDFLAG(IS_MAC)
 int LynxtronMain(int argc, char* argv[]) {
 #endif
+#if BUILDFLAG(IS_MAC)
+  // Align the base bundle id used by //base with the real app bundle id.
+  // The default fallback is "org.chromium.Chromium", which causes the Mach
+  // port rendezvous service to be registered as
+  // "org.chromium.Chromium.MachPortRendezvousServer.<pid>". Under the App
+  // Sandbox (TestFlight / MAS), launchd rejects that name with
+  // "Operation not permitted" because it does not match the app bundle id.
+  // This must run before any //base code that touches Mach ports.
+  base::apple::SetBaseBundleIDOverride("com.lynxjs.Lynxtron");
+#endif
+
   base::AtExitManager exit_manager;
 
 #if defined(ADDRESS_SANITIZER)
