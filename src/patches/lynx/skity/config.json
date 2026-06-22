@@ -1,0 +1,5 @@
+[
+  { "patch_dir": "src/patches/lynx/skity/lynx", "repo": "lynx" },
+  { "patch_dir": "src/patches/lynx/skity", "repo": "third_party/skity" },
+  { "patch_dir": "src/patches/lynx/textlayout", "repo": "third_party/textlayout" }
+]

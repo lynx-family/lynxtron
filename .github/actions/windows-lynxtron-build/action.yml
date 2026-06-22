@@ -28,6 +28,20 @@ runs:
     - name: Build Lynxtron
       shell: pwsh
       run: |-
+        $cmakeVersion = "3.30.5"
+        $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v$cmakeVersion/cmake-$cmakeVersion-windows-x86_64.zip"
+        $cmakeZip = "$env:TEMP\cmake.zip"
+        $cmakeDir = "C:\cmake"
+        Write-Host "Downloading CMake $cmakeVersion..."
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        Invoke-WebRequest -Uri $cmakeUrl -OutFile $cmakeZip -UseBasicParsing
+        Write-Host "Extracting CMake..."
+        Expand-Archive -Path $cmakeZip -DestinationPath "C:\" -Force
+        Rename-Item -Path "C:\cmake-$cmakeVersion-windows-x86_64" -NewName "cmake" -Force
+        $cmakeBin = Join-Path $cmakeDir "bin"
+        $env:PATH = "$cmakeBin;$env:PATH"
+        Write-Host "CMake installed to $cmakeBin"
+        cmake --version
         $env:vs2022_install = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\BuildTools"
         $env:DEPOT_TOOLS_WIN_TOOLCHAIN = 0
         $env:GYP_MSVS_OVERRIDE_PATH = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\BuildTools"

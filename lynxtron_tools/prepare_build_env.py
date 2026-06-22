@@ -86,7 +86,22 @@ def main():
     if return_code != 0:
         print(f"{COLORED_RED_MSG}sync lynx dependencies failed after retry, exit{COLORED_PRINT_END}")
         return return_code
-    
+
+    if system == "windows":
+        skity_dir = os.path.join(root_dir, "third_party", "skity")
+        original_skity_cwd = os.getcwd()
+        try:
+            os.chdir(skity_dir)
+            print(f"{COLORED_YELLOW_MSG}sync skity dependencies............{COLORED_PRINT_END}")
+            return_code = os.system(
+                f"powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File \"{hab}\" sync . -f --no-history"
+            )
+            if return_code != 0:
+                print(f"{COLORED_RED_MSG}sync skity dependencies failed, exit{COLORED_PRINT_END}")
+                return return_code
+        finally:
+            os.chdir(original_skity_cwd)
+
     print(f"{COLORED_YELLOW_MSG}install lynxtron npm dependencies............{COLORED_PRINT_END}")
     return_code = os.system(f'node tools/yarn.js install --immutable')
     if return_code != 0:
@@ -96,10 +111,21 @@ def main():
     # apply lynx all patches
     original_dir = os.getcwd()
     try:
-        os.chdir("..")
+        os.chdir(root_dir)
         return_code = os.system(f"{python3} src/script/apply_all_patches.py src/patches/lynx/config.json")
         if return_code != 0:
             print(f"{COLORED_RED_MSG}apply_all_patches.py failed, exit{COLORED_PRINT_END}")
+            return return_code
+    finally:
+        os.chdir(start_cwd)
+
+    # apply skity patches
+    original_dir = os.getcwd()
+    try:
+        os.chdir(root_dir)
+        return_code = os.system(f"{python3} src/script/apply_all_patches.py src/patches/lynx/skity/config.json")
+        if return_code != 0:
+            print(f"{COLORED_RED_MSG}apply skity patches failed, exit{COLORED_PRINT_END}")
             return return_code
     finally:
         os.chdir(start_cwd)

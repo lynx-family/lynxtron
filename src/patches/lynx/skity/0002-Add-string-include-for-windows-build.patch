@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: lynxtron <lynxtron@lynxjs.com>
+Date: Mon, 22 Jun 2026 00:00:00 +0800
+Subject: [PATCH] Add string include for windows build
+
+Fix Windows build error caused by missing <string> include in
+src/base/unique_fd.hpp. The file uses std::wstring in DirCacheEntry
+but doesn't include <string> header, causing compilation errors
+with libc++.
+
+---
+ src/base/unique_fd.hpp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/base/unique_fd.hpp b/src/base/unique_fd.hpp
+index 1e98584..c4737d5 100644
+--- a/src/base/unique_fd.hpp
++++ b/src/base/unique_fd.hpp
+@@ -16,6 +16,7 @@
+ #include <map>
+ #include <mutex>
+ #include <optional>
++#include <string>
+ #else  // SKITY_WIN
+ #include <dirent.h>
+ #include <unistd.h>
+--
+2.39.3

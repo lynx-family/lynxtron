@@ -1,0 +1,95 @@
+From 6e55376ce8c2d701a5d1981dccfe75063fb8ebe7 Mon Sep 17 00:00:00 2001
+From: lynxtron <lynxtron@lynxjs.com>
+Date: Mon, 22 Jun 2026 00:00:00 +0800
+Subject: [PATCH] Fix skity build issues
+
+1. Fix incorrect GN path references for skity targets (//clay/ -> //lynx/clay/)
+2. Add dependency on main project's wuffs to avoid duplicate symbols
+3. Filter out skity's own wuffs include path to use main project's wuffs
+
+Patch-Dir: src/patches/lynx
+Patch-Filename: 0006-Fix-skity-build-issues.patch
+---
+ clay/gfx/skity/BUILD.gn                   |  2 +-
+ clay/shell/platform/darwin/macos/BUILD.gn |  4 ++--
+ clay/shell/platform/windows/BUILD.gn      |  2 +-
+ clay/third_party/skity/BUILD.gn           | 13 ++++++++++++-
+ 4 files changed, 16 insertions(+), 5 deletions(-)
+
+diff --git a/clay/gfx/skity/BUILD.gn b/clay/gfx/skity/BUILD.gn
+index bdb779b9..aa9b146c 100644
+--- a/clay/gfx/skity/BUILD.gn
++++ b/clay/gfx/skity/BUILD.gn
+@@ -31,7 +31,7 @@ source_set("skity") {
+     public_deps += [ "//third_party/skia" ]
+   } else {
+     if (is_win || is_mac) {
+-      public_deps += [ "//clay/third_party/skity:skity_lib" ]
++      public_deps += [ "//lynx/clay/third_party/skity:skity_lib" ]
+     }
+   }
+ }
+diff --git a/clay/shell/platform/darwin/macos/BUILD.gn b/clay/shell/platform/darwin/macos/BUILD.gn
+index eed59ee0..90f6ee61 100644
+--- a/clay/shell/platform/darwin/macos/BUILD.gn
++++ b/clay/shell/platform/darwin/macos/BUILD.gn
+@@ -87,8 +87,8 @@ source_set("flutter_framework_source") {
+     deps += [ "//third_party/skia" ]
+   } else {
+     deps += [
+-      "../../common/desktop/codec",
+-      "//clay/shell/platform/common/desktop/svg",
++      "//lynx/clay/shell/platform/common/desktop/codec",
++      "//lynx/clay/shell/platform/common/desktop/svg",
+     ]
+   }
+ 
+diff --git a/clay/shell/platform/windows/BUILD.gn b/clay/shell/platform/windows/BUILD.gn
+index df987669..f04d3bce 100644
+--- a/clay/shell/platform/windows/BUILD.gn
++++ b/clay/shell/platform/windows/BUILD.gn
+@@ -202,7 +202,7 @@ source_set("flutter_windows_source") {
+   if (enable_skity) {
+     deps += [
+       "../common/desktop/codec",
+-      "//clay/shell/platform/common/desktop/svg",
++      "//lynx/clay/shell/platform/common/desktop/svg",
+     ]
+   }
+ 
+diff --git a/clay/third_party/skity/BUILD.gn b/clay/third_party/skity/BUILD.gn
+index 1d011815..79da9901 100644
+--- a/clay/third_party/skity/BUILD.gn
++++ b/clay/third_party/skity/BUILD.gn
+@@ -26,9 +26,19 @@ config("skity_config") {
+   include_dirs = [
+     "//third_party/libpng",
+     "//third_party/libjpeg-turbo",
++    # Use main project's wuffs headers first to avoid duplicate symbols
++    "//third_party/wuffs/release/c",
+   ]
+   include_dirs += skity_include_dirs
+-  include_dirs += skity_codec_include_dirs
++  # Filter out skity's own wuffs path to use main project's wuffs
++  _filtered_codec_include_dirs = []
++  foreach(dir, skity_codec_include_dirs) {
++    if (dir != "//third_party/skity/third_party/wuffs/release/c" &&
++        dir != rebase_path("//third_party/skity/third_party/wuffs/release/c", root_build_dir)) {
++      _filtered_codec_include_dirs += [ dir ]
++    }
++  }
++  include_dirs += _filtered_codec_include_dirs
+   include_dirs += wgsl_cross_include_dirs
+   include_dirs += pugixml_static_include_dirs
+ 
+@@ -94,6 +104,7 @@ source_set("skity_lib") {
+     "//third_party/libjpeg-turbo:turbojpeg",
+     "//third_party/libpng",
+     "//third_party/libwebp",
++    "//third_party/wuffs",
+     "//third_party/zlib",
+   ]
+ 
+-- 
+2.49.0
+

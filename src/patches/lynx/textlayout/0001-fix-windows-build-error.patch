@@ -1,0 +1,25 @@
+From 3286c6fb873557b245580b004fb822755388d9a2 Mon Sep 17 00:00:00 2001
+From: lynxtron <lynxtron@lynxjs.com>
+Date: Tue, 23 Jun 2026 17:24:34 +0800
+Subject: [PATCH] fix windows build error.
+
+---
+ src/BUILD.gn | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/BUILD.gn b/src/BUILD.gn
+index 3782ae1..0581455 100644
+--- a/src/BUILD.gn
++++ b/src/BUILD.gn
+@@ -215,7 +215,7 @@ source_set("textlayout") {
+ 
+   sources = []
+ 
+-  if (is_mac || is_linux || target_cpu == "wasm") {
++  if (is_mac || is_linux || is_win || target_cpu == "wasm") {
+     deps += [ ":bidi" ]
+   }
+ 
+-- 
+2.49.0
+

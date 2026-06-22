@@ -56,6 +56,8 @@ def get_default_gn_args(is_debug, enable_enlarge_stack):
   gn_args += 'enable_inspector=true '
   gn_args += 'jsengine_type="v8" '
   gn_args += 'use_primjs_napi=true '
+  gn_args += 'enable_skity=true '
+  gn_args += 'textlayout_use_local_config=false '
   if enable_enlarge_stack:
     gn_args += 'enable_enlarge_stack=true '
 
