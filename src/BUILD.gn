@@ -707,7 +707,7 @@ source_set("lynxtron_lib") {
 }
 
 if (is_mac) {
-  lynxtron_mac_bundle_id = "com.github.Lynxtron"
+  lynxtron_mac_bundle_id = "com.lynxjs.Lynxtron"
   lynxtron_framework_name = "$lynxtron_product_name Framework"
 
   action("lynxtron_app_lproj_dirs") {
