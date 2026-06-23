@@ -60,6 +60,7 @@
 .DS_Store
 /out/
 .venv/
+/src/packages/lynxtron-dev-plugins/dist/
 # skills
 .trae/
 .claude/

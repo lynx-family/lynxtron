@@ -88,6 +88,14 @@ jobs:
           find . -path "./v${VERSION}-*" -prune -o -name "*.dSYM" -exec cp -r {} "$SYMBOLS_DIR/" \;
           zip -r -y "../../publish/lynxtron-v${VERSION}-darwin-${{ matrix.arch }}-symbols.zip" "$SYMBOLS_DIR"
           ls -lh "../../publish/lynxtron-v${VERSION}-darwin-${{ matrix.arch }}-symbols.zip"
+
+          # Build and package node headers
+          rm -rf node_headers
+          cd ${{ github.workspace }}/lynxtron
+          python3 lynxtron_tools/copy_node_headers.py
+          cd out/Release
+          zip -r "../../publish/lynxtron-v${VERSION}-node-headers.zip" node_headers
+          ls -lh "../../publish/lynxtron-v${VERSION}-node-headers.zip"
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
         with:
@@ -98,6 +106,11 @@ jobs:
         with:
           name: lynxtron-darwin-${{ matrix.arch }}-symbols
           path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-darwin-${{ matrix.arch }}-symbols.zip
+      - name: Upload node headers
+        uses: actions/upload-artifact@v4
+        with:
+          name: lynxtron-node-headers
+          path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-node-headers.zip
 
   build-windows:
     needs: get-version
@@ -272,4 +285,6 @@ jobs:
           cd $GITHUB_WORKSPACE/lynxtron/src/packages/create-lynxtron
           npm publish --access public --provenance --tag "$NPM_TAG"
           cd $GITHUB_WORKSPACE/lynxtron/src/packages/lynxtron-builder
+          npm publish --access public --provenance --tag "$NPM_TAG"
+          cd $GITHUB_WORKSPACE/lynxtron/src/packages/lynxtron-rebuild
           npm publish --access public --provenance --tag "$NPM_TAG"
