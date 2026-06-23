@@ -15,6 +15,7 @@ runs:
       run: |
         set -x
         cd ${{ github.workspace }}/lynxtron
+        git config --global http.version HTTP/1.1
         git config --global user.name "Lynxtron Scripts"
         git config --global user.email "scripts@lynxtron.com"
         source lynxtron_tools/envsetup.sh
