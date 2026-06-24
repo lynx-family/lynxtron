@@ -5,6 +5,11 @@
   "type": "module",
   "description": "a x-webview element based on cef",
   "main": "index.cjs",
+  "exports": {
+    ".": "./index.cjs",
+    "./node-api": "./index.cjs",
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "postinstall": "node scripts/install.js"
   },
@@ -15,7 +20,9 @@
   ],
   "files": [
     "index.cjs",
+    "lynx.lib.json",
     "README.md",
+    "dist/**/*",
     "scripts/**/*",
     "utils/**/*"
   ],

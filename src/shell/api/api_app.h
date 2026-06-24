@@ -9,7 +9,6 @@
 #ifndef LYNXTRON_SHELL_API_API_APP_H_
 #define LYNXTRON_SHELL_API_API_APP_H_
 
-#include <map>
 #include <memory>
 #include <string>
 #include <vector>

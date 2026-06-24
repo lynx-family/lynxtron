@@ -43,6 +43,7 @@
 /third_party/compiler-rt/src/
 /third_party/ced/src/
 /third_party/catapult/
+/third_party/cef_binary/
 /third_party/boringssl/
 /third_party/benchmark/
 /third_party/angle/

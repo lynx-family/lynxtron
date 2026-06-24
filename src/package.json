@@ -46,7 +46,7 @@
     "packages/lynxtron-dev-plugins",
     "packages/create-lynxtron",
     "spec/case/lynx-card",
-    "packages/extension-builder"
+    "packages/lynx-library-headers"
   ],
   "packageManager": "yarn@4.0.0",
   "resolutions": {

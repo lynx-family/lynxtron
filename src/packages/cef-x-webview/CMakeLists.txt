@@ -26,7 +26,6 @@ endif()
 set(HOST_EXECUTABLE_NAME "lynxtron")
 set(PROJECT_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../..)
 set(LYNX_ROOT_DIR ${PROJECT_ROOT_DIR}/lynx)
-set(NODE_ADDON_API_DIR "${CMAKE_SOURCE_DIR}/node_modules/node-addon-api")
 
 #
 # CEF_ROOT setup.
@@ -48,6 +47,36 @@ find_package(CEF REQUIRED)
 # Comes from the libcef_dll/CMakeLists.txt file in the binary distribution
 # directory.
 add_subdirectory(${CEF_LIBCEF_DLL_WRAPPER_PATH} libcef_dll_wrapper)
+
+execute_process(
+  COMMAND node -p
+          "require('node:path').dirname(require.resolve('@lynx-js/lynx-library-headers/package.json'))"
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+  OUTPUT_VARIABLE LYNX_LIBRARY_HEADERS_DIR
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  ERROR_QUIET
+)
+
+if(NOT LYNX_LIBRARY_HEADERS_DIR)
+  message(
+    FATAL_ERROR
+    "Unable to resolve @lynx-js/lynx-library-headers. Run yarn install first."
+  )
+endif()
+
+execute_process(
+  COMMAND node -p
+          "require('node:path').dirname(require.resolve('node-addon-api/package.json'))"
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+  OUTPUT_VARIABLE NODE_ADDON_API_DIR
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  ERROR_QUIET
+)
+
+if(NOT NODE_ADDON_API_DIR)
+  message(FATAL_ERROR "Unable to resolve node-addon-api. Run yarn install first.")
+endif()
+
 add_subdirectory(${LYNX_ROOT_DIR}/lynx/platform/embedder/plugin/cef/src cef_webview)
 
 set(CEF_EXTENSION_TARGET "cef_extension")

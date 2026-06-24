@@ -1,0 +1,7 @@
+{
+  "platforms": {
+    "node-api": {
+      "path": "node-api"
+    }
+  }
+}
