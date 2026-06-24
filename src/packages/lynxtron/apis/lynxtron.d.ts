@@ -23,6 +23,7 @@ export * from './api/touch-bar';
 export * from './api/screen';
 export * from './api/asar';
 export * from './api/dialog';
+export * from './api/devtool';
 export * from './api/shell';
 export * from './api/protocol';
 export * from './api/lynx-extension-utils';

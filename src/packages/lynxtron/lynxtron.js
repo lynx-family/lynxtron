@@ -10,6 +10,7 @@ export const MenuItem = lynxtron.MenuItem;
 export const clipboard = lynxtron.clipboard;
 export const shell = lynxtron.shell;
 export const dialog = lynxtron.dialog;
+export const devtool = lynxtron.devtool;
 export const screen = lynxtron.screen;
 export const nativeImage = lynxtron.nativeImage;
 export const protocol = lynxtron.protocol;
