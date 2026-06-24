@@ -10,6 +10,7 @@ export const lynxtronModuleList: LynxtronInternal.ModuleEntry[] = [
   { name: 'BaseWindow', loader: () => require('./base-window') },
   { name: 'clipboard', loader: () => require('./clipboard') },
   { name: 'dialog', loader: () => require('./dialog') },
+  { name: 'devtool', loader: () => require('./devtool') },
   { name: 'LynxWindow', loader: () => require('./lynx-window') },
   {
     name: 'LynxTemplateBundle',

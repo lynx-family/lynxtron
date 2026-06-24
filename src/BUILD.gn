@@ -139,6 +139,7 @@ webpack_build("lynxtron_bts_bundle") {
 browser_bundle_deps = [
   "lib/browser/api/app.ts",
   "lib/browser/api/base-window.ts",
+  "lib/browser/api/devtool.ts",
   "lib/browser/api/dialog.ts",
   "lib/browser/api/exports/lynxtron.ts",
   "lib/browser/api/lynx-template-bundle.ts",
@@ -419,6 +420,8 @@ source_set("lynxtron_lib") {
     "shell/api/api_clipboard.cc",
     "shell/api/api_clipboard.h",
     "shell/api/api_command_line.cc",
+    "shell/api/api_devtool.cc",
+    "shell/api/api_devtool.h",
     "shell/api/api_dialog.cc",
     "shell/api/api_environment.cc",
     "shell/api/api_event_emitter.cc",
