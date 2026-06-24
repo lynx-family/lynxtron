@@ -6,6 +6,7 @@ export declare function pluginLynxtron(options?: {
   isDev?: boolean;
   entry?: string;
   args?: string[];
+  autolink?: boolean;
   env?: Record<string, string>;
   command?: string;
 }): any;

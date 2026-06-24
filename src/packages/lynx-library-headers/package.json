@@ -1,0 +1,25 @@
+{
+  "name": "@lynx-js/lynx-library-headers",
+  "author": "Lynxtron Authors",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Lynx embedder C/C++ API and weak N-API headers for native libraries",
+  "scripts": {
+    "copy-headers": "node scripts/copy-headers.cjs",
+    "prepack": "node scripts/copy-headers.cjs",
+    "prepublishOnly": "node scripts/copy-headers.cjs"
+  },
+  "keywords": [
+    "lynx",
+    "library",
+    "headers",
+    "napi"
+  ],
+  "files": [
+    "include/**/*",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

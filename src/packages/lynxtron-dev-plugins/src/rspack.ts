@@ -3,6 +3,7 @@
 // LICENSE file in the root directory of this source tree.
 
 import { spawn, execSync } from 'child_process';
+import { applyLynxtronAutoLink } from './autolink-rspack.js';
 
 let lynxtronProcess: ReturnType<typeof spawn> | null = null;
 let queue = Promise.resolve<ReturnType<typeof spawn> | null>(null);
@@ -56,17 +57,24 @@ const restartLynxtron = debounce(
   300
 );
 
-export function pluginLynxtron(options: {
-  isDev?: boolean;
-  entry: string;
-  args?: string[];
-  env?: Record<string, string>;
-  command?: string;
-}): any {
-  const { isDev, entry, args = [], env, command } = options;
+export function pluginLynxtron(
+  options: {
+    isDev?: boolean;
+    entry?: string;
+    args?: string[];
+    autolink?: boolean;
+    env?: Record<string, string>;
+    command?: string;
+  } = {}
+): any {
+  const { isDev, entry, args = [], autolink = true, env, command } = options;
   return {
     name: 'lynxtron-plugin',
     apply(compiler: any) {
+      if (autolink) {
+        applyLynxtronAutoLink(compiler);
+      }
+
       if (!compiler.options.optimization) {
         compiler.options.optimization = {};
       }
@@ -74,7 +82,7 @@ export function pluginLynxtron(options: {
       compiler.options.optimization.nodeEnv = false;
 
       compiler.hooks.done.tap('LynxtronStart', () => {
-        if (!entry) {
+        if (!isDev || !entry) {
           return;
         }
         const extraArgs = [...args];

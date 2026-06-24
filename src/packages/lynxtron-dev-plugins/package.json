@@ -9,7 +9,9 @@
     "url": "https://github.com/lynx-family/lynxtron.git"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "prepack": "yarn build",
+    "prepublishOnly": "yarn build"
   },
   "files": [
     "dist/",
@@ -33,5 +35,8 @@
   },
   "peerDependencies": {
     "@rsbuild/core": "^1.6.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3"
   }
 }

@@ -6,9 +6,9 @@
   "description": "A minimal Lynxtron application",
   "main": "main.js",
   "scripts": {
-    "dev": "cross-env TARGET_ENV=desktop NODE_ENV=development concurrently -k --prefix none \"rspeedy dev\" \"dev-ready-rspeedy && rspack dev\"",
-    "dev:web": "cross-env TARGET_ENV=web NODE_ENV=development concurrently -k --prefix node \"rspeedy dev\" \"rspack serve\"",
-    "build": "rspeedy build && rspack build",
+    "dev": "cross-env TARGET_ENV=desktop NODE_ENV=development concurrently -k --prefix none \"rspeedy dev\" \"dev-ready-rspeedy && cross-env NODE_OPTIONS=--import=tsx rspack dev\"",
+    "dev:web": "cross-env TARGET_ENV=web NODE_ENV=development concurrently -k --prefix node \"rspeedy dev\" \"cross-env NODE_OPTIONS=--import=tsx rspack serve\"",
+    "build": "rspeedy build && cross-env NODE_OPTIONS=--import=tsx rspack build",
     "start": "cross-env TARGET_ENV=desktop npm run build && lynxtron dist/desktop",
     "start:web": "cross-env TARGET_ENV=web npm run build && npx serve dist/web",
     "test": "vitest run",
@@ -35,6 +35,7 @@
     "concurrently": "^8.2.2",
     "cross-env": "^10.1.0",
     "jsdom": "^26.1.0",
+    "tsx": "^4.22.4",
     "typescript": "~5.9.3",
     "vitest": "^3.2.4"
   },
