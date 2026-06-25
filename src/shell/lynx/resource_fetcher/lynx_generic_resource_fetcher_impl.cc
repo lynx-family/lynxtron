@@ -6,6 +6,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "base/functional/bind.h"
 #include "platform/embedder/public/capi/lynx_generic_resource_fetcher_capi.h"
@@ -35,6 +36,43 @@ void CompleteWithError(
   }
   response->Complete();
 }
+
+void FetchResourceOnUIThread(
+    std::shared_ptr<lynx::pub::resource::LynxResourceRequest> request,
+    std::shared_ptr<lynx::pub::resource::LynxResourceResponse> response,
+    base::WeakPtr<api::LynxWindow> lynx_window) {
+  DCHECK_CURRENTLY_ON(GlobalThread::UI);
+  if (!lynx_window) {
+    return;
+  }
+
+  std::string url = resource_fetcher::RewriteRequestUrl(request->GetUrl());
+  resource_fetcher::HandleProtocolRequest(
+      request, response, url, [request, response, lynx_window, url]() {
+        if (!lynx_window) {
+          return;
+        }
+
+        v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
+        v8::Locker locker(isolate);
+        v8::Isolate::Scope isolate_scope(isolate);
+        v8::HandleScope handle_scope(isolate);
+        auto node_emit_event = LynxEmitEvent::Create(
+            isolate,
+            [response](v8::Isolate* isolate, v8::Local<v8::Value> data_val) {
+              int status_code = resource_fetcher::kDefaultErrorCode;
+              if (!resource_fetcher::TrySetResponseFromResult(
+                      isolate, data_val, response, &status_code)) {
+                CompleteWithError(response, status_code,
+                                  "Invalid reply payload");
+              }
+            });
+        std::string resource_type =
+            resource_fetcher::GetResourceTypeString(request->GetType());
+        lynx_window->EmitWithoutEvent("-on-fetch-resource", node_emit_event,
+                                      resource_type, url);
+      });
+}
 }  // namespace
 
 LynxGenericResourceFetcherImpl::LynxGenericResourceFetcherImpl(
@@ -55,48 +93,15 @@ void LynxGenericResourceFetcherImpl::FetchResource(
   if (!request || !response || !request->GetUrl()) {
     return;
   }
-  GlobalThread::GetUIThreadTaskRunner()->PostTask(
-      FROM_HERE,
-      base::BindOnce(
-          [](std::shared_ptr<lynx::pub::resource::LynxResourceRequest> request,
-             std::shared_ptr<lynx::pub::resource::LynxResourceResponse>
-                 response,
-             base::WeakPtr<api::LynxWindow> lynx_window) {
-            if (!lynx_window) {
-              return;
-            }
-            std::string url =
-                resource_fetcher::RewriteRequestUrl(request->GetUrl());
-            resource_fetcher::HandleProtocolRequest(
-                request, response, url,
-                [request, response, lynx_window, url]() {
-                  if (!lynx_window) {
-                    return;
-                  }
+  if (GlobalThread::CurrentlyOn(GlobalThread::UI)) {
+    FetchResourceOnUIThread(std::move(request), std::move(response),
+                            lynx_window_);
+    return;
+  }
 
-                  v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
-                  v8::Locker locker(isolate);
-                  v8::Isolate::Scope isolate_scope(isolate);
-                  v8::HandleScope handle_scope(isolate);
-                  auto node_emit_event = LynxEmitEvent::Create(
-                      isolate, [response](v8::Isolate* isolate,
-                                          v8::Local<v8::Value> data_val) {
-                        int status_code = resource_fetcher::kDefaultErrorCode;
-                        if (!resource_fetcher::TrySetResponseFromResult(
-                                isolate, data_val, response, &status_code)) {
-                          CompleteWithError(response, status_code,
-                                            "Invalid reply payload");
-                        }
-                      });
-                  std::string resource_type =
-                      resource_fetcher::GetResourceTypeString(
-                          request->GetType());
-                  lynx_window->EmitWithoutEvent("-on-fetch-resource",
-                                                node_emit_event, resource_type,
-                                                url);
-                });
-          },
-          request, response, lynx_window_));
+  GlobalThread::GetUIThreadTaskRunner()->PostTask(
+      FROM_HERE, base::BindOnce(&FetchResourceOnUIThread, std::move(request),
+                                std::move(response), lynx_window_));
 }
 
 void LynxGenericResourceFetcherImpl::FetchResourcePath(
