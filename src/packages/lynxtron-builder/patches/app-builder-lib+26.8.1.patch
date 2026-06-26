@@ -23,19 +23,32 @@ index ce37e63..22b6ef2 100644
          this.isCopyElevateHelper = true;
          // noinspection JSUnusedGlobalSymbols
 diff --git a/node_modules/app-builder-lib/out/electron/electronMac.js b/node_modules/app-builder-lib/out/electron/electronMac.js
-index e5551f8..e66cd7c 100644
+index e5551f8..55cc93f 100644
 --- a/node_modules/app-builder-lib/out/electron/electronMac.js
 +++ b/node_modules/app-builder-lib/out/electron/electronMac.js
-@@ -12,31 +12,6 @@ const ElectronFramework_1 = require("./ElectronFramework");
- function doRename(basePath, oldName, newName) {
+@@ -13,30 +13,22 @@ function doRename(basePath, oldName, newName) {
      return (0, promises_1.rename)(path.join(basePath, oldName), path.join(basePath, newName));
  }
--function moveHelpers(helperSuffixes, frameworksPath, appName, prefix) {
+ function moveHelpers(helperSuffixes, frameworksPath, appName, prefix) {
 -    return Promise.all(helperSuffixes.map(suffix => {
 -        const executableBasePath = path.join(frameworksPath, `${prefix}${suffix}.app`, "Contents", "MacOS");
 -        return doRename(executableBasePath, `${prefix}${suffix}`, appName + suffix).then(() => doRename(frameworksPath, `${prefix}${suffix}.app`, `${appName}${suffix}.app`));
--    }));
--}
++    return Promise.all(helperSuffixes.map(async (suffix) => {
++        const oldHelperAppName = `${prefix}${suffix}.app`;
++        const newHelperAppName = `${appName}${suffix}.app`;
++        const helperAppPath = path.join(frameworksPath, oldHelperAppName);
++        if (!fs.existsSync(helperAppPath)) {
++            return;
++        }
++        const executableBasePath = path.join(helperAppPath, "Contents", "MacOS");
++        const oldExecutableName = `${prefix}${suffix}`;
++        const newExecutableName = `${appName}${suffix}`;
++        if (fs.existsSync(path.join(executableBasePath, oldExecutableName))) {
++            await doRename(executableBasePath, oldExecutableName, newExecutableName);
++        }
++        await doRename(frameworksPath, oldHelperAppName, newHelperAppName);
+     }));
+ }
 -function getAvailableHelperSuffixes(helperEHPlist, helperNPPlist, helperRendererPlist, helperPluginPlist, helperGPUPlist) {
 -    const result = [" Helper"];
 -    if (helperEHPlist != null) {
@@ -58,13 +71,13 @@ index e5551f8..e66cd7c 100644
  /** @internal */
  async function createMacApp(packager, appOutDir, asarIntegrity, isMas) {
      var _a, _b;
-@@ -48,15 +23,7 @@ async function createMacApp(packager, appOutDir, asarIntegrity, isMas) {
+@@ -48,15 +40,8 @@ async function createMacApp(packager, appOutDir, asarIntegrity, isMas) {
      const electronBranding = (0, ElectronFramework_1.createBrandingOpts)(packager.config);
      const contentsPath = path.join(appOutDir, packager.info.framework.distMacOsAppName, "Contents");
      const frameworksPath = path.join(contentsPath, "Frameworks");
 -    const loginItemPath = path.join(contentsPath, "Library", "LoginItems");
      const appPlistFilename = path.join(contentsPath, "Info.plist");
--    const helperPlistFilename = path.join(frameworksPath, `${electronBranding.productName} Helper.app`, "Contents", "Info.plist");
+     const helperPlistFilename = path.join(frameworksPath, `${electronBranding.productName} Helper.app`, "Contents", "Info.plist");
 -    const helperEHPlistFilename = path.join(frameworksPath, `${electronBranding.productName} Helper EH.app`, "Contents", "Info.plist");
 -    const helperNPPlistFilename = path.join(frameworksPath, `${electronBranding.productName} Helper NP.app`, "Contents", "Info.plist");
 -    const helperRendererPlistFilename = path.join(frameworksPath, `${electronBranding.productName} Helper (Renderer).app`, "Contents", "Info.plist");
@@ -74,12 +87,12 @@ index e5551f8..e66cd7c 100644
      const safeParsePlistFile = async (filePath) => {
          if (!fs.existsSync(filePath)) {
              return null;
-@@ -67,14 +34,6 @@ async function createMacApp(packager, appOutDir, asarIntegrity, isMas) {
+@@ -67,14 +52,7 @@ async function createMacApp(packager, appOutDir, asarIntegrity, isMas) {
      if (appPlist == null) {
          throw new Error("corrupted Electron dist");
      }
 -    // Replace the multiple parsePlistFile calls with:
--    const helperPlist = await safeParsePlistFile(helperPlistFilename);
+     const helperPlist = await safeParsePlistFile(helperPlistFilename);
 -    const helperEHPlist = await safeParsePlistFile(helperEHPlistFilename);
 -    const helperNPPlist = await safeParsePlistFile(helperNPPlistFilename);
 -    const helperRendererPlist = await safeParsePlistFile(helperRendererPlistFilename);
@@ -89,16 +102,10 @@ index e5551f8..e66cd7c 100644
      const buildMetadata = packager.config;
      /**
       * Configure bundleIdentifier for the generic Electron Helper process
-@@ -96,50 +55,6 @@ async function createMacApp(packager, appOutDir, asarIntegrity, isMas) {
-     if (!isMas) {
-         configureLocalhostAts(appPlist);
+@@ -102,44 +80,6 @@ async function createMacApp(packager, appOutDir, asarIntegrity, isMas) {
+         helperPlist.CFBundleIdentifier = helperBundleIdentifier;
+         helperPlist.CFBundleVersion = appPlist.CFBundleVersion;
      }
--    if (helperPlist != null) {
--        helperPlist.CFBundleExecutable = `${appFilename} Helper`;
--        helperPlist.CFBundleDisplayName = `${appInfo.productName} Helper`;
--        helperPlist.CFBundleIdentifier = helperBundleIdentifier;
--        helperPlist.CFBundleVersion = appPlist.CFBundleVersion;
--    }
 -    /**
 -     * Configure bundleIdentifier for Electron 5+ Helper processes
 -     *
@@ -140,7 +147,7 @@ index e5551f8..e66cd7c 100644
      const protocols = (0, builder_util_1.asArray)(buildMetadata.protocols).concat((0, builder_util_1.asArray)(packager.platformSpecificBuildOptions.protocols));
      if (protocols.length > 0) {
          appPlist.CFBundleURLTypes = protocols.map(protocol => {
-@@ -192,40 +107,12 @@ async function createMacApp(packager, appOutDir, asarIntegrity, isMas) {
+@@ -192,24 +132,6 @@ async function createMacApp(packager, appOutDir, asarIntegrity, isMas) {
      if (asarIntegrity != null) {
          appPlist.ElectronAsarIntegrity = toPlistObject(asarIntegrity);
      }
@@ -163,11 +170,9 @@ index e5551f8..e66cd7c 100644
 -        await (0, plist_1.savePlistFile)(helperLoginPlistFilename, helperLoginPlist);
 -    }
      await (0, plist_1.savePlistFile)(appPlistFilename, appPlist);
--    if (helperPlist != null) {
--        await (0, plist_1.savePlistFile)(helperPlistFilename, helperPlist);
--    }
-     await Promise.all([
-         doRename(path.join(contentsPath, "MacOS"), electronBranding.productName, appPlist.CFBundleExecutable),
+     if (helperPlist != null) {
+         await (0, plist_1.savePlistFile)(helperPlistFilename, helperPlist);
+@@ -219,13 +141,7 @@ async function createMacApp(packager, appOutDir, asarIntegrity, isMas) {
          (0, builder_util_1.unlinkIfExists)(path.join(appOutDir, "LICENSE")),
          (0, builder_util_1.unlinkIfExists)(path.join(appOutDir, "LICENSES.chromium.html")),
      ]);
@@ -178,6 +183,7 @@ index e5551f8..e66cd7c 100644
 -        const executableBasePath = path.join(loginItemPath, `${prefix}${suffix}.app`, "Contents", "MacOS");
 -        await doRename(executableBasePath, `${prefix}${suffix}`, appFilename + suffix).then(() => doRename(loginItemPath, `${prefix}${suffix}.app`, `${appFilename}${suffix}.app`));
 -    }
++    await moveHelpers([" Helper"], frameworksPath, appFilename, electronBranding.productName);
      const appPath = path.join(appOutDir, `${appInfo.productFilename}.app`);
      await (0, promises_1.rename)(path.dirname(contentsPath), appPath);
      // https://github.com/electron-userland/electron-builder/issues/840
