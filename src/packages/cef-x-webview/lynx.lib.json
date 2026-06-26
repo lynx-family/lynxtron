@@ -1,7 +1,7 @@
 {
   "platforms": {
-    "node-api": {
-      "path": "node-api"
+    "lynxtron": {
+      "path": "dist"
     }
   }
 }
