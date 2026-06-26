@@ -27,7 +27,7 @@
     "@lynx-js/types": "3.6.0",
     "@lynx-js/web-core": "latest",
     "@lynx-js/web-elements": "latest",
-    "@lynx-js/cef-x-webview": "0.0.10",
+    "@lynx-js/cef-webview": "0.0.10",
     "@rsbuild/plugin-type-check": "1.3.1",
     "@rspack/cli": "^1.7.5",
     "@rspack/core": "^1.7.5",

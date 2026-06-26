@@ -1,7 +1,7 @@
 import { app, LynxWindow, dialog } from '@lynx-js/lynxtron';
 import { LYNX_BUNDLE_PATH } from './vendorPaths';
 import path from 'path';
-const cef_module = require('@lynx-js/cef-x-webview');
+const cef_module = require('@lynx-js/cef-webview');
 
 app.whenReady().then(() => {
   cef_module.setUp();

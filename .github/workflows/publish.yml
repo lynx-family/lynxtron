@@ -208,8 +208,74 @@ jobs:
           name: lynxtron-win32-${{ matrix.arch }}-symbols
           path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-win32-${{ matrix.arch }}-symbols.zip
 
+  build-cef-webview-macos:
+    needs: get-version
+    timeout-minutes: 120
+    runs-on: lynx-darwin-14-medium
+    strategy:
+      matrix:
+        arch: [arm64, x64]
+    steps:
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+        with:
+          path: lynxtron
+          ref: ${{ github.ref_name }}
+      - name: Prepare environment
+        shell: bash
+        run: |
+          set -x
+          cd ${{ github.workspace }}/lynxtron
+          git config --global http.version HTTP/1.1
+          git config --global user.name "Lynxtron Scripts"
+          git config --global user.email "scripts@lynxtron.com"
+          source lynxtron_tools/envsetup.sh
+          python3 lynxtron_tools/prepare_build_env.py
+          # Sync CEF binary distribution required by cef-webview CMakeLists.
+          cd ${{ github.workspace }}/lynxtron/src
+          "${{ github.workspace }}/lynxtron/lynxtron_tools/hab" sync . -f --no-history --target extension --target-only
+      - name: Build CEF webview
+        shell: bash
+        run: |
+          set -e
+          set -x
+          VERSION=${{ needs.get-version.outputs.version }}
+          PLATFORM="darwin"
+          ARCH="${{ matrix.arch }}"
+          PACKAGE_DIR=${{ github.workspace }}/lynxtron/src/packages/cef-webview
+          cd "$PACKAGE_DIR"
+          # Install only the build deps. The package's @lynx-js/lynxtron
+          # devDependency is not required for macOS native builds and is
+          # skipped to avoid resolving an unreleased version on the registry.
+          npm install --no-save --ignore-scripts \
+            cmake-js@^7.4.0 \
+            node-addon-api@^7.0.0
+          if [ "$ARCH" = "arm64" ]; then
+            export CMAKE_OSX_ARCHITECTURES=arm64
+            npx cmake-js build
+          else
+            export CMAKE_OSX_ARCHITECTURES=x86_64
+            arch -x86_64 npx cmake-js build
+          fi
+          ROOT_NAME="cef_webview-v${VERSION}-${PLATFORM}-${ARCH}"
+          TMP_DIR="$PACKAGE_DIR/_pack_tmp_${ARCH}"
+          rm -rf "$TMP_DIR"
+          mkdir -p "$TMP_DIR/$ROOT_NAME"
+          cp ./build/Release/cef_extension.node "$TMP_DIR/$ROOT_NAME/"
+          mkdir -p "$TMP_DIR/$ROOT_NAME/frameworks"
+          cp -R ./build/frameworks/Contents/Frameworks/* "$TMP_DIR/$ROOT_NAME/frameworks/"
+          mkdir -p ${{ github.workspace }}/lynxtron/publish
+          cd "$TMP_DIR"
+          zip -ry "${{ github.workspace }}/lynxtron/publish/${ROOT_NAME}.zip" "$ROOT_NAME"
+          ls -lh "${{ github.workspace }}/lynxtron/publish/${ROOT_NAME}.zip"
+      - name: Upload CEF webview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cef-webview-darwin-${{ matrix.arch }}
+          path: lynxtron/publish/cef_webview-v${{ needs.get-version.outputs.version }}-darwin-${{ matrix.arch }}.zip
+
   create-release:
-    needs: [get-version, build-macos, build-windows]
+    needs: [get-version, build-macos, build-windows, build-cef-webview-macos]
     runs-on: lynx-ubuntu-22.04-medium
     permissions:
       contents: write
@@ -260,8 +326,12 @@ jobs:
         id: prepare
         run: |
           VERSION=${{ needs.get-version.outputs.version }}
-          cd ${{ github.workspace }}/lynxtron/src
-          node tools/yarn.js install --immutable
+          cd ${{ github.workspace }}/lynxtron
+          # lynx-library-headers' prepack runs copy-headers.cjs which requires
+          # the synced lynx source tree (LYNX_SOURCE_ROOT). Reuse the same
+          # bootstrap as build jobs to sync lynx + tools and run yarn install.
+          source lynxtron_tools/envsetup.sh
+          python3 lynxtron_tools/prepare_build_env.py
           # Determine npm dist-tag from the version's pre-release label.
           # e.g. 1.2.3-alpha.0 -> alpha, 1.2.3-beta.1 -> beta, 1.2.3 -> latest.
           PRERELEASE=$(echo "$VERSION" | sed -nE 's/^[0-9]+\.[0-9]+\.[0-9]+-([a-zA-Z]+).*/\1/p')
@@ -287,4 +357,8 @@ jobs:
           cd $GITHUB_WORKSPACE/lynxtron/src/packages/lynxtron-builder
           npm publish --access public --provenance --tag "$NPM_TAG"
           cd $GITHUB_WORKSPACE/lynxtron/src/packages/lynxtron-rebuild
+          npm publish --access public --provenance --tag "$NPM_TAG"
+          cd $GITHUB_WORKSPACE/lynxtron/src/packages/lynx-library-headers
+          npm publish --access public --provenance --tag "$NPM_TAG"
+          cd $GITHUB_WORKSPACE/lynxtron/src/packages/cef-webview
           npm publish --access public --provenance --tag "$NPM_TAG"

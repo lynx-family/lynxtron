@@ -77,7 +77,11 @@ if(NOT NODE_ADDON_API_DIR)
   message(FATAL_ERROR "Unable to resolve node-addon-api. Run yarn install first.")
 endif()
 
-add_subdirectory(${LYNX_ROOT_DIR}/lynx/platform/embedder/plugin/cef/src cef_webview)
+set(CEF_PLUGIN_SRC_DIR "${LYNX_ROOT_DIR}/lynx/platform/embedder/plugin/cef/src")
+if(NOT EXISTS "${CEF_PLUGIN_SRC_DIR}")
+  set(CEF_PLUGIN_SRC_DIR "${LYNX_ROOT_DIR}/platform/embedder/plugin/cef/src")
+endif()
+add_subdirectory(${CEF_PLUGIN_SRC_DIR} cef_webview)
 
 set(CEF_EXTENSION_TARGET "cef_extension")
 set(CEF_EXTENSION_SRCS
@@ -98,6 +102,7 @@ target_include_directories(${CEF_EXTENSION_TARGET} PRIVATE
   ${LYNX_ROOT_DIR}
   ${LYNX_ROOT_DIR}/lynx
   ${LYNX_ROOT_DIR}/lynx/platform/embedder/public
+  ${LYNX_ROOT_DIR}/platform/embedder/public
   )
 
 add_dependencies(${CEF_EXTENSION_TARGET} cef_webview)

@@ -15,9 +15,9 @@ function initialize(options = {}) {
   return nativeBinding.initialize(options);
 }
 
-const cefXWebview = {
+const cefWebview = {
   initialize,
 };
 
-module.exports = cefXWebview;
-module.exports.default = cefXWebview;
+module.exports = cefWebview;
+module.exports.default = cefWebview;

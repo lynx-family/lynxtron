@@ -68,7 +68,7 @@ const desktopConfig = defineConfig({
   ],
   externalsPresets: { node: true },
   externals: {
-    '@lynx-js/cef-x-webview': 'commonjs @lynx-js/cef-x-webview',
+    '@lynx-js/cef-webview': 'commonjs @lynx-js/cef-webview',
   },
   resolve: {
     extensions: ['.ts', '.js'],
