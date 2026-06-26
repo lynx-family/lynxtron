@@ -42,7 +42,7 @@ async function main() {
   }
   const arch = process.arch;
   const cwd = process.cwd();
-  const src = path.join(cwd, 'node_modules', '@lynx-js', 'cef-x-webview', 'dist', 'darwin', arch, 'frameworks');
+  const src = path.join(cwd, 'node_modules', '@lynx-js', 'cef-webview', 'dist', 'darwin', arch, 'frameworks');
   const dest = path.join(cwd, 'node_modules', '@lynx-js', 'lynxtron', 'dist', 'darwin', arch, 'lynxtron.app', 'Contents', 'Frameworks');
   const srcExists = await exists(src);
   const destExists = await exists(dest);

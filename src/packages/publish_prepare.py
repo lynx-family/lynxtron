@@ -80,17 +80,12 @@ PREPARE_CONFIG = {
         "package_dir": "./lynxtron-dev-plugins",
         "build_script": ["npm", "run", "build"],
     },
-    "cef-x-webview": {
-        "package_dir": "./cef-x-webview",
+    "cef-webview": {
+        "package_dir": "./cef-webview",
+        "base_url_rewrite": True,
     },
-    "extension-builder": {
-        "package_dir": "./extension-builder",
-        "replaces": {
-            "@lynx-js/lynxtron": {
-                "name": "@lynx-js/lynxtron",
-                "version": "",
-            },
-        },
+    "lynx-library-headers": {
+        "package_dir": "./lynx-library-headers",
     },
 }
 

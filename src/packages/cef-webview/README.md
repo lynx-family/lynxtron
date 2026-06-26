@@ -1,4 +1,4 @@
-# @lynx-js/cef-x-webview
+# @lynx-js/cef-webview
 
 A x-webview element implementation based on Chromium Embedded Framework (CEF) for Lynxtron.
 
@@ -9,18 +9,18 @@ This library provides a CEF-based implementation of the x-webview element for Ly
 ## Installation
 
 ```bash
-npm install @lynx-js/cef-x-webview
+npm install @lynx-js/cef-webview
 ```
 
 ## Usage
 
 Enable the Lynxtron autolink plugin in your application build. AutoLink requires
-`@lynx-js/cef-x-webview/node-api`, which loads the current platform's Node-API
+`@lynx-js/cef-webview/node-api`, which loads the current platform's Node-API
 addon so its static Lynx registrations run during startup. CEF itself is
 initialized only when you call `initialize()`.
 
 ```ts
-import cefWebview from '@lynx-js/cef-x-webview/node-api';
+import cefWebview from '@lynx-js/cef-webview/node-api';
 
 cefWebview.initialize();
 ```
