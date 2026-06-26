@@ -842,6 +842,45 @@ if (is_mac) {
     plist_file = "shell/app/resources/mac/Info.plist"
   }
 
+  mac_app_bundle("lynxtron_helper") {
+    output_name = "Lynxtron Helper"
+
+    include_dirs = [ "." ]
+
+    deps = [
+      ":lynxtron_framework+link",
+      ":lynxtron_helper_icu_data",
+    ]
+
+    info_plist = "shell/app/resources/mac/helper/Info.plist"
+
+    sources = [ "shell/app/main_mac.cc" ]
+
+    defines = [ "HELPER_EXECUTABLE" ]
+
+    ldflags = [
+      "-rpath",
+      "@executable_path/../../../../Frameworks",
+    ]
+
+    extra_substitutions = [
+      "LYNXTRON_HELPER_BUNDLE_ID=$lynxtron_mac_bundle_id.helper",
+      "LYNXTRON_VERSION=$lynxtron_version",
+    ]
+  }
+
+  bundle_data("lynxtron_helper_icu_data") {
+    public_deps = [ "//third_party/icu:icudata" ]
+    sources = [ "$root_out_dir/icudtl.dat" ]
+    outputs = [ "{{bundle_resources_dir}}/{{source_file_part}}" ]
+  }
+
+  bundle_data("lynxtron_helper_bundle_data") {
+    public_deps = [ ":lynxtron_helper" ]
+    sources = [ "$root_out_dir/Lynxtron Helper.app" ]
+    outputs = [ "{{bundle_contents_dir}}/Frameworks/{{source_file_part}}" ]
+  }
+
   mac_app_bundle("lynxtron_app") {
     output_name = "lynxtron"
 
@@ -856,6 +895,10 @@ if (is_mac) {
     ]
 
     deps += lynxtron_app_extra_deps
+
+    if (is_mas_build) {
+      deps += [ ":lynxtron_helper_bundle_data" ]
+    }
 
     info_plist_target = ":lynxtron_app_plist"
 
