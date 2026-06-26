@@ -1,0 +1,65 @@
+From 7756e8156eecfe1b44244bbc423880b0a8473650 Mon Sep 17 00:00:00 2001
+From: tangyongjie <80395553+yongjieTang@users.noreply.github.com>
+Date: Sat, 27 Jun 2026 15:24:22 +0800
+Subject: [PATCH] [Optimize] Add custom namespace macro
+
+---
+ src/napi/napi.cc | 9 +++++++++
+ src/napi/napi.h  | 9 +++++++++
+ 2 files changed, 18 insertions(+)
+
+diff --git a/src/napi/napi.cc b/src/napi/napi.cc
+index a522e0e..f9b26fa 100644
+--- a/src/napi/napi.cc
++++ b/src/napi/napi.cc
+@@ -28,6 +28,12 @@
+ 
+ namespace Napi {
+ 
++#ifdef PRIMJS_NAPI_CPP_CUSTOM_NAMESPACE
++namespace PRIMJS_NAPI_CPP_CUSTOM_NAMESPACE {}
++using namespace PRIMJS_NAPI_CPP_CUSTOM_NAMESPACE;
++namespace PRIMJS_NAPI_CPP_CUSTOM_NAMESPACE {
++#endif
++
+ static NAPI_NO_RETURN void Fatal(const char* message) { ::abort(); }
+ 
+ static void CheckStatus(napi_env env, napi_status status, const char* message) {
+@@ -1470,4 +1476,7 @@ uint32_t VersionManagement::GetNapiVersion(Env env) {
+   CheckStatus(env, status, "failed to call napi_get_version");
+   return result;
+ }
++#ifdef PRIMJS_NAPI_CPP_CUSTOM_NAMESPACE
++}  // namespace PRIMJS_NAPI_CPP_CUSTOM_NAMESPACE
++#endif
+ }  // namespace Napi
+diff --git a/src/napi/napi.h b/src/napi/napi.h
+index bc45b6c..94df29b 100644
+--- a/src/napi/napi.h
++++ b/src/napi/napi.h
+@@ -75,6 +75,12 @@ static_assert(sizeof(char16_t) == sizeof(wchar_t),
+ ////////////////////////////////////////////////////////////////////////////////
+ namespace Napi {
+ 
++#ifdef PRIMJS_NAPI_CPP_CUSTOM_NAMESPACE
++namespace PRIMJS_NAPI_CPP_CUSTOM_NAMESPACE {}
++using namespace PRIMJS_NAPI_CPP_CUSTOM_NAMESPACE;
++namespace PRIMJS_NAPI_CPP_CUSTOM_NAMESPACE {
++#endif
++
+ // Forward declarations
+ template <class T>
+ class Maybe;
+@@ -2493,6 +2499,9 @@ String String::From(napi_env env, const T& value) {
+   return Helper::From(env, value);
+ }
+ 
++#ifdef PRIMJS_NAPI_CPP_CUSTOM_NAMESPACE
++}  // namespace PRIMJS_NAPI_CPP_CUSTOM_NAMESPACE
++#endif
+ }  // namespace Napi
+ 
+ // Register an add-on based on an initializer function.
+-- 
+2.49.0
+
