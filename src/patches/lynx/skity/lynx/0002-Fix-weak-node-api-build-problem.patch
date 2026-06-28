@@ -1,0 +1,26 @@
+From d0a6c9601c14161b5aae94d3e6fe6e0bf81666ad Mon Sep 17 00:00:00 2001
+From: zsy-jason <186247581+zsy-jason@users.noreply.github.com>
+Date: Sun, 28 Jun 2026 16:15:31 +0800
+Subject: [PATCH] Fix weak node api build problem.
+
+---
+ third_party/napi/BUILD.gn | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/third_party/napi/BUILD.gn b/third_party/napi/BUILD.gn
+index 497c682..7313c64 100644
+--- a/third_party/napi/BUILD.gn
++++ b/third_party/napi/BUILD.gn
+@@ -158,7 +158,8 @@ source_set("weak_node_api_host") {
+   ]
+ 
+   if (is_apple) {
+-    sources += [ "primjs_weak_node_api_bridge.cc" ]
++    # TODO: Fix missing headers primjs_weak_node_api_installer.h and primjs_weak_node_api_provider.h
++    # sources += [ "primjs_weak_node_api_bridge.cc" ]
+   }
+ 
+   public_deps = [
+-- 
+2.49.0
+
