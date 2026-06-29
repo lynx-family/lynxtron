@@ -214,7 +214,7 @@ jobs:
     runs-on: lynx-darwin-14-medium
     strategy:
       matrix:
-        arch: [arm64, x64]
+        arch: [arm64]
     steps:
       - name: Download Source
         uses: actions/checkout@v4.2.2
@@ -226,14 +226,23 @@ jobs:
         run: |
           set -x
           cd ${{ github.workspace }}/lynxtron
-          git config --global http.version HTTP/1.1
           git config --global user.name "Lynxtron Scripts"
           git config --global user.email "scripts@lynxtron.com"
           source lynxtron_tools/envsetup.sh
           python3 lynxtron_tools/prepare_build_env.py
+          cd ${{ github.workspace }}/lynxtron/lynx/third_party/weak-node-api/
+          python3 setup_deps.py
           # Sync CEF binary distribution required by cef-webview CMakeLists.
           cd ${{ github.workspace }}/lynxtron/src
           "${{ github.workspace }}/lynxtron/lynxtron_tools/hab" sync . -f --no-history --target extension --target-only
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.14.1
+      - name: Install CMake
+        shell: bash
+        run: |
+          brew install cmake
+          cmake --version
       - name: Build CEF webview
         shell: bash
         run: |
@@ -275,7 +284,7 @@ jobs:
           path: lynxtron/publish/cef_webview-v${{ needs.get-version.outputs.version }}-darwin-${{ matrix.arch }}.zip
 
   create-release:
-    needs: [get-version, build-macos, build-windows, build-cef-webview-macos]
+    needs: [get-version, build-cef-webview-macos, build-macos, build-windows]
     runs-on: lynx-ubuntu-22.04-medium
     permissions:
       contents: write
@@ -290,14 +299,14 @@ jobs:
       - name: List artifacts
         run: ls -lhR artifacts/
       - name: Create GitHub Release and upload assets
-        uses: softprops/action-gh-release@v2
+        uses: ncipollo/release-action@v1
         with:
-          tag_name: ${{ needs.get-version.outputs.tag }}
+          tag: ${{ needs.get-version.outputs.tag }}
           name: Release ${{ needs.get-version.outputs.tag }}
-          generate_release_notes: true
-          fail_on_unmatched_files: true
-          files: |
-            artifacts/**/*.zip
+          generateReleaseNotes: true
+          allowUpdates: true
+          artifactErrorsFailBuild: true
+          artifacts: 'artifacts/**/*.zip'
 
   publish-npm:
     needs: [get-version, create-release]
@@ -330,8 +339,12 @@ jobs:
           # lynx-library-headers' prepack runs copy-headers.cjs which requires
           # the synced lynx source tree (LYNX_SOURCE_ROOT). Reuse the same
           # bootstrap as build jobs to sync lynx + tools and run yarn install.
+          git config --global user.name "Lynxtron Scripts"
+          git config --global user.email "scripts@lynxtron.com"
           source lynxtron_tools/envsetup.sh
           python3 lynxtron_tools/prepare_build_env.py
+          cd ${{ github.workspace }}/lynxtron/lynx/third_party/weak-node-api/
+          python3 setup_deps.py
           # Determine npm dist-tag from the version's pre-release label.
           # e.g. 1.2.3-alpha.0 -> alpha, 1.2.3-beta.1 -> beta, 1.2.3 -> latest.
           PRERELEASE=$(echo "$VERSION" | sed -nE 's/^[0-9]+\.[0-9]+\.[0-9]+-([a-zA-Z]+).*/\1/p')

@@ -4,6 +4,10 @@
   "version": "0.0.1",
   "type": "module",
   "description": "a webview element based on cef",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lynx-family/lynxtron.git"
+  },
   "main": "index.cjs",
   "exports": {
     ".": "./index.cjs",

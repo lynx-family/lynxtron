@@ -24,6 +24,7 @@ runs:
       shell: bash
       run: |-
         set -x
+        brew install cmake
         cd ${{ github.workspace }}/lynxtron
         source lynxtron_tools/envsetup.sh
         python3 lynxtron_tools/gn/gn.py --mac-cpu ${{ inputs.build-arch }}
