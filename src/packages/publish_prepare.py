@@ -86,6 +86,12 @@ PREPARE_CONFIG = {
     },
     "lynx-library-headers": {
         "package_dir": "./lynx-library-headers",
+        "replaces": {
+            "@lynx-js/lynxtron": {
+                "name": "@lynx-js/lynxtron",
+                "version": "",
+            },
+        },
     },
 }
 

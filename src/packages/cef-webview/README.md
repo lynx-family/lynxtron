@@ -15,12 +15,12 @@ npm install @lynx-js/cef-webview
 ## Usage
 
 Enable the Lynxtron autolink plugin in your application build. AutoLink requires
-`@lynx-js/cef-webview/node-api`, which loads the current platform's Node-API
+`@lynx-js/cef-webview/lynxtron`, which loads the current platform's Lynxtron
 addon so its static Lynx registrations run during startup. CEF itself is
 initialized only when you call `initialize()`.
 
 ```ts
-import cefWebview from '@lynx-js/cef-webview/node-api';
+import cefWebview from '@lynx-js/cef-webview/lynxtron';
 
 cefWebview.initialize();
 ```

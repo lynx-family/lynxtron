@@ -1,8 +1,8 @@
 # @lynx-js/lynx-library-headers
 
 Header package for Lynx embedder C/C++ API and weak N-API based native
-libraries. This package only provides headers; it does not scaffold, build, or
-register libraries.
+libraries. This package provides headers and CMake helpers; it does not
+scaffold, build, or register libraries.
 
 ## Usage
 
@@ -12,9 +12,21 @@ native target include directories:
 ```js
 const path = require('node:path');
 const headersRoot = path.dirname(
-  require.resolve('@lynx-js/lynx-library-headers/package.json'),
+  require.resolve('@lynx-js/lynx-library-headers/package.json')
 );
 ```
+
+For Windows Lynx native library builds, include the packaged CMake helper to
+resolve the host runtime import library used by the generated native target:
+
+```cmake
+include("${headersRoot}/cmake/lynx-library-headers.cmake")
+lynx_link_lynxtron_runtime(your_target)
+```
+
+The helper resolves the Windows import library from the runtime package
+installed with `@lynx-js/lynx-library-headers`. You can override discovery with
+`-DLYNXTRON_IMPORT_LIB=/path/to/lynxtron.dll.lib`.
 
 The published package contains:
 
@@ -25,8 +37,10 @@ The published package contains:
 - Lynx value C API headers required by the embedder C API.
 - `lynx_extension.h` and `lynx/extension.h` convenience wrapper headers.
 - `lynx/registration.h` for generic embedder static registration helpers.
+- `cmake/lynx-library-headers.cmake` for resolving Windows runtime import
+  libraries used by Lynx native library builds.
 
-Embedders and Lynxtron packages use static registration from the native library:
+Lynx native libraries use static registration from the native library:
 
 ```cpp
 #include <lynx/registration.h>
@@ -47,7 +61,7 @@ Use `LYNX_REGISTER_NATIVE_MODULE` for Lynx weak N-API native modules and
 both features should call both macros, keeping the native module and element
 registrations separate.
 
-Lynxtron loads matching native libraries through its autolink flow; loading the
-library is enough for these static registrations to run.
+A host runtime that loads the native library is enough for these static
+registrations to run.
 
 Run `npm run copy-headers` in this package when updating the source headers.

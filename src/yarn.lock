@@ -1305,6 +1305,8 @@ __metadata:
 "@lynx-js/lynx-library-headers@workspace:packages/lynx-library-headers":
   version: 0.0.0-use.local
   resolution: "@lynx-js/lynx-library-headers@workspace:packages/lynx-library-headers"
+  dependencies:
+    "@lynx-js/lynxtron": "workspace:*"
   languageName: unknown
   linkType: soft
 

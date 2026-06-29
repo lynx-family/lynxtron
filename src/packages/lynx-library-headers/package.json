@@ -17,8 +17,12 @@
   ],
   "files": [
     "include/**/*",
+    "cmake/**/*",
     "README.md"
   ],
+  "dependencies": {
+    "@lynx-js/lynxtron": "workspace:*"
+  },
   "engines": {
     "node": ">=18"
   }
