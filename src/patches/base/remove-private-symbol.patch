@@ -1,0 +1,69 @@
+From 8b3e0b58d7742eb1db77a1b1a96338caa12a4bc4 Mon Sep 17 00:00:00 2001
+From: tangyongjie <80395553+yongjieTang@users.noreply.github.com>
+Date: Mon, 29 Jun 2026 14:50:19 +0800
+Subject: [PATCH] [BugFix] Remove private symbol
+
+---
+ mac/info_plist_data.mm | 9 +--------
+ process/launch_mac.cc  | 7 -------
+ 2 files changed, 1 insertion(+), 15 deletions(-)
+
+diff --git a/mac/info_plist_data.mm b/mac/info_plist_data.mm
+index 419a051..be7312c 100644
+--- a/mac/info_plist_data.mm
++++ b/mac/info_plist_data.mm
+@@ -7,16 +7,10 @@
+ #import <Foundation/Foundation.h>
+ #include <stdint.h>
+ 
+-#include "base/apple/bridging.h"
+ #include "base/apple/bundle_locations.h"
+ #include "base/apple/foundation_util.h"
+ #include "base/containers/span.h"
+ 
+-extern "C" {
+-// Key used within CoreFoundation for loaded Info plists
+-extern const CFStringRef _kCFBundleNumericVersionKey;
+-}
+-
+ namespace base::mac {
+ 
+ std::vector<uint8_t> OuterBundleCachedInfoPlistData() {
+@@ -33,8 +27,7 @@ std::vector<uint8_t> OuterBundleCachedInfoPlistData() {
+   // dictionary despite it not being present on disk. Remove it so that the
+   // serialized dictionary matches the Info.plist that was present at signing
+   // time.
+-  info_plist_dictionary[base::apple::CFToNSPtrCast(
+-      _kCFBundleNumericVersionKey)] = nil;
++  [info_plist_dictionary removeObjectForKey:@"CFBundleNumericVersion"];
+ 
+   NSData* data = [NSPropertyListSerialization
+       dataWithPropertyList:info_plist_dictionary
+diff --git a/process/launch_mac.cc b/process/launch_mac.cc
+index b63d58d..599ad3b 100644
+--- a/process/launch_mac.cc
++++ b/process/launch_mac.cc
+@@ -95,9 +95,6 @@ extern "C" {
+ int pthread_chdir_np(const char* dir);
+ 
+ int pthread_fchdir_np(int fd);
+-
+-int responsibility_spawnattrs_setdisclaim(posix_spawnattr_t attrs,
+-                                          int disclaim);
+ }  // extern "C"
+ 
+ namespace base {
+@@ -302,10 +299,6 @@ Process LaunchProcess(const std::vector<std::string>& argv,
+   }
+ 
+ #if BUILDFLAG(IS_MAC)
+-  if (options.disclaim_responsibility) {
+-    DPSXCHECK(responsibility_spawnattrs_setdisclaim(attr.get(), 1));
+-  }
+-
+   EnvironmentMap new_environment_map = options.environment;
+   MachPortRendezvousServerMac::AddFeatureStateToEnvironment(
+       new_environment_map);
+-- 
+2.49.0
+
