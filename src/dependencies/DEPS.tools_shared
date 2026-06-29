@@ -64,6 +64,17 @@ deps = {
         'commit': buildtools_version,
         'ignore_in_git': True
     },
+    '../buildtools/cmake': {
+        "type": "http",
+        "url": {
+            "linux": f"https://cmake.org/files/v3.18/cmake-3.18.1-Linux-x86_64.tar.gz",
+            "darwin": f"https://dl.google.com/android/repository/ba34c321f92f6e6fd696c8354c262c122f56abf8.cmake-3.18.1-darwin.zip",
+            "windows": f"https://cmake.org/files/v3.18/cmake-3.18.1-win64-x64.zip"
+        }.get(system, None),
+        "ignore_in_git": True,
+        "condition": system in ['linux', 'darwin', 'windows'],
+         "require": ["../buildtools"]
+    },
     '../buildtools/gn': {
         "type": "http",
         "url": f"https://github.com/zsy-jason/buildtools/releases/download/gn-07d3c6f4/buildtools-gn-{system}-{machine}.tar.gz",
