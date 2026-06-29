@@ -36,6 +36,7 @@
     "fuses.js",
     "fuses-cli.js",
     "install.js",
+    "native-paths.cjs",
     "lynx.js",
     "lynxtron.js",
     "lynxtron_bin.js",
@@ -55,6 +56,8 @@
       "default": "./lynx.js"
     },
     "./fuses": "./fuses.js",
+    "./native-paths": "./native-paths.cjs",
+    "./package.json": "./package.json",
     "./context-bridge": {
       "types": "./apis/api/context-bridge.d.ts",
       "browser": "./web-worker.js",

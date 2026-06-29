@@ -50,21 +50,17 @@ const desktopConfig = defineConfig({
     ],
   },
   plugins: [
+    pluginLynxtron({
+      isDev,
+      entry: path.resolve(__dirname, './dist/desktop'),
+      args: isDev ? ['--inspect=9222'] : [],
+    }),
     new rspack.CopyRspackPlugin({
       patterns: [
         { from: './package.json', to: 'package.json' },
         { from: './output/bundle/lynx/', to: '.' },
       ],
     }),
-    ...(isDev
-      ? [
-          pluginLynxtron({
-            isDev,
-            entry: path.resolve(__dirname, './dist/desktop'),
-            args: isDev ? ['--inspect=9222'] : [],
-          }),
-        ]
-      : []),
   ],
   externalsPresets: { node: true },
   externals: {

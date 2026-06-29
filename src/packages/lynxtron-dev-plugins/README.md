@@ -38,8 +38,11 @@ export default defineConfig({
 ## Rspack Usage
 
 Use `pluginLynxtron` in the desktop host Rspack config. It includes Lynxtron
-AutoLink by default, so dependencies with `lynx.lib.json` and a `node-api`
-entry are staged and loaded automatically.
+AutoLink by default, so dependencies with `lynx.lib.json` and a `lynxtron`
+platform record are staged and loaded automatically.
+
+For `lynxtron`, `lynx.lib.json` describes the native asset root, such as
+`dist`, while the package's `./lynxtron` export provides the JS entry.
 
 ```ts
 import { pluginLynxtron } from '@lynx-js/lynxtron-dev-plugins/rspack';
