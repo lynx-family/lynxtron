@@ -4,6 +4,10 @@
   "version": "0.0.1",
   "type": "module",
   "description": "Lynx embedder C/C++ API and weak N-API headers for native libraries",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lynx-family/lynxtron.git"
+  },
   "scripts": {
     "copy-headers": "node scripts/copy-headers.cjs",
     "prepack": "node scripts/copy-headers.cjs",
