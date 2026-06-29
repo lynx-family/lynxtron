@@ -17,6 +17,10 @@ runs:
       uses: actions/setup-node@v6
       with:
         node-version: '22.18.0'
+    - name: Install Common Dependencies
+      uses: ./lynxtron/.github/actions/common-deps
+      with:
+        run-habitat-sync: 'false'
     - name: Prepare environment
       shell: pwsh
       run: |
