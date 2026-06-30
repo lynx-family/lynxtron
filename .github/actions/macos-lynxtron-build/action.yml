@@ -10,6 +10,10 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Install Common Dependencies
+      uses: ./lynxtron/.github/actions/common-deps
+      with:
+        run-habitat-sync: 'false'
     - name: Prepare environment
       shell: bash
       run: |

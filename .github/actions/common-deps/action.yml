@@ -19,6 +19,10 @@ inputs:
     description: only install dependencies for the target
     default: "false"
     required: false
+  run-habitat-sync:
+    description: whether to run habitat sync
+    default: "true"
+    required: false
   # actions/cache stores files with relative directory, which causes inconsistency between self-hosted runner and
   # container runner. Therefore, add this temporary option to modify cache key prefix as a workaround. Delete this when
   # we are able to adjust the container runner's directory structure to the same as self-hosted runner.
@@ -48,20 +52,8 @@ runs:
         restore-keys: |
           hab${{ inputs.cache-key-prefix }}-${{ runner.os }}-
 
-    - name: Get Python Cache Directory
-      id: pip
-      shell: bash
-      if: ${{ inputs.cache-backend == 'lynx-infra' }}
-      run: echo "PIP_CACHE_DIR=$(python3 -m pip cache dir)" >> $GITHUB_OUTPUT
-
-    - name: Python Requirements Cache
-      if: ${{ inputs.cache-backend == 'lynx-infra' }}
-      uses: lynx-infra/cache@5c6160a6a4c7fca80a2f3057bb9dfc9513fcb732
-      with:
-        path: ${{ steps.pip.outputs.PIP_CACHE_DIR }}
-        key: pip${{ inputs.cache-key-prefix }}-${{ runner.os }}
-
     - name: run habitat sync
+      if: ${{ inputs.run-habitat-sync == 'true' }}
       shell: bash
       working-directory: lynxtron/src
       run: |
