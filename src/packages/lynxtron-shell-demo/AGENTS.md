@@ -16,9 +16,16 @@ Read the docs below in advance to help you understand the library or frameworks 
 - This project also supports Web (browser) via a Symmetric Host paradigm.
 /* WEB_SUPPORT_END */
 - UI is built with Lynx via ReactLynx (`@lynx-js/react`) using lowercase built-in elements such as `<view>`, `<text>`, `<image>`.
+/* WEB_SUPPORT_START */
 - **Symmetric Host Model**: Both Desktop and Web provide a consistent set of Native Modules to the UI.
   - `NativeModules.bridge`: Handles host-specific capabilities (dialogs, window control) via RPC.
   - `NativeModules.nodejs`: Provides a Node.js-like environment for background logic, injected directly into the Lynx Background Thread for maximum performance and object-level access.
+/* WEB_SUPPORT_END */
+/* NO_WEB_SUPPORT_START */
+- **Native Module Model**: Desktop host capabilities are exposed to the UI through `NativeModules`.
+  - `NativeModules.bridge`: Handles host-specific capabilities such as dialogs and window control via RPC.
+  - `NativeModules.nodejs`: Provides a Node.js-like environment for background logic, injected directly into the Lynx Background Thread for maximum performance and object-level access.
+/* NO_WEB_SUPPORT_END */
 
 ## Project Layout
 
@@ -39,10 +46,20 @@ Read the docs below in advance to help you understand the library or frameworks 
 ## Common Patterns
 
 ### Calling Native Capabilities
+/* WEB_SUPPORT_START */
 Always use the unified `NativeModules` API to ensure cross-platform compatibility.
+/* WEB_SUPPORT_END */
+/* NO_WEB_SUPPORT_START */
+Use `NativeModules` to access capabilities exported by the desktop host.
+/* NO_WEB_SUPPORT_END */
 
 ```typescript
+/* WEB_SUPPORT_START */
 // Unified call for both Desktop and Web
+/* WEB_SUPPORT_END */
+/* NO_WEB_SUPPORT_START */
+// Call a desktop host capability
+/* NO_WEB_SUPPORT_END */
 NativeModules.bridge.request({ method: 'showDialog', params: { message: 'Hi' } });
 
 // Background logic (runs in the same JS thread as Lynx logic)
@@ -58,10 +75,13 @@ Use NodeJS ≥ 22 and TypeScript.
 
 - Install: `npm install`
 - Dev (Desktop): `npm run dev`
-- Dev (Web): `npm run dev:web`
-- Build All: `npm run build`
+- Build (Desktop): `npm run build`
 - Start (Desktop): `npm start`
+/* WEB_SUPPORT_START */
+- Dev (Web): `npm run dev:web`
+- Build (Web): `npm run build:web`
 - Start (Web): `npm run start:web`
+/* WEB_SUPPORT_END */
 - Test: `npm run test`
 
 ## Authoring UI (ReactLynx)
@@ -118,4 +138,6 @@ export function MyComponent() {
 
 Inspect local types for exact API surfaces:
 - `node_modules/@lynx-js/lynxtron/apis/lynxtron.d.ts`
+/* WEB_SUPPORT_START */
 - `node_modules/@lynx-js/lynxtron/apis/web-host.d.ts`
+/* WEB_SUPPORT_END */

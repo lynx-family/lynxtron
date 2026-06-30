@@ -39,7 +39,52 @@ async function updatePackageName(dest, name) {
   } catch {}
 }
 
-async function processTemplate(targetDir, webSupport) {
+function getProjectBranding(name) {
+  const words = name.match(/[A-Za-z0-9]+/g) || ['lynxtron', 'app'];
+  const displayName = words
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+  const pascalName = words
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join('');
+  const appIdSuffix =
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '.')
+      .replace(/^\.+|\.+$/g, '')
+      .replace(/\.+/g, '.') || 'app';
+
+  return {
+    appId: `com.lynxtron.${appIdSuffix}`,
+    displayName,
+    pascalName,
+  };
+}
+
+async function updateProjectBranding(targetDir, appName) {
+  const { appId, displayName, pascalName } = getProjectBranding(appName);
+  const titleFiles = ['README.md', 'README.zh-cn.md'];
+
+  for (const f of titleFiles) {
+    const p = path.join(targetDir, f);
+    if (!fs.existsSync(p)) continue;
+    const content = await fsp.readFile(p, 'utf8');
+    const next = content.replace(/^# Lynxtron Shell Demo$/m, `# ${displayName}`);
+    await fsp.writeFile(p, next, 'utf8');
+  }
+
+  const builderPath = path.join(targetDir, 'electron-builder.yml');
+  if (fs.existsSync(builderPath)) {
+    const content = await fsp.readFile(builderPath, 'utf8');
+    const next = content
+      .replace(/^productName: Lynxtron shell demo$/m, `productName: ${JSON.stringify(displayName)}`)
+      .replace(/^appId: com\.lynxtron\.shelldemo$/m, `appId: ${appId}`)
+      .replace(/\bLynxtronShellDemo\b/g, pascalName);
+    await fsp.writeFile(builderPath, next, 'utf8');
+  }
+}
+
+async function processTemplate(targetDir, webSupport, appName) {
   // 1. Files to delete if no web support
   if (!webSupport) {
     const toDelete = [
@@ -69,20 +114,20 @@ async function processTemplate(targetDir, webSupport) {
 
     if (webSupport) {
       // Keep web support: remove web markers (comments) and remove no-web block
-      content = content.replace(/^\s*\/\* WEB_SUPPORT_START \*\/\s*\n/gm, '');
-      content = content.replace(/^\s*\/\* WEB_SUPPORT_END \*\/\s*\n/gm, '');
+      content = content.replace(/^[ \t]*\/\* WEB_SUPPORT_START \*\/[ \t]*\n/gm, '');
+      content = content.replace(/^[ \t]*\/\* WEB_SUPPORT_END \*\/[ \t]*\n/gm, '');
       content = content.replace(
-        /^\s*\/\* NO_WEB_SUPPORT_START \*\/[\s\S]*?\/\* NO_WEB_SUPPORT_END \*\/[ \t]*\n?/gm,
+        /^[ \t]*\/\* NO_WEB_SUPPORT_START \*\/[\s\S]*?\/\* NO_WEB_SUPPORT_END \*\/[ \t]*\n?/gm,
         ''
       );
     } else {
       // Remove web support: remove web block and remove no-web markers
       content = content.replace(
-        /^\s*\/\* WEB_SUPPORT_START \*\/[\s\S]*?\/\* WEB_SUPPORT_END \*\/[ \t]*\n?/gm,
+        /^[ \t]*\/\* WEB_SUPPORT_START \*\/[\s\S]*?\/\* WEB_SUPPORT_END \*\/[ \t]*\n?/gm,
         ''
       );
-      content = content.replace(/^\s*\/\* NO_WEB_SUPPORT_START \*\/\s*\n/gm, '');
-      content = content.replace(/^\s*\/\* NO_WEB_SUPPORT_END \*\/\s*\n/gm, '');
+      content = content.replace(/^[ \t]*\/\* NO_WEB_SUPPORT_START \*\/[ \t]*\n/gm, '');
+      content = content.replace(/^[ \t]*\/\* NO_WEB_SUPPORT_END \*\/[ \t]*\n/gm, '');
     }
     await fsp.writeFile(p, content);
   }
@@ -93,8 +138,10 @@ async function processTemplate(targetDir, webSupport) {
     const pkg = JSON.parse(await fsp.readFile(pkgPath, 'utf8'));
     if (!webSupport) {
       const toRemoveDeps = [
+        '@lynx-js/css-serializer',
         '@lynx-js/web-core',
         '@lynx-js/web-elements',
+        'tslib',
       ];
       if (pkg.dependencies) {
         toRemoveDeps.forEach((d) => delete pkg.dependencies[d]);
@@ -105,10 +152,13 @@ async function processTemplate(targetDir, webSupport) {
       if (pkg.scripts) {
         delete pkg.scripts['start:web'];
         delete pkg.scripts['dev:web'];
+        delete pkg.scripts['build:web'];
       }
     }
     await fsp.writeFile(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
   }
+
+  await updateProjectBranding(targetDir, appName);
 }
 
 async function main() {
@@ -222,7 +272,7 @@ async function main() {
     await fsp.writeFile(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
   } catch {}
 
-  await processTemplate(targetDir, webSupport);
+  await processTemplate(targetDir, webSupport, appName);
 
   console.log('Created Lynxtron app at', targetDir);
   console.log('Next steps:');

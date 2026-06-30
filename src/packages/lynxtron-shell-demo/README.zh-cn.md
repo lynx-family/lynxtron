@@ -10,6 +10,9 @@
 
 ## 特性
 
+/* WEB_SUPPORT_START */
+- 同一套 UI 代码可运行在桌面端 (Node.js) 和 Web 端 (Browser)
+/* WEB_SUPPORT_END */
 - 一键运行、调试、打包
 - 支持类型增强语言 Typescript
 - 完善的工程化体验
@@ -45,7 +48,7 @@ npm install
 
 ### 构建与启动
 
-- **生产环境构建**
+- **构建桌面端**
   ```bash
   npm run build
   ```
@@ -55,10 +58,17 @@ npm install
   npm start
   ```
 
+/* WEB_SUPPORT_START */
+- **构建 Web 端**
+  ```bash
+  npm run build:web
+  ```
+
 - **启动 Web 端**
   ```bash
   npm run start:web
   ```
+/* WEB_SUPPORT_END */
 
 ### 应用打包
 

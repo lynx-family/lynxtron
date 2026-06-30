@@ -10,7 +10,9 @@
 
 ## Features
 
+/* WEB_SUPPORT_START */
 - **Symmetric Host**: Identical UI code runs on both Desktop (Node.js) and Web (Browser).
+/* WEB_SUPPORT_END */
 - **Background Thread Injection**: `NativeModules.nodejs` provides high-performance background logic without blocking UI.
 - One-click run, debug, and package.
 - Supports TypeScript for type safety.
@@ -44,7 +46,7 @@ npm install
 
 ### Build & Start
 
-- **Build for Production**
+- **Build Desktop**
   ```bash
   npm run build
   ```
@@ -54,10 +56,17 @@ npm install
   npm start
   ```
 
+/* WEB_SUPPORT_START */
+- **Build Web**
+  ```bash
+  npm run build:web
+  ```
+
 - **Start Web**
   ```bash
   npm run start:web
   ```
+/* WEB_SUPPORT_END */
 
 ### Application Packaging
 
