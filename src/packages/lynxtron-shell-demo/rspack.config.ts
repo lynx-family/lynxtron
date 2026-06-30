@@ -104,6 +104,12 @@ const webConfig = defineConfig({
       },
       {
         test: /\.css$/,
+        resourceQuery: /inline/,
+        type: 'asset/source',
+      },
+      {
+        test: /\.css$/,
+        resourceQuery: { not: [/inline/] },
         type: 'css',
       },
       {
