@@ -17,7 +17,7 @@ lynxtron_envsetup() {
   export BUILDTOOLS_DIR="${LYNXTRON_ROOT_DIR}/buildtools"
   export TOOLSSHARED_DIR="${LYNXTRON_ROOT_DIR}/src/tools_shared"
   export CLANGFORMAT_DIR="${LYNXTRON_ROOT_DIR}/src/tools_shared/buildtools/clang-format"
-  export PATH=${CLANGFORMAT_DIR}:${TOOLSSHARED_DIR}:${BUILDTOOLS_DIR}/llvm/bin:${BUILDTOOLS_DIR}/gn:${BUILDTOOLS_DIR}/ninja:${BUILDTOOLS_DIR}/node/bin:$PATH
+  export PATH=${CLANGFORMAT_DIR}:${TOOLSSHARED_DIR}:${BUILDTOOLS_DIR}/sccache}:${BUILDTOOLS_DIR}/llvm/bin:${BUILDTOOLS_DIR}/gn:${BUILDTOOLS_DIR}/ninja:${BUILDTOOLS_DIR}/node/bin:$PATH
   echo "BUILDTOOLS_DIR: $BUILDTOOLS_DIR"
 
   # install git hooks
