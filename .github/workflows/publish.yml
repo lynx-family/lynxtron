@@ -226,6 +226,7 @@ jobs:
         run: |
           set -x
           cd ${{ github.workspace }}/lynxtron
+          git config --global http.version HTTP/1.1
           git config --global user.name "Lynxtron Scripts"
           git config --global user.email "scripts@lynxtron.com"
           source lynxtron_tools/envsetup.sh
@@ -331,6 +332,7 @@ jobs:
         with:
           node-version: 24.14.1
           registry-url: 'https://registry.npmjs.org'
+          provenance: false
       - name: Sync version from tag
         id: prepare
         run: |

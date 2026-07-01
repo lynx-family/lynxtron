@@ -26,7 +26,11 @@ const desktopConfig = defineConfig({
     },
   },
   watchOptions: {
-    ignored: ['**/src/app/**', '**/output/bundle/lynx/**'],
+    ignored: [
+      '**/node_modules/.cache/**',
+      '**/src/app/**',
+      '**/output/bundle/lynx/**',
+    ],
   },
   module: {
     rules: [
