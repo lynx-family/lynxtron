@@ -1,3 +1,6 @@
+# Copyright 2026 The Lynxtron Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
 v8_promise_internal_field_count = 1
 v8_embedder_string = "-lynxtron.0"
 
@@ -26,3 +29,5 @@ is_component_build = false
 v8_headers_search_path = "//v8/include"
 
 v8_deps = [ "//v8" ]
+
+cc_wrapper = "sccache"
