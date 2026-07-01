@@ -1462,10 +1462,10 @@ index 5af7954..bb32ad6 100644
  # every other file in the build. So variables declared here (that don't start
  # with an underscore) will be implicitly global.
  
-+import("//lynx/build/util/cmake_target_template.gni")
++import("//build/util/cmake_target_template.gni")
 +
 +# import podspec and cmake template
-+import("//lynx/build/util/podspec_target_template.gni")
++import("//build/util/podspec_target_template.gni")
 +
  # =============================================================================
  # PLATFORM SELECTION
@@ -3323,9 +3323,57 @@ new file mode 100644
 index 0000000..091c93d
 --- /dev/null
 +++ b/util/write_cmake_config.gni
-@@ -0,0 +1 @@
-+import("//lynx/build/util/write_cmake_config.gni")
-\ No newline at end of file
+@@ -0,0 +1,50 @@
++# This file introduces a templates for calling write_cmake_config.py.
++#
++# write_cmake_config behaves like CMake's configure_file(), but runs at build
++# time, not at generator time.  See write_cmake_config.py for details.
++#
++# Parameters:
++#
++#   input (required) [string]
++#
++#   output (required) [string]
++#
++#   values (required) [list of strings]
++#       Each entry is a '='-separated key-value pair used for substitution.
++#
++# Example use:
++#
++#   write_cmake_config("attributes_compat_func_gen") {
++#     input = "Version.inc.in"
++#     output = "$root_gen_dir/clang/include/clang/Basic/Version.inc",
++#     values = [
++#       "CLANG_VERSION=$llvm_version",
++#     ]
++#   }
++
++template("config_file") {
++  assert(defined(invoker.input), "must set 'input' in $target_name")
++  assert(defined(invoker.output), "must set 'output' in $target_name")
++  assert(defined(invoker.values), "must set 'values' in $target_name")
++
++  action(target_name) {
++    script = "//build/util/write_cmake_config.py"
++
++    sources = [ invoker.input ]
++    outputs = [ invoker.output ]
++    args = [
++             "-o",
++             rebase_path(outputs[0], root_build_dir),
++             rebase_path(sources[0], root_build_dir),
++           ] + invoker.values
++
++    forward_variables_from(invoker,
++                           [
++                             "configs",
++                             "deps",
++                             "public_configs",
++                             "public_deps",
++                             "visibility",
++                           ])
++  }
++}
 diff --git a/util/write_cmake_config.py b/util/write_cmake_config.py
 new file mode 100644
 index 0000000..e2a27fa
