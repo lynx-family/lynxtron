@@ -18,6 +18,7 @@
 #include "shell/api/lynx_view/module/lynx_bridge_module.h"
 #include "shell/api/lynx_view/module/lynx_hybrid_monitor_module.h"
 #include "shell/api/lynx_view/module/lynx_node_module.h"
+#include "shell/api/lynx_view/testbench_replay_controller.h"
 #include "shell/lynx/resource_fetcher/lynx_generic_resource_fetcher_factory.h"
 
 #if BUILDFLAG(IS_MAC)
@@ -126,6 +127,10 @@ std::unique_ptr<LynxView> LynxViewBuilder::Build() {
 
   RegisterLynxHybridMonitorModuleToLynxView(impl_->builder.Impl(),
                                             lynx_window_);
+
+#if ENABLE_TESTBENCH_REPLAY
+  RegisterTestbenchReplayDataModule(impl_->builder.Impl());
+#endif
 
   auto view_impl = std::make_unique<LynxViewImpl>();
   view_impl->Initialize(impl_->builder.Build());

@@ -3,15 +3,26 @@
 # LICENSE file in the root directory of this source tree.
 
 import("//lynx/config.gni")
+import("//lynx/core/Lynx.gni")
 import("//lynx/oliver/oliver.gni")
 
 if (is_mac) {
   import("//build/apple/templates/darwin_general_bundle.gni")
 
-  build_kernel_js("lynx_core") {
-    script = "//lynx/tools/js_tools/build.py"
-    platform = "ios"
-    output_path = "$root_build_dir/lynx_lynxtron"
+  if (enable_testbench_replay) {
+    copy("lynx_core") {
+      sources = [
+        "testbench_resources/lynx_core.js",
+        "testbench_resources/lynx_core_dev.js",
+      ]
+      outputs = [ "$root_build_dir/lynx_lynxtron/{{source_file_part}}" ]
+    }
+  } else {
+    build_kernel_js("lynx_core") {
+      script = "//lynx/tools/js_tools/build.py"
+      platform = "ios"
+      output_path = "$root_build_dir/lynx_lynxtron"
+    }
   }
 
   bundle_data("lynx_core_js") {

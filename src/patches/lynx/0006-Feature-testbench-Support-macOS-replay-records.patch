@@ -1,0 +1,1145 @@
+From 36772ca243ae2ef878b1b1c50526fbee121babd4 Mon Sep 17 00:00:00 2001
+From: yuanzhiwen <yuanzhiwen@bytedance.com>
+Date: Fri, 3 Jul 2026 16:14:16 +0800
+Subject: [PATCH] [Feature][testbench] Support macOS replay records
+
+---
+ core/runtime/lepus/base_binary_reader.cc      |  42 ++-
+ core/runtime/lepus/binary_input_stream.cc     | 144 +++++++++++
+ core/runtime/lepus/binary_input_stream.h      |  11 +-
+ core/runtime/lepus/binary_reader.cc           |   1 -
+ .../lynx_binary_base_template_reader.cc       | 241 +++++++++++++++++-
+ .../lynx_binary_base_template_reader_impl.cc  |  14 +-
+ .../test_bench_action_manager.cc              |  85 +++++-
+ .../lynx_recorder/test_bench_action_manager.h |   1 +
+ .../lynx_recorder/test_bench_replay_config.cc |   6 +-
+ .../test_bench_replay_data_module.cc          | 134 +++++++++-
+ .../test_bench_replay_data_module.h           |  20 +-
+ 11 files changed, 659 insertions(+), 40 deletions(-)
+
+diff --git a/core/runtime/lepus/base_binary_reader.cc b/core/runtime/lepus/base_binary_reader.cc
+index dedc2e25e..7f812c8b4 100644
+--- a/core/runtime/lepus/base_binary_reader.cc
++++ b/core/runtime/lepus/base_binary_reader.cc
+@@ -184,25 +184,51 @@ bool BaseBinaryReader::DecodeDate(fml::RefPtr<CDate>& date) {
+ }
+ #endif
+ 
+-bool BaseBinaryReader::DeserializeStringSection() { return true; }
++bool BaseBinaryReader::DeserializeStringSection() {
++  DECODE_COMPACT_U32(count);
++  auto& sl = GetStringList();
++  sl->reserve(count);
++  for (size_t index = 0; index < count; ++index) {
++    DECODE_COMPACT_U32(length);
++    if (length != 0) {
++      sl->emplace_back(reinterpret_cast<const char*>(stream_->cursor()),
++                       length);
++      stream_->Seek(stream_->offset() + length);
++    } else {
++      sl->emplace_back();
++    }
++  }
++  return true;
++}
+ 
+ bool BaseBinaryReader::DecodeUtf8Str(base::String& result) {
+-  ReadStringDirectly(result);
++  DECODE_COMPACT_U32(index);
++  const auto& sl = GetStringList();
++  ERROR_UNLESS(index < sl->size(), result = base::String());
++  result = (*sl)[index];
+   return true;
+ }
+ 
+ bool BaseBinaryReader::DecodeUtf8Str(std::string* result) {
+-  ReadStringDirectly(result);
++  DECODE_COMPACT_U32(index);
++  const auto& sl = GetStringList();
++  ERROR_UNLESS(index < sl->size());
++  *result = (*sl)[index].str();
+   return true;
+ }
+ 
+ bool BaseBinaryReader::DecodeUtf8Str(lynx_value& result) {
+-  base::String tmp;
+-  ReadStringDirectly(tmp);
+-  auto* ptr = base::String::Unsafe::GetUntaggedStringRawRef(tmp);
+-  result.val_ptr = reinterpret_cast<lynx_value_ptr>(ptr);
+   result.type = lynx_value_string;
+-  base::String::Unsafe::SetStringToEmpty(tmp);
++  DECODE_COMPACT_U32(index);
++  const auto& sl = GetStringList();
++  ERROR_UNLESS(index < sl->size(),
++               result.val_ptr = reinterpret_cast<lynx_value_ptr>(
++                   &base::RefCountedStringImpl::Unsafe::kEmptyString),
++               base::RefCountedStringImpl::Unsafe::kEmptyString.AddRef());
++  const base::String& s = (*sl)[index];
++  auto* ptr = base::String::Unsafe::GetUntaggedStringRawRef(s);
++  result.val_ptr = reinterpret_cast<lynx_value_ptr>(ptr);
++  ptr->AddRef();
+   return true;
+ }
+ 
+diff --git a/core/runtime/lepus/binary_input_stream.cc b/core/runtime/lepus/binary_input_stream.cc
+index 02e106047..ffe6a738b 100644
+--- a/core/runtime/lepus/binary_input_stream.cc
++++ b/core/runtime/lepus/binary_input_stream.cc
+@@ -28,10 +28,57 @@ bool ByteArrayInputStream::ReadFromFile(const char* file) {
+   return false;
+ }
+ 
++#define BYTE_AT(type, i, shift) \
++  ((static_cast<type>(cursor()[i]) & 0x7f) << (shift))
++
++#define LEB128_1(type) (BYTE_AT(type, 0, 0))
++#define LEB128_2(type) (BYTE_AT(type, 1, 7) | LEB128_1(type))
++#define LEB128_3(type) (BYTE_AT(type, 2, 14) | LEB128_2(type))
++#define LEB128_4(type) (BYTE_AT(type, 3, 21) | LEB128_3(type))
++#define LEB128_5(type) (BYTE_AT(type, 4, 28) | LEB128_4(type))
++#define LEB128_6(type) (BYTE_AT(type, 5, 35) | LEB128_5(type))
++#define LEB128_7(type) (BYTE_AT(type, 6, 42) | LEB128_6(type))
++#define LEB128_8(type) (BYTE_AT(type, 7, 49) | LEB128_7(type))
++#define LEB128_9(type) (BYTE_AT(type, 8, 56) | LEB128_8(type))
++#define LEB128_10(type) (BYTE_AT(type, 9, 63) | LEB128_9(type))
++
++#define SHIFT_AMOUNT(type, sign_bit) (sizeof(type) * 8 - 1 - (sign_bit))
++#define SIGN_EXTEND(type, value, sign_bit)                       \
++  (static_cast<type>((value) << SHIFT_AMOUNT(type, sign_bit)) >> \
++   SHIFT_AMOUNT(type, sign_bit))
++
+ size_t InputStream::ReadCompactU32(uint32_t* out_value) {
+   if (!CheckSize(1)) {
+     return 0;
+   }
++  if (UseLegacyCompactEncoding()) {
++    if (cursor() < end() && (cursor()[0] & 0x80) == 0) {
++      *out_value = LEB128_1(uint32_t);
++      offset_ += 1;
++      return 1;
++    } else if (cursor() + 1 < end() && (cursor()[1] & 0x80) == 0) {
++      *out_value = LEB128_2(uint32_t);
++      offset_ += 2;
++      return 2;
++    } else if (cursor() + 2 < end() && (cursor()[2] & 0x80) == 0) {
++      *out_value = LEB128_3(uint32_t);
++      offset_ += 3;
++      return 3;
++    } else if (cursor() + 3 < end() && (cursor()[3] & 0x80) == 0) {
++      *out_value = LEB128_4(uint32_t);
++      offset_ += 4;
++      return 4;
++    } else if (cursor() + 4 < end() && (cursor()[4] & 0x80) == 0) {
++      if (cursor()[4] & 0xf0) {
++        return 0;
++      }
++      *out_value = LEB128_5(uint32_t);
++      offset_ += 5;
++      return 5;
++    }
++    *out_value = 0;
++    return 0;
++  }
+   ReadUx<uint32_t>(out_value);
+   return 1;
+ }
+@@ -40,6 +87,41 @@ size_t InputStream::ReadCompactS32(int32_t* out_value) {
+   if (!CheckSize(1)) {
+     return 0;
+   }
++  if (UseLegacyCompactEncoding()) {
++    if (cursor() < end() && (cursor()[0] & 0x80) == 0) {
++      uint32_t result = LEB128_1(uint32_t);
++      *out_value = SIGN_EXTEND(int32_t, result, 6);
++      offset_ += 1;
++      return 1;
++    } else if (cursor() + 1 < end() && (cursor()[1] & 0x80) == 0) {
++      uint32_t result = LEB128_2(uint32_t);
++      *out_value = SIGN_EXTEND(int32_t, result, 13);
++      offset_ += 2;
++      return 2;
++    } else if (cursor() + 2 < end() && (cursor()[2] & 0x80) == 0) {
++      uint32_t result = LEB128_3(uint32_t);
++      *out_value = SIGN_EXTEND(int32_t, result, 20);
++      offset_ += 3;
++      return 3;
++    } else if (cursor() + 3 < end() && (cursor()[3] & 0x80) == 0) {
++      uint32_t result = LEB128_4(uint32_t);
++      *out_value = SIGN_EXTEND(int32_t, result, 27);
++      offset_ += 4;
++      return 4;
++    } else if (cursor() + 4 < end() && (cursor()[4] & 0x80) == 0) {
++      const bool sign_bit_set = (cursor()[4] & 0x8);
++      const int top_bits = cursor()[4] & 0xf0;
++      if ((sign_bit_set && top_bits != 0x70) ||
++          (!sign_bit_set && top_bits != 0)) {
++        return 0;
++      }
++      uint32_t result = LEB128_5(uint32_t);
++      *out_value = result;
++      offset_ += 5;
++      return 5;
++    }
++    return 0;
++  }
+   ReadUx<int32_t>(out_value);
+   return 1;
+ }
+@@ -48,9 +130,71 @@ size_t InputStream::ReadCompactU64(uint64_t* out_value) {
+   if (!CheckSize(1)) {
+     return 0;
+   }
++  if (UseLegacyCompactEncoding()) {
++    if (cursor() < end() && (cursor()[0] & 0x80) == 0) {
++      *out_value = LEB128_1(uint64_t);
++      offset_ += 1;
++      return 1;
++    } else if (cursor() + 1 < end() && (cursor()[1] & 0x80) == 0) {
++      *out_value = LEB128_2(uint64_t);
++      offset_ += 2;
++      return 2;
++    } else if (cursor() + 2 < end() && (cursor()[2] & 0x80) == 0) {
++      *out_value = LEB128_3(uint64_t);
++      offset_ += 3;
++      return 3;
++    } else if (cursor() + 3 < end() && (cursor()[3] & 0x80) == 0) {
++      *out_value = LEB128_4(uint64_t);
++      offset_ += 4;
++      return 4;
++    } else if (cursor() + 4 < end() && (cursor()[4] & 0x80) == 0) {
++      *out_value = LEB128_5(uint64_t);
++      offset_ += 5;
++      return 5;
++    } else if (cursor() + 5 < end() && (cursor()[5] & 0x80) == 0) {
++      *out_value = LEB128_6(uint64_t);
++      offset_ += 6;
++      return 6;
++    } else if (cursor() + 6 < end() && (cursor()[6] & 0x80) == 0) {
++      *out_value = LEB128_7(uint64_t);
++      offset_ += 7;
++      return 7;
++    } else if (cursor() + 7 < end() && (cursor()[7] & 0x80) == 0) {
++      *out_value = LEB128_8(uint64_t);
++      offset_ += 8;
++      return 8;
++    } else if (cursor() + 8 < end() && (cursor()[8] & 0x80) == 0) {
++      *out_value = LEB128_9(uint64_t);
++      offset_ += 9;
++      return 9;
++    } else if (cursor() + 9 < end() && (cursor()[9] & 0x80) == 0) {
++      if (cursor()[9] & 0xf0) {
++        return 0;
++      }
++      *out_value = LEB128_10(uint64_t);
++      offset_ += 10;
++      return 10;
++    }
++    *out_value = 0;
++    return 0;
++  }
+   ReadUx<uint64_t>(out_value);
+   return 1;
+ }
+ 
++#undef SIGN_EXTEND
++#undef SHIFT_AMOUNT
++#undef LEB128_10
++#undef LEB128_9
++#undef LEB128_8
++#undef LEB128_7
++#undef LEB128_6
++#undef LEB128_5
++#undef LEB128_4
++#undef LEB128_3
++#undef LEB128_2
++#undef LEB128_1
++#undef BYTE_AT
++
+ }  // namespace lepus
+ }  // namespace lynx
+diff --git a/core/runtime/lepus/binary_input_stream.h b/core/runtime/lepus/binary_input_stream.h
+index dbb165f19..fa19581a6 100644
+--- a/core/runtime/lepus/binary_input_stream.h
++++ b/core/runtime/lepus/binary_input_stream.h
+@@ -29,6 +29,12 @@ class InputStream {
+   inline size_t size() const { return size_; }
+   inline uint8_t* cursor() const { return begin() + offset_; }
+   inline size_t offset() const { return offset_; }
++  inline void SetUseLegacyCompactEncoding(bool enable) {
++    use_legacy_compact_encoding_ = enable;
++  }
++  inline bool UseLegacyCompactEncoding() const {
++    return use_legacy_compact_encoding_;
++  }
+ 
+   inline bool CheckSize(size_t len) const {
+     if (size() == 0 || cursor() + len > end()) {
+@@ -101,6 +107,7 @@ class InputStream {
+   size_t size_{0};
+   uint8_t* begin_{nullptr};
+   uint8_t* end_{nullptr};
++  bool use_legacy_compact_encoding_{false};
+ };
+ 
+ struct InputBuffer {
+@@ -141,7 +148,9 @@ class ByteArrayInputStream : public InputStream {
+   inline const std::vector<uint8_t>& byte_array() { return buf_->data; }
+ 
+   std::unique_ptr<InputStream> DeriveInputStream() override {
+-    return std::make_unique<ByteArrayInputStream>(buf_);
++    auto stream = std::make_unique<ByteArrayInputStream>(buf_);
++    stream->SetUseLegacyCompactEncoding(UseLegacyCompactEncoding());
++    return stream;
+   }
+ 
+  private:
+diff --git a/core/runtime/lepus/binary_reader.cc b/core/runtime/lepus/binary_reader.cc
+index f177667e9..0178f7d19 100644
+--- a/core/runtime/lepus/binary_reader.cc
++++ b/core/runtime/lepus/binary_reader.cc
+@@ -33,7 +33,6 @@ void BinaryReader::PrintError(const char* format, const char* func, int line) {
+   char buffer[1024];
+   snprintf(buffer, sizeof(buffer), format, func, line);
+   LOGE(error_message_ << ", " << buffer);
+-  // TODO ...
+ }
+ 
+ bool BinaryReader::CheckSize(int len, uint32_t maxOffset) {
+diff --git a/core/template_bundle/template_codec/binary_decoder/lynx_binary_base_template_reader.cc b/core/template_bundle/template_codec/binary_decoder/lynx_binary_base_template_reader.cc
+index 292579f09..5db3a356c 100644
+--- a/core/template_bundle/template_codec/binary_decoder/lynx_binary_base_template_reader.cc
++++ b/core/template_bundle/template_codec/binary_decoder/lynx_binary_base_template_reader.cc
+@@ -19,16 +19,31 @@
+ namespace lynx {
+ namespace tasm {
+ 
++namespace {
++
++constexpr uint32_t kLegacyQuickBinaryMagic = 0x6d000000;
++constexpr uint32_t kLegacyLepusBinaryMagic = 0x6d736100;
++
++}  // namespace
++
+ bool LynxBinaryBaseTemplateReader::DecodeMagicWord(uint32_t magic_word) {
+-  if (magic_word == template_codec::kQuickBinaryMagic) {
++  if (magic_word == template_codec::kQuickBinaryMagic ||
++      magic_word == kLegacyQuickBinaryMagic) {
+     context_type_ = lynx::runtime::ContextType::LepusNGContextType;
+     is_lepusng_binary_ = true;
++    if (magic_word == kLegacyQuickBinaryMagic) {
++      stream_->SetUseLegacyCompactEncoding(true);
++    }
+     return true;
+   }
+ 
+-  if (magic_word == template_codec::kLepusBinaryMagic) {
++  if (magic_word == template_codec::kLepusBinaryMagic ||
++      magic_word == kLegacyLepusBinaryMagic) {
+     context_type_ = lynx::runtime::ContextType::VMContextType;
+     is_lepusng_binary_ = false;
++    if (magic_word == kLegacyLepusBinaryMagic) {
++      stream_->SetUseLegacyCompactEncoding(true);
++    }
+ #if ENABLE_JUST_LEPUSNG
+     error_message_ =
+         "Support lepusNG only. Template file uses lepus. Please add "
+@@ -43,6 +58,20 @@ bool LynxBinaryBaseTemplateReader::DecodeMagicWord(uint32_t magic_word) {
+ 
+ const std::vector<BinarySection> &
+ LynxBinaryBaseTemplateReader::GetFlexibleTemplateSectionOrder() const {
++  static const std::vector<BinarySection> kLegacyFiberSectionOrder{
++      BinarySection::STRING,
++      BinarySection::CONFIG,
++      BinarySection::PARSED_STYLES,
++      BinarySection::ELEMENT_TEMPLATE,
++      BinarySection::CSS,
++      BinarySection::STYLE_OBJECT,
++      BinarySection::JS,
++      BinarySection::JS_BYTECODE,
++      BinarySection::ROOT_LEPUS,
++      BinarySection::LEPUS_CHUNK,
++      BinarySection::CUSTOM_SECTIONS,
++      BinarySection::NEW_ELEMENT_TEMPLATE,
++  };
+   static const std::vector<BinarySection> kFiberSectionOrder{
+       BinarySection::STRING,
+       BinarySection::PARSED_STYLES,
+@@ -56,6 +85,9 @@ LynxBinaryBaseTemplateReader::GetFlexibleTemplateSectionOrder() const {
+       BinarySection::CUSTOM_SECTIONS,
+       BinarySection::NEW_ELEMENT_TEMPLATE,
+   };
++  if (stream_->UseLegacyCompactEncoding()) {
++    return kLegacyFiberSectionOrder;
++  }
+   return kFiberSectionOrder;
+ }
+ 
+@@ -71,15 +103,76 @@ bool LynxBinaryBaseTemplateReader::DecodeConfigSection() {
+   return true;
+ }
+ 
+-bool LynxBinaryBaseTemplateReader::DecodeAppDescriptor() { return true; }
++bool LynxBinaryBaseTemplateReader::DecodeAppDescriptor() {
++  DECODE_COMPACT_U32(main_page_id);
++  DECODE_COMPACT_U32(size);
++  for (size_t i = 0; i < size; ++i) {
++    DECODE_STDSTR(path);
++    DECODE_COMPACT_U32(id);
++    if (main_page_id == id) {
++      app_name_ = std::move(path);
++    }
++  }
++  return true;
++}
+ 
+-bool LynxBinaryBaseTemplateReader::DecodePageDescriptor() { return true; }
++bool LynxBinaryBaseTemplateReader::DecodePageDescriptor() {
++  PageRoute route;
++  ERROR_UNLESS(DecodePageRoute(route));
++  auto& page_ranges = route.page_ranges;
++  size_t descriptor_start = stream_->offset();
++  size_t descriptor_end = descriptor_start;
++  for (auto& page_range : page_ranges) {
++    stream_->Seek(descriptor_start + page_range.second.start);
++    while (stream_->offset() < descriptor_start + page_range.second.end) {
++      DECODE_U8(section);
++      auto mould = std::make_shared<PageMould>();
++      switch (section) {
++        case PageSection::MOULD:
++          ERROR_UNLESS(DecodePageMould(mould.get()));
++          page_moulds_[mould->id()] = std::move(mould);
++          break;
++        case PageSection::CONTEXT:
++          ERROR_UNLESS(DecodeContext());
++          break;
++        case PageSection::VIRTUAL_NODE_TREE:
++          ERROR_UNLESS(DeserializeVirtualNodeSection());
++          break;
++      }
++    }
++    descriptor_end = descriptor_end > descriptor_start + page_range.second.end
++                         ? descriptor_end
++                         : page_range.second.end + descriptor_start;
++  }
++  stream_->Seek(descriptor_end);
++  return true;
++}
+ 
+ bool LynxBinaryBaseTemplateReader::DecodePageMould(PageMould *mould) {
++  DECODE_COMPACT_U32(id);
++  mould->set_id(id);
++  DECODE_COMPACT_U32(css_id);
++  mould->set_css_id(css_id);
++  DECODE_VALUE_INTO(mould->get_data());
++  DECODE_COMPACT_U32(size);
++  for (size_t i = 0; i < size; i++) {
++    DECODE_COMPACT_U32(id);
++    mould->AddDependentComponentId(id);
++  }
+   return true;
+ }
+ 
+ bool LynxBinaryBaseTemplateReader::DecodePageRoute(PageRoute &route) {
++  DECODE_COMPACT_U32(size);
++  route.page_ranges.reserve(size);
++  for (size_t i = 0; i < size; ++i) {
++    DECODE_COMPACT_S32(id);
++    DECODE_COMPACT_U32(start);
++    DECODE_COMPACT_U32(end);
++    route.page_ranges.emplace(std::piecewise_construct,
++                              std::forward_as_tuple(id),
++                              std::forward_as_tuple(start, end));
++  }
+   return true;
+ }
+ 
+@@ -87,33 +180,171 @@ bool LynxBinaryBaseTemplateReader::DeserializeVirtualNodeSection() {
+   return true;
+ }
+ 
+-bool LynxBinaryBaseTemplateReader::DecodeComponentDescriptor() { return true; }
++bool LynxBinaryBaseTemplateReader::DecodeComponentDescriptor() {
++  ComponentRoute route;
++  ERROR_UNLESS(DecodeComponentRoute(route));
++  auto& component_ranges = route.component_ranges;
++  size_t descriptor_start = stream_->offset();
++  size_t descriptor_end = descriptor_start;
++  for (auto it = component_ranges.begin(); it != component_ranges.end(); ++it) {
++    auto mould = std::make_shared<ComponentMould>();
++    stream_->Seek(descriptor_start + it->second.start);
++    ERROR_UNLESS(DecodeComponentMould(
++        mould.get(), static_cast<int>(stream_->offset()), it->second.end));
++    component_name_to_id_[mould->name()] = mould->id();
++    component_moulds_[mould->id()] = std::move(mould);
++    descriptor_end = descriptor_end > descriptor_start + it->second.end
++                         ? descriptor_end
++                         : it->second.end + descriptor_start;
++  }
++  stream_->Seek(descriptor_end);
++  return true;
++}
+ 
+ bool LynxBinaryBaseTemplateReader::DecodeComponentRoute(ComponentRoute &route) {
++  DECODE_COMPACT_U32(size);
++  route.component_ranges.reserve(size);
++  for (size_t i = 0; i < size; ++i) {
++    DECODE_COMPACT_S32(id);
++    DECODE_COMPACT_U32(start);
++    DECODE_COMPACT_U32(end);
++    route.component_ranges.emplace(std::piecewise_construct,
++                                   std::forward_as_tuple(id),
++                                   std::forward_as_tuple(start, end));
++  }
+   return true;
+ }
+ 
+ bool LynxBinaryBaseTemplateReader::DecodeComponentMould(ComponentMould *mould,
+                                                         int offset,
+                                                         int length) {
++  DECODE_COMPACT_U32(id);
++  mould->set_id(id);
++  DECODE_COMPACT_U32(css_id);
++  mould->set_css_id(css_id);
++  DECODE_VALUE_INTO(mould->get_data());
++  DECODE_VALUE_INTO(mould->get_properties());
++  if (Config::IsHigherOrEqual(compile_options_.target_sdk_version_,
++                              FEATURE_CSS_EXTERNAL_CLASS_VERSION) &&
++      compile_options_.enable_css_external_class_) {
++    DECODE_VALUE_INTO(mould->get_external_classes());
++  }
++  if (Config::IsHigherOrEqual(compile_options_.target_sdk_version_,
++                              FEATURE_COMPONENT_CONFIG) &&
++      compile_options_.enable_component_config_) {
++    DECODE_STDSTR(config_str);
++    auto component_config = std::make_shared<ComponentConfig>();
++    ERROR_UNLESS(
++        config_decoder_->DecodeComponentConfig(config_str, component_config));
++    mould->SetComponentConfig(component_config);
++  }
++  DECODE_COMPACT_U32(size);
++  for (size_t i = 0; i < size; ++i) {
++    DECODE_COMPACT_U32(id);
++    mould->AddDependentComponentId(id);
++  }
++  size_t len = stream_->offset() - offset;
++  if (len >= static_cast<size_t>(length)) {
++    return true;
++  }
++  std::string name, path;
++  ERROR_UNLESS(ReadStringDirectly(&name));
++  mould->set_name(std::move(name));
++  ERROR_UNLESS(ReadStringDirectly(&path));
++  mould->set_path(std::move(path));
+   return true;
+ }
+ 
+ bool LynxBinaryBaseTemplateReader::DecodeDynamicComponentDescriptor() {
++  DynamicComponentRoute route;
++  ERROR_UNLESS(DecodeDynamicComponentRoute(route));
++  auto& dynamic_component_ranges = route.dynamic_component_ranges;
++  size_t descriptor_start = stream_->offset();
++  size_t descriptor_end = descriptor_start;
++  for (auto& dynamic_component_range : dynamic_component_ranges) {
++    auto mould = std::make_shared<DynamicComponentMould>();
++    stream_->Seek(descriptor_start + dynamic_component_range.second.start);
++    while (stream_->offset() <
++           descriptor_start + dynamic_component_range.second.end) {
++      DECODE_U8(section);
++      switch (section) {
++        case DynamicComponentSection::DYNAMIC_MOULD:
++          ERROR_UNLESS(DecodeDynamicComponentMould(mould.get()));
++          dynamic_component_moulds_[mould->id()] = std::move(mould);
++          break;
++        case DynamicComponentSection::DYNAMIC_CONTEXT:
++          ERROR_UNLESS(DecodeContext());
++          break;
++        case DynamicComponentSection::DYNAMIC_CONFIG:
++          if (Config::IsHigherOrEqual(compile_options_.target_sdk_version_,
++                                      FEATURE_DYNAMIC_COMPONENT_CONFIG)) {
++            DECODE_STDSTR(config_str);
++            auto component_config = std::make_shared<ComponentConfig>();
++            ERROR_UNLESS(config_decoder_->DecodeComponentConfig(
++                config_str, component_config));
++            mould->SetComponentConfig(component_config);
++          }
++          break;
++      }
++    }
++    descriptor_end =
++        descriptor_end > descriptor_start + dynamic_component_range.second.end
++            ? descriptor_end
++            : dynamic_component_range.second.end + descriptor_start;
++  }
++  stream_->Seek(descriptor_end);
+   return true;
+ }
+ 
+ bool LynxBinaryBaseTemplateReader::DecodeDynamicComponentDeclarations() {
++  DECODE_COMPACT_U32(size);
++  for (size_t i = 0; i < size; ++i) {
++    DECODE_STDSTR(name);
++    DECODE_STDSTR(url);
++    dynamic_component_declarations_[name] = url;
++  }
+   return true;
+ }
+ 
+ bool LynxBinaryBaseTemplateReader::DecodeDynamicComponentRoute(
+     DynamicComponentRoute &route) {
++  DECODE_COMPACT_U32(size);
++  route.dynamic_component_ranges.reserve(size);
++  for (size_t i = 0; i < size; ++i) {
++    DECODE_COMPACT_S32(id);
++    DECODE_COMPACT_U32(start);
++    DECODE_COMPACT_U32(end);
++    route.dynamic_component_ranges.emplace(std::piecewise_construct,
++                                           std::forward_as_tuple(id),
++                                           std::forward_as_tuple(start, end));
++  }
+   return true;
+ }
+ 
+ bool LynxBinaryBaseTemplateReader::DecodeDynamicComponentMould(
+     DynamicComponentMould *mould) {
++  std::string path;
++  ERROR_UNLESS(ReadStringDirectly(&path));
++  mould->set_path(std::move(path));
++  DECODE_COMPACT_U32(id);
++  mould->set_id(id);
++  DECODE_COMPACT_U32(css_id);
++  mould->set_css_id(css_id);
++  DECODE_VALUE_INTO(mould->get_data());
++  if (Config::IsHigherOrEqual(compile_options_.target_sdk_version_,
++                              BUGFIX_DYNAMIC_COMPONENT_DEFAULT_PROPS_VERSION)) {
++    DECODE_VALUE_INTO(mould->get_properties());
++  }
++  if (Config::IsHigherOrEqual(compile_options_.target_sdk_version_,
++                              FEATURE_CSS_EXTERNAL_CLASS_VERSION) &&
++      compile_options_.enable_css_external_class_) {
++    DECODE_VALUE_INTO(mould->get_external_classes());
++  }
++  DECODE_COMPACT_U32(size);
++  for (size_t i = 0; i < size; ++i) {
++    DECODE_COMPACT_U32(id);
++    mould->AddDependentComponentId(id);
++  }
+   return true;
+ }
+ 
+diff --git a/core/template_bundle/template_codec/binary_decoder/lynx_binary_base_template_reader_impl.cc b/core/template_bundle/template_codec/binary_decoder/lynx_binary_base_template_reader_impl.cc
+index 7aed0c341..4d6a47dab 100644
+--- a/core/template_bundle/template_codec/binary_decoder/lynx_binary_base_template_reader_impl.cc
++++ b/core/template_bundle/template_codec/binary_decoder/lynx_binary_base_template_reader_impl.cc
+@@ -387,7 +387,11 @@ bool LynxBinaryBaseTemplateReader::DecodeFlexibleTemplateBody() {
+     stream_->Seek(route.start_offset_);
+ 
+     DECODE_U8(type);
+-    ERROR_UNLESS(DecodeSpecificSection(static_cast<BinarySection>(type)));
++    if (!DecodeSpecificSection(static_cast<BinarySection>(type))) {
++      error_message_ = "Failed to decode flexible section type " +
++                       std::to_string(type) + ": " + error_message_;
++      return false;
++    }
+   }
+   return true;
+ }
+@@ -518,8 +522,14 @@ bool LynxBinaryBaseTemplateReader::DeserializeSection() {
+ 
+   DECODE_U8(section_count);
+   for (size_t i = 0; i < section_count; i++) {
++    const size_t section_offset = stream_->offset();
+     DECODE_U8(type);
+-    ERROR_UNLESS(DecodeSpecificSection(static_cast<BinarySection>(type)));
++    if (!DecodeSpecificSection(static_cast<BinarySection>(type))) {
++      error_message_ = "Failed to decode section type " + std::to_string(type) +
++                       " at offset " + std::to_string(section_offset) +
++                       " index " + std::to_string(i) + ": " + error_message_;
++      return false;
++    }
+   }
+ 
+   return true;
+diff --git a/platform/embedder/lynx_recorder/test_bench_action_manager.cc b/platform/embedder/lynx_recorder/test_bench_action_manager.cc
+index 5ea5b7078..57ffc0e2a 100644
+--- a/platform/embedder/lynx_recorder/test_bench_action_manager.cc
++++ b/platform/embedder/lynx_recorder/test_bench_action_manager.cc
+@@ -4,6 +4,7 @@
+ 
+ #include "platform/embedder/lynx_recorder/test_bench_action_manager.h"
+ 
++#include <cctype>
+ #include <cmath>
+ #include <future>
+ #include <memory>
+@@ -13,6 +14,19 @@
+ namespace lynx {
+ namespace embedder {
+ 
++namespace {
++
++bool StartsWithJsonObject(const std::string& data) {
++  for (char c : data) {
++    if (!std::isspace(static_cast<unsigned char>(c))) {
++      return c == '{';
++    }
++  }
++  return false;
++}
++
++}  // namespace
++
+ TestBenchActionManager::TestBenchActionManager(
+     std::shared_ptr<lynx::pub::LynxView> view, ResizeCallback resize_callback)
+     : lynx_view_(view), resize_callback_(resize_callback) {
+@@ -71,11 +85,20 @@ void TestBenchActionManager::FetchRecordFile(const std::string& url) {
+     // Handle error.
+     return;
+   }
+-  std::string decode_result = TestBenchDecode(record_file);
+-  std::vector<uint8_t> compressed_data(decode_result.begin(),
+-                                       decode_result.end());
+-  std::vector<uint8_t> decompressed_data = TestBenchDecompress(compressed_data);
+-  std::string result_str(decompressed_data.begin(), decompressed_data.end());
++  std::string result_str;
++  if (StartsWithJsonObject(record_file)) {
++    result_str = record_file;
++  } else {
++    std::string decode_result = TestBenchDecode(record_file);
++    std::vector<uint8_t> compressed_data(decode_result.begin(),
++                                         decode_result.end());
++    std::vector<uint8_t> decompressed_data =
++        TestBenchDecompress(compressed_data);
++    result_str.assign(decompressed_data.begin(), decompressed_data.end());
++  }
++  if (result_str.empty()) {
++    return;
++  }
+   HandleRecordFileData(result_str);
+ }
+ 
+@@ -91,7 +114,8 @@ void TestBenchActionManager::HandleRecordFileData(const std::string& result) {
+     if (config.HasMember("jsbIgnoredInfo")) {
+       result_json = ToJson(config["jsbIgnoredInfo"]);
+       data_module_->SetJsbIgnoredInfo(result_json);
+-    } else if (config.HasMember("jsbSettings")) {
++    }
++    if (config.HasMember("jsbSettings")) {
+       result_json = ToJson(config["jsbSettings"]);
+       data_module_->SetJsbSettings(result_json);
+     }
+@@ -104,6 +128,10 @@ void TestBenchActionManager::HandleRecordFileData(const std::string& result) {
+     result_json = ToJson(dom["Callback"]);
+     data_module_->SetCallbackData(result_json);
+   }
++  if (dom.HasMember("SharedData")) {
++    result_json = ToJson(dom["SharedData"]);
++    data_module_->SetSharedData(result_json);
++  }
+   if (dom.HasMember("Component List")) {
+     component_list_ = ToJson(dom["Component List"]);
+   }
+@@ -237,17 +265,26 @@ void TestBenchActionManager::InitialLynxView(const std::string& param) {
+   int preferred_layout_height = 0;
+   int preferred_layout_width = 0;
+   if (dom.HasMember("preferredLayoutHeight") &&
+-      dom["preferredLayoutHeight"].IsFloat()) {
++      dom["preferredLayoutHeight"].IsNumber()) {
+     preferred_layout_height =
+-        std::round(dom["preferredLayoutHeight"].GetFloat());
++        std::round(dom["preferredLayoutHeight"].GetDouble());
+   }
+   if (dom.HasMember("preferredLayoutWidth") &&
+-      dom["preferredLayoutWidth"].IsFloat()) {
+-    preferred_layout_width = std::round(dom["preferredLayoutWidth"].GetFloat());
++      dom["preferredLayoutWidth"].IsNumber()) {
++    preferred_layout_width =
++        std::round(dom["preferredLayoutWidth"].GetDouble());
+   }
+   if (preferred_layout_height == 0 || preferred_layout_width == 0) {
+     return;
+   }
++  float pixel_ratio = 1.0f;
++  if (dom.HasMember("ratio") && dom["ratio"].IsNumber() &&
++      dom["ratio"].GetDouble() > 0.0) {
++    pixel_ratio = static_cast<float>(dom["ratio"].GetDouble());
++  }
++  lynx_view_->SetFrame(0, 0, preferred_layout_width, preferred_layout_height);
++  lynx_view_->UpdateScreenMetrics(preferred_layout_width,
++                                  preferred_layout_height, pixel_ratio);
+   if (resize_callback_) {
+     resize_callback_(preferred_layout_width, preferred_layout_height);
+   }
+@@ -274,6 +311,10 @@ void TestBenchActionManager::LoadTemplate(const std::string& param) {
+   if (dom.HasParseError()) {
+     return;
+   }
++  std::string url = TEST_BENCH_URL_PREFIX;
++  if (dom.HasMember("url") && dom["url"].IsString()) {
++    url = dom["url"].GetString();
++  }
+   std::string source = preloaded_source_;
+   if (preloaded_source_.empty() && dom.HasMember("source") &&
+       dom["source"].IsString()) {
+@@ -289,12 +330,14 @@ void TestBenchActionManager::LoadTemplate(const std::string& param) {
+       template_data->MarkReadOnly();
+     }
+     if (init_data.HasMember("preprocessorName") &&
+-        init_data["preprocessorName"].IsString()) {
++        init_data["preprocessorName"].IsString() &&
++        init_data["preprocessorName"].GetStringLength() > 0) {
+       template_data->MarkState(init_data["preprocessorName"].GetString());
+     }
+   }
+   std::vector<uint8_t> vec(source.begin(), source.end());
+   auto load_meta = std::make_shared<lynx::pub::LynxLoadMeta>();
++  load_meta->SetUrl(url);
+   load_meta->SetBinaryData(vec);
+   if (template_data) {
+     load_meta->SetInitialData(template_data);
+@@ -311,6 +354,10 @@ void TestBenchActionManager::LoadTemplateBundle(const std::string& param) {
+   if (dom.HasParseError()) {
+     return;
+   }
++  std::string url = TEST_BENCH_URL_PREFIX;
++  if (dom.HasMember("url") && dom["url"].IsString()) {
++    url = dom["url"].GetString();
++  }
+   std::shared_ptr<lynx::pub::LynxTemplateData> template_data;
+   if (dom.HasMember("templateData")) {
+     const rapidjson::Value& init_data = dom["templateData"];
+@@ -321,7 +368,8 @@ void TestBenchActionManager::LoadTemplateBundle(const std::string& param) {
+       template_data->MarkReadOnly();
+     }
+     if (init_data.HasMember("preprocessorName") &&
+-        init_data["preprocessorName"].IsString()) {
++        init_data["preprocessorName"].IsString() &&
++        init_data["preprocessorName"].GetStringLength() > 0) {
+       template_data->MarkState(init_data["preprocessorName"].GetString());
+     }
+   }
+@@ -335,6 +383,7 @@ void TestBenchActionManager::LoadTemplateBundle(const std::string& param) {
+         (uint8_t*)source.c_str(), source.size());
+   }
+   auto load_meta = std::make_shared<lynx::pub::LynxLoadMeta>();
++  load_meta->SetUrl(url);
+   load_meta->SetTemplateBundle(template_bundle_);
+   if (template_data) {
+     load_meta->SetInitialData(template_data);
+@@ -386,6 +435,18 @@ void TestBenchActionManager::SendGlobalEvent(const std::string& param) {
+     }
+     std::string params = ToJson(dom[1]);
+     lynx_view_->SendGlobalEvent(event_name, params);
++  } else if (dom.IsObject() && dom.HasMember("arguments") &&
++             dom["arguments"].IsArray() && dom["arguments"].Size() == 2) {
++    const rapidjson::Value& arguments = dom["arguments"];
++    if (arguments[0].IsString()) {
++      event_name = arguments[0].GetString();
++    }
++    if (event_name.compare("exposure") == 0 ||
++        event_name.compare("disexposure") == 0) {
++      return;
++    }
++    std::string params = ToJson(arguments[1]);
++    lynx_view_->SendGlobalEvent(event_name, params);
+   }
+ }
+ 
+diff --git a/platform/embedder/lynx_recorder/test_bench_action_manager.h b/platform/embedder/lynx_recorder/test_bench_action_manager.h
+index fccc5d651..692617e9e 100644
+--- a/platform/embedder/lynx_recorder/test_bench_action_manager.h
++++ b/platform/embedder/lynx_recorder/test_bench_action_manager.h
+@@ -5,6 +5,7 @@
+ #ifndef PLATFORM_EMBEDDER_LYNX_RECORDER_TEST_BENCH_ACTION_MANAGER_H_
+ #define PLATFORM_EMBEDDER_LYNX_RECORDER_TEST_BENCH_ACTION_MANAGER_H_
+ 
++#include <functional>
+ #include <memory>
+ #include <string>
+ #include <unordered_map>
+diff --git a/platform/embedder/lynx_recorder/test_bench_replay_config.cc b/platform/embedder/lynx_recorder/test_bench_replay_config.cc
+index 2e81b149c..fbd56039f 100644
+--- a/platform/embedder/lynx_recorder/test_bench_replay_config.cc
++++ b/platform/embedder/lynx_recorder/test_bench_replay_config.cc
+@@ -14,9 +14,9 @@ void TestBenchReplayConfig::InitWithProductUrl(const std::string& url) {
+   if (url.empty()) {
+     return;
+   }
+-  if (!url_analyzer_) {
+-    url_analyzer_ = std::make_unique<TestBenchURLAnalyzer>(url);
+-  }
++  url_analyzer_ = std::make_unique<TestBenchURLAnalyzer>(url);
++  can_mock_func_name_.clear();
++  reload_func_name_.clear();
+   url_ = url_analyzer_->GetQueryStringParameter("url");
+   source_url_ = url_analyzer_->GetQueryStringParameter("source");
+   replay_gesture_ = url_analyzer_->GetQueryBooleanParameter("gesture", false);
+diff --git a/platform/embedder/lynx_recorder/test_bench_replay_data_module.cc b/platform/embedder/lynx_recorder/test_bench_replay_data_module.cc
+index 40ce70f50..7e207181d 100644
+--- a/platform/embedder/lynx_recorder/test_bench_replay_data_module.cc
++++ b/platform/embedder/lynx_recorder/test_bench_replay_data_module.cc
+@@ -4,9 +4,11 @@
+ 
+ #include "platform/embedder/lynx_recorder/test_bench_replay_data_module.h"
+ 
++#include <chrono>
+ #include <memory>
+ #include <mutex>
+ #include <unordered_map>
++#include <vector>
+ 
+ #include "platform/embedder/lynx_recorder/test_bench_utils.h"
+ #include "platform/embedder/public/capi/lynx_native_module_capi.h"
+@@ -57,6 +59,63 @@ class ReplayDataModulesHolder {
+       data_modules_;
+ };
+ 
++std::string GetStringArg(napi_env env, napi_value value) {
++  size_t length = 0;
++  napi_get_value_string_utf8(env, value, nullptr, 0, &length);
++  std::vector<char> buffer(length + 1);
++  napi_get_value_string_utf8(env, value, buffer.data(), buffer.size(), &length);
++  return std::string(buffer.data(), length);
++}
++
++void JsonToNapi(napi_env env, const rapidjson::Value& json,
++                napi_value* result) {
++  if (json.IsNull()) {
++    napi_get_null(env, result);
++    return;
++  }
++  if (json.IsBool()) {
++    napi_get_boolean(env, json.GetBool(), result);
++    return;
++  }
++  if (json.IsInt64()) {
++    napi_create_int64(env, json.GetInt64(), result);
++    return;
++  }
++  if (json.IsUint64()) {
++    napi_create_double(env, static_cast<double>(json.GetUint64()), result);
++    return;
++  }
++  if (json.IsNumber()) {
++    napi_create_double(env, json.GetDouble(), result);
++    return;
++  }
++  if (json.IsString()) {
++    napi_create_string_utf8(env, json.GetString(), json.GetStringLength(),
++                            result);
++    return;
++  }
++  if (json.IsArray()) {
++    napi_create_array_with_length(env, json.Size(), result);
++    for (rapidjson::SizeType i = 0; i < json.Size(); ++i) {
++      napi_value item = nullptr;
++      JsonToNapi(env, json[i], &item);
++      napi_set_element(env, *result, i, item);
++    }
++    return;
++  }
++  if (json.IsObject()) {
++    napi_create_object(env, result);
++    for (auto it = json.MemberBegin(); it != json.MemberEnd(); ++it) {
++      napi_value value = nullptr;
++      JsonToNapi(env, it->value, &value);
++      std::string key(it->name.GetString(), it->name.GetStringLength());
++      napi_set_named_property(env, *result, key.c_str(), value);
++    }
++    return;
++  }
++  napi_get_undefined(env, result);
++}
++
+ napi_value GetData(napi_env env, napi_callback_info info) {
+   size_t argc = 1;
+   napi_value argv[1];
+@@ -70,19 +129,58 @@ napi_value GetData(napi_env env, napi_callback_info info) {
+   std::shared_ptr<TestBenchReplayDataModule> m =
+       ReplayDataModulesHolder::GetInstance().GetDataModule(context);
+   if (m) {
++    m->WaitForDataReady(std::chrono::seconds(30));
++    std::string record = m->GetData();
+     napi_value data = nullptr;
+-    napi_create_string_utf8(env, m->GetData().c_str(), NAPI_AUTO_LENGTH, &data);
++    napi_create_string_utf8(env, record.c_str(), NAPI_AUTO_LENGTH, &data);
+     napi_call_function(env, thiz, argv[0], 1, &data, nullptr);
+   }
+   return nullptr;
+ }
+ 
++napi_value GetSharedData(napi_env env, napi_callback_info info) {
++  size_t argc = 1;
++  napi_value argv[1];
++  napi_value thiz = nullptr;
++  napi_get_cb_info(env, info, &argc, argv, &thiz, nullptr);
++
++  std::string key;
++  if (argc >= 1) {
++    key = GetStringArg(env, argv[0]);
++  }
++
++  napi_value result = nullptr;
++  napi_create_object(env, &result);
++
++  void* context = nullptr;
++  lynx_napi_get_instance_data(env, LYNX_NAPI_ENV_LYNX_VIEW_TAG, &context);
++  std::shared_ptr<TestBenchReplayDataModule> m =
++      ReplayDataModulesHolder::GetInstance().GetDataModule(context);
++  std::string value_json = "\"\"";
++  if (m) {
++    value_json = m->GetSharedData(key);
++  }
++
++  rapidjson::Document value_dom;
++  value_dom.Parse(value_json);
++  napi_value value = nullptr;
++  if (value_dom.HasParseError()) {
++    napi_create_string_utf8(env, "", 0, &value);
++  } else {
++    JsonToNapi(env, value_dom, &value);
++  }
++  napi_set_named_property(env, result, "value", value);
++  return result;
++}
++
+ napi_value TestBenchReplayDataModuleCreator(napi_env env, napi_value exports,
+                                             const char* module_name,
+                                             void* opaque) {
+   napi_value func;
+   napi_create_function(env, "getData", 1, &GetData, 0, &func);
+   napi_set_named_property(env, exports, "getData", func);
++  napi_create_function(env, "getSharedData", 1, &GetSharedData, 0, &func);
++  napi_set_named_property(env, exports, "getSharedData", func);
+   return exports;
+ }
+ 
+@@ -105,21 +203,34 @@ void TestBenchReplayDataModule::BindContext(void* context) {
+ }
+ 
+ void TestBenchReplayDataModule::SetJsbIgnoredInfo(const std::string& data) {
++  std::lock_guard<std::mutex> lock(data_mutex_);
+   jsb_ignored_info_ = data;
+ }
+ 
+ void TestBenchReplayDataModule::SetJsbSettings(const std::string& data) {
++  std::lock_guard<std::mutex> lock(data_mutex_);
+   jsb_settings_ = data;
+ }
+ 
+ void TestBenchReplayDataModule::SetFunctionCall(const std::string& data) {
+-  function_call_ = data;
++  {
++    std::lock_guard<std::mutex> lock(data_mutex_);
++    function_call_ = data;
++    data_ready_ = true;
++  }
++  data_ready_cv_.notify_all();
+ }
+ 
+ void TestBenchReplayDataModule::SetCallbackData(const std::string& data) {
++  std::lock_guard<std::mutex> lock(data_mutex_);
+   callback_data_ = data;
+ }
+ 
++void TestBenchReplayDataModule::SetSharedData(const std::string& data) {
++  std::lock_guard<std::mutex> lock(data_mutex_);
++  shared_data_ = data;
++}
++
+ std::string TestBenchReplayDataModule::GetRecordData() {
+   rapidjson::Document dom;
+   dom.Parse(function_call_);
+@@ -195,8 +306,8 @@ std::string TestBenchReplayDataModule::GetRecordData() {
+             callback_kernel.AddMember(rapidjson::StringRef("Value"),
+                                       callback_info_Params, allocator);
+             callback_return_values.PushBack(callback_kernel, allocator);
+-            function_invoke_label += ToJson(callback_info) + "_";
+           }
++          function_invoke_label += callback_id + "_";
+         }
+       }
+     }
+@@ -228,7 +339,17 @@ std::string TestBenchReplayDataModule::GetJsbSettings() {
+   return jsb_settings_;
+ }
+ 
++std::string TestBenchReplayDataModule::GetSharedData(const std::string& key) {
++  rapidjson::Document dom;
++  dom.Parse(shared_data_);
++  if (dom.HasParseError() || !dom.IsObject() || !dom.HasMember(key.c_str())) {
++    return "\"\"";
++  }
++  return ToJson(dom[key.c_str()]);
++}
++
+ std::string TestBenchReplayDataModule::GetData() {
++  std::lock_guard<std::mutex> lock(data_mutex_);
+   rapidjson::Document dom;
+   dom.SetObject();
+   auto& allocator = dom.GetAllocator();
+@@ -240,6 +361,13 @@ std::string TestBenchReplayDataModule::GetData() {
+   return ToJson(dom);
+ }
+ 
++bool TestBenchReplayDataModule::WaitForDataReady(
++    std::chrono::milliseconds timeout) {
++  std::unique_lock<std::mutex> lock(data_mutex_);
++  return data_ready_cv_.wait_for(lock, timeout,
++                                 [this] { return data_ready_; });
++}
++
+ }  // namespace embedder
+ }  // namespace lynx
+ 
+diff --git a/platform/embedder/lynx_recorder/test_bench_replay_data_module.h b/platform/embedder/lynx_recorder/test_bench_replay_data_module.h
+index 885d2fa84..9cdfae150 100644
+--- a/platform/embedder/lynx_recorder/test_bench_replay_data_module.h
++++ b/platform/embedder/lynx_recorder/test_bench_replay_data_module.h
+@@ -5,8 +5,11 @@
+ #ifndef PLATFORM_EMBEDDER_LYNX_RECORDER_TEST_BENCH_REPLAY_DATA_MODULE_H_
+ #define PLATFORM_EMBEDDER_LYNX_RECORDER_TEST_BENCH_REPLAY_DATA_MODULE_H_
+ 
++#include <condition_variable>
++#include <chrono>
+ #include <functional>
+ #include <memory>
++#include <mutex>
+ #include <string>
+ 
+ #include "platform/embedder/public/capi/lynx_native_module_capi.h"
+@@ -33,20 +36,27 @@ class TestBenchReplayDataModule
+   void SetJsbSettings(const std::string& data);
+   void SetFunctionCall(const std::string& data);
+   void SetCallbackData(const std::string& data);
++  void SetSharedData(const std::string& data);
+ 
+   std::string GetRecordData();
+   std::string GetJsbIgnoredInfo();
+   std::string GetJsbSettings();
++  std::string GetSharedData(const std::string& key);
+ 
++  bool WaitForDataReady(std::chrono::milliseconds timeout);
+   std::string GetData();
+ 
+  private:
+   void* context_ = nullptr;
+-
+-  std::string jsb_ignored_info_;
+-  std::string jsb_settings_;
+-  std::string function_call_;
+-  std::string callback_data_;
++  std::mutex data_mutex_;
++  std::condition_variable data_ready_cv_;
++  bool data_ready_ = false;
++
++  std::string jsb_ignored_info_ = "[]";
++  std::string jsb_settings_ = "{}";
++  std::string function_call_ = "[]";
++  std::string callback_data_ = "{}";
++  std::string shared_data_ = "{}";
+ };
+ 
+ }  // namespace embedder
+-- 
+2.53.0
+

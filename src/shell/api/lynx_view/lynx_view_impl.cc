@@ -9,6 +9,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 #include "base/containers/span.h"
 #include "base/files/file_path.h"
@@ -28,6 +29,7 @@
 #include "shell/api/lynx_view/module/lynx_bridge_module.h"
 #include "shell/api/lynx_view/module/lynx_hybrid_monitor_module.h"
 #include "shell/api/lynx_view/module/lynx_node_module.h"
+#include "shell/api/lynx_view/testbench_replay_controller.h"
 #include "shell/common/asar/archive.h"
 #include "shell/common/asar/asar_util.h"
 #include "shell/common/global_thread.h"
@@ -177,6 +179,23 @@ void LynxViewImpl::Initialize(std::unique_ptr<lynx::pub::LynxView> core_view) {
   lynx_view_->AddClient(self_shared_ptr_);
 }
 
+bool LynxViewImpl::StartTestbenchReplay(const std::string& url) {
+#if ENABLE_TESTBENCH_REPLAY
+  if (!lynx_view_) {
+    return false;
+  }
+  if (!test_bench_replay_controller_) {
+    test_bench_replay_controller_ =
+        std::make_unique<TestbenchReplayController>(lynx_view_.get());
+  }
+  test_bench_replay_controller_->StartWithUrl(url);
+  return true;
+#else
+  (void)url;
+  return false;
+#endif
+}
+
 void LynxViewImpl::LoadFile(const std::string& path,
                             const std::string& data,
                             const std::string& global_props) {
@@ -187,7 +206,17 @@ void LynxViewImpl::LoadFile(const std::string& path,
     return;
   }
 
-  meta->SetUrl(ToFileUrl(local_path));
+  const std::string file_url = ToFileUrl(local_path);
+#if ENABLE_TESTBENCH_REPLAY
+  const bool is_json_file =
+      local_path.Extension() == FILE_PATH_LITERAL(".json");
+  std::string source_text(source.begin(), source.end());
+  if (IsLikelyTestbenchRecordFile(source_text, is_json_file) &&
+      StartTestbenchReplay(MakeTestbenchReplayUrl(file_url))) {
+    return;
+  }
+#endif
+  meta->SetUrl(file_url);
   meta->SetBinaryData(source);
   if (!data.empty()) {
     meta->SetInitialData(std::make_shared<lynx::pub::LynxTemplateData>(data));
@@ -202,6 +231,11 @@ void LynxViewImpl::LoadFile(const std::string& path,
 void LynxViewImpl::LoadURL(const std::string& url,
                            const std::string& data,
                            const std::string& global_props) {
+#if ENABLE_TESTBENCH_REPLAY
+  if (IsTestbenchReplayUrl(url) && StartTestbenchReplay(url)) {
+    return;
+  }
+#endif
   auto meta = std::make_shared<lynx::pub::LynxLoadMeta>();
   meta->SetUrl(url);
   if (!data.empty()) {

@@ -3,6 +3,7 @@
 # LICENSE file in the root directory of this source tree.
 import("//build/config/win/manifest.gni")
 import("//lynx/config.gni")
+import("//lynx/core/Lynx.gni")
 import("//testing/test.gni")
 import("//tools/v8_context_snapshot/v8_context_snapshot.gni")
 import("../config.gni")
@@ -62,8 +63,49 @@ config("lynxtron_lib_config") {
   if (enable_trace == "perfetto") {
     defines += [ "ENABLE_TRACE_PERFETTO" ]
   }
+  defines += [ "ENABLE_TESTBENCH_REPLAY=${enable_testbench_replay}" ]
   if (is_mac && is_mas_build) {
     defines += [ "MAS_BUILD" ]
+  }
+}
+
+if (enable_testbench_replay) {
+  source_set("lynxtron_testbench_replay") {
+    configs += [ ":lynxtron_lib_config" ]
+    defines = [
+      "USE_WEAK_SUFFIX_NAPI=1",
+      "USE_PRIMJS_NAPI=1",
+    ]
+    include_dirs = [
+      ".",
+      "//",
+      "//lynx",
+    ]
+    sources = [
+      "//lynx/platform/embedder/lynx_recorder/test_bench_action_manager.cc",
+      "//lynx/platform/embedder/lynx_recorder/test_bench_action_manager.h",
+      "//lynx/platform/embedder/lynx_recorder/test_bench_replay_config.cc",
+      "//lynx/platform/embedder/lynx_recorder/test_bench_replay_config.h",
+      "//lynx/platform/embedder/lynx_recorder/test_bench_replay_data_module.cc",
+      "//lynx/platform/embedder/lynx_recorder/test_bench_replay_data_module.h",
+      "//lynx/platform/embedder/lynx_recorder/test_bench_url_analyzer.cc",
+      "//lynx/platform/embedder/lynx_recorder/test_bench_url_analyzer.h",
+      "//lynx/platform/embedder/lynx_recorder/test_bench_utils.cc",
+      "//lynx/platform/embedder/lynx_recorder/test_bench_utils.h",
+      "shell/api/lynx_view/testbench_record_fetcher.cc",
+      "shell/api/lynx_view/testbench_record_fetcher.h",
+      "shell/api/lynx_view/testbench_replay_controller.cc",
+      "shell/api/lynx_view/testbench_replay_controller.h",
+    ]
+    if (is_mac) {
+      sources += [ "shell/api/lynx_view/testbench_record_fetcher_mac.mm" ]
+      frameworks = [ "Foundation.framework" ]
+    }
+    deps = [
+      "//base",
+      "//lynx/third_party/rapidjson",
+      "//third_party/zlib",
+    ]
   }
 }
 
@@ -473,6 +515,7 @@ source_set("lynxtron_lib") {
     "shell/api/lynx_view/module/lynx_native_module.h",
     "shell/api/lynx_view/module/lynx_node_module.cc",
     "shell/api/lynx_view/module/lynx_node_module.h",
+    "shell/api/lynx_view/testbench_replay_controller.h",
     "shell/api/lynx_view_state_observer.h",
     "shell/api/lynx_window_manager.cc",
     "shell/api/lynx_window_manager.h",
@@ -707,6 +750,10 @@ source_set("lynxtron_lib") {
     "shell/ui",
     "//third_party/skia",
   ]
+
+  if (enable_testbench_replay) {
+    deps += [ ":lynxtron_testbench_replay" ]
+  }
 }
 
 if (is_mac) {
@@ -754,6 +801,12 @@ if (is_mac) {
       "//base",
       "//third_party/node:libnode",
     ]
+    if (enable_trace == "perfetto") {
+      deps += [ "//lynx/base/trace/darwin:LynxTrace" ]
+    }
+    if (enable_testbench_recorder) {
+      deps += [ "//lynx/core/services/recorder" ]
+    }
     configs += lynxtron_lib_extra_configs
 
     info_plist = "shell/common/resources/mac/Info.plist"

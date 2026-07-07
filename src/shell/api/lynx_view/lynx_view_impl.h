@@ -28,6 +28,7 @@ class LynxUpdateMeta;
 namespace api {
 class LynxWindow;
 }
+class TestbenchReplayController;
 
 class LynxViewImpl : public lynx::pub::LynxViewClient {
  public:
@@ -77,9 +78,14 @@ class LynxViewImpl : public lynx::pub::LynxViewClient {
                      int64_t frame_finish_time_in_ns) override;
 
  private:
+  bool StartTestbenchReplay(const std::string& url);
+
   std::unique_ptr<lynx::pub::LynxView> lynx_view_;
   base::WeakPtr<lynxtron::LynxViewClient> lynx_view_client_;
   std::shared_ptr<LynxViewImpl> self_shared_ptr_;
+#if ENABLE_TESTBENCH_REPLAY
+  std::unique_ptr<TestbenchReplayController> test_bench_replay_controller_;
+#endif
 };
 
 }  // namespace lynxtron
