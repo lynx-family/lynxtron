@@ -520,6 +520,8 @@ bool ReplaceOldSingletonLock(const base::FilePath& symlink_content,
   return SymlinkPath(symlink_content, lock_path);
 }
 
+#endif  // BUILDFLAG(IS_MAC)
+
 std::string GetHostName() {
   // Host names are limited to 255 bytes.
   char buffer[256];
@@ -530,8 +532,6 @@ std::string GetHostName() {
   }
   return std::string(buffer);
 }
-
-#endif  // BUILDFLAG(IS_MAC)
 
 }  // namespace
 

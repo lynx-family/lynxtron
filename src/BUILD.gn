@@ -656,6 +656,26 @@ source_set("lynxtron_lib") {
     weak_frameworks = [ "QuickLookThumbnailing.framework" ]
   }
 
+  if (is_linux) {
+    sources += [
+      "shell/api/api_menu_linux.cc",
+      "shell/api/api_native_image_linux.cc",
+      "shell/api/api_power_monitor_linux.cc",
+      "shell/api/native_window_linux.cc",
+      "shell/api/ui/file_dialog_linux.cc",
+      "shell/api/ui/message_box_linux.cc",
+      "shell/app/application_linux.cc",
+      "shell/app/icon_manager_linux.cc",
+      "shell/app/relauncher_linux.cc",
+      "shell/common/application_info_linux.cc",
+      "shell/common/node_bindings_linux.cc",
+      "shell/common/platform_util_linux.cc",
+      "shell/common/process_singleton/process_singleton_lock_posix.cc",
+      "shell/common/process_singleton/process_singleton_lock_posix.h",
+      "shell/common/process_singleton/process_singleton_posix.cc",
+    ]
+  }
+
   if (is_win) {
     sources += [
       "shell/api/api_clipboard_win.cc",
@@ -1027,6 +1047,38 @@ if (is_win) {
       # Increase the initial stack size. The default is 1MB, this is 8MB.
       ldflags += [ "/STACK:0x800000" ]
     }
+  }
+}
+
+if (is_linux) {
+  executable("lynxtron_app") {
+    output_name = "lynxtron"
+
+    deps = [
+      ":default_app_asar",
+      ":lynxtron_lib",
+      "//base",
+    ]
+
+    configs += lynxtron_lib_extra_configs
+    ldflags = [ "-l:libepoxy.so.0" ]
+
+    include_dirs = [ "." ]
+    sources = [ "shell/app/main_linux.cc" ]
+
+    data = [
+      "$root_out_dir/resources/default_app.asar",
+      "$root_out_dir/lynx_core.js",
+      "$root_out_dir/lynx_core_dev.js",
+      "$root_out_dir/icudtl.dat",
+    ]
+  }
+
+  shared_library("lynxtron_shared") {
+    deps = [ ":lynxtron_lib" ]
+    configs += lynxtron_lib_extra_configs
+    ldflags = [ "-l:libepoxy.so.0" ]
+    output_name = "lynxtron"
   }
 }
 

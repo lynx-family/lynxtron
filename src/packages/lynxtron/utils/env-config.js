@@ -13,8 +13,8 @@ function getPlatformPath (platform) {
       return 'lynxtron.app/Contents/MacOS/lynxtron';
     // case 'freebsd':
     // case 'openbsd':
-    // case 'linux':
-    //   return 'lynxtron';
+    case 'linux':
+      return 'lynxtron';
     case 'win32':
       return 'lynxtron.exe';
     default:

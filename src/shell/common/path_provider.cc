@@ -4,6 +4,7 @@
 #include "shell/common/path_provider.h"
 
 #include "base/base_paths.h"
+#include "base/environment.h"
 #include "base/files/file_path.h"
 #include "base/files/file_util.h"
 #include "base/path_service.h"
@@ -25,6 +26,8 @@
 #include "base/win/scoped_co_mem.h"
 #elif BUILDFLAG(IS_MAC)
 #include "base/base_paths_mac.h"
+#elif BUILDFLAG(IS_LINUX)
+#include "base/nix/xdg_util.h"
 #endif
 
 namespace lynxtron {
@@ -142,7 +145,7 @@ bool PathProvider(int key, base::FilePath* result) {
       create_dir = true;
       break;
     }
-#if defined(OS_LINUX)
+#if BUILDFLAG(IS_LINUX)
     case DIR_APP_DATA: {
       auto env = base::Environment::Create();
       cur = base::nix::GetXDGDirectory(

@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: zsy-jason <186247581+zsy-jason@users.noreply.github.com>
+Date: Wed, 8 Jul 2026 18:00:00 +0800
+Subject: [PATCH] Fix linux icudtl objcopy path
+
+---
+ clay/shell/platform/linux/BUILD.gn | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/clay/shell/platform/linux/BUILD.gn b/clay/shell/platform/linux/BUILD.gn
+index 8302ecd40..6d9e25ce5 100644
+--- a/clay/shell/platform/linux/BUILD.gn
++++ b/clay/shell/platform/linux/BUILD.gn
+@@ -13,7 +13,8 @@ action("icudtl_object") {
+   inputs = [ "$icudtl_input" ]
+   outputs = [ "$icudtl_output" ]
+ 
+-  linux_llvm_objcopy = "//buildtools/llvm/bin/llvm-objcopy"
++  linux_llvm_objcopy =
++      "//third_party/llvm-build/Release+Asserts/bin/llvm-objcopy"
+   args = [
+     "--objcopy",
+     rebase_path(linux_llvm_objcopy),
+-- 
+2.50.1
+
