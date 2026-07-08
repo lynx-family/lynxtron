@@ -1583,7 +1583,6 @@ index 32c9abd..c0d9e43 100644
 +#
 +# This config disables some warnings that are enabled by default in clang.
 +config("lynx_disable_warning_config") {
-+  config_flags = []
 +  if (is_mac) {
 +    config_flags = [
 +      "-Wno-nonportable-include-path",
@@ -1682,15 +1681,6 @@ index 32c9abd..c0d9e43 100644
 +      "-Wno-unknown-warning-option",
 +      "-Wno-unsafe-buffer-usage",
 +      "-Wno-unsafe-buffer-usage-in-libc-call",
-+    ]
-+  } else if (is_linux) {
-+    config_flags = [
-+      "-Wno-c99-designator",
-+      "-Wno-sign-compare",
-+      "-Wno-unknown-warning-option",
-+      "-Wno-unused-but-set-variable",
-+      "-Wno-unused-parameter",
-+      "-Wno-vla-cxx-extension",
 +    ]
 +  }
 +  cflags = config_flags

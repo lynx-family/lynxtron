@@ -167,6 +167,10 @@ bool NativeWindow::IsClosed() const {
   return is_closed_;
 }
 
+bool NativeWindow::IsWindowless() const {
+  return false;
+}
+
 void NativeWindow::SetBackgroundColor(SkColor background_color) {
   background_color_ = background_color;
 }

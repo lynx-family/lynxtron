@@ -27,6 +27,15 @@ export interface LynxWindowConstructorOptions {
    */
   height?: number;
   /**
+   * Device scale factor used by windowless rendering. Default is `1`.
+   */
+  deviceScaleFactor?: number;
+  /**
+   * Whether to create the Lynx view with a windowless renderer instead of a
+   * native parent window. Default is `false`.
+   */
+  windowless?: boolean;
+  /**
    * (**required** if y is used) Window's left offset from screen. Default is to
    * center the window.
    */

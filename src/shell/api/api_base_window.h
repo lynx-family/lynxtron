@@ -37,6 +37,9 @@ class BaseWindow : public gin_helper::TrackableObject<BaseWindow>,
  protected:
   // Common constructor.
   BaseWindow(v8::Isolate* isolate, const gin_helper::Dictionary& options);
+  BaseWindow(v8::Isolate* isolate,
+             const gin_helper::Dictionary& options,
+             std::unique_ptr<NativeWindow> window);
   // Creating independent BaseWindow instance.
   BaseWindow(gin_helper::Arguments* args,
              const gin_helper::Dictionary& options);

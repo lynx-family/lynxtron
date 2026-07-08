@@ -1,0 +1,40 @@
+From 4ac521bb1a4b61b6e614d285dd0613c1b8a3d1d0 Mon Sep 17 00:00:00 2001
+From: Lynxtron Scripts <scripts@lynxtron>
+Date: Wed, 8 Jul 2026 21:30:00 +0800
+Subject: [PATCH] build: add linux warning config flags
+
+---
+ config/compiler/BUILD.gn | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/config/compiler/BUILD.gn b/config/compiler/BUILD.gn
+index adc7cb6..0ffba96 100644
+--- a/config/compiler/BUILD.gn
++++ b/config/compiler/BUILD.gn
+@@ -298,6 +298,7 @@ config("default_include_dirs") {
+ #
+ # This config disables some warnings that are enabled by default in clang.
+ config("lynx_disable_warning_config") {
++  config_flags = []
+   if (is_mac) {
+     config_flags = [
+       "-Wno-nonportable-include-path",
+@@ -397,6 +398,15 @@ config("lynx_disable_warning_config") {
+       "-Wno-unsafe-buffer-usage",
+       "-Wno-unsafe-buffer-usage-in-libc-call",
+     ]
++  } else if (is_linux) {
++    config_flags = [
++      "-Wno-c99-designator",
++      "-Wno-sign-compare",
++      "-Wno-unknown-warning-option",
++      "-Wno-unused-but-set-variable",
++      "-Wno-unused-parameter",
++      "-Wno-vla-cxx-extension",
++    ]
+   }
+   cflags = config_flags
+   cflags_cc = config_flags
+-- 
+2.49.0
+

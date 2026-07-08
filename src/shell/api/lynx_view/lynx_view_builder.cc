@@ -9,21 +9,16 @@
 
 #include "base/base_paths.h"
 #include "base/files/file_path.h"
-#include "base/functional/bind.h"
 #include "base/logging.h"
 #include "base/path_service.h"
-#include "base/time/time.h"
 #include "build/build_config.h"
 #include "lynx/platform/embedder/public/lynx_view.h"
-#if BUILDFLAG(IS_LINUX)
 #include "lynx/platform/embedder/public/lynx_windowless_renderer.h"
-#endif
 #include "shell/api/lynx_view/lynx_view.h"
 #include "shell/api/lynx_view/lynx_view_impl.h"
 #include "shell/api/lynx_view/module/lynx_bridge_module.h"
 #include "shell/api/lynx_view/module/lynx_hybrid_monitor_module.h"
 #include "shell/api/lynx_view/module/lynx_node_module.h"
-#include "shell/common/global_thread.h"
 #include "shell/lynx/resource_fetcher/lynx_generic_resource_fetcher_factory.h"
 
 #if BUILDFLAG(IS_MAC)
@@ -31,39 +26,6 @@
 #endif
 
 namespace lynxtron {
-namespace {
-
-#if BUILDFLAG(IS_LINUX)
-class LinuxWindowlessRenderer : public lynx::pub::LynxWindowlessRenderer {
- public:
-  LinuxWindowlessRenderer()
-      : lynx::pub::LynxWindowlessRenderer(kRendererTypeSoftware) {}
-
-  bool OnSoftwarePresent(const void* allocation,
-                         size_t row_bytes,
-                         size_t height) override {
-    return true;
-  }
-
-  void OnPostTask(lynx_task_t task, uint64_t interval_nanoseconds) override {
-    std::weak_ptr<lynx::pub::LynxWindowlessRenderer> renderer =
-        weak_from_this();
-    GlobalThread::GetUIThreadTaskRunner()->PostDelayedTask(
-        FROM_HERE,
-        base::BindOnce(
-            [](std::weak_ptr<lynx::pub::LynxWindowlessRenderer> renderer,
-               lynx_task_t task) {
-              if (auto locked_renderer = renderer.lock()) {
-                locked_renderer->RunTask(task);
-              }
-            },
-            std::move(renderer), task),
-        base::Nanoseconds(interval_nanoseconds));
-  }
-};
-#endif
-
-}  // namespace
 
 struct LynxViewBuilder::Impl {
   lynx::pub::LynxView::Builder builder;
@@ -102,6 +64,12 @@ LynxViewBuilder& LynxViewBuilder::SetParent(void* parent) {
 LynxViewBuilder& LynxViewBuilder::SetGenericResourceFetcher(
     std::shared_ptr<lynx::pub::LynxGenericResourceFetcher> fetcher) {
   impl_->builder.SetGenericResourceFetcher(fetcher);
+  return *this;
+}
+
+LynxViewBuilder& LynxViewBuilder::SetWindowlessRenderer(
+    std::shared_ptr<lynx::pub::LynxWindowlessRenderer> renderer) {
+  impl_->builder.SetWindowlessRenderer(std::move(renderer));
   return *this;
 }
 
@@ -156,11 +124,6 @@ std::unique_ptr<LynxView> LynxViewBuilder::Build() {
 
   SetGenericResourceFetcher(
       LynxGenericResourceFetcherFactory::Create(lynx_window_));
-
-#if BUILDFLAG(IS_LINUX)
-  impl_->builder.SetWindowlessRenderer(
-      std::make_shared<LinuxWindowlessRenderer>());
-#endif
 
   if (!node_integration_preload_.empty()) {
     RegisterLynxNodeModuleToLynxView(impl_->builder.Impl(),

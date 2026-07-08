@@ -56,16 +56,24 @@ v8::Local<v8::Value> ToBuffer(v8::Isolate* isolate,
 }  // namespace
 
 BaseWindow::BaseWindow(v8::Isolate* isolate,
-                       const gin_helper::Dictionary& options) {
+                       const gin_helper::Dictionary& options)
+    : BaseWindow(isolate, options, nullptr) {}
+
+BaseWindow::BaseWindow(v8::Isolate* isolate,
+                       const gin_helper::Dictionary& options,
+                       std::unique_ptr<NativeWindow> window) {
   // The parent window.
   gin_helper::Handle<BaseWindow> parent;
   if (options.Get("parent", &parent) && !parent.IsEmpty()) {
     parent_window_.Reset(isolate, parent.ToV8());
   }
 
-  // Creates NativeWindow.
-  window_.reset(NativeWindow::Create(
-      options, parent.IsEmpty() ? nullptr : parent->window_.get()));
+  // Creates or accepts NativeWindow.
+  window_ = std::move(window);
+  if (!window_) {
+    window_.reset(NativeWindow::Create(
+        options, parent.IsEmpty() ? nullptr : parent->window_.get()));
+  }
 
   window_->AddObserver(this);
 

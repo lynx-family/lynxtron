@@ -22,9 +22,11 @@
 #include "shell/api/lynx_view/lynx_update_meta.h"
 #include "shell/api/lynx_view/lynx_view.h"
 #include "shell/api/lynx_view/lynx_view_builder.h"
+#include "shell/api/lynx_view/windowless_renderer.h"
 #include "shell/api/lynx_view_state_observer.h"
 #include "shell/api/lynx_window_manager.h"
 #include "shell/app/application.h"
+#include "shell/app/native_window_windowless.h"
 #include "shell/app/window_list.h"
 #include "shell/common/asar/archive.h"
 #include "shell/common/asar/asar_util.h"
@@ -145,6 +147,26 @@ bool ExtractTemplateDataObject(v8::Isolate* isolate,
   return true;
 }
 
+bool ShouldCreateWindowlessNativeWindow(const gin_helper::Dictionary& options) {
+  return options.ValueOrDefault(options::kWindowless, false);
+}
+
+std::unique_ptr<NativeWindow> CreateLynxNativeWindow(
+    const gin_helper::Dictionary& options) {
+  gin_helper::Handle<api::BaseWindow> parent;
+  NativeWindow* parent_window = nullptr;
+  if (options.Get("parent", &parent) && !parent.IsEmpty()) {
+    parent_window = parent->window();
+  }
+
+  if (ShouldCreateWindowlessNativeWindow(options)) {
+    return std::make_unique<NativeWindowWindowless>(options, parent_window);
+  }
+
+  return std::unique_ptr<NativeWindow>(
+      NativeWindow::Create(options, parent_window));
+}
+
 std::string ToFileUrl(const base::FilePath& path) {
   std::string normalized = path.AsUTF8Unsafe();
   std::replace(normalized.begin(), normalized.end(), '\\', '/');
@@ -174,6 +196,11 @@ LynxContentMetrics GetLynxContentMetrics(NativeWindow* window) {
   float width = window->GetContentSize().width();
   float height = window->GetContentSize().height();
 #if BUILDFLAG(IS_WIN)
+  if (window->IsWindowless()) {
+    return {.width = width,
+            .height = height,
+            .device_pixel_ratio = device_pixel_ratio};
+  }
   RECT client_rect{};
   ::GetClientRect(window->GetNativeWindowHandle(), &client_rect);
   width = static_cast<float>(client_rect.right - client_rect.left) /
@@ -240,7 +267,7 @@ enum class ErrorCode : int32_t { kOK = 0, kFatalError = 100 };
 
 LynxWindow::LynxWindow(gin::Arguments* args,
                        const gin_helper::Dictionary& options)
-    : BaseWindow(args->isolate(), options) {
+    : BaseWindow(args->isolate(), options, CreateLynxNativeWindow(options)) {
   InitWithArgs(args);
   // TODO(Guo Xi): support software render.
   options.Get("software_render", &software_render_);
@@ -257,7 +284,7 @@ LynxWindow::LynxWindow(gin::Arguments* args,
   bool transparent = false;
   options.Get(options::kTransparent, &transparent);
 #if BUILDFLAG(IS_WIN)
-  if (transparent) {
+  if (transparent && !window_->IsWindowless()) {
     UpdateFramebufferTransparency(window_->GetNativeWindowHandle());
     ::SetLayeredWindowAttributes(window_->GetNativeWindowHandle(), RGB(0, 0, 0),
                                  255, LWA_COLORKEY);
@@ -347,9 +374,9 @@ void LynxWindow::OnWindowResize() {
 
 #if BUILDFLAG(IS_WIN)
   // Update LynxView native window size to match client area
-  RECT win_rect{};
-  ::GetClientRect(window_->GetNativeWindowHandle(), &win_rect);
-  if (lynx_view_) {
+  if (lynx_view_ && !window_->IsWindowless()) {
+    RECT win_rect{};
+    ::GetClientRect(window_->GetNativeWindowHandle(), &win_rect);
     HWND lynx_hwnd = reinterpret_cast<HWND>(lynx_view_->GetNativeWindow());
     if (lynx_hwnd) {
       const int w = win_rect.right - win_rect.left;
@@ -490,9 +517,11 @@ void LynxWindow::EnsureLynxView() {
       .SetFrame(0, 0, metrics.width, metrics.height)
       .SetNodeIntegrationPreload(node_integration_preload_)
       .SetLynxWindow(GetWeakPtr());
-#if !BUILDFLAG(IS_LINUX)
-  builder.SetParent(window_->GetNativeWindowHandle());
-#endif
+  if (window_->IsWindowless()) {
+    builder.SetWindowlessRenderer(CreateWindowlessRenderer());
+  } else {
+    builder.SetParent(window_->GetNativeWindowHandle());
+  }
 
   if (lynx_view_state_observer_) {
     lynx_view_state_observer_->OnPreLynxViewCreate(&builder);

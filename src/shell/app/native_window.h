@@ -90,6 +90,7 @@ class NativeWindow : public base::SupportsUserData {
   virtual void Close() = 0;
   virtual void CloseImmediately() = 0;
   virtual bool IsClosed() const;
+  virtual bool IsWindowless() const;
   virtual void Focus(bool focus) = 0;
   virtual bool IsFocused() = 0;
   virtual void Show() = 0;

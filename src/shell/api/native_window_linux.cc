@@ -4,6 +4,8 @@
 
 #include "shell/app/native_window.h"
 
+#include "base/notreached.h"
+
 namespace lynxtron {
 
 namespace {
@@ -11,7 +13,10 @@ namespace {
 class NativeWindowLinux : public NativeWindow {
  public:
   NativeWindowLinux(const gin_helper::Dictionary& options, NativeWindow* parent)
-      : NativeWindow(options, parent), bounds_(0, 0, width(), height()) {}
+      : NativeWindow(options, parent), bounds_(0, 0, width(), height()) {
+    NOTREACHED() << "Linux native window is not implemented. Use "
+                    "NativeWindowWindowless with windowless mode instead.";
+  }
 
   void Close() override { CloseImmediately(); }
   void CloseImmediately() override {}

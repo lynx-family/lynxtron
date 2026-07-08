@@ -5,3 +5,4 @@ build_change_mac_sdk_min_to_14_from_15.patch
 0002-adapt-lynx-trace.patch
 0003-BugFix-disable-cet.patch
 build_add_lynxtron_size_optimization_defaults.patch
+build_add_linux_warning_config_flags.patch
