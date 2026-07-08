@@ -1,0 +1,9 @@
+# Copyright 2026 The Lynxtron Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+
+# This is a Linux build stub for Chromium's //base/test:test_support dependency.
+# Lynxtron's current Linux target does not ship or use test font resources, but
+# GN still needs this target to exist when base/test is loaded.
+group("test_support") {
+}

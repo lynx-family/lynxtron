@@ -10,7 +10,9 @@
 #define LYNXTRON_SHELL_COMMON_GIN_CONVERTERS_STD_CONVERTER_H_
 
 #include <array>
+#include <climits>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <set>
@@ -63,6 +65,7 @@ struct Converter<std::array<T, N>> {
   }
 };
 
+#if ULONG_MAX != UINT64_MAX
 template <>
 struct Converter<unsigned long> {  // NOLINT(runtime/int)
   static v8::Local<v8::Value> ToV8(v8::Isolate* isolate,
@@ -80,6 +83,7 @@ struct Converter<unsigned long> {  // NOLINT(runtime/int)
     return true;
   }
 };
+#endif
 
 template <>
 struct Converter<std::nullptr_t> {

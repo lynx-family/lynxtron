@@ -80,7 +80,7 @@ bool IsRunAsNode() {
 
 #if BUILDFLAG(IS_WIN)
 int LynxtronMain() {
-#elif BUILDFLAG(IS_MAC)
+#elif BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
 int LynxtronMain(int argc, char* argv[]) {
 #endif
 #if BUILDFLAG(IS_MAC)
@@ -113,7 +113,7 @@ int LynxtronMain(int argc, char* argv[]) {
     lynxtron::LynxtronCommandLine::Init(argc, argv);
     LocalFree(argv);
   }
-#elif BUILDFLAG(IS_MAC)
+#elif BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
   base::CommandLine::Init(argc, argv);
   lynxtron::LynxtronCommandLine::Init(argc, argv);
 #endif

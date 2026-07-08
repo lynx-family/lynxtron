@@ -29,6 +29,9 @@ component("crdtp") {
   ]
 
   defines = [ "CRDTP_IMPLEMENTATION" ]
+  if (is_linux) {
+    defines += [ "CRDTP_USE_NODE_STRING_TRAITS" ]
+  }
 
   # Disable max speed optimizations for size-sensitive platforms.
   if (!is_debug && !is_fuchsia) {

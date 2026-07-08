@@ -73,6 +73,11 @@ using NativeCursor = HCURSOR;
 using NativeView = HWND;
 using NativeWindow = HWND;
 using NativeEvent = MSG*;
+#elif BUILDFLAG(IS_LINUX)
+using NativeCursor = void*;
+using NativeView = void*;
+using NativeWindow = void*;
+using NativeEvent = void*;
 #elif BUILDFLAG(IS_MAC)
 using NativeCursor = base::apple::OwnedNSCursor;
 using NativeEvent = base::apple::OwnedNSEvent;

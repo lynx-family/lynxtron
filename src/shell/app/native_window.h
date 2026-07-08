@@ -63,8 +63,10 @@ class NativeBrowserView;
 
 #if BUILDFLAG(IS_MAC)
 using NativeWindowHandle = NSView*;
-#else
+#elif BUILDFLAG(IS_WIN)
 using NativeWindowHandle = HWND;
+#elif BUILDFLAG(IS_LINUX)
+using NativeWindowHandle = void*;
 #endif
 
 class NativeWindow : public base::SupportsUserData {

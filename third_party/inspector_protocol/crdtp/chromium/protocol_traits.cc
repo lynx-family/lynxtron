@@ -4,6 +4,7 @@
 
 #include "third_party/inspector_protocol/crdtp/chromium/protocol_traits.h"
 
+#include <string>
 #include <string_view>
 #include <utility>
 
@@ -73,8 +74,9 @@ bool ProtocolTypeTraits<Binary>::Deserialize(DeserializerState* state,
         std::string_view(reinterpret_cast<const char*>(str_span.data()),
                          str_span.size()),
         &success);
-    if (!success)
+    if (!success) {
       state->RegisterError(Error::BINDINGS_INVALID_BASE64_STRING);
+    }
     return success;
   }
   state->RegisterError(Error::BINDINGS_BINARY_VALUE_EXPECTED);
@@ -86,6 +88,7 @@ void ProtocolTypeTraits<Binary>::Serialize(const Binary& value,
   value.AppendSerialized(bytes);
 }
 
+#if !defined(CRDTP_USE_NODE_STRING_TRAITS)
 // static
 bool ProtocolTypeTraits<std::string>::Deserialize(DeserializerState* state,
                                                   std::string* value) {
@@ -107,6 +110,7 @@ bool ProtocolTypeTraits<std::string>::Deserialize(DeserializerState* state,
   state->RegisterError(Error::BINDINGS_STRING_VALUE_EXPECTED);
   return false;
 }
+#endif  // !defined(CRDTP_USE_NODE_STRING_TRAITS)
 
 namespace {
 
@@ -122,8 +126,9 @@ void SerializeDict(const Iterable& iterable, std::vector<uint8_t>* bytes) {
 
 bool DeserializeDict(DeserializerState* state, base::Value::Dict* dict) {
   cbor::CBORTokenizer* tokenizer = state->tokenizer();
-  if (tokenizer->TokenTag() == cbor::CBORTokenTag::ENVELOPE)
+  if (tokenizer->TokenTag() == cbor::CBORTokenTag::ENVELOPE) {
     tokenizer->EnterEnvelope();
+  }
   if (tokenizer->TokenTag() != cbor::CBORTokenTag::MAP_START) {
     state->RegisterError(Error::CBOR_MAP_START_EXPECTED);
     return false;
@@ -138,8 +143,9 @@ bool DeserializeDict(DeserializerState* state, base::Value::Dict* dict) {
     std::string name(reinterpret_cast<const char*>(key.data()), key.size());
     tokenizer->Next();
     base::Value value;
-    if (!ProtocolTypeTraits<base::Value>::Deserialize(state, &value))
+    if (!ProtocolTypeTraits<base::Value>::Deserialize(state, &value)) {
       return false;
+    }
     dict->Set(name, std::move(value));
   }
   return true;
@@ -147,11 +153,13 @@ bool DeserializeDict(DeserializerState* state, base::Value::Dict* dict) {
 
 }  // namespace
 
+#if !defined(CRDTP_USE_NODE_STRING_TRAITS)
 // static
 void ProtocolTypeTraits<std::string>::Serialize(const std::string& str,
                                                 std::vector<uint8_t>* bytes) {
   cbor::EncodeString8(SpanFrom(str), bytes);
 }
+#endif  // !defined(CRDTP_USE_NODE_STRING_TRAITS)
 
 // static
 bool ProtocolTypeTraits<base::Value>::Deserialize(DeserializerState* state,
@@ -198,8 +206,9 @@ bool ProtocolTypeTraits<base::Value>::Deserialize(DeserializerState* state,
 
     case cbor::CBORTokenTag::MAP_START: {
       base::Value::Dict dict;
-      if (!DeserializeDict(state, &dict))
+      if (!DeserializeDict(state, &dict)) {
         return false;
+      }
       *value = base::Value(std::move(dict));
       break;
     }
@@ -264,8 +273,9 @@ void ProtocolTypeTraits<base::Value>::Serialize(const base::Value& value,
     case base::Value::Type::LIST: {
       ContainerSerializer serializer(bytes,
                                      cbor::EncodeIndefiniteLengthArrayStart());
-      for (const auto& item : value.GetList())
+      for (const auto& item : value.GetList()) {
         ProtocolTypeTraits<base::Value>::Serialize(item, bytes);
+      }
       serializer.EncodeStop();
       return;
     }
@@ -291,8 +301,9 @@ bool ProtocolTypeTraits<traits::ListValue>::Deserialize(
     DeserializerState* state,
     traits::ListValue* value) {
   auto* tokenizer = state->tokenizer();
-  if (tokenizer->TokenTag() == cbor::CBORTokenTag::ENVELOPE)
+  if (tokenizer->TokenTag() == cbor::CBORTokenTag::ENVELOPE) {
     tokenizer->EnterEnvelope();
+  }
   if (tokenizer->TokenTag() != cbor::CBORTokenTag::ARRAY_START) {
     state->RegisterError(Error::CBOR_ARRAY_START_EXPECTED);
     return false;
@@ -301,8 +312,9 @@ bool ProtocolTypeTraits<traits::ListValue>::Deserialize(
   tokenizer->Next();
   for (; tokenizer->TokenTag() != cbor::CBORTokenTag::STOP; tokenizer->Next()) {
     base::Value next_value;
-    if (!ProtocolTypeTraits<base::Value>::Deserialize(state, &next_value))
+    if (!ProtocolTypeTraits<base::Value>::Deserialize(state, &next_value)) {
       return false;
+    }
     value->Append(std::move(next_value));
   }
   return true;
@@ -313,8 +325,9 @@ void ProtocolTypeTraits<traits::ListValue>::Serialize(
     std::vector<uint8_t>* bytes) {
   ContainerSerializer container_serializer(
       bytes, cbor::EncodeIndefiniteLengthArrayStart());
-  for (const auto& item : value)
+  for (const auto& item : value) {
     ProtocolTypeTraits<base::Value>::Serialize(item, bytes);
+  }
   container_serializer.EncodeStop();
 }
 

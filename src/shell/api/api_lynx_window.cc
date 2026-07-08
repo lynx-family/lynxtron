@@ -488,9 +488,11 @@ void LynxWindow::EnsureLynxView() {
   builder
       .SetScreenSize(metrics.width, metrics.height, metrics.device_pixel_ratio)
       .SetFrame(0, 0, metrics.width, metrics.height)
-      .SetParent(window_->GetNativeWindowHandle())
       .SetNodeIntegrationPreload(node_integration_preload_)
       .SetLynxWindow(GetWeakPtr());
+#if !BUILDFLAG(IS_LINUX)
+  builder.SetParent(window_->GetNativeWindowHandle());
+#endif
 
   if (lynx_view_state_observer_) {
     lynx_view_state_observer_->OnPreLynxViewCreate(&builder);

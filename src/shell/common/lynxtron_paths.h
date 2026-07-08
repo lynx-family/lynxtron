@@ -46,6 +46,9 @@ enum {
 
   DIR_USER_DATA,
   DIR_APP_DICTIONARIES,
+#if BUILDFLAG(IS_LINUX)
+  DIR_APP_DATA,
+#endif
 
   // TODO(Guo Xi) : review PATH_END
   PATH_END,  // End of new paths. Those that follow redirect to base::DIR_*

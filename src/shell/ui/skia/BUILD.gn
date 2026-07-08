@@ -21,11 +21,13 @@ component("skia_ext") {
     "ext/skcolorspace_primaries.h",
   ]
   sources = [
-    "ext/SkMemory_new_handler.cpp",
     "ext/convolver.cc",
     "ext/image_operations.cc",
     "ext/skcolorspace_primaries.cc",
   ]
+  if (!is_linux) {
+    sources += [ "ext/SkMemory_new_handler.cpp" ]
+  }
 
   if (is_mac) {
     public += [ "ext/skia_utils_mac.h" ]

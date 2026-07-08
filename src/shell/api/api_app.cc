@@ -459,6 +459,18 @@ ProcessMemoryInfo GetMemoryInfo() {
   return result;
 }
 
+#elif BUILDFLAG(IS_LINUX)
+
+ProcessMemoryInfo GetMemoryInfo() {
+  ProcessMemoryInfo result;
+  auto metrics = base::ProcessMetrics::CreateCurrentProcessMetrics();
+  if (auto info = metrics->GetMemoryInfo(); info.has_value()) {
+    result.working_set_size = info->resident_set_bytes;
+    result.peak_working_set_size = info->resident_set_bytes;
+  }
+  return result;
+}
+
 #endif
 
 }  // namespace
@@ -992,6 +1004,8 @@ std::string App::GetDeviceModel() {
   return std::string();
 #elif BUILDFLAG(IS_MAC)
   return base::SysInfo::HardwareModelName();
+#else
+  return std::string();
 #endif
 }
 
