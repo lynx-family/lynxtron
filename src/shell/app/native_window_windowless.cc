@@ -216,7 +216,7 @@ bool NativeWindowWindowless::IsActive() const {
 }
 
 gfx::NativeWindow NativeWindowWindowless::GetNativeWindow() const {
-  return nullptr;
+  return gfx::NativeWindow();
 }
 
 void NativeWindowWindowless::SetWindowButtonVisibility(bool visible) {
