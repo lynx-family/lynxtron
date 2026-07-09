@@ -51,11 +51,23 @@ void PostLynxWindowlessUITask(lynx_task_t task,
 class NoopWindowlessRenderer : public lynx::pub::LynxWindowlessRenderer {
  public:
   NoopWindowlessRenderer()
-      : lynx::pub::LynxWindowlessRenderer(kRendererTypeSoftware) {}
+      : lynx::pub::LynxWindowlessRenderer(kRendererTypeAccelerated) {}
 
-  bool OnSoftwarePresent(const void* allocation,
-                         size_t row_bytes,
-                         size_t height) override {
+  bool OnAcceleratedPresent() override {
+    std::weak_ptr<lynx::pub::LynxWindowlessRenderer> renderer =
+        weak_from_this();
+    GlobalThread::GetUIThreadTaskRunner()->PostTask(
+        FROM_HERE,
+        base::BindOnce(
+            [](std::weak_ptr<lynx::pub::LynxWindowlessRenderer> renderer) {
+              if (auto locked_renderer = renderer.lock()) {
+                lynx_accelerated_paint_info_t paint_info;
+                locked_renderer->GetAcceleratedPaintInfo(&paint_info);
+              } else {
+                LOG(ERROR) << "OnAcceleratedPresent renderer is null";
+              }
+            },
+            std::move(renderer)));
     return true;
   }
 
