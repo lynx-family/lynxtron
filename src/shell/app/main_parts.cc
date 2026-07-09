@@ -24,6 +24,7 @@
 #include "gin/v8_initializer.h"
 #include "main_parts_delegate.h"
 #include "shell/api/lynx_view/lynx_view.h"
+#include "shell/api/lynx_view/windowless_renderer.h"
 #include "shell/api/lynxtron_bindings.h"
 #include "shell/app/icon_manager.h"
 #include "shell/app/javascript_environment.h"
@@ -140,6 +141,9 @@ void MainParts::Initialize() {
   base::PathService::RegisterProvider(PathProvider, PATH_START, PATH_END);
 
   global_thread_ = std::make_unique<GlobalThread>();
+#if BUILDFLAG(IS_LINUX)
+  InitializeWindowlessGlobalUITaskRunner();
+#endif
 
   gin::V8Initializer::LoadV8Snapshot(gin::V8SnapshotFileType::kDefault);
 

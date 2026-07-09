@@ -7,6 +7,8 @@
 
 #include <memory>
 
+#include "build/build_config.h"
+
 namespace lynx {
 namespace pub {
 class LynxWindowlessRenderer;
@@ -14,6 +16,10 @@ class LynxWindowlessRenderer;
 }  // namespace lynx
 
 namespace lynxtron {
+
+#if BUILDFLAG(IS_LINUX)
+void InitializeWindowlessGlobalUITaskRunner();
+#endif
 
 std::shared_ptr<lynx::pub::LynxWindowlessRenderer> CreateWindowlessRenderer();
 
