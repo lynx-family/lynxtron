@@ -48,11 +48,24 @@ void PostLynxWindowlessUITask(lynx_task_t task,
 }
 #endif
 
+lynx_windowless_renderer_type_e GetWindowlessRendererType() {
+#if BUILDFLAG(IS_LINUX)
+  return kRendererTypeSoftware;
+#else
+  return kRendererTypeAccelerated;
+#endif
+}
+
 class NoopWindowlessRenderer : public lynx::pub::LynxWindowlessRenderer {
  public:
   NoopWindowlessRenderer()
-      : lynx::pub::LynxWindowlessRenderer(kRendererTypeAccelerated) {}
+      : lynx::pub::LynxWindowlessRenderer(GetWindowlessRendererType()) {}
 
+  bool OnSoftwarePresent(const void* allocation,
+                         size_t row_bytes,
+                         size_t height) override {
+    return true;
+  }
   bool OnAcceleratedPresent() override {
     std::weak_ptr<lynx::pub::LynxWindowlessRenderer> renderer =
         weak_from_this();
@@ -61,10 +74,8 @@ class NoopWindowlessRenderer : public lynx::pub::LynxWindowlessRenderer {
         base::BindOnce(
             [](std::weak_ptr<lynx::pub::LynxWindowlessRenderer> renderer) {
               if (auto locked_renderer = renderer.lock()) {
-                lynx_accelerated_paint_info_t paint_info;
+                lynx_accelerated_paint_info_t paint_info = {};
                 locked_renderer->GetAcceleratedPaintInfo(&paint_info);
-              } else {
-                LOG(ERROR) << "OnAcceleratedPresent renderer is null";
               }
             },
             std::move(renderer)));
