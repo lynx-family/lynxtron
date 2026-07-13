@@ -25,6 +25,10 @@
       "types": "./dist/rspeedy.d.ts",
       "default": "./dist/rspeedy.js"
     },
+    "./rsbuild": {
+      "types": "./dist/rsbuild.d.ts",
+      "default": "./dist/rsbuild.js"
+    },
     "./rspack": {
       "types": "./dist/rspack.d.ts",
       "default": "./dist/rspack.js"
@@ -34,7 +38,7 @@
     "dev-ready-rspeedy": "bin/cli-rspeedy.js"
   },
   "peerDependencies": {
-    "@rsbuild/core": "^1.6.0"
+    "@rsbuild/core": "^2.1.5"
   },
   "devDependencies": {
     "typescript": "~5.9.3"

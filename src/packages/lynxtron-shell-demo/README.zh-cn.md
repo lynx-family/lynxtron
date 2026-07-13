@@ -6,7 +6,7 @@
 - `lynxtron`
 - `Typscript`
 - `React`
-- `Rspack` + `Electron-Builder` (JS 压缩与应用打包)
+- `Rspeedy` + `Rsbuild` + `Electron-Builder`（构建与应用打包）
 
 ## 特性
 

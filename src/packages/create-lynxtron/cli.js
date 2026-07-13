@@ -188,7 +188,7 @@ async function processTemplate(targetDir, webSupport, appName) {
   // 2. Process markers in config files
   const configFiles = [
     'lynx.config.ts',
-    'rspack.config.ts',
+    'rsbuild.config.ts',
     'README.md',
     'README.zh-cn.md',
     'AGENTS.md',

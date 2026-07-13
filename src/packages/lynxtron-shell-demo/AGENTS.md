@@ -41,7 +41,7 @@ Read the docs below in advance to help you understand the library or frameworks 
     - `web-host.ts`: Browser entry point using `@lynx-js/lynxtron/web-host`.
     - `nodejs_adapter_web.ts`: Web adapter simulating Node.js capabilities in the Lynx Background Worker.
   /* WEB_SUPPORT_END */
-- Config: `lynx.config.ts` (RSpeedy) and `rspack.config.ts` (Host builder).
+- Config: `lynx.config.ts` (RSpeedy) and `rsbuild.config.ts` (Host builder).
 
 ## Common Patterns
 

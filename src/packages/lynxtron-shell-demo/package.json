@@ -6,11 +6,11 @@
   "description": "A minimal Lynxtron application",
   "main": "main.js",
   "scripts": {
-    "dev": "cross-env TARGET_ENV=desktop NODE_ENV=development concurrently -k --prefix none \"rspeedy dev --environment lynx\" \"dev-ready-rspeedy && cross-env NODE_OPTIONS=--import=tsx rspack dev\"",
-    "build": "rspeedy build --environment lynx && cross-env TARGET_ENV=desktop NODE_OPTIONS=--import=tsx rspack build",
+    "dev": "cross-env NODE_ENV=development concurrently -k --prefix none \"rspeedy dev --environment lynx\" \"dev-ready-rspeedy && rsbuild dev --environment desktop\"",
+    "build": "rspeedy build --environment lynx && rsbuild build --environment desktop",
     "start": "npm run build && lynxtron dist/desktop",
-    "dev:web": "cross-env TARGET_ENV=web NODE_ENV=development concurrently -k --prefix node \"rspeedy dev --environment web\" \"cross-env NODE_OPTIONS=--import=tsx rspack serve\"",
-    "build:web": "rspeedy build --environment web && cross-env TARGET_ENV=web NODE_OPTIONS=--import=tsx rspack build",
+    "dev:web": "cross-env NODE_ENV=development concurrently -k --prefix node \"rspeedy dev --environment web\" \"dev-ready-rspeedy && rsbuild dev --environment web\"",
+    "build:web": "rspeedy build --environment web && rsbuild build --environment web",
     "start:web": "npm run build:web && npx serve dist/web",
     "test": "rstest",
     "pack": "npm run build && lynxtron-builder --publish never"
@@ -29,9 +29,8 @@
     "@lynx-js/types": "latest",
     "@lynx-js/web-core": "latest",
     "@lynx-js/web-elements": "latest",
+    "@rsbuild/core": "2.1.5",
     "@rsbuild/plugin-type-check": "latest",
-    "@rspack/cli": "^1.7.5",
-    "@rspack/core": "^1.7.5",
     "@rstest/core": "^0.11.1",
     "@testing-library/jest-dom": "^6.9.0",
     "@types/react": "^18.3.24",
@@ -40,10 +39,9 @@
     "cross-env": "^10.1.0",
     "jsdom": "^26.1.0",
     "tslib": "latest",
-    "tsx": "^4.22.4",
     "typescript": "~5.9.3"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.12.0"
   }
 }

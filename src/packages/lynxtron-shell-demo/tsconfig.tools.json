@@ -10,6 +10,6 @@
   "include": [
     "./lynx.config.ts",
     "./rstest.config.ts",
-    "./rspack.config.ts"
+    "./rsbuild.config.ts"
   ]
 }

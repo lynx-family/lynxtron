@@ -1,9 +1,14 @@
-# Dev Ready RSBuild Plugin
+# Lynxtron Development Plugins
 
-Tiny helper for coordinating multi-process development flows. It marks when your RSBuild/RSpeedy dev server is ready and provides simple CLIs you can gate other processes on.
+Rsbuild, Rspack, and Rspeedy integration for Lynxtron development flows.
 
 ## What It Does
 
+- Integrates a Node-targeted Rsbuild environment with the Electron Main runtime.
+- Runs Lynxtron AutoLink and stages native dependencies described by
+  `lynx.lib.json`.
+- Restarts the Lynxtron process after successful Desktop Host development
+  compilations.
 - Emits a one-time `RSBUILD_READY` line to stdout after the first successful dev compile.
 - Prints the dev server port as `RSBUILD_DEV_SERVER:<port>` when it starts.
 - Writes a `dev-ready.json` marker file with `{ "ready": true, "source": "rspeedy", "time": <epoch_ms> }`.
@@ -19,16 +24,60 @@ In monorepos you often run multiple dev processes at once (e.g. RSBuild app serv
 npm i -D @lynx-js/lynxtron-dev-plugins
 ```
 
-Peer dependency: `@rsbuild/core@^1.6.0`.
+Peer dependency: `@rsbuild/core@^2.1.5`.
 
-## RSBuild Usage
+## Lynxtron Rsbuild Plugin
+
+Register `pluginLynxtron` in a Node-targeted environment. The plugin applies
+the Electron Main target, ESM `__dirname`/`__filename` support, AutoLink,
+production minification, and Lynxtron process restart after development
+compilations.
+
+```ts
+import { defineConfig } from '@rsbuild/core';
+import { pluginLynxtron } from '@lynx-js/lynxtron-dev-plugins/rsbuild';
+
+export default defineConfig({
+  environments: {
+    desktop: {
+      source: {
+        entry: {
+          main: './src/main.ts',
+          preload: './src/preload.ts',
+        },
+      },
+      output: {
+        target: 'node',
+        distPath: {
+          root: './dist/desktop',
+        },
+      },
+      dev: {
+        writeToDisk: true,
+      },
+      plugins: [
+        pluginLynxtron({
+          args: ['--inspect=9222'],
+        }),
+      ],
+    },
+  },
+});
+```
+
+The development entry defaults to the environment output directory. Pass
+`entry` to override it, `autolink: false` to disable AutoLink, or
+`watchOptions` to replace the default UI-path watch exclusions. `args`, `env`,
+and `command` are forwarded to the Lynxtron development process.
+
+## Rspeedy Ready Usage
 
 Register the plugin only for `serve`:
 
 ```ts
 // rsbuild.config.ts
 import { defineConfig } from '@rsbuild/core';
-import { pluginRspeedyDevReady } from '@lynx-js/lynxtron-dev-plugins';
+import { pluginRspeedyDevReady } from '@lynx-js/lynxtron-dev-plugins/rspeedy';
 
 export default defineConfig({
   plugins: [pluginRspeedyDevReady()],
@@ -37,9 +86,10 @@ export default defineConfig({
 
 ## Rspack Usage
 
-Use `pluginLynxtron` in the desktop host Rspack config. It includes Lynxtron
-AutoLink by default, so dependencies with `lynx.lib.json` and a `lynxtron`
-platform record are staged and loaded automatically.
+The lower-level Rspack plugin remains available for projects that do not use
+Rsbuild. It includes Lynxtron AutoLink by default, so dependencies with
+`lynx.lib.json` and a `lynxtron` platform record are staged and loaded
+automatically.
 
 For `lynxtron`, `lynx.lib.json` describes the native asset root, such as
 `dist`, while the package's `./lynxtron` export provides the JS entry.

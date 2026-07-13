@@ -6,7 +6,7 @@
 - `lynxtron`
 - `TypeScript`
 - `React`
-- `Rspack` + `Electron-Builder` (JS minification and application packaging)
+- `Rspeedy` + `Rsbuild` + `Electron-Builder` (bundling and application packaging)
 
 ## Features
 

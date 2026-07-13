@@ -9,6 +9,15 @@ let lynxtronProcess: ReturnType<typeof spawn> | null = null;
 let queue = Promise.resolve<ReturnType<typeof spawn> | null>(null);
 const isWin = process.platform === 'win32';
 
+export interface PluginLynxtronRspackOptions {
+  isDev?: boolean;
+  entry?: string;
+  args?: string[];
+  autolink?: boolean;
+  env?: Record<string, string>;
+  command?: string;
+}
+
 function debounce(func: (...args: any[]) => void, wait: number) {
   let timeout: NodeJS.Timeout;
   return function (this: any, ...args: any[]) {
@@ -57,16 +66,7 @@ const restartLynxtron = debounce(
   300
 );
 
-export function pluginLynxtron(
-  options: {
-    isDev?: boolean;
-    entry?: string;
-    args?: string[];
-    autolink?: boolean;
-    env?: Record<string, string>;
-    command?: string;
-  } = {}
-): any {
+export function pluginLynxtron(options: PluginLynxtronRspackOptions = {}): any {
   const { isDev, entry, args = [], autolink = true, env, command } = options;
   return {
     name: 'lynxtron-plugin',
