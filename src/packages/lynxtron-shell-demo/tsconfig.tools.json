@@ -9,7 +9,7 @@
   },
   "include": [
     "./lynx.config.ts",
-    "./vitest.config.ts",
+    "./rstest.config.ts",
     "./rspack.config.ts"
   ]
 }

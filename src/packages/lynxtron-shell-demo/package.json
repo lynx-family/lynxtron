@@ -12,7 +12,7 @@
     "dev:web": "cross-env TARGET_ENV=web NODE_ENV=development concurrently -k --prefix node \"rspeedy dev --environment web\" \"cross-env NODE_OPTIONS=--import=tsx rspack serve\"",
     "build:web": "rspeedy build --environment web && cross-env TARGET_ENV=web NODE_OPTIONS=--import=tsx rspack build",
     "start:web": "npm run build:web && npx serve dist/web",
-    "test": "vitest run",
+    "test": "rstest",
     "pack": "npm run build && lynxtron-builder --publish never"
   },
   "private": true,
@@ -32,6 +32,7 @@
     "@rsbuild/plugin-type-check": "latest",
     "@rspack/cli": "^1.7.5",
     "@rspack/core": "^1.7.5",
+    "@rstest/core": "^0.11.1",
     "@testing-library/jest-dom": "^6.9.0",
     "@types/react": "^18.3.24",
     "compressing": "^1.10.0",
@@ -40,8 +41,7 @@
     "jsdom": "^26.1.0",
     "tslib": "latest",
     "tsx": "^4.22.4",
-    "typescript": "~5.9.3",
-    "vitest": "^3.2.4"
+    "typescript": "~5.9.3"
   },
   "engines": {
     "node": ">=22"
