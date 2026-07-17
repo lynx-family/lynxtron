@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: lynxtron <lynxtron@lynxjs.com>
+Date: Fri, 17 Jul 2026 14:00:00 +0800
+Subject: [PATCH] Enable windowless embedder for Lynxtron
+
+Lynxtron sets desktop_enable_embedder_layer and uses the windowless renderer
+while retaining the desktop compositor services. Enable the renderer sources
+for that configuration without linking the headless fallback compositor
+implementations that conflict with the desktop implementations.
+
+---
+ platform/embedder/BUILD.gn            | 6 ++++--
+ platform/embedder/windowless/BUILD.gn | 1 -
+ 2 files changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/platform/embedder/BUILD.gn b/platform/embedder/BUILD.gn
+index fad7be698..def864282 100644
+--- a/platform/embedder/BUILD.gn
++++ b/platform/embedder/BUILD.gn
+@@ -6,9 +6,11 @@ import("../../core/Lynx.gni")
+ import("../../testing/test.gni")
+ 
+ # macOS/Windows window targets can be built with `is_headless=true`, but
+-# node-lynx is still a true windowless embedder.
++# desktop embedders explicitly opting into the embedder layer also need the
++# windowless renderer implementation.
+ enable_windowless_embedder =
+-    is_headless && (!(is_mac || is_win) || is_oliver_node_lynx)
++    is_headless && (desktop_enable_embedder_layer || !(is_mac || is_win) ||
++                    is_oliver_node_lynx)
+ 
+ config("public_api") {
+   include_dirs = [ "./public" ]
+diff --git a/platform/embedder/windowless/BUILD.gn b/platform/embedder/windowless/BUILD.gn
+index a91d9d3a6..c1847435d 100644
+--- a/platform/embedder/windowless/BUILD.gn
++++ b/platform/embedder/windowless/BUILD.gn
+@@ -19,7 +19,6 @@ lynx_core_source_set("windowless") {
+   ]
+   deps = [
+     "../../../clay/lynx_adaptor:resource_loader_embedder",
+-    "../../../clay/shell/common:compositor_service_fallback",
+     "../../../clay/shell/platform/headless:headless",
+     "../../../clay/ui:ui",
+   ]
+-- 
+2.49.0

@@ -11,8 +11,21 @@ deps = {
     '../lynx': {
         'type': 'solution',
         'url': 'https://github.com/lynx-family/lynx.git',
-        'commit': '0e46d6bc2aa2b0be4cf5928dffe2303c44507c36',
+        'commit': '8c80f176b4eaf3b5ac6d7cad92eada116cd2cce6',
         "deps_file": "dependencies/DEPS.lynxtron",
+        "ignore_in_git": True,
+    },
+    '../third_party/ServalKit': {
+        'type': 'git',
+        'url': 'https://github.com/lynx-family/serval-kit.git',
+        'commit': '2dbed1d8927bc3a2e13d21ebd5d74460ba57dbbf',
+        "ignore_in_git": True,
+        'condition': system in ['windows', 'darwin'],
+    },
+    '../lynx/third_party/quickjs/src': {
+        'type': 'git',
+        'url': 'https://github.com/lynx-family/primjs.git',
+        'commit': 'eb435db4ac9d07bb97bd08a754dd9bde25d41695',
         "ignore_in_git": True,
     },
 }

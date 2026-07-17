@@ -32,6 +32,7 @@ class Devtool : public gin_helper::DeprecatedWrappable<Devtool> {
   bool IsDevtoolEnabled();
   void SetLogboxEnabled(bool enable);
   bool IsLogboxEnabled();
+  v8::Local<v8::Value> GetLocalEndpoint(gin::Arguments* args);
   void SetOpenCardCallback(gin::Arguments* args);
   void ConnectDevtool(std::string url);
 };

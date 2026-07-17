@@ -277,6 +277,10 @@ void LynxViewImpl::SetFrame(float x, float y, float width, float height) {
   lynx_view_->SetFrame(x, y, width, height);
 }
 
+bool LynxViewImpl::GetDevtoolTarget(lynx::pub::LynxDevtoolTarget* target) {
+  return lynx_view_->GetDevtoolTarget(target);
+}
+
 void* LynxViewImpl::GetNativeWindow() {
   return lynx_view_->GetNativeWindow();
 }

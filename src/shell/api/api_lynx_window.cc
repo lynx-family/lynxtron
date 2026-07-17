@@ -17,6 +17,7 @@
 #include "base/task/single_thread_task_runner.h"
 #include "gin/converter.h"
 #include "lynx/platform/embedder/public/capi/lynx_env_capi.h"
+#include "lynx/platform/embedder/public/lynx_view.h"
 #include "shell/api/api_app.h"
 #include "shell/api/api_lynx_template_bundle.h"
 #include "shell/api/lynx_view/lynx_update_meta.h"
@@ -949,6 +950,29 @@ bool LynxWindow::SendGlobalEvent(const std::string& name,
   return true;
 }
 
+v8::Local<v8::Value> LynxWindow::GetDevtoolTarget(gin::Arguments* args) {
+  v8::Isolate* isolate = args->isolate();
+  if (!lynx_view_) {
+    return v8::Null(isolate);
+  }
+
+  const int port = lynx_env_get_devtool_local_port();
+  if (port <= 0) {
+    return v8::Null(isolate);
+  }
+
+  lynx::pub::LynxDevtoolTarget native_target{};
+  if (!lynx_view_->GetDevtoolTarget(&native_target)) {
+    return v8::Null(isolate);
+  }
+
+  gin_helper::Dictionary target = gin::Dictionary::CreateEmpty(isolate);
+  target.Set("clientId", std::string("localhost:") + std::to_string(port));
+  target.Set("sessionId", native_target.session_id);
+  target.Set("url", native_target.url);
+  return target.GetHandle();
+}
+
 // static
 gin_helper::WrappableBase* LynxWindow::New(gin_helper::ErrorThrower thrower,
                                            gin::Arguments* args) {
@@ -980,7 +1004,8 @@ void LynxWindow::BuildPrototype(v8::Isolate* isolate,
       .SetMethod("loadBundle", &LynxWindow::LoadBundle)
       .SetMethod("updateMetaData", &LynxWindow::UpdateMetaData)
       .SetMethod("setGlobalProps", &LynxWindow::SetGlobalProps)
-      .SetMethod("sendGlobalEvent", &LynxWindow::SendGlobalEvent);
+      .SetMethod("sendGlobalEvent", &LynxWindow::SendGlobalEvent)
+      .SetMethod("getDevtoolTarget", &LynxWindow::GetDevtoolTarget);
 }
 
 // static

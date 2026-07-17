@@ -1,10 +1,17 @@
-import { LynxWindow } from '@lynx-js/lynxtron';
+import { LynxWindow, devtool } from '@lynx-js/lynxtron';
 import type {
+  DevtoolEndpoint,
+  DevtoolTarget,
   LynxBridgeInvokeListener,
   LynxBridgeMessageListener,
 } from '@lynx-js/lynxtron';
 
 const win = new LynxWindow({ width: 800, height: 600 });
+
+const endpoint: DevtoolEndpoint | null = devtool.getLocalEndpoint();
+const target: DevtoolTarget | null = win.getDevtoolTarget();
+void endpoint;
+void target;
 
 const invokeListener: LynxBridgeInvokeListener = (
   event,

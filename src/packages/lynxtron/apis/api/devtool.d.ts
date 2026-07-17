@@ -2,6 +2,13 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
+export interface DevtoolEndpoint {
+  transport: 'tcp';
+  host: '127.0.0.1';
+  port: number;
+  url: string;
+}
+
 export interface Devtool {
   /**
    * Set whether to enable the Lynx devtool.
@@ -19,6 +26,11 @@ export interface Devtool {
    * Get whether the Lynx logbox is enabled.
    */
   isLogboxEnabled(): boolean;
+  /**
+   * Return the local DebugRouter endpoint, or `null` before its listener is
+   * ready.
+   */
+  getLocalEndpoint(): DevtoolEndpoint | null;
   /**
    * Set the callback for handling open-card requests from the Lynx devtool.
    * Pass null to clear the current callback.

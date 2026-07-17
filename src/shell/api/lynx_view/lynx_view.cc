@@ -98,6 +98,10 @@ void LynxView::SetFrame(float x, float y, float width, float height) {
   impl_->SetFrame(x, y, width, height);
 }
 
+bool LynxView::GetDevtoolTarget(lynx::pub::LynxDevtoolTarget* target) {
+  return impl_->GetDevtoolTarget(target);
+}
+
 void* LynxView::GetNativeWindow() {
   return impl_->GetNativeWindow();
 }

@@ -96,6 +96,7 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
   bool SetGlobalProps(const gin_helper::Dictionary& global_props);
   bool SendGlobalEvent(const std::string& name,
                        const gin_helper::Dictionary& json);
+  v8::Local<v8::Value> GetDevtoolTarget(gin::Arguments* args);
   bool ReloadTemplate(const gin_helper::Dictionary& data,
                       const gin_helper::Dictionary& global_props);
 

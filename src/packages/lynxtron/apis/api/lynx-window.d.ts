@@ -17,6 +17,14 @@ export interface LynxPreference {
   preload?: string;
 }
 
+export interface DevtoolTarget {
+  /** Client identifier accepted by the desktop DevTool CLI. */
+  clientId: string;
+  sessionId: number;
+  /** URL of the Lynx page attached to this DebugRouter session. */
+  url: string;
+}
+
 export interface LynxWindowConstructorOptions {
   /**
    * Window's width in pixels. Default is `800`.
@@ -340,6 +348,11 @@ export declare class LynxWindow extends BaseWindow {
    * The window that is focused in this application, otherwise returns `null`.
    */
   static getFocusedWindow(): LynxWindow | null;
+  /**
+   * Returns this window's current DebugRouter target, or `null` before the
+   * Lynx page is attached to DevTool.
+   */
+  getDevtoolTarget(): DevtoolTarget | null;
   tabbingIdentifier: string;
   /**
    * Starts loading a Lynx bundle from a local file path.

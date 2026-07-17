@@ -2,7 +2,12 @@
 // Licensed under the Apache License Version 2.0 that can be
 // found in the LICENSE file in the root directory of this source tree.
 
-import { LynxTemplateData, LynxUpdateMeta, LynxWindow } from 'lynxtron';
+import {
+  devtool,
+  LynxTemplateData,
+  LynxUpdateMeta,
+  LynxWindow,
+} from 'lynxtron';
 import { expect } from 'chai';
 import * as fs from 'node:fs';
 import { once } from 'node:events';
@@ -67,6 +72,24 @@ describe('LynxWindow template APIs', () => {
     expect(typeof (LynxWindow.prototype as any).loadBundle).to.equal(
       'function'
     );
+  });
+
+  it('exposes synchronous DevTool discovery snapshots', function () {
+    const w = createWindow('LynxWindow DevTool target');
+
+    expect(typeof devtool.getLocalEndpoint).to.equal('function');
+    expect(typeof w.getDevtoolTarget).to.equal('function');
+
+    const endpoint = devtool.getLocalEndpoint();
+    if (endpoint !== null) {
+      expect(endpoint).to.include({
+        transport: 'tcp',
+        host: '127.0.0.1',
+      });
+      expect(endpoint.port).to.be.greaterThan(0);
+      expect(endpoint.url).to.equal(`tcp://127.0.0.1:${String(endpoint.port)}`);
+    }
+    expect(w.getDevtoolTarget()).to.equal(null);
   });
 
   it('exposes updateMetaData on LynxWindow', function () {

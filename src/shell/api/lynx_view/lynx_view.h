@@ -14,6 +14,7 @@
 
 namespace lynx {
 namespace pub {
+struct LynxDevtoolTarget;
 class LynxTemplateBundle;
 }  // namespace pub
 }  // namespace lynx
@@ -47,6 +48,7 @@ class LynxView {
   void ReloadTemplate(const std::string& data, const std::string& global_props);
   void UpdateScreenMetrics(float width, float height, float device_pixel_ratio);
   void SetFrame(float x, float y, float width, float height);
+  bool GetDevtoolTarget(lynx::pub::LynxDevtoolTarget* target);
   void* GetNativeWindow();
   void EnterForeground();
   void EnterBackground();

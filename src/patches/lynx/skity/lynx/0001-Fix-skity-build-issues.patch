@@ -10,11 +10,9 @@ Subject: [PATCH] Fix skity build issues
 Patch-Dir: src/patches/lynx
 Patch-Filename: 0006-Fix-skity-build-issues.patch
 ---
- clay/gfx/skity/BUILD.gn                   |  2 +-
- clay/shell/platform/darwin/macos/BUILD.gn |  4 ++--
- clay/shell/platform/windows/BUILD.gn      |  2 +-
- clay/third_party/skity/BUILD.gn           | 13 ++++++++++++-
- 4 files changed, 16 insertions(+), 5 deletions(-)
+ clay/gfx/skity/BUILD.gn         |  2 +-
+ clay/third_party/skity/BUILD.gn | 13 ++++++++++++-
+ 2 files changed, 14 insertions(+), 2 deletions(-)
 
 diff --git a/clay/gfx/skity/BUILD.gn b/clay/gfx/skity/BUILD.gn
 index bdb779b9..aa9b146c 100644
@@ -29,34 +27,6 @@ index bdb779b9..aa9b146c 100644
      }
    }
  }
-diff --git a/clay/shell/platform/darwin/macos/BUILD.gn b/clay/shell/platform/darwin/macos/BUILD.gn
-index eed59ee0..90f6ee61 100644
---- a/clay/shell/platform/darwin/macos/BUILD.gn
-+++ b/clay/shell/platform/darwin/macos/BUILD.gn
-@@ -87,8 +87,8 @@ source_set("flutter_framework_source") {
-     deps += [ "//third_party/skia" ]
-   } else {
-     deps += [
--      "../../common/desktop/codec",
--      "//clay/shell/platform/common/desktop/svg",
-+      "//lynx/clay/shell/platform/common/desktop/codec",
-+      "//lynx/clay/shell/platform/common/desktop/svg",
-     ]
-   }
- 
-diff --git a/clay/shell/platform/windows/BUILD.gn b/clay/shell/platform/windows/BUILD.gn
-index df987669..f04d3bce 100644
---- a/clay/shell/platform/windows/BUILD.gn
-+++ b/clay/shell/platform/windows/BUILD.gn
-@@ -202,7 +202,7 @@ source_set("flutter_windows_source") {
-   if (enable_skity) {
-     deps += [
-       "../common/desktop/codec",
--      "//clay/shell/platform/common/desktop/svg",
-+      "//lynx/clay/shell/platform/common/desktop/svg",
-     ]
-   }
- 
 diff --git a/clay/third_party/skity/BUILD.gn b/clay/third_party/skity/BUILD.gn
 index 1d011815..79da9901 100644
 --- a/clay/third_party/skity/BUILD.gn
@@ -92,4 +62,3 @@ index 1d011815..79da9901 100644
  
 -- 
 2.49.0
-

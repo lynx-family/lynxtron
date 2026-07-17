@@ -75,6 +75,7 @@ gin::ObjectTemplateBuilder Devtool::GetObjectTemplateBuilder(
       .SetMethod("isDevtoolEnabled", &Devtool::IsDevtoolEnabled)
       .SetMethod("setLogboxEnabled", &Devtool::SetLogboxEnabled)
       .SetMethod("isLogboxEnabled", &Devtool::IsLogboxEnabled)
+      .SetMethod("getLocalEndpoint", &Devtool::GetLocalEndpoint)
       .SetMethod("setOpenCardCallback", &Devtool::SetOpenCardCallback)
       .SetMethod("connectDevtool", &Devtool::ConnectDevtool);
 }
@@ -100,6 +101,23 @@ void Devtool::SetLogboxEnabled(bool enable) {
 
 bool Devtool::IsLogboxEnabled() {
   return lynx::pub::LynxEnv::GetInstance().IsLogboxEnabled();
+}
+
+v8::Local<v8::Value> Devtool::GetLocalEndpoint(gin::Arguments* args) {
+  v8::Isolate* isolate = args->isolate();
+  const int port = lynx::pub::LynxEnv::GetInstance().GetDevtoolLocalPort();
+  if (port <= 0) {
+    return v8::Null(isolate);
+  }
+
+  constexpr char kHost[] = "127.0.0.1";
+  gin_helper::Dictionary endpoint = gin::Dictionary::CreateEmpty(isolate);
+  endpoint.Set("transport", "tcp");
+  endpoint.Set("host", kHost);
+  endpoint.Set("port", port);
+  endpoint.Set("url",
+               std::string("tcp://") + kHost + ":" + std::to_string(port));
+  return endpoint.GetHandle();
 }
 
 void Devtool::SetOpenCardCallback(gin::Arguments* args) {
