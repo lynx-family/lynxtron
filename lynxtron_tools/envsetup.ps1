@@ -13,6 +13,7 @@ function Lynxtron-Env-Setup {
     $env:PATH += ';'
     $env:PATH += Join-Path $buildtoolsDir 'gn;'
     $env:PATH += Join-Path $buildtoolsDir 'ninja;'
+    $env:PATH += Join-Path $buildtoolsDir 'sccache;'
 }
 
 function Python-Env-Setup {

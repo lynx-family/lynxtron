@@ -52,7 +52,7 @@ runs:
         $env:WINDOWSSDKDIR = "${env:ProgramFiles(x86)}\Windows Kits\10"
         cd ${{ github.workspace }}/lynxtron
         .\lynxtron_tools\envsetup.ps1
-        $env:PATH = "$pwd\buildtools\gn;$pwd\buildtools\ninja;$env:PATH"
+        $env:PATH = "$pwd\buildtools\gn;$pwd\buildtools\ninja;$pwd\buildtools\sccache;$env:PATH"
         python lynxtron_tools\gn\gn.py --windows-cpu ${{ inputs.build-arch }}
         buildtools\ninja\ninja.exe -C out\Release lynxtron_app
         $buildflags = Get-Content out\Release\gen\base\allocator\partition_allocator\src\partition_alloc\buildflags.h -Raw

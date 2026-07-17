@@ -62,8 +62,6 @@ def get_default_gn_args(is_debug, enable_enlarge_stack):
     gn_args += 'enable_enlarge_stack=true '
 
   if get_current_os() == 'mac':
-    # TODO(yongjie): Move cc_wrapper="sccache" to all.gn after Windows is adapted.
-    gn_args += 'cc_wrapper="sccache" '
     gn_args += 'skia_gl_standard=""'
     gn_args += 'skia_use_metal=true '
     gn_args += 'shell_enable_metal=true '

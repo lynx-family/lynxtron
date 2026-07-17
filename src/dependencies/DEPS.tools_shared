@@ -91,13 +91,21 @@ deps = {
         "url": {
             "darwin-x86_64": "https://github.com/mozilla/sccache/releases/download/v0.16.0/sccache-v0.16.0-x86_64-apple-darwin.tar.gz",
             "darwin-arm64": "https://github.com/mozilla/sccache/releases/download/v0.16.0/sccache-v0.16.0-aarch64-apple-darwin.tar.gz",
+            "linux-x86_64": "https://github.com/mozilla/sccache/releases/download/v0.16.0/sccache-v0.16.0-x86_64-unknown-linux-musl.tar.gz",
+            "linux-aarch64": "https://github.com/mozilla/sccache/releases/download/v0.16.0/sccache-v0.16.0-aarch64-unknown-linux-musl.tar.gz",
+            "windows-x86_64": "https://github.com/mozilla/sccache/releases/download/v0.16.0/sccache-v0.16.0-x86_64-pc-windows-msvc.zip",
+            "windows-arm64": "https://github.com/mozilla/sccache/releases/download/v0.16.0/sccache-v0.16.0-aarch64-pc-windows-msvc.zip",
         }.get(f"{system}-{machine}", None),
         "sha256": {
             "darwin-x86_64": "f7dbd055db75a938ab1539f5316c5d08e73a1b94c40ab170ddcc617f5bf18343",
             "darwin-arm64": "ded590cae2c72042c61178632906bef62d635fa20d45f8b22110a2241f430960",
+            "linux-x86_64": "aec995a83ad3dff3d14b6314e08858b7b73d35ca85a5bcf3d3a9ec07dee35588",
+            "linux-aarch64": "f73a5c39f96bb6ebb89cc7915cf182260d4cbf30765322c5e793d0fe8bd80784",
+            "windows-x86_64": "b8514ed7552e148b0a032114f745118dcb801791adafafeaf9935e4bfb0edf1b",
+            "windows-arm64": "6a715fe44d9b7a2cac15c256411ef232d3b6276e2421bd3be16ab32af71fbf88",
         }.get(f"{system}-{machine}", None),
         "ignore_in_git": True,
-        "condition": system in ["darwin"],
+        "condition": system in ["darwin", "linux", "windows"],
         "require": ["../buildtools"]
     },
     "../buildtools/node": {
