@@ -143,12 +143,22 @@ The table below shows the specific tasks performed by `git lynx check`:
 
 These tasks can also be executed individually via commands, for example, the `cpplint` task can be run with `git lynx check --checkers=cpplint`.
 
+Running `yarn install` in `src` or sourcing `lynxtron_tools/envsetup.sh` enables
+the repository's Git hooks. Git does not allow a clone to enable hooks before
+an explicit setup command. Before each commit, staged files are automatically
+formatted with Prettier, clang-format, or GN and staged again, then Rslint checks
+staged JavaScript and TypeScript files. Partially staged files are rejected to
+avoid committing unstaged changes. The pre-push hook and CI run the same checks
+without modifying files. Missing JS tools and pinned native formatters are
+downloaded on demand.
+
 The specific programming languages and tools supported by `coding-style` task:
 
 | Language               | Supported | Formatting Tool |
 | ---------------------- | --------- | --------------- |
 | C,C++,Objective-C,Java | ✅         | clang-format    |
-| TypeScript             | ✅         | prettier        |
+| JavaScript             | ✅         | Prettier, Rslint |
+| TypeScript             | ✅         | Prettier, Rslint |
 | GN                     | ✅         | gn              |
 
 ## Landing Pull Requests

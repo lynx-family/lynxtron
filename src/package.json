@@ -23,6 +23,7 @@
     "wrapper-webpack-plugin": "^2.2.0"
   },
   "scripts": {
+    "postinstall": "node -e \"require(require('path').join(require('path').dirname(process.env.npm_package_json), 'script/install-git-hooks.js'))\"",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "changeset publish",

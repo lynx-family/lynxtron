@@ -20,19 +20,8 @@ lynxtron_envsetup() {
   export PATH=${CLANGFORMAT_DIR}:${TOOLSSHARED_DIR}:${BUILDTOOLS_DIR}/sccache:${BUILDTOOLS_DIR}/llvm/bin:${BUILDTOOLS_DIR}/gn:${BUILDTOOLS_DIR}/ninja:${BUILDTOOLS_DIR}/node/bin:$PATH
   echo "BUILDTOOLS_DIR: $BUILDTOOLS_DIR"
 
-  # install git hooks
-  local GIT_HOOKS_DIR=$(git rev-parse --git-path hooks)
-  local HOOKS_DIR=$LYNXTRON_ROOT_DIR/tools/hooks
-  local REAL_GIT_HOOKS_DIR=$(posix_realpath $GIT_HOOKS_DIR)
-  if [ x$REAL_GIT_HOOKS_DIR != x$HOOKS_DIR ]; then
-    if [ -L $GIT_HOOKS_DIR ]; then
-      rm -f $GIT_HOOKS_DIR
-    elif [ -d $GIT_HOOKS_DIR ]; then
-      rm -rf "${GIT_HOOKS_DIR}.bak"
-      mv $GIT_HOOKS_DIR "${GIT_HOOKS_DIR}.bak"
-    fi
-    ln -sf $HOOKS_DIR $GIT_HOOKS_DIR
-  fi
+  # Install repository-managed Git hooks.
+  git -C "$LYNXTRON_ROOT_DIR" config core.hooksPath .githooks
 }
 
 function python_env_setup() {

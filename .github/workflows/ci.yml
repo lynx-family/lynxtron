@@ -57,6 +57,12 @@ jobs:
           which gn
           gn --version
           python3 src/tools_shared/git_lynx.py check --checkers coding-style
+      - name: Run pre-push style check
+        run: |
+          python3 lynxtron_tools/check_push_style.py \
+            --base HEAD^ \
+            --head HEAD \
+            --github
   macos-lynxtron-build:
     timeout-minutes: 120
     runs-on: lynx-darwin-15.6.1-medium

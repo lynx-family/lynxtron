@@ -13,6 +13,7 @@ function Lynxtron-Env-Setup {
     $env:PATH += ';'
     $env:PATH += Join-Path $buildtoolsDir 'gn;'
     $env:PATH += Join-Path $buildtoolsDir 'ninja;'
+    git -C $lynxtron_dir_path config core.hooksPath .githooks
 }
 
 function Python-Env-Setup {

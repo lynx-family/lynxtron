@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly zero_sha='0000000000000000000000000000000000000000'
+root="$(git rev-parse --show-toplevel)"
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [[ "$local_sha" == "$zero_sha" ]]; then
+    continue
+  fi
+
+  base="$remote_sha"
+  if [[ "$remote_sha" == "$zero_sha" ]]; then
+    # Lynxtron PRs contain one commit, so a new remote branch checks that
+    # commit without depending on a possibly stale fork's default branch.
+    base="$(git rev-parse "$local_sha^")"
+  fi
+
+  python3 "$root/lynxtron_tools/check_push_style.py" \
+    --base "$base" \
+    --head "$local_sha"
+done
