@@ -8,6 +8,6 @@
     "node-gyp": "^11.5.0"
   },
   "scripts": {
-    "install": "node ./scripts/install.js"
+    "build": "node ./scripts/build.js"
   }
 }

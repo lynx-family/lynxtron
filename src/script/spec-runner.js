@@ -61,9 +61,10 @@ async function main () {
       (lastSpecInstallHash !== currentSpecInstallHash);
 
   if (somethingChanged) {
-    await installSpecModules(path.resolve(__dirname, '..', 'spec'));
+    await installSpecModules(path.resolve(__dirname, '..'));
     await getSpecHash().then(saveSpecHash);
   }
+  await buildDialogHelper(path.resolve(__dirname, '..'));
   await buildLynxCards();
   await runLynxtronTests();
 }
@@ -195,9 +196,9 @@ async function installSpecModules (dir) {
     CXXFLAGS: process.env.CXXFLAGS,
     npm_config_yes: 'true'
   };
-  env.npm_config_nodedir = path.resolve(BASE, `out/${utils.getOutDir({ shouldLog: true })}/gen/node_headers`);
-  if (fs.existsSync(path.resolve(dir, 'node_modules'))) {
-    await fs.promises.rm(path.resolve(dir, 'node_modules'), { force: true, recursive: true });
+  const specNodeModulesPath = path.resolve(dir, 'spec', 'node_modules');
+  if (fs.existsSync(specNodeModulesPath)) {
+    await fs.promises.rm(specNodeModulesPath, { force: true, recursive: true });
   }
   const [cmd, args] = getYarnCommand(YARN_VERSION);
   const { status } = childProcess.spawnSync(cmd, [...args, 'install', '--immutable'], {
@@ -212,12 +213,40 @@ async function installSpecModules (dir) {
   }
 }
 
+async function buildDialogHelper (dir) {
+  const env = {
+    npm_config_msvs_version: '2022',
+    ...process.env,
+    CXXFLAGS: process.env.CXXFLAGS,
+    npm_config_yes: 'true'
+  };
+  env.npm_config_nodedir = path.resolve(BASE, `out/${utils.getOutDir({ shouldLog: true })}/gen/node_headers`);
+  const [cmd, args] = getYarnCommand(YARN_VERSION);
+  const { status } = childProcess.spawnSync(cmd, [
+    ...args,
+    'workspace',
+    '@lynxtron-ci/dialog-helper',
+    'run',
+    'build'
+  ], {
+    env,
+    cwd: dir,
+    stdio: 'inherit',
+    shell: process.platform === 'win32'
+  });
+  if (status !== 0) {
+    console.log(`${fail} Failed to build dialog-helper`);
+    process.exit(1);
+  }
+}
+
 function getSpecHash () {
   return Promise.all([
     (async () => {
       const hasher = crypto.createHash('SHA256');
+      hasher.update(fs.readFileSync(path.resolve(__dirname, '../package.json')));
       hasher.update(fs.readFileSync(path.resolve(__dirname, '../spec/package.json')));
-      hasher.update(fs.readFileSync(path.resolve(__dirname, '../spec/yarn.lock')));
+      hasher.update(fs.readFileSync(path.resolve(__dirname, '../yarn.lock')));
       hasher.update(fs.readFileSync(path.resolve(__dirname, '../script/spec-runner.js')));
       return hasher.digest('hex');
     })(),
