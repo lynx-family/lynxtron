@@ -61,7 +61,7 @@ async function main () {
       (lastSpecInstallHash !== currentSpecInstallHash);
 
   if (somethingChanged) {
-    await installSpecModules(path.resolve(__dirname, '..', 'spec'));
+    await installSpecModules(path.resolve(__dirname, '..'));
     await getSpecHash().then(saveSpecHash);
   }
   await buildLynxCards();
@@ -196,8 +196,9 @@ async function installSpecModules (dir) {
     npm_config_yes: 'true'
   };
   env.npm_config_nodedir = path.resolve(BASE, `out/${utils.getOutDir({ shouldLog: true })}/gen/node_headers`);
-  if (fs.existsSync(path.resolve(dir, 'node_modules'))) {
-    await fs.promises.rm(path.resolve(dir, 'node_modules'), { force: true, recursive: true });
+  const specNodeModulesPath = path.resolve(dir, 'spec', 'node_modules');
+  if (fs.existsSync(specNodeModulesPath)) {
+    await fs.promises.rm(specNodeModulesPath, { force: true, recursive: true });
   }
   const [cmd, args] = getYarnCommand(YARN_VERSION);
   const { status } = childProcess.spawnSync(cmd, [...args, 'install', '--immutable'], {
@@ -216,8 +217,9 @@ function getSpecHash () {
   return Promise.all([
     (async () => {
       const hasher = crypto.createHash('SHA256');
+      hasher.update(fs.readFileSync(path.resolve(__dirname, '../package.json')));
       hasher.update(fs.readFileSync(path.resolve(__dirname, '../spec/package.json')));
-      hasher.update(fs.readFileSync(path.resolve(__dirname, '../spec/yarn.lock')));
+      hasher.update(fs.readFileSync(path.resolve(__dirname, '../yarn.lock')));
       hasher.update(fs.readFileSync(path.resolve(__dirname, '../script/spec-runner.js')));
       return hasher.digest('hex');
     })(),
