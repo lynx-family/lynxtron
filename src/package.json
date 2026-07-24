@@ -45,6 +45,8 @@
     "packages/lynxtron-shell-demo",
     "packages/lynxtron-dev-plugins",
     "packages/create-lynxtron",
+    "spec",
+    "spec/fixtures/native-addon/*",
     "spec/case/lynx-card",
     "packages/lynx-library-headers"
   ],
