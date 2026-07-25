@@ -10,7 +10,6 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { ifit } from './lib/spec-helpers';
 import { closeAllWindows } from './lib/window-helpers';
 
 const { LynxTemplateBundle } = require('lynxtron') as {
@@ -107,55 +106,45 @@ describe('LynxWindow template APIs', () => {
     expect(w.isDestroyed()).to.equal(false);
   });
 
-  // FIXME(Guo Xi): Fix it
-  ifit(process.platform !== 'win32')(
-    'loadURL(url, { data, globalProps }) accepts a file URL source',
-    async function () {
-      if (!fs.existsSync(bundlePath)) {
-        this.skip();
-      }
+  it('loadURL(url, { data, globalProps }) accepts a file URL source', async function () {
+    if (!fs.existsSync(bundlePath)) {
+      this.skip();
+    }
 
-      const w = createWindow('LynxWindow loadURL(file URL)');
+    const w = createWindow('LynxWindow loadURL(file URL)');
 
+    await loadAndWait(w, () =>
+      (w as any).loadURL(pathToFileURL(bundlePath).href, {
+        data: { foo: 'bar' },
+        globalProps: { ver: 1 },
+      })
+    );
+    expect(w.isDestroyed()).to.equal(false);
+  });
+
+  it('loadURL(url) decodes percent-escaped file URLs', async function () {
+    if (!fs.existsSync(bundlePath)) {
+      this.skip();
+    }
+
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lynxtron-bundle-'));
+    const copiedBundlePath = path.join(
+      tempDir,
+      'bundle with space.lynx.bundle'
+    );
+    fs.copyFileSync(bundlePath, copiedBundlePath);
+
+    const w = createWindow('LynxWindow loadURL(percent-escaped file URL)');
+
+    try {
       await loadAndWait(w, () =>
-        (w as any).loadURL(pathToFileURL(bundlePath).href, {
-          data: { foo: 'bar' },
-          globalProps: { ver: 1 },
-        })
+        (w as any).loadURL(pathToFileURL(copiedBundlePath).href)
       );
       expect(w.isDestroyed()).to.equal(false);
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
     }
-  );
-
-  // FIXME(Guo Xi): Fix it
-  ifit(process.platform !== 'win32')(
-    'loadURL(url) decodes percent-escaped file URLs',
-    async function () {
-      if (!fs.existsSync(bundlePath)) {
-        this.skip();
-      }
-
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'lynxtron-bundle-')
-      );
-      const copiedBundlePath = path.join(
-        tempDir,
-        'bundle with space.lynx.bundle'
-      );
-      fs.copyFileSync(bundlePath, copiedBundlePath);
-
-      const w = createWindow('LynxWindow loadURL(percent-escaped file URL)');
-
-      try {
-        await loadAndWait(w, () =>
-          (w as any).loadURL(pathToFileURL(copiedBundlePath).href)
-        );
-        expect(w.isDestroyed()).to.equal(false);
-      } finally {
-        fs.rmSync(tempDir, { recursive: true, force: true });
-      }
-    }
-  );
+  });
 
   it('loadBundle(templateBundle, { data, globalProps }) accepts a pre-decoded bundle', async function () {
     if (typeof LynxTemplateBundle !== 'function') {
