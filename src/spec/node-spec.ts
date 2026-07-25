@@ -208,7 +208,6 @@ describe('node feature', () => {
     let child: childProcess.ChildProcessWithoutNullStreams;
     let exitPromise: Promise<any[]>;
 
-    // FIXME(Guo Xi): Fix it
     ifit(process.platform !== 'win32')(
       'Fails for options disallowed by Node.js itself',
       (done) => {
@@ -239,7 +238,7 @@ describe('node feature', () => {
         const listener = (data: Buffer) => {
           output += data;
           if (
-            /electron: --v8-options is not allowed in NODE_OPTIONS/m.test(
+            /--v8-options is not allowed in NODE_OPTIONS/m.test(
               output
             )
           ) {
