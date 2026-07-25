@@ -1761,20 +1761,25 @@ describe('LynxWindow module', () => {
             expect(parent.isEnabled()).to.equal(false);
           });
 
-          it('emits sheet-end when a modal sheet is closed', async () => {
-            const parent = new LynxWindow({ show: false });
-            const parentShow = once(parent, 'show');
-            parent.show();
-            await parentShow;
+          it('emits sheet-begin when a modal sheet is opened', async () => {
+            const parent = new LynxWindow();
+            const sheetBegin = once(parent, 'sheet-begin');
 
+            new LynxWindow({
+              modal: true,
+              parent,
+            });
+
+            await sheetBegin;
+          });
+
+          it('emits sheet-end when a modal sheet is closed', async () => {
+            const parent = new LynxWindow();
+            const sheetBegin = once(parent, 'sheet-begin');
             const child = new LynxWindow({
-              show: false,
               parent,
               modal: true,
             });
-
-            const sheetBegin = once(parent, 'sheet-begin');
-            child.show();
             await sheetBegin;
 
             const sheetEnd = once(parent, 'sheet-end');
