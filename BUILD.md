@@ -49,14 +49,14 @@ lynxtron_tools/envsetup.ps1
 python3 lynxtron_tools/prepare_build_env.py
 $env:DEPOT_TOOLS_WIN_TOOLCHAIN=0
 # release build
-python lynxtron/tools/gn/gn.py --windows-cpu ['x64', 'x86']
+python lynxtron_tools/gn/gn.py --windows-cpu ['x64', 'x86']
 # release build with trace
-python lynxtron/tools/gn/gn.py --enable-trace --windows-cpu ['x64', 'x86']
+python lynxtron_tools/gn/gn.py --enable-trace --windows-cpu ['x64', 'x86']
 ninja -C out/Release lynxtron_app
 # debug build
-python lynxtron/tools/gn/gn.py --is-debug --windows-cpu ['x64', 'x86']
+python lynxtron_tools/gn/gn.py --is-debug --windows-cpu ['x64', 'x86']
 # debug build with trace
-python lynxtron/tools/gn/gn.py --enable-trace --is-debug --windows-cpu ['x64', 'x86']
+python lynxtron_tools/gn/gn.py --enable-trace --is-debug --windows-cpu ['x64', 'x86']
 ninja -C out/Debug lynxtron_app
 ```
 
