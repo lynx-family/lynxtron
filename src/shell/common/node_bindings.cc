@@ -670,16 +670,11 @@ void NodeBindings::UvRunOnce() {
   // Enter node context while dealing with uv events.
   v8::Context::Scope context_scope(env->context());
 
-  {
-    util::ExplicitMicrotasksScope microtasks_scope(
-        env->context()->GetMicrotaskQueue());
+  // Deal with uv events.
+  int r = uv_run(uv_loop_, UV_RUN_NOWAIT);
 
-    // Deal with uv events.
-    int r = uv_run(uv_loop_, UV_RUN_NOWAIT);
-
-    if (r == 0) {
-      base::RunLoop().QuitWhenIdle();  // Quit from uv.
-    }
+  if (r == 0) {
+    base::RunLoop().QuitWhenIdle();  // Quit from uv.
   }
 
   // Tell the worker thread to continue polling.
