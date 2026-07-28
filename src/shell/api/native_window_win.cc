@@ -978,9 +978,13 @@ void NativeWindowWin::HandleDestroyed() {
 }
 
 bool NativeWindowWin::HandleInitialFocus(ui::WindowShowState show_state) {
-  // Need to focus on LynxView window handle, so LynxView can get keyboard
-  // message
-  return focusable_;
+  if (!focusable_ || show_state == ui::SHOW_STATE_INACTIVE) {
+    return true;
+  }
+
+  // Let HWNDMessageHandler focus the LynxView window handle so it can receive
+  // keyboard messages.
+  return false;
 }
 
 void NativeWindowWin::HandleMove() {

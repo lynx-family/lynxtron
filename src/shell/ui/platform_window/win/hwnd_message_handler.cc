@@ -404,8 +404,9 @@ void HWNDMessageHandler::Show(ui::WindowShowState show_state,
   // that should activate, because if we're opened from a desktop shortcut while
   // an existing window is already running it doesn't seem to be enough to use
   // one of these flags to activate the window.
-  if (native_show_state == SW_SHOWNORMAL ||
-      native_show_state == SW_SHOWMAXIMIZED) {
+  if ((native_show_state == SW_SHOWNORMAL ||
+       native_show_state == SW_SHOWMAXIMIZED) &&
+      delegate_->CanActivate()) {
     Activate();
   }
 
@@ -436,6 +437,11 @@ void HWNDMessageHandler::Restore() {
 }
 
 void HWNDMessageHandler::Activate() {
+  if (!delegate_->CanActivate() ||
+      (GetWindowLong(hwnd(), GWL_EXSTYLE) & WS_EX_NOACTIVATE)) {
+    return;
+  }
+
   if (IsMinimized()) {
     base::AutoReset<bool> restoring_activate(&notify_restore_on_activate_,
                                              true);
