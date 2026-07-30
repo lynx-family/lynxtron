@@ -6,6 +6,8 @@
 
 #include <memory>
 
+#include "base/functional/callback_forward.h"
+#include "base/location.h"
 #include "base/logging.h"
 #include "base/no_destructor.h"
 #include "base/not_fatal_until.h"
@@ -109,6 +111,18 @@ class GlobalThread {
 
   static scoped_refptr<base::SingleThreadTaskRunner> GetIOThreadTaskRunner();
 
+  // Posts a task only while the UI thread is accepting work. The state check
+  // and task posting are synchronized with BeginUIThreadShutdown(), so a
+  // successful call guarantees that the task was queued before shutdown
+  // started.
+  [[nodiscard]] static bool TryPostTaskToUIThread(
+      const base::Location& from_here,
+      base::OnceClosure task);
+
+  // Prevents future TryPostTaskToUIThread() calls from queuing work. This is
+  // called on the UI thread before the main message loop is asked to quit.
+  static void BeginUIThreadShutdown();
+
   // Use these templates in conjunction with RefCountedThreadSafe or scoped_ptr
   // when you want to ensure that an object is deleted on a specific thread.
   // This is needed when an object can hop between threads (i.e. UI -> IO ->
@@ -125,7 +139,8 @@ class GlobalThread {
       if (CurrentlyOn(thread)) {
         delete x;
       } else {
-        if (!GetTaskRunnerForThread(thread)->DeleteSoon(FROM_HERE, x)) {
+        auto task_runner = GetTaskRunnerForThread(thread);
+        if (!task_runner || !task_runner->DeleteSoon(FROM_HERE, x)) {
 #if defined(UNIT_TEST)
           // Only logged under unit testing because leaks at shutdown
           // are acceptable under normal circumstances.

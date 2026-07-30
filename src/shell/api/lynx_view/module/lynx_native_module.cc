@@ -79,6 +79,17 @@ napi_threadsafe_function EncodeNapiCallBack(napi_env env,
   return tsfn;
 }
 
+void ReleaseNapiCallbacks(
+    const std::unordered_map<size_t, LynxNativeModule::JSBCallBack>&
+        callbacks) {
+  for (const auto& callback_entry : callbacks) {
+    const auto& callback = callback_entry.second;
+    if (callback.released && !callback.released->exchange(true)) {
+      napi_release_threadsafe_function(callback.tsfn, napi_tsfn_abort);
+    }
+  }
+}
+
 }  // namespace
 
 // static
@@ -177,19 +188,22 @@ napi_value LynxNativeModule::BindFunctionsToNapiModule(napi_env env,
             }
           }
 
-          GlobalThread::GetUIThreadTaskRunner()->PostTask(
-              FROM_HERE,
-              base::BindOnce(
-                  [](ModulePtr module,
-                     std::vector<std::vector<uint8_t>> v8_argvs,
-                     std::unordered_map<size_t, JSBCallBack> callbacks,
-                     MethodInvoker invoker) {
-                    module->RunMethodInMainThread(std::move(invoker),
-                                                  std::move(v8_argvs),
-                                                  std::move(callbacks));
-                  },
-                  method_data->first, std::move(v8_argvs), std::move(callbacks),
-                  method_data->second));
+          auto callbacks_to_release = callbacks;
+          if (!GlobalThread::TryPostTaskToUIThread(
+                  FROM_HERE,
+                  base::BindOnce(
+                      [](ModulePtr module,
+                         std::vector<std::vector<uint8_t>> v8_argvs,
+                         std::unordered_map<size_t, JSBCallBack> callbacks,
+                         MethodInvoker invoker) {
+                        module->RunMethodInMainThread(std::move(invoker),
+                                                      std::move(v8_argvs),
+                                                      std::move(callbacks));
+                      },
+                      method_data->first, std::move(v8_argvs),
+                      std::move(callbacks), method_data->second))) {
+            ReleaseNapiCallbacks(callbacks_to_release);
+          }
 
           return nullptr;
         },

@@ -23,6 +23,7 @@
 #include "shell/app/native_window.h"
 #include "shell/app/window_list.h"
 #include "shell/common/application_info.h"
+#include "shell/common/global_thread.h"
 #include "shell/common/lynxtron_paths.h"
 #include "shell/common/thread_restrictions.h"
 
@@ -161,6 +162,8 @@ void Application::Shutdown() {
   is_quitting_ = true;
 
   observers_.Notify(&ApplicationObserver::OnQuit);
+
+  GlobalThread::BeginUIThreadShutdown();
 
   if (quit_main_message_loop_) {
     RunQuitClosure(std::move(quit_main_message_loop_));

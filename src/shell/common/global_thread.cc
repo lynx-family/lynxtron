@@ -3,31 +3,22 @@
 // LICENSE file in the root directory of this source tree.
 #include "shell/common/global_thread.h"
 
+#include <array>
 #include <memory>
 #include <string>
 #include <utility>
 
 #include "base/check.h"
+#include "base/functional/callback.h"
 #include "base/logging.h"
 #include "base/no_destructor.h"
 #include "base/sequence_checker.h"
+#include "base/synchronization/lock.h"
 #include "base/threading/thread_checker.h"
 #include "shell/common/io_thread.h"
 
 namespace lynxtron {
 namespace {
-
-// State of a given GlobalThread::ID in chronological order throughout the
-// process' lifetime.
-enum GlobalThreadState {
-  // GlobalThread::ID isn't associated with anything yet.
-  UNINITIALIZED = 0,
-  // GlobalThread::ID is associated to a TaskRunner and is accepting tasks.
-  RUNNING,
-  // GlobalThread::ID no longer accepts tasks (it's still associated to a
-  // TaskRunner but that TaskRunner doesn't have to accept tasks).
-  SHUTDOWN
-};
 
 struct GlobalThreadGlobals {
   GlobalThreadGlobals() {
@@ -38,21 +29,14 @@ struct GlobalThreadGlobals {
 
   THREAD_CHECKER(main_thread_checker_);
 
-  // |task_runners[id]| is safe to access on |main_thread_checker_| as
-  // well as on any thread once it's read-only after initialization
-  // (i.e. while |states[id] >= RUNNING|).
+  base::Lock lock;
+
   std::array<scoped_refptr<base::SingleThreadTaskRunner>,
              GlobalThread::ID_COUNT>
-      task_runners;
+      task_runners GUARDED_BY(lock);
 
-  // Tracks the runtime state of GlobalThreads. Atomic because a few
-  // methods below read this value outside |main_thread_checker_| to
-  // confirm it's >= RUNNING and doing so requires an atomic read as it could be
-  // in the middle of transitioning to SHUTDOWN (which check is fine with
-  // but reading a non-atomic value as it's written to by another thread can be
-  // undefined behavior on some platforms).
-  std::array<std::atomic<GlobalThreadState>, GlobalThread::ID_COUNT> states =
-      {};
+  std::array<GlobalThread::State, GlobalThread::ID_COUNT> states
+      GUARDED_BY(lock) = {};
 };
 
 GlobalThreadGlobals& GetGlobalThreadGlobals() {
@@ -131,52 +115,46 @@ GlobalThread::GlobalThread()
   }
 
   GlobalThreadGlobals& globals = GetGlobalThreadGlobals();
-  DCHECK_EQ(globals.states[ID::UI].load(std::memory_order_relaxed),
-            GlobalThreadState::UNINITIALIZED);
-  globals.states[ID::UI].store(GlobalThreadState::RUNNING,
-                               std::memory_order_relaxed);
-
-  DCHECK_EQ(globals.states[ID::IO].load(std::memory_order_relaxed),
-            GlobalThreadState::UNINITIALIZED);
-  globals.states[ID::IO].store(GlobalThreadState::RUNNING,
-                               std::memory_order_relaxed);
+  base::AutoLock lock(globals.lock);
+  DCHECK_EQ(globals.states[ID::UI], State::UNINITIALIZED);
+  DCHECK_EQ(globals.states[ID::IO], State::UNINITIALIZED);
 
   DCHECK(!globals.task_runners[ID::UI]);
   DCHECK(!globals.task_runners[ID::IO]);
 
   globals.task_runners[ID::UI] = main_thread_task_executor_->task_runner();
   globals.task_runners[ID::IO] = io_thread_->task_runner();
+  globals.states[ID::UI] = State::RUNNING;
+  globals.states[ID::IO] = State::RUNNING;
 }
 
 GlobalThread::~GlobalThread() {
   GlobalThreadGlobals& globals = GetGlobalThreadGlobals();
   DCHECK_CALLED_ON_VALID_THREAD(globals.main_thread_checker_);
+  base::AutoLock lock(globals.lock);
 
-  DCHECK_EQ(globals.states[ID::UI].load(std::memory_order_relaxed),
-            GlobalThreadState::RUNNING);
-  globals.states[ID::UI].store(GlobalThreadState::SHUTDOWN,
-                               std::memory_order_relaxed);
+  DCHECK(globals.states[ID::UI] == State::RUNNING ||
+         globals.states[ID::UI] == State::SHUTDOWN);
+  globals.states[ID::UI] = State::SHUTDOWN;
   globals.task_runners[ID::UI] = nullptr;
 
-  DCHECK_EQ(globals.states[ID::IO].load(std::memory_order_relaxed),
-            GlobalThreadState::RUNNING);
-  globals.states[ID::IO].store(GlobalThreadState::SHUTDOWN,
-                               std::memory_order_relaxed);
+  DCHECK_EQ(globals.states[ID::IO], State::RUNNING);
+  globals.states[ID::IO] = State::SHUTDOWN;
   globals.task_runners[ID::IO] = nullptr;
 }
 
 // Callable on any thread.  Returns whether you're currently on a particular
 // thread.  To DCHECK this, use the DCHECK_CURRENTLY_ON() macro above.
 bool GlobalThread::CurrentlyOn(ID identifier) {
-  return GetGlobalThreadGlobals()
-      .task_runners[identifier]
-      ->RunsTasksInCurrentSequence();
+  auto task_runner = GetTaskRunnerForThread(identifier);
+  return task_runner && task_runner->RunsTasksInCurrentSequence();
 }
 
 // static
 bool GlobalThread::IsThreadInitialized(ID identifier) {
-  return GetGlobalThreadGlobals().states[identifier].load(
-             std::memory_order_relaxed) == GlobalThreadState::RUNNING;
+  GlobalThreadGlobals& globals = GetGlobalThreadGlobals();
+  base::AutoLock lock(globals.lock);
+  return globals.states[identifier] == State::RUNNING;
 }
 
 // static
@@ -193,12 +171,37 @@ const char* GlobalThread::GetThreadName(ID identifier) {
 
 scoped_refptr<base::SingleThreadTaskRunner>
 GlobalThread::GetUIThreadTaskRunner() {
-  return GetGlobalThreadGlobals().task_runners[ID::UI];
+  GlobalThreadGlobals& globals = GetGlobalThreadGlobals();
+  base::AutoLock lock(globals.lock);
+  return globals.task_runners[ID::UI];
 }
 
 scoped_refptr<base::SingleThreadTaskRunner>
 GlobalThread::GetIOThreadTaskRunner() {
-  return GetGlobalThreadGlobals().task_runners[ID::IO];
+  GlobalThreadGlobals& globals = GetGlobalThreadGlobals();
+  base::AutoLock lock(globals.lock);
+  return globals.task_runners[ID::IO];
+}
+
+// static
+bool GlobalThread::TryPostTaskToUIThread(const base::Location& from_here,
+                                         base::OnceClosure task) {
+  GlobalThreadGlobals& globals = GetGlobalThreadGlobals();
+  base::AutoLock lock(globals.lock);
+  if (globals.states[ID::UI] != State::RUNNING ||
+      !globals.task_runners[ID::UI]) {
+    return false;
+  }
+  return globals.task_runners[ID::UI]->PostTask(from_here, std::move(task));
+}
+
+// static
+void GlobalThread::BeginUIThreadShutdown() {
+  GlobalThreadGlobals& globals = GetGlobalThreadGlobals();
+  DCHECK_CALLED_ON_VALID_THREAD(globals.main_thread_checker_);
+  base::AutoLock lock(globals.lock);
+  DCHECK_NE(globals.states[ID::UI], State::UNINITIALIZED);
+  globals.states[ID::UI] = State::SHUTDOWN;
 }
 
 // static

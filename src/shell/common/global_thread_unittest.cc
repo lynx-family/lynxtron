@@ -55,6 +55,25 @@ TEST_F(GlobalThreadTest, GetTaskRunner) {
   EXPECT_EQ(io_runner, GlobalThread::GetTaskRunnerForThread(GlobalThread::IO));
 }
 
+TEST_F(GlobalThreadTest, RejectsUITasksAfterShutdownStarts) {
+  bool task_ran = false;
+  EXPECT_TRUE(GlobalThread::TryPostTaskToUIThread(
+      FROM_HERE, base::BindOnce([](bool* ran) { *ran = true; }, &task_ran)));
+  base::RunLoop().RunUntilIdle();
+  EXPECT_TRUE(task_ran);
+
+  GlobalThread::BeginUIThreadShutdown();
+  EXPECT_FALSE(GlobalThread::IsThreadInitialized(GlobalThread::UI));
+  EXPECT_TRUE(GlobalThread::IsThreadInitialized(GlobalThread::IO));
+
+  bool shutdown_task_ran = false;
+  EXPECT_FALSE(GlobalThread::TryPostTaskToUIThread(
+      FROM_HERE,
+      base::BindOnce([](bool* ran) { *ran = true; }, &shutdown_task_ran)));
+  base::RunLoop().RunUntilIdle();
+  EXPECT_FALSE(shutdown_task_ran);
+}
+
 TEST_F(GlobalThreadTest, PostTaskToIOThread) {
   base::RunLoop run_loop;
   bool ran_on_io = false;
