@@ -19,6 +19,7 @@
 #include "shell/app/window_list.h"
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/options_switches.h"
+#include "shell/ui/display/win/screen_win.h"
 #include "shell/ui/skia/ext/skia_utils_win.h"
 #include "ui/display/display.h"
 #include "ui/display/screen.h"
@@ -27,7 +28,6 @@
 namespace lynxtron {
 namespace {
 const LPCWSTR kUniqueTaskBarClassName = L"Shell_TrayWnd";
-const float kDefaultDPI = 96.f;
 
 void FlipWindowStyle(HWND handle, bool on, DWORD flag) {
   DWORD style = ::GetWindowLong(handle, GWL_STYLE);
@@ -45,15 +45,67 @@ void FlipWindowStyle(HWND handle, bool on, DWORD flag) {
 }
 
 gfx::Rect GetWindowBoundsForClientBounds(HWND hwnd,
-                                         const gfx::Rect& client_bounds) {
+                                         const gfx::Rect& client_bounds,
+                                         UINT dpi) {
   if (!hwnd) {
     return client_bounds;
   }
+
   RECT rect = client_bounds.ToRECT();
-  auto style = static_cast<DWORD>(::GetWindowLong(hwnd, GWL_STYLE));
-  auto ex_style = static_cast<DWORD>(::GetWindowLong(hwnd, GWL_EXSTYLE));
-  ::AdjustWindowRectEx(&rect, style, FALSE, ex_style);
+  const auto style = static_cast<DWORD>(::GetWindowLong(hwnd, GWL_STYLE));
+  const auto ex_style = static_cast<DWORD>(::GetWindowLong(hwnd, GWL_EXSTYLE));
+  // Keep the client/window mapping in physical pixels. Adjusting a DIP rect
+  // would round the non-client insets at the wrong stage.
+  // AdjustWindowRectExForDpi accounts for a standard single-row window menu,
+  // but it cannot calculate the additional height of a menu that wraps to
+  // multiple rows. Multi-row native menus are currently unsupported.
+  const BOOL has_menu = ::GetMenu(hwnd) != nullptr;
+  ::AdjustWindowRectExForDpi(&rect, style, has_menu, ex_style, dpi);
   return gfx::Rect(rect);
+}
+
+gfx::Rect GetClientBoundsForWindowBounds(HWND hwnd,
+                                         const gfx::Rect& window_bounds,
+                                         UINT dpi) {
+  if (!hwnd) {
+    return window_bounds;
+  }
+
+  // Adjusting an empty client rect gives the signed frame origin and total
+  // non-client size. Applying the inverse produces the client rect for an
+  // arbitrary outer window rect without consulting the window's current size.
+  const gfx::Rect frame_bounds =
+      GetWindowBoundsForClientBounds(hwnd, gfx::Rect(), dpi);
+  return gfx::Rect(window_bounds.x() - frame_bounds.x(),
+                   window_bounds.y() - frame_bounds.y(),
+                   std::max(0, window_bounds.width() - frame_bounds.width()),
+                   std::max(0, window_bounds.height() - frame_bounds.height()));
+}
+
+void SetRestoredBounds(HWND hwnd, const gfx::Rect& bounds) {
+  WINDOWPLACEMENT placement = {};
+  placement.length = sizeof(WINDOWPLACEMENT);
+  if (!::GetWindowPlacement(hwnd, &placement)) {
+    return;
+  }
+
+  MONITORINFO monitor_info = {};
+  monitor_info.cbSize = sizeof(MONITORINFO);
+  const RECT rect = bounds.ToRECT();
+  const HMONITOR monitor = ::MonitorFromRect(&rect, MONITOR_DEFAULTTONEAREST);
+  if (!::GetMonitorInfo(monitor, &monitor_info)) {
+    return;
+  }
+
+  // WINDOWPLACEMENT::rcNormalPosition uses workspace coordinates, whereas the
+  // NativeWindow API and |bounds| use screen coordinates. Account for the
+  // monitor work-area offset before updating a minimized window's restore rect.
+  gfx::Rect placement_bounds(bounds);
+  placement_bounds.Offset(
+      monitor_info.rcMonitor.left - monitor_info.rcWork.left,
+      monitor_info.rcMonitor.top - monitor_info.rcWork.top);
+  placement.rcNormalPosition = placement_bounds.ToRECT();
+  ::SetWindowPlacement(hwnd, &placement);
 }
 
 }  // namespace
@@ -78,15 +130,15 @@ NativeWindowWin::NativeWindowWin(const gin_helper::Dictionary& options,
   bool fullscreen = false;
   options.Get(options::kFullscreen, &fullscreen);
 
-  int x = -1, y = -1;
-  options.Get(options::kX, &x);
-  options.Get(options::kY, &y);
-
   const int width = this->width();
   const int height = this->height();
   const bool use_content_size = this->use_content_size();
-  gfx::Rect bounds(x, y, width, height);
-  bounds = DIPToScreenRect(GetNativeWindowHandle(), bounds);
+  gfx::Rect bounds;
+  // At creation time only the requested size is known. Let Windows choose the
+  // initial origin, and scale the size independently so frame creation cannot
+  // introduce an origin-dependent one-pixel size drift.
+  bounds.set_size(
+      ::lynxtron::DIPToScreenSizeForWindow(nullptr, gfx::Size(width, height)));
 
   DWORD frame_style =
       WS_OVERLAPPED | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
@@ -202,6 +254,8 @@ void NativeWindowWin::Hide() {
 }
 
 bool NativeWindowWin::IsVisible() {
+  // Match Electron's public visibility semantics: a minimized HWND retains
+  // WS_VISIBLE, but is not considered visible by the window API.
   return window_->IsVisible() && !window_->IsMinimized();
 }
 
@@ -214,6 +268,8 @@ void NativeWindowWin::RegisterModalParent() {
     return;
   }
 
+  // Store the exact parent whose modal count was incremented. parent() may be
+  // changed before this window is hidden or destroyed.
   registered_modal_parent_ = NativeWindow::parent();
   registered_modal_parent_->IncrementChildModals();
 }
@@ -267,12 +323,13 @@ void NativeWindowWin::Unmaximize() {
 
   if (!frame() || !thick_frame_) {
     if (!last_normal_placement_bounds_.IsEmpty()) {
-      SetBounds(ScreenToDIPRect(GetNativeWindowHandle(),
-                                last_normal_placement_bounds_),
-                false);
+      // The saved placement is already a physical screen rect. Applying it
+      // directly avoids a lossy pixel -> DIP -> pixel restore.
+      window_->SetBounds(last_normal_placement_bounds_);
     }
     if (last_window_state_ == ui::SHOW_STATE_MAXIMIZED) {
       last_window_state_ = ui::SHOW_STATE_NORMAL;
+      ScheduleApplyPendingContentBounds();
       NotifyWindowUnmaximize();
     }
     return;
@@ -280,6 +337,7 @@ void NativeWindowWin::Unmaximize() {
 
   if (transparent()) {
     SetBounds(restore_bounds_, false);
+    ScheduleApplyPendingContentBounds();
     NotifyWindowUnmaximize();
     return;
   }
@@ -375,6 +433,10 @@ void NativeWindowWin::SetFullScreen(bool fullscreen) {
     FlipWindowStyle(window_->hwnd(), true, WS_VISIBLE);
   }
 
+  if (leaving_fullscreen) {
+    ScheduleApplyPendingContentBounds();
+  }
+
   // TODO(Guo Xi): Here is the menubar-related code, with reference to Electron.
 }
 
@@ -383,49 +445,203 @@ bool NativeWindowWin::IsFullscreen() const {
 }
 
 void NativeWindowWin::SetBounds(const gfx::Rect& bounds, bool animate) {
-  if (!CanResize()) {
-    SetMaximumSize(bounds.size());
-    SetMinimumSize(bounds.size());
+  static_cast<void>(animate);
+  UpdateBounds(bounds.origin(), bounds.size());
+}
+
+void NativeWindowWin::SetSize(const gfx::Size& size, bool animate) {
+  static_cast<void>(animate);
+  UpdateBounds(std::nullopt, size);
+}
+
+void NativeWindowWin::SetPosition(const gfx::Point& position, bool animate) {
+  static_cast<void>(animate);
+  UpdateBounds(position, std::nullopt);
+}
+
+void NativeWindowWin::UpdateBounds(const std::optional<gfx::Point>& dip_origin,
+                                   const std::optional<gfx::Size>& dip_size) {
+  DCHECK(dip_origin || dip_size);
+
+  if (dip_size && !CanResize()) {
+    // Programmatic resizes of a fixed window must also update its native
+    // tracking limits. Keep those limits in window-space DIP, matching
+    // Electron's non-resizable constraint semantics.
+    SetFixedWindowSizeConstraints(*dip_size);
   }
 
-  window_->SetBounds(DIPToScreenRect(GetNativeWindowHandle(), bounds), true);
+  // Read the current rect in pixels so a position-only or size-only API call
+  // can retain the untouched physical field exactly.
+  const gfx::Rect current_pixel_bounds =
+      IsMinimized() ? window_->GetRestoredBounds()
+                    : window_->GetWindowBoundsInScreen();
+  const gfx::Rect pixel_bounds =
+      UpdateScreenRectForWindow(current_pixel_bounds, dip_origin, dip_size);
+  if (IsMinimized()) {
+    // SetWindowPos cannot reliably change a minimized window's normal bounds.
+    // Update WINDOWPLACEMENT so the requested bounds take effect on restore.
+    SetRestoredBounds(GetNativeWindowHandle(), pixel_bounds);
+  } else {
+    window_->SetBounds(pixel_bounds);
+  }
+}
+
+void NativeWindowWin::SetFixedWindowSizeConstraints(
+    const gfx::Size& window_size) {
+  // Both limits are replaced, so write the authoritative window constraints
+  // atomically. Calling SetMinimumSize() and SetMaximumSize() separately would
+  // first convert any old content constraints even though both values are
+  // immediately discarded.
+  SetSizeConstraints(SizeConstraints(window_size, window_size));
 }
 
 gfx::Rect NativeWindowWin::GetBounds() const {
   if (IsMinimized()) {
-    return ScreenToDIPRect(GetNativeWindowHandle(),
-                           window_->GetRestoredBounds());
+    return ScreenToDIPRectForWindow(nullptr, window_->GetRestoredBounds());
   }
 
   gfx::Rect bounds = window_->GetWindowBoundsInScreen();
-  return ScreenToDIPRect(GetNativeWindowHandle(), bounds);
+  return ScreenToDIPRectForWindow(GetNativeWindowHandle(), bounds);
+}
+
+void NativeWindowWin::SetContentSize(const gfx::Size& size, bool animate) {
+  static_cast<void>(animate);
+
+  // Enforce content constraints in DIP before any pixel rounding so the
+  // requested size and its minimum/maximum limits share one coordinate space.
+  const gfx::Size clamped_size = GetContentSizeConstraints().ClampSize(size);
+  if (!IsNormal()) {
+    // Windows may overwrite bounds while completing a minimize, maximize, or
+    // fullscreen transition. Keep only the latest content request and apply it
+    // after the window has returned to the normal state.
+    pending_content_bounds_.reset();
+    pending_content_size_ = clamped_size;
+    return;
+  }
+
+  pending_content_size_.reset();
+  pending_content_bounds_.reset();
+  // Content geometry is expressed in DIP, but the non-client frame mapping is
+  // a Win32 operation in physical pixels. Convert once at that boundary.
+  gfx::Rect pixel_client_bounds = window_->GetClientAreaBoundsInScreen();
+  pixel_client_bounds.set_size(::lynxtron::DIPToScreenSizeForWindow(
+      GetNativeWindowHandle(), clamped_size));
+  gfx::Rect pixel_window_bounds = pixel_client_bounds;
+  if (frame()) {
+    pixel_window_bounds = GetWindowBoundsForClientBounds(
+        GetNativeWindowHandle(), pixel_client_bounds,
+        display::win::ScreenWin::GetDPIForHWND(GetNativeWindowHandle()));
+  }
+  if (!CanResize()) {
+    const gfx::Size window_size = ScreenToDIPSizeForWindow(
+        GetNativeWindowHandle(), pixel_window_bounds.size());
+    SetFixedWindowSizeConstraints(window_size);
+  }
+  window_->SetBounds(pixel_window_bounds);
+}
+
+void NativeWindowWin::SetContentBounds(const gfx::Rect& bounds, bool animate) {
+  static_cast<void>(animate);
+
+  if (!IsNormal()) {
+    // SetContentSize() and SetContentBounds() share one pending request. The
+    // most recently called API wins while the window is not in the normal
+    // state.
+    pending_content_size_.reset();
+    pending_content_bounds_ = bounds;
+    return;
+  }
+
+  pending_content_bounds_.reset();
+  pending_content_size_.reset();
+  // A target screen rect must select its display from the target bounds, not
+  // from the HWND's current monitor; the window may be moving across DPIs.
+  const gfx::Rect pixel_client_bounds =
+      DIPToScreenRectForWindow(nullptr, bounds);
+  gfx::Rect pixel_window_bounds = pixel_client_bounds;
+  if (frame()) {
+    pixel_window_bounds = GetWindowBoundsForClientBounds(
+        GetNativeWindowHandle(), pixel_client_bounds,
+        display::win::ScreenWin::GetDPIForScreenRect(pixel_client_bounds));
+  }
+  if (!CanResize()) {
+    const gfx::Size window_size =
+        ScreenToDIPRectForWindow(nullptr, pixel_window_bounds).size();
+    SetFixedWindowSizeConstraints(window_size);
+  }
+  window_->SetBounds(pixel_window_bounds);
+}
+
+void NativeWindowWin::ApplyPendingContentBounds() {
+  // During a minimized-to-maximized transition the HWND can momentarily report
+  // restored before the maximize notification arrives. Use the tracked target
+  // state so a pending request is not consumed during that gap.
+  if (last_window_state_ != ui::SHOW_STATE_NORMAL) {
+    return;
+  }
+
+  if (pending_content_bounds_) {
+    const gfx::Rect bounds = *pending_content_bounds_;
+    SetContentBounds(bounds, false);
+  } else if (pending_content_size_) {
+    const gfx::Size size = *pending_content_size_;
+    SetContentSize(size, false);
+  }
+}
+
+void NativeWindowWin::ScheduleApplyPendingContentBounds() {
+  if (!pending_content_bounds_ && !pending_content_size_) {
+    return;
+  }
+
+  // Do not change the HWND bounds from inside a restore/maximize state
+  // notification. Windows may still apply its saved window placement after the
+  // notification returns and overwrite a synchronous SetBounds(). Posting to
+  // the current UI thread lets the native state transition finish first.
+  //
+  // The window can be destroyed before the task runs, so bind through a
+  // WeakPtr instead of retaining a raw NativeWindowWin pointer.
+  base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
+      FROM_HERE, base::BindOnce(&NativeWindowWin::ApplyPendingContentBounds,
+                                weak_factory_.GetWeakPtr()));
 }
 
 gfx::Rect NativeWindowWin::GetContentBounds() const {
-  return ScreenToDIPRect(GetNativeWindowHandle(),
-                         window_->GetClientAreaBoundsInScreen());
+  return ScreenToDIPRectForWindow(GetNativeWindowHandle(),
+                                  window_->GetClientAreaBoundsInScreen());
 }
 
 float NativeWindowWin::GetDevicePixelRatio() const {
-  return GetDPIForHWND(GetNativeWindowHandle()) / kDefaultDPI;
+  return display::win::ScreenWin::GetScaleFactorForHWND(
+      GetNativeWindowHandle());
 }
 
 gfx::Rect NativeWindowWin::GetNormalBounds() const {
   if (IsMaximized() && transparent()) {
     return restore_bounds_;
   }
-  return ScreenToDIPRect(GetNativeWindowHandle(), window_->GetRestoredBounds());
+  return ScreenToDIPRectForWindow(nullptr, window_->GetRestoredBounds());
 }
 
 void NativeWindowWin::SetResizable(bool resizable) {
   if (resizable != this->resizable()) {
     set_resizable(resizable);
     if (resizable) {
-      SetContentSizeConstraints(old_size_constraints_);
+      if (old_size_constraints_.space == ConstraintSpace::kContent) {
+        SetContentSizeConstraints(old_size_constraints_.constraints);
+      } else {
+        SetSizeConstraints(old_size_constraints_.constraints);
+      }
     } else {
-      old_size_constraints_ = GetContentSizeConstraints();
-      gfx::Size content_size = GetContentSize();
-      SetContentSizeConstraints(SizeConstraints(content_size, content_size));
+      if (content_size_constraints_) {
+        old_size_constraints_ = {ConstraintSpace::kContent,
+                                 *content_size_constraints_};
+      } else {
+        old_size_constraints_ = {ConstraintSpace::kWindow,
+                                 GetSizeConstraints()};
+      }
+      const gfx::Size window_size = GetSize();
+      SetSizeConstraints(SizeConstraints(window_size, window_size));
     }
     window_->SizeConstraintsChanged();
   }
@@ -547,7 +763,29 @@ ui::ZOrderLevel NativeWindowWin::GetZOrderLevel() const {
 }
 
 void NativeWindowWin::Center() {
-  window_->CenterWindow(window_->GetWindowBoundsInScreen().size());
+  // Center the logical window bounds in the display work area. Keeping origin
+  // and size conversions separate avoids asymmetric frame inset and
+  // fractional-scale DIP/pixel round-trip errors. GetDisplayNearestWindow
+  // cannot be used because ScreenWin's NativeWindow-to-HWND conversion is not
+  // implemented, so select the display matching the logical bounds instead.
+  const gfx::Rect current_bounds = GetBounds();
+  auto display = display::Screen::Get()->GetDisplayMatching(current_bounds);
+  gfx::Rect bounds = display.work_area();
+  bounds.ClampToCenteredSize(current_bounds.size());
+  if (!IsNormal()) {
+    SetBounds(bounds, false);
+    return;
+  }
+
+  // For a normal window, move only the physical origin and retain the current
+  // pixel size. Rebuilding the full rect from DIP could change its size by one
+  // pixel at fractional scale factors.
+  const gfx::Point pixel_origin =
+      DIPToScreenRectForWindow(nullptr, gfx::Rect(bounds.origin(), gfx::Size()))
+          .origin();
+  gfx::Rect pixel_bounds = window_->GetWindowBoundsInScreen();
+  pixel_bounds.set_origin(pixel_origin);
+  window_->SetBounds(pixel_bounds);
 }
 
 void NativeWindowWin::SetTitle(const std::string& title) {
@@ -676,6 +914,9 @@ bool NativeWindowWin::IsFocusable() const {
 void NativeWindowWin::SetParentWindow(NativeWindow* parent) {
   NativeWindow* const old_parent = NativeWindow::parent();
   const bool was_registered = registered_modal_parent_ != nullptr;
+  // Transfer an active modal registration from the old parent to the new one.
+  // Checking parent() alone is insufficient because Hide() may already have
+  // removed this window from its parent's modal-child count.
   if (was_registered && old_parent != parent) {
     UnregisterModalParent();
   }
@@ -762,12 +1003,14 @@ gfx::Rect NativeWindowWin::ContentBoundsToWindowBounds(
     return bounds;
   }
 
-  gfx::Rect window_bounds(bounds);
   HWND hwnd = GetNativeWindowHandle();
-  gfx::Rect dpi_bounds = DIPToScreenRect(hwnd, bounds);
-  window_bounds =
-      ScreenToDIPRect(hwnd, GetWindowBoundsForClientBounds(hwnd, dpi_bounds));
-  return window_bounds;
+  // The public mapping is DIP -> DIP, but Win32 defines non-client metrics in
+  // pixels. Convert at the boundary, apply the frame, then convert back.
+  const gfx::Rect pixel_client_bounds = DIPToScreenRectForWindow(hwnd, bounds);
+  return ScreenToDIPRectForWindow(
+      hwnd, GetWindowBoundsForClientBounds(
+                hwnd, pixel_client_bounds,
+                display::win::ScreenWin::GetDPIForHWND(hwnd)));
 }
 
 gfx::Rect NativeWindowWin::WindowBoundsToContentBounds(
@@ -776,18 +1019,14 @@ gfx::Rect NativeWindowWin::WindowBoundsToContentBounds(
     return bounds;
   }
 
-  gfx::Rect content_bounds(bounds);
   HWND hwnd = GetNativeWindowHandle();
-  content_bounds.set_size(DIPToScreenRect(hwnd, content_bounds).size());
-  RECT rect;
-  SetRectEmpty(&rect);
-  DWORD style = ::GetWindowLong(hwnd, GWL_STYLE);
-  DWORD ex_style = ::GetWindowLong(hwnd, GWL_EXSTYLE);
-  AdjustWindowRectEx(&rect, style, FALSE, ex_style);
-  content_bounds.set_width(content_bounds.width() - (rect.right - rect.left));
-  content_bounds.set_height(content_bounds.height() - (rect.bottom - rect.top));
-  content_bounds.set_size(ScreenToDIPRect(hwnd, content_bounds).size());
-  return content_bounds;
+  // This is the exact inverse of ContentBoundsToWindowBounds for the supported
+  // system frame and single-row menu model.
+  const gfx::Rect pixel_window_bounds = DIPToScreenRectForWindow(hwnd, bounds);
+  return ScreenToDIPRectForWindow(
+      hwnd, GetClientBoundsForWindowBounds(
+                hwnd, pixel_window_bounds,
+                display::win::ScreenWin::GetDPIForHWND(hwnd)));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -844,12 +1083,29 @@ bool NativeWindowWin::GetDwmFrameInsetsInPixels(gfx::Insets* insets) const {
 
 void NativeWindowWin::GetMinMaxSize(gfx::Size* min_size,
                                     gfx::Size* max_size) const {
-  auto constrains = GetSizeConstraints();
-  *min_size = constrains.GetMinimumSize();
-  *max_size = constrains.GetMaximumSize();
-  if (max_size->IsEmpty()) {
-    *max_size = gfx::Size(INT_MAX, INT_MAX);
+  // Return the authoritative constraint values without converting content DIP
+  // to window DIP. HWNDMessageHandler performs the single DIP -> pixel
+  // conversion and adds the non-client frame in pixels at the Win32 boundary.
+  const SizeConstraints constraints = content_size_constraints_
+                                          ? *content_size_constraints_
+                                          : GetSizeConstraints();
+  *min_size = constraints.GetMinimumSize();
+  *max_size = constraints.GetMaximumSize();
+  // NativeWindow uses zero for an unspecified maximum. Convert each dimension
+  // independently to INT_MAX so a one-axis maximum keeps the other unbounded
+  // through DPI scaling and non-client frame expansion.
+  if (!max_size->width()) {
+    max_size->set_width(INT_MAX);
   }
+  if (!max_size->height()) {
+    max_size->set_height(INT_MAX);
+  }
+}
+
+bool NativeWindowWin::MinMaxSizeIsClientSize() const {
+  // The unit is always DIP; this flag describes whether those DIP values bound
+  // the client area or the outer window.
+  return content_size_constraints_.has_value();
 }
 
 gfx::Size NativeWindowWin::GetRootViewSize() const {
@@ -857,7 +1113,7 @@ gfx::Size NativeWindowWin::GetRootViewSize() const {
 }
 
 gfx::Size NativeWindowWin::DIPToScreenSize(const gfx::Size& dip_size) const {
-  return lynxtron::DIPToScreenSize(window_->hwnd(), dip_size);
+  return lynxtron::DIPToScreenSizeForWindow(window_->hwnd(), dip_size);
 }
 
 void NativeWindowWin::ResetWindowControls() {}
@@ -909,6 +1165,7 @@ void NativeWindowWin::HandleWindowMinimizedOrRestored(bool restored) {
       return;
     }
     last_window_state_ = restored_window_state_;
+    ScheduleApplyPendingContentBounds();
     NotifyWindowRestore();
     return;
   }
@@ -917,11 +1174,7 @@ void NativeWindowWin::HandleWindowMinimizedOrRestored(bool restored) {
     return;
   }
 
-  WINDOWPLACEMENT wp;
-  wp.length = sizeof(WINDOWPLACEMENT);
-  if (GetWindowPlacement(GetNativeWindowHandle(), &wp)) {
-    last_normal_placement_bounds_ = gfx::Rect(wp.rcNormalPosition);
-  }
+  last_normal_placement_bounds_ = window_->GetRestoredBounds();
 
   restored_window_state_ = last_window_state_;
   last_window_state_ = ui::SHOW_STATE_MINIMIZED;
@@ -934,11 +1187,7 @@ void NativeWindowWin::HandleWindowMaximized(bool maximized) {
       return;
     }
 
-    WINDOWPLACEMENT wp;
-    wp.length = sizeof(WINDOWPLACEMENT);
-    if (GetWindowPlacement(GetNativeWindowHandle(), &wp)) {
-      last_normal_placement_bounds_ = gfx::Rect(wp.rcNormalPosition);
-    }
+    last_normal_placement_bounds_ = window_->GetRestoredBounds();
 
     last_window_state_ = ui::SHOW_STATE_MAXIMIZED;
     NotifyWindowMaximize();
@@ -953,6 +1202,7 @@ void NativeWindowWin::HandleWindowMaximized(bool maximized) {
   }
 
   last_window_state_ = ui::SHOW_STATE_NORMAL;
+  ScheduleApplyPendingContentBounds();
   NotifyWindowUnmaximize();
 }
 
@@ -996,7 +1246,7 @@ bool NativeWindowWin::HandleMoving(RECT* rect) {
   bool prevent_default = false;
   gfx::Rect bounds = gfx::Rect(*rect);
   HWND hwnd = GetNativeWindowHandle();
-  gfx::Rect dpi_bounds = ScreenToDIPRect(hwnd, bounds);
+  gfx::Rect dpi_bounds = ScreenToDIPRectForWindow(nullptr, bounds);
   NotifyWindowWillMove(dpi_bounds, prevent_default);
   if (!movable_ || prevent_default) {
     ::GetWindowRect(hwnd, rect);

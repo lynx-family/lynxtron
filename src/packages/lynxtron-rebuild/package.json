@@ -19,6 +19,7 @@
   "license": "MIT",
   "dependencies": {
     "compressing": "^1.10.0",
+    "node-fetch": "^3.3.2",
     "node-gyp": "^12.2.0"
   }
 }

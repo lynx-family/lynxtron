@@ -14,13 +14,8 @@
 #include <memory>
 #include <vector>
 
-#include "base/scoped_observation.h"
 #include "shell/ui/display/display_change_notifier.h"
-#include "shell/ui/display/display_export.h"
 #include "shell/ui/display/screen.h"
-#include "shell/ui/display/win/color_profile_reader.h"
-// #include "shell/ui/display/win/uwp_text_scale_factor.h"
-#include "shell/ui/gfx/geometry/vector2d_f.h"
 #include "shell/ui/gfx/native_ui_types.h"
 #include "shell/ui/gfx/win/singleton_hwnd_observer.h"
 
@@ -29,7 +24,6 @@ class Display;
 class Point;
 class PointF;
 class Rect;
-class Size;
 }  // namespace gfx
 
 namespace display {
@@ -38,8 +32,7 @@ namespace win {
 class DisplayInfo;
 class ScreenWinDisplay;
 
-class DISPLAY_EXPORT ScreenWin : public Screen,
-                                 public ColorProfileReader::Client {
+class ScreenWin : public Screen {
  public:
   ScreenWin();
   ~ScreenWin() override;
@@ -54,19 +47,15 @@ class DISPLAY_EXPORT ScreenWin : public Screen,
   // point.
   static gfx::Point DIPToScreenPoint(const gfx::Point& dip_point);
 
-  // Converts a client physical point relative to |hwnd| to a client DIP point.
-  // The DPI scale is performed relative to |hwnd| using an origin of (0, 0).
-  static gfx::Point ClientToDIPPoint(HWND hwnd, const gfx::Point& client_point);
-
-  // Converts a client DIP point relative to |hwnd| to a client physical point.
-  // The DPI scale is performed relative to |hwnd| using an origin of (0, 0).
-  static gfx::Point DIPToClientPoint(HWND hwnd, const gfx::Point& dip_point);
-
   // WARNING: There is no right way to scale sizes and rects.
   // Sometimes you may need the enclosing rect (which favors transformations
   // that stretch the bounds towards integral values) or the enclosed rect
   // (transformations that shrink the bounds towards integral values).
   // This implementation favors the enclosing rect.
+  //
+  // These are generic display-coordinate helpers. NativeWindow geometry must
+  // use shell/api/dpi_win.h instead: window API sizes use independent rounded
+  // conversion so their result cannot vary with the rect origin.
   //
   // Understand which you need before blindly assuming this is the right way.
 
@@ -84,26 +73,6 @@ class DISPLAY_EXPORT ScreenWin : public Screen,
   // the new display's scale factor rather than the old one's.
   static gfx::Rect DIPToScreenRect(HWND hwnd, const gfx::Rect& dip_bounds);
 
-  // Converts a client physical rect to a client DIP rect.
-  // The DPI scale is performed relative to |hwnd| using an origin of (0, 0).
-  static gfx::Rect ClientToDIPRect(HWND hwnd, const gfx::Rect& pixel_bounds);
-
-  // Converts a client DIP rect to a client physical rect.
-  // The DPI scale is performed relative to |hwnd| using an origin of (0, 0).
-  static gfx::Rect DIPToClientRect(HWND hwnd, const gfx::Rect& dip_bounds);
-
-  // Converts a physical size to a DIP size.
-  // The DPI scale is performed relative to the display nearest to |hwnd|.
-  static gfx::Size ScreenToDIPSize(HWND hwnd, const gfx::Size& size_in_pixels);
-
-  // Converts a DIP size to a physical size.
-  // The DPI scale is performed relative to the display nearest to |hwnd|.
-  static gfx::Size DIPToScreenSize(HWND hwnd, const gfx::Size& dip_size);
-
-  // Returns the number of physical pixels per inch for a display associated
-  // with the point.
-  static gfx::Vector2dF GetPixelsPerInch(const gfx::PointF& point);
-
   // Returns the result of GetSystemMetrics for |metric| scaled to |monitor|'s
   // DPI. Use this function if you're already working with screen pixels, as
   // this helps reduce any cascading rounding errors from DIP to the |monitor|'s
@@ -114,13 +83,22 @@ class DISPLAY_EXPORT ScreenWin : public Screen,
   // by Text Zoom or other accessibility features.
   static int GetSystemMetricsForMonitor(HMONITOR monitor, int metric);
 
-  // Returns the result of GetSystemMetrics for |metric| in DIP.
-  // Use this function if you need to work in DIP and can tolerate cascading
-  // rounding errors towards screen pixels.
-  static int GetSystemMetricsInDIP(int metric);
-
   // Returns |hwnd|'s scale factor, including accessibility adjustments.
   static float GetScaleFactorForHWND(HWND hwnd);
+
+  // Returns the scale factor selected by the same display-selection rules as
+  // ScreenToDIPRect(nullptr, |pixel_bounds|). This lets window-specific
+  // wrappers reuse ScreenWin's monitor choice while applying a different size
+  // policy.
+  static float GetScaleFactorForScreenRect(const gfx::Rect& pixel_bounds);
+
+  // Returns the unmodified DPI for the display nearest to |pixel_bounds|.
+  static int GetDPIForScreenRect(const gfx::Rect& pixel_bounds);
+
+  // Returns the scale factor selected by the same display-selection rules as
+  // DIPToScreenRect(nullptr, |dip_bounds|). This lets window-specific wrappers
+  // reuse ScreenWin's monitor choice while applying a different size policy.
+  static float GetScaleFactorForDIPRect(const gfx::Rect& dip_bounds);
 
   // Returns the unmodified DPI for a particular |hwnd|, without accessibility
   // adjustments.
@@ -129,46 +107,13 @@ class DISPLAY_EXPORT ScreenWin : public Screen,
   // Converts dpi to scale factor, including accessibility adjustments.
   static float GetScaleFactorForDPI(int dpi);
 
-  // Returns the system's global scale factor, ignoring the value of
-  // --force-device-scale-factor. Only use this if you are working with Windows
-  // metrics global to the system. Otherwise you should call
-  // GetScaleFactorForHWND() to get the correct scale factor for the monitor
-  // you are targeting.
-  static float GetSystemScaleFactor();
-
-  // Set a callback to use to query the status of HDR. This callback will be
-  // called when the status of HDR may have changed.
-  using RequestHDRStatusCallback = base::RepeatingClosure;
-  static void SetRequestHDRStatusCallback(
-      RequestHDRStatusCallback request_hdr_status_callback);
-
-  // Set whether or not to treat all displays as HDR capable. Note that
-  // more precise information about which displays are HDR capable is
-  // available. We make a conscious choice to force all displays to HDR mode if
-  // any display is in HDR mode, under the assumption that the user will be
-  // using the HDR display to view media, and thus will want all media queries
-  // to return that HDR is supported.
-  static void SetHDREnabled(bool hdr_enabled);
-
-  // Returns the HWND associated with the NativeWindow.
-  virtual HWND GetHWNDFromNativeWindow(gfx::NativeWindow view) const;
-
-  //   // Returns the NativeWindow associated with the HWND.
-  //   virtual gfx::NativeWindow GetNativeWindowFromHWND(HWND hwnd) const;
-
-  //   // Returns true if the native window is occluded.
-  //   virtual bool IsNativeWindowOccluded(gfx::NativeWindow window) const;
-
  protected:
-  ScreenWin(bool initialize);
+  // Tests can skip system enumeration and inject deterministic DisplayInfos,
+  // for example to exercise fractional scale factors independent of the host.
+  explicit ScreenWin(bool initialize);
 
   // Screen:
   gfx::Point GetCursorScreenPoint() override;
-  //   bool IsWindowUnderCursor(gfx::NativeWindow window) override;
-  //   gfx::NativeWindow GetWindowAtScreenPoint(const gfx::Point& point)
-  //   override; gfx::NativeWindow GetLocalProcessWindowAtPoint(
-  //       const gfx::Point& point,
-  //       const std::set<gfx::NativeWindow>& ignore) override;
   int GetNumDisplays() const override;
   const std::vector<Display>& GetAllDisplays() const override;
   Display GetDisplayNearestWindow(gfx::NativeWindow window) const override;
@@ -177,27 +122,15 @@ class DISPLAY_EXPORT ScreenWin : public Screen,
   Display GetPrimaryDisplay() const override;
   void AddObserver(DisplayObserver* observer) override;
   void RemoveObserver(DisplayObserver* observer) override;
-  //   gfx::Rect ScreenToDIPRectInWindow(
-  //       gfx::NativeWindow window,
-  //       const gfx::Rect& screen_rect) const override;
-  //   gfx::Rect DIPToScreenRectInWindow(gfx::NativeWindow window,
-  //                                     const gfx::Rect& dip_rect) const
-  //                                     override;
-
-  // ColorProfileReader::Client:
-  void OnColorProfilesChanged() override;
 
   void UpdateFromDisplayInfos(const std::vector<DisplayInfo>& display_infos);
 
-  // Virtual to support mocking by unit tests.
-  virtual MONITORINFOEX MonitorInfoFromScreenPoint(
+  MONITORINFOEX MonitorInfoFromScreenPoint(
       const gfx::Point& screen_point) const;
-  virtual MONITORINFOEX MonitorInfoFromScreenRect(
-      const gfx::Rect& screen_rect) const;
-  virtual MONITORINFOEX MonitorInfoFromWindow(HWND hwnd,
-                                              DWORD default_options) const;
-  virtual HWND GetRootWindow(HWND hwnd) const;
-  virtual int GetSystemMetrics(int metric) const;
+  MONITORINFOEX MonitorInfoFromScreenRect(const gfx::Rect& screen_rect) const;
+  MONITORINFOEX MonitorInfoFromWindow(HWND hwnd, DWORD default_options) const;
+  HWND GetRootWindow(HWND hwnd) const;
+  int GetSystemMetrics(int metric) const;
 
  private:
   void Initialize();
@@ -240,12 +173,6 @@ class DISPLAY_EXPORT ScreenWin : public Screen,
 
   void RecordDisplayScaleFactors() const;
 
-  //-----------------------------------------------------------------
-  // UwpTextScaleFactor::Observer:
-
-  // void OnUwpTextScaleFactorChanged() override;
-  // void OnUwpTextScaleFactorCleanup(UwpTextScaleFactor* source) override;
-
   // Helper implementing the DisplayObserver handling.
   DisplayChangeNotifier change_notifier_;
 
@@ -257,20 +184,6 @@ class DISPLAY_EXPORT ScreenWin : public Screen,
   // The Displays corresponding to |screen_win_displays_| for GetAllDisplays().
   // This must be updated anytime |screen_win_displays_| is updated.
   std::vector<Display> displays_;
-
-  // A helper to read color profiles from the filesystem.
-  std::unique_ptr<ColorProfileReader> color_profile_reader_ =
-      std::make_unique<ColorProfileReader>(this);
-
-  // Callback to use to query when the HDR status may have changed.
-  RequestHDRStatusCallback request_hdr_status_callback_;
-
-  // Whether or not HDR mode is enabled for any monitor via the "HDR and
-  // advanced color" setting.
-  bool hdr_enabled_ = false;
-
-  // base::ScopedObservation<UwpTextScaleFactor, UwpTextScaleFactor::Observer>
-  //     scale_factor_observation_{this};
 };
 
 ScreenWin* GetScreenWin();

@@ -78,8 +78,6 @@ class NativeWindowObserver : public base::CheckedObserver {
   virtual void OnWindowRotateGesture(float rotation) {}
   virtual void OnWindowSheetBegin() {}
   virtual void OnWindowSheetEnd() {}
-  virtual void OnWindowWillEnterFullScreen() {}
-  virtual void OnWindowWillLeaveFullScreen() {}
   virtual void OnWindowEnterFullScreen() {}
   virtual void OnWindowLeaveFullScreen() {}
   virtual void OnWindowAlwaysOnTopChanged() {}

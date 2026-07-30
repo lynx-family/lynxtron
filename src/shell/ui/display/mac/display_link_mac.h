@@ -16,7 +16,6 @@
 #include "base/memory/ref_counted.h"
 #include "base/task/single_thread_task_runner.h"
 #include "base/time/time.h"
-#include "ui/display/display_export.h"
 
 namespace gpu {
 class ImageTransportSurfaceOverlayMacTest;
@@ -25,7 +24,7 @@ class ImageTransportSurfaceOverlayMacTest;
 namespace ui {
 
 // VSync parameters parsed from CVDisplayLinkOutputCallback's parameters.
-struct DISPLAY_EXPORT VSyncParamsMac {
+struct VSyncParamsMac {
   // The time of the callback.
   bool callback_times_valid = false;
   base::TimeTicks callback_timebase;
@@ -39,7 +38,7 @@ struct DISPLAY_EXPORT VSyncParamsMac {
 
 // Object used to control the lifetime of callbacks from DisplayLinkMac.
 // See notes in DisplayLinkMac::RegisterCallback
-class DISPLAY_EXPORT VSyncCallbackMac {
+class VSyncCallbackMac {
  public:
   using Callback = base::RepeatingCallback<void(VSyncParamsMac)>;
   ~VSyncCallbackMac();
@@ -69,7 +68,7 @@ class DISPLAY_EXPORT VSyncCallbackMac {
   base::WeakPtrFactory<VSyncCallbackMac> weak_factory_{this};
 };
 
-class DISPLAY_EXPORT DisplayLinkMac : public base::RefCounted<DisplayLinkMac> {
+class DisplayLinkMac : public base::RefCounted<DisplayLinkMac> {
  public:
   // Create a DisplayLinkMac for the specified display. The returned object may
   // only be accessed on the thread on which it was retrieved.

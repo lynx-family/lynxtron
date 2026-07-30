@@ -220,14 +220,6 @@ void BaseWindow::OnWindowMoved() {
   Emit("moved");
 }
 
-void BaseWindow::OnWindowWillEnterFullScreen() {
-  Emit("will-enter-full-screen");
-}
-
-void BaseWindow::OnWindowWillLeaveFullScreen() {
-  Emit("will-leave-full-screen");
-}
-
 void BaseWindow::OnWindowEnterFullScreen() {
   Emit("enter-full-screen");
 }

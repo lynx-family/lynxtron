@@ -40,6 +40,9 @@ namespace ui {
 class FullscreenHandler;
 class HWNDMessageHandlerDelegate;
 
+gfx::Size ExpandMaxTrackSizeForClientFrame(const gfx::Size& max_size,
+                                           const gfx::Size& non_client_size);
+
 // These two messages aren't defined in winuser.h, but they are sent to windows
 // with captions. They appear to paint the window caption and frame.
 // Unfortunately if you override the standard non-client rendering as we do
@@ -81,12 +84,10 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   void GetWindowPlacement(gfx::Rect* bounds,
                           ui::WindowShowState* show_state) const;
 
-  // Sets the bounds of the HWND to |bounds_in_pixels|. If the HWND size is not
-  // changed, |force_size_changed| determines if we should pretend it is.
-  void SetBounds(const gfx::Rect& bounds_in_pixels, bool force_size_changed);
+  // Sets the bounds of the HWND to |bounds_in_pixels|.
+  void SetBounds(const gfx::Rect& bounds_in_pixels);
 
   void SetSize(const gfx::Size& size);
-  void CenterWindow(const gfx::Size& size);
 
   void StackAbove(HWND other_hwnd);
   void StackAtTop();
@@ -208,6 +209,12 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   // DwmExtendFrameIntoClientArea.
   void SetDwmFrameExtension(DwmFrameState state);
 
+  // Converts the delegate's authoritative DIP constraints to the physical
+  // window sizes consumed by Win32. Content constraints gain the current
+  // non-client frame only after the single DIP-to-pixel conversion.
+  void GetMinMaxTrackSizesInPixels(gfx::Size* min_window_size,
+                                   gfx::Size* max_window_size) const;
+
   // Message Handlers ----------------------------------------------------------
 
   CR_BEGIN_MSG_MAP_EX(HWNDMessageHandler)
@@ -315,8 +322,7 @@ class HWNDMessageHandler : public gfx::WindowImpl {
 
   // Helper function for setting the bounds of the HWND. For more information
   // please refer to the SetBounds() function.
-  void SetBoundsInternal(const gfx::Rect& bounds_in_pixels,
-                         bool force_size_changed);
+  void SetBoundsInternal(const gfx::Rect& bounds_in_pixels);
 
   // Checks if there is a full screen window on the same monitor as the
   // |window| which is becoming active. If yes then we reduce the size of the

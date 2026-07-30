@@ -30,6 +30,7 @@
 #include "shell/app/window_list.h"
 #include "shell/common/asar/archive.h"
 #include "shell/common/asar/asar_util.h"
+#include "shell/common/file_url_util.h"
 #include "shell/common/gin_helper/constructor.h"
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/gin_helper/object_template_builder.h"
@@ -626,6 +627,16 @@ bool LynxWindow::LoadFile(const std::string& path, gin::Arguments* args) {
 }
 
 bool LynxWindow::LoadUrl(const std::string& url, gin::Arguments* args) {
+  GURL parsed_url(url);
+  if (parsed_url.SchemeIsFile()) {
+    base::FilePath local_path;
+    if (!FileURLToFilePath(parsed_url, &local_path)) {
+      LOG(ERROR) << "Invalid file URL: " << url;
+      return false;
+    }
+    return LoadFile(local_path.AsUTF8Unsafe(), args);
+  }
+
   gin_helper::Dictionary data;
   gin_helper::Dictionary global_props;
   if (!ExtractLoadDataOptions(args, &data, &global_props)) {

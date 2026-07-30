@@ -9,8 +9,6 @@
 #ifndef LYNXTRON_SHELL_UI_DISPLAY_WIN_SCREEN_WIN_DISPLAY_H_
 #define LYNXTRON_SHELL_UI_DISPLAY_WIN_SCREEN_WIN_DISPLAY_H_
 
-#include <windows.h>
-
 #include "shell/ui/display/display.h"
 #include "shell/ui/gfx/geometry/rect.h"
 
@@ -24,17 +22,14 @@ class DisplayInfo;
 class ScreenWinDisplay final {
  public:
   ScreenWinDisplay();
-  explicit ScreenWinDisplay(const DisplayInfo& display_info);
   ScreenWinDisplay(const Display& display, const DisplayInfo& display_info);
 
   const Display& display() const { return display_; }
   const gfx::Rect& pixel_bounds() const { return pixel_bounds_; }
-  const gfx::Vector2dF& pixels_per_inch() const { return pixels_per_inch_; }
 
  private:
   Display display_;
   gfx::Rect pixel_bounds_;
-  gfx::Vector2dF pixels_per_inch_;
 };
 
 }  // namespace win

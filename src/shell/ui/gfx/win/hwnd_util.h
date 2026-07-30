@@ -14,7 +14,6 @@
 #include <string>
 
 namespace gfx {
-class Size;
 
 // A version of the GetClassNameW API that returns the class name in an
 // std::wstring. An empty result indicates a failure to get the class name.
@@ -31,10 +30,6 @@ void* GetWindowUserData(HWND hwnd);
 // Returns true if the specified window is the current active top window or one
 // of its children.
 bool DoesWindowBelongToActiveWindow(HWND window);
-
-// Sizes the window to have a window size of |pref|, then centers the window
-// over |parent|, ensuring the window fits on screen.
-void CenterAndSizeWindow(HWND parent, HWND window, const gfx::Size& pref);
 
 // If |hwnd| is nullptr logs various thing and CHECKs. |last_error| must contain
 // the result of ::GetLastError(), called immediately after CreateWindow().

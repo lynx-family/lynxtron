@@ -56,17 +56,6 @@ NativeWindow::~NativeWindow() {
 
 void NativeWindow::InitFromOptions(const gin_helper::Dictionary& options) {
   // Setup window from options.
-  int x = 0;
-  int y = 0;
-  const bool has_x = options.Get(options::kX, &x);
-  const bool has_y = options.Get(options::kY, &y);
-  if (has_x && has_y) {
-    SetPosition(gfx::Point{x, y}, false);
-  } else if (!has_x && !has_y &&
-             options.ValueOrDefault(options::kCenter, true)) {
-    Center();
-  }
-
   // On Linux and Window we may already have maximum size defined.
   SizeConstraints size_constraints(
       use_content_size_ ? GetContentSizeConstraints() : GetSizeConstraints());
@@ -97,9 +86,30 @@ void NativeWindow::InitFromOptions(const gin_helper::Dictionary& options) {
   }
 
   if (use_content_size_) {
+    const gfx::Size content_size = GetContentSize();
+    const gfx::Size clamped_size = size_constraints.ClampSize(content_size);
+    if (clamped_size != content_size) {
+      SetContentSize(clamped_size, false);
+    }
     SetContentSizeConstraints(size_constraints);
   } else {
+    const gfx::Size size = GetSize();
+    const gfx::Size clamped_size = size_constraints.ClampSize(size);
+    if (clamped_size != size) {
+      SetSize(clamped_size, false);
+    }
     SetSizeConstraints(size_constraints);
+  }
+
+  int x = 0;
+  int y = 0;
+  const bool has_x = options.Get(options::kX, &x);
+  const bool has_y = options.Get(options::kY, &y);
+  if (has_x && has_y) {
+    SetPosition(gfx::Point{x, y}, false);
+  } else if (!has_x && !has_y &&
+             options.ValueOrDefault(options::kCenter, true)) {
+    Center();
   }
 
   if (bool val; options.Get(options::kMovable, &val)) {
@@ -497,14 +507,6 @@ void NativeWindow::NotifyWindowSheetBegin() {
 
 void NativeWindow::NotifyWindowSheetEnd() {
   observers_.Notify(&NativeWindowObserver::OnWindowSheetEnd);
-}
-
-void NativeWindow::NotifyWindowWillEnterFullScreen() {
-  observers_.Notify(&NativeWindowObserver::OnWindowWillEnterFullScreen);
-}
-
-void NativeWindow::NotifyWindowWillLeaveFullScreen() {
-  observers_.Notify(&NativeWindowObserver::OnWindowWillLeaveFullScreen);
 }
 
 void NativeWindow::NotifyWindowLeaveFullScreen() {

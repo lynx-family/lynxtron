@@ -1,0 +1,52 @@
+From 2ae1970eec37ae8be318c838c58f9dfd4f9b6ccf Mon Sep 17 00:00:00 2001
+From: zsy-jason <186247581+zsy-jason@users.noreply.github.com>
+Date: Wed, 15 Apr 2026 16:40:24 +0800
+Subject: [PATCH] BugFix: Copy fetch response body into V8 sandbox
+
+diff --git a/platform/embedder/module/lynx_fetch_module.cc b/platform/embedder/module/lynx_fetch_module.cc
+index f1821cd3c..051249468 100644
+--- a/platform/embedder/module/lynx_fetch_module.cc
++++ b/platform/embedder/module/lynx_fetch_module.cc
+@@ -3,6 +3,7 @@
+ // LICENSE file in the root directory of this source tree.
+ #include "platform/embedder/module/lynx_fetch_module.h"
+ 
++#include <cstring>
+ #include <string>
+ #include <utility>
+ 
+@@ -49,25 +50,17 @@ void InvokeJSCallback(Napi::Env env, Napi::Function func,
+     }
+     result.Set("headers", headers);
+     if (response->body.content != nullptr && response->body.length > 0) {
+-      // To avoid copying, create an ArrayBuffer directly using the address of
+-      // the response body, and release the response in the finalize callback of
+-      // the ArrayBuffer.
+-      Napi::ArrayBuffer body = Napi::ArrayBuffer::New(
+-          env, response->body.content, response->body.length,
+-          [](napi_env env, void* finalize_data, void* finalize_hint) {
+-            lynx_http_response_t* response =
+-                reinterpret_cast<lynx_http_response_t*>(finalize_hint);
+-            if (response != nullptr) {
+-              // Release response
+-              lynx_http_response_release(response);
+-            }
+-          },
+-          response);
++      // External ArrayBuffer backing stores must be allocated inside the V8
++      // Sandbox. Let the runtime allocator create the backing store, then copy
++      // the response body into it.
++      Napi::ArrayBuffer body =
++          Napi::ArrayBuffer::New(env, response->body.length);
++      std::memcpy(body.Data(), response->body.content, response->body.length);
+       result.Set("body", body);
+-    } else {
+-      // Release response
+-      lynx_http_response_release(response);
+     }
++    // The response body has been copied into the JS ArrayBuffer and no longer
++    // needs to stay alive until garbage collection.
++    lynx_http_response_release(response);
+     context->resolve.Value().Call({result});
+   }
+ }

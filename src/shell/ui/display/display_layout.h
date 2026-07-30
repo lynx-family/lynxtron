@@ -16,8 +16,6 @@
 #include <string_view>
 #include <vector>
 
-#include "shell/ui/display/display_export.h"
-
 namespace gfx {
 class Rect;
 }
@@ -44,7 +42,7 @@ using Displays = std::vector<Display>;
 //                        |        |
 //                        +--------+
 //
-struct DISPLAY_EXPORT DisplayPlacement {
+struct DisplayPlacement {
   // The id of the display this placement will be applied to.
   int64_t display_id;
 
@@ -88,7 +86,7 @@ struct DISPLAY_EXPORT DisplayPlacement {
   static bool StringToPosition(std::string_view string, Position* position);
 };
 
-class DISPLAY_EXPORT DisplayLayout final {
+class DisplayLayout final {
  public:
   DisplayLayout();
   ~DisplayLayout();

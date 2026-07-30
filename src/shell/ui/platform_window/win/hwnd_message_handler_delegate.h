@@ -105,6 +105,11 @@ class HWNDMessageHandlerDelegate {
   virtual void GetMinMaxSize(gfx::Size* min_size,
                              gfx::Size* max_size) const = 0;
 
+  // Returns true when the sizes returned by GetMinMaxSize() describe the client
+  // area. The message handler adds the non-client frame size before applying
+  // them as HWND tracking constraints.
+  virtual bool MinMaxSizeIsClientSize() const = 0;
+
   // Returns the current size of the RootView.
   virtual gfx::Size GetRootViewSize() const = 0;
 

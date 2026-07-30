@@ -284,11 +284,9 @@ export declare class LynxWindow extends BaseWindow {
   on(event: 'blur', listener: (event: Event) => void): this;
   on(event: 'close', listener: (event: Event) => void): this;
   on(event: 'closed', listener: () => void): this;
-  on(event: 'will-enter-full-screen', listener: () => void): this;
   on(event: 'enter-full-screen', listener: () => void): this;
   on(event: 'focus', listener: (event: Event) => void): this;
   on(event: 'hide', listener: () => void): this;
-  on(event: 'will-leave-full-screen', listener: () => void): this;
   on(event: 'leave-full-screen', listener: () => void): this;
   on(event: 'maximize', listener: () => void): this;
   on(event: 'minimize', listener: () => void): this;

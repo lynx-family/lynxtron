@@ -1,0 +1,5 @@
+checker-config:
+  file-type-checker:
+    binary-files-allow-list:
+      - '^src/packages/default_app/app/assets/*'
+      - '^src/packages/default_app/icon.png'

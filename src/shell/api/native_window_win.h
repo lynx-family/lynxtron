@@ -9,9 +9,11 @@
 #include <wrl/client.h>
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "base/memory/raw_ptr.h"
+#include "base/memory/weak_ptr.h"
 #include "base/win/scoped_gdi_object.h"
 #include "base/win/windows_types.h"
 #include "shell/app/native_window.h"
@@ -20,8 +22,6 @@
 #include "shell/ui/platform_window/win/hwnd_message_handler_delegate.h"
 
 namespace lynxtron {
-
-extern gfx::Rect ScreenToDIPRect(HWND hwnd, const gfx::Rect& pixel_bounds);
 
 class NativeWindowWin : public NativeWindow,
                         public NativeWindowObserver,
@@ -50,8 +50,20 @@ class NativeWindowWin : public NativeWindow,
   bool IsMinimized() const override;
   void SetFullScreen(bool fullscreen) override;
   bool IsFullscreen() const override;
+
+  // Replaces the complete outer-window bounds expressed in DIP.
   void SetBounds(const gfx::Rect& bounds, bool animate) override;
+
+  // Returns the outer-window bounds in DIP.
   gfx::Rect GetBounds() const override;
+
+  // Updates only the DIP size and preserves the exact physical-pixel origin.
+  void SetSize(const gfx::Size& size, bool animate) override;
+
+  // Updates only the DIP origin and preserves the exact physical-pixel size.
+  void SetPosition(const gfx::Point& position, bool animate) override;
+  void SetContentSize(const gfx::Size& size, bool animate) override;
+  void SetContentBounds(const gfx::Rect& bounds, bool animate) override;
   gfx::Rect GetContentBounds() const override;
   float GetDevicePixelRatio() const override;
   gfx::Rect GetNormalBounds() const override;
@@ -119,7 +131,15 @@ class NativeWindowWin : public NativeWindow,
   bool GetClientAreaInsets(gfx::Insets* insets,
                            HMONITOR monitor) const override;
   bool GetDwmFrameInsetsInPixels(gfx::Insets* insets) const override;
+
+  // Returns the authoritative window or content constraints in DIP without
+  // converting between those semantics. HWNDMessageHandler performs the
+  // single conversion to physical window pixels.
   void GetMinMaxSize(gfx::Size* min_size, gfx::Size* max_size) const override;
+
+  // Returns whether GetMinMaxSize() describes the content area. This is a
+  // semantic distinction; both forms use DIP.
+  bool MinMaxSizeIsClientSize() const override;
   gfx::Size GetRootViewSize() const override;
   gfx::Size DIPToScreenSize(const gfx::Size& dip_size) const override;
   void ResetWindowControls() override;
@@ -161,6 +181,16 @@ class NativeWindowWin : public NativeWindow,
   void NotifyWindowMessage(UINT message, WPARAM w_param, LPARAM l_param);
 
  private:
+  // Applies the supplied DIP fields to the current physical window rect. A
+  // missing field retains its exact pixel value.
+  void UpdateBounds(const std::optional<gfx::Point>& dip_origin,
+                    const std::optional<gfx::Size>& dip_size);
+
+  // Replaces both window-space DIP limits atomically for a non-resizable
+  // window, discarding any previous content-space constraint representation.
+  void SetFixedWindowSizeConstraints(const gfx::Size& window_size);
+  void ApplyPendingContentBounds();
+  void ScheduleApplyPendingContentBounds();
   void RegisterModalParent();
   void UnregisterModalParent();
   // Enable/disable:
@@ -172,6 +202,9 @@ class NativeWindowWin : public NativeWindow,
 
   ui::WindowShowState last_window_state_;
   ui::WindowShowState restored_window_state_ = ui::SHOW_STATE_NORMAL;
+  // The normal placement in physical screen pixels. Keep this exact so
+  // frameless unmaximize does not round-trip it through DIP or workspace
+  // coordinates.
   gfx::Rect last_normal_placement_bounds_;
   // Whether to show the WS_THICKFRAME style.
   bool thick_frame_ = true;
@@ -200,10 +233,27 @@ class NativeWindowWin : public NativeWindow,
   std::string title_;
   double opacity_ = 1.0;
   bool focusable_ = true;
-  SizeConstraints old_size_constraints_;
+  enum class ConstraintSpace {
+    kWindow,
+    kContent,
+  };
+
+  struct SavedSizeConstraints {
+    ConstraintSpace space = ConstraintSpace::kWindow;
+    SizeConstraints constraints;
+  };
+
+  SavedSizeConstraints old_size_constraints_;
+  // The latest content-space request made while the window is minimized,
+  // maximized, or fullscreen. Only one kind of request is pending at a time.
+  std::optional<gfx::Size> pending_content_size_;
+  std::optional<gfx::Rect> pending_content_bounds_;
   ui::ZOrderLevel z_order_ = ui::ZOrderLevel::kNormal;
   Microsoft::WRL::ComPtr<ITaskbarList3> taskbar_list_;
   std::unique_ptr<ui::HWNDMessageHandler> window_;
+  // Keep this last so destruction invalidates posted callbacks before the
+  // members they may access are destroyed.
+  base::WeakPtrFactory<NativeWindowWin> weak_factory_{this};
 };
 
 }  // namespace lynxtron

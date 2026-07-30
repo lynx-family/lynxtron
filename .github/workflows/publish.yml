@@ -39,7 +39,7 @@ jobs:
   build-macos:
     needs: get-version
     timeout-minutes: 120
-    runs-on: lynx-darwin-14-medium
+    runs-on: lynx-darwin-15.6.1-medium
     strategy:
       matrix:
         arch: [arm64]
@@ -211,7 +211,7 @@ jobs:
   build-cef-webview-macos:
     needs: get-version
     timeout-minutes: 120
-    runs-on: lynx-darwin-14-medium
+    runs-on: lynx-darwin-15.6.1-medium
     strategy:
       matrix:
         arch: [arm64]

@@ -3,133 +3,100 @@
 // LICENSE file in the root directory of this source tree.
 #include "shell/api/dpi_win.h"
 
-#include <shellscalingapi.h>
-#include <windowsx.h>
+#include <limits.h>
 
-#include "base/win/scoped_hdc.h"
-#include "shell/ui/gfx/geometry/point_f.h"
-#include "ui/gfx/geometry/point_conversions.h"
+#include "base/check.h"
+#include "shell/ui/display/win/screen_win.h"
+#include "shell/ui/gfx/geometry/size.h"
 
 namespace lynxtron {
+namespace {
 
-const float kDefaultDPI = 96.f;
-
-float GetScalingFactorFromDPI(int dpi) {
-  return static_cast<float>(dpi) / kDefaultDPI;
-}
-
-int GetDefaultSystemDPI() {
-  static int dpi_x = 0;
-  static int dpi_y = 0;
-  static bool should_initialize = true;
-
-  if (should_initialize) {
-    should_initialize = false;
-    base::win::ScopedGetDC screen_dc(NULL);
-    dpi_x = GetDeviceCaps(screen_dc, LOGPIXELSX);
-    dpi_y = GetDeviceCaps(screen_dc, LOGPIXELSY);
-    DCHECK_EQ(dpi_x, dpi_y);
+gfx::Size ScaleWindowSizePreservingUnbounded(const gfx::Size& size,
+                                             float scale_factor) {
+  // ScaleToRoundedSize cannot safely scale INT_MAX. Substitute a bounded value
+  // during the arithmetic and restore each unbounded dimension afterwards.
+  const gfx::Size bounded_size(size.width() == INT_MAX ? 0 : size.width(),
+                               size.height() == INT_MAX ? 0 : size.height());
+  gfx::Size scaled_size = gfx::ScaleToRoundedSize(bounded_size, scale_factor);
+  if (size.width() == INT_MAX) {
+    scaled_size.set_width(INT_MAX);
   }
-  return dpi_x;
-}
-
-std::optional<MONITORINFOEX> GetMonitorInfoFromHMONITOR(HMONITOR monitor) {
-  MONITORINFOEX monitor_info = {};
-  monitor_info.cbSize = sizeof(monitor_info);
-  if (::GetMonitorInfo(monitor, &monitor_info) == 0) {
-    return std::nullopt;
+  if (size.height() == INT_MAX) {
+    scaled_size.set_height(INT_MAX);
   }
-  return monitor_info;
+  return scaled_size;
 }
 
-HMONITOR HMONITORFromWindow(HWND hwnd, DWORD default_options) {
-  return ::MonitorFromWindow(hwnd, default_options);
+float GetScaleFactorForPixelRect(HWND hwnd, const gfx::Rect& pixel_bounds) {
+  if (hwnd) {
+    return display::win::ScreenWin::GetScaleFactorForHWND(hwnd);
+  }
+  return display::win::ScreenWin::GetScaleFactorForScreenRect(pixel_bounds);
 }
 
-std::optional<MONITORINFOEX> MonitorInfoFromHMONITOR(HMONITOR monitor) {
-  return GetMonitorInfoFromHMONITOR(monitor);
+float GetScaleFactorForDIPRect(HWND hwnd, const gfx::Rect& dip_bounds) {
+  if (hwnd) {
+    return display::win::ScreenWin::GetScaleFactorForHWND(hwnd);
+  }
+  return display::win::ScreenWin::GetScaleFactorForDIPRect(dip_bounds);
 }
 
-std::optional<MONITORINFOEX> MonitorInfoFromWindow(HWND hwnd,
-                                                   DWORD default_options) {
-  return MonitorInfoFromHMONITOR(HMONITORFromWindow(hwnd, default_options));
+}  // namespace
+
+gfx::Rect ScreenToDIPRectForWindow(HWND hwnd, const gfx::Rect& pixel_bounds) {
+  const float scale_factor = GetScaleFactorForPixelRect(hwnd, pixel_bounds);
+  const gfx::Point dip_origin =
+      display::win::ScreenWin::ScreenToDIPRect(hwnd, pixel_bounds).origin();
+  const gfx::Size dip_size = ScaleWindowSizePreservingUnbounded(
+      pixel_bounds.size(), 1.0f / scale_factor);
+  return gfx::Rect(dip_origin, dip_size);
 }
 
-std::optional<int> GetPerMonitorDPI(HMONITOR monitor) {
-  UINT dpi_x, dpi_y;
-  if (!SUCCEEDED(
-          ::GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpi_x, &dpi_y))) {
-    return std::nullopt;
+gfx::Rect DIPToScreenRectForWindow(HWND hwnd, const gfx::Rect& dip_bounds) {
+  const float scale_factor = GetScaleFactorForDIPRect(hwnd, dip_bounds);
+  const gfx::Point pixel_origin =
+      display::win::ScreenWin::DIPToScreenRect(hwnd, dip_bounds).origin();
+  const gfx::Size pixel_size =
+      ScaleWindowSizePreservingUnbounded(dip_bounds.size(), scale_factor);
+  return gfx::Rect(pixel_origin, pixel_size);
+}
+
+gfx::Size DIPToScreenSizeForWindow(HWND hwnd, const gfx::Size& dip_size) {
+  return ScaleWindowSizePreservingUnbounded(
+      dip_size, display::win::ScreenWin::GetScaleFactorForHWND(hwnd));
+}
+
+gfx::Size ScreenToDIPSizeForWindow(HWND hwnd, const gfx::Size& pixel_size) {
+  return ScaleWindowSizePreservingUnbounded(
+      pixel_size, 1.0f / display::win::ScreenWin::GetScaleFactorForHWND(hwnd));
+}
+
+gfx::Rect UpdateScreenRectForWindow(const gfx::Rect& pixel_bounds,
+                                    const std::optional<gfx::Point>& dip_origin,
+                                    const std::optional<gfx::Size>& dip_size) {
+  DCHECK(dip_origin || dip_size);
+
+  if (dip_origin && dip_size) {
+    // A complete target rect may cross displays, so select the scale factor
+    // from that target rather than from the window's current HWND.
+    return DIPToScreenRectForWindow(nullptr, gfx::Rect(*dip_origin, *dip_size));
   }
 
-  DCHECK_EQ(dpi_x, dpi_y);
-  return static_cast<int>(dpi_x);
-}
-
-float GetMonitorScaleFactor(HMONITOR monitor) {
-  DCHECK(monitor);
-
-  const auto dpi = GetPerMonitorDPI(monitor);
-  return dpi ? GetScalingFactorFromDPI(dpi.value())
-             : GetScalingFactorFromDPI(GetDefaultSystemDPI());
-}
-
-int GetDPIForHWND(HWND hwnd) {
-  const HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-  return GetPerMonitorDPI(monitor).value_or(GetDefaultSystemDPI());
-}
-
-gfx::PointF ScalePointRelative(const gfx::PointF& point,
-                               const gfx::Point& from_origin,
-                               const gfx::Point& to_origin,
-                               const float scale_factor) {
-  const gfx::PointF relative_point = point - from_origin.OffsetFromOrigin();
-  const gfx::PointF scaled_relative_point =
-      gfx::ScalePoint(relative_point, scale_factor);
-  return scaled_relative_point + to_origin.OffsetFromOrigin();
-}
-
-gfx::Rect ScreenToDIPRect(HWND hwnd, const gfx::Rect& pixel_bounds) {
-  float scale_factor = GetScalingFactorFromDPI(GetDPIForHWND(hwnd));
-  gfx::Rect dip_rect = ScaleToRoundedRect(pixel_bounds, 1.0f / scale_factor);
-  auto monitor_info = MonitorInfoFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-  gfx::Rect screen_pixel_bounds(monitor_info->rcMonitor);
-  auto screen_bounds =
-      gfx::ScaleToEnclosingRect(screen_pixel_bounds, 1.0f / scale_factor);
-
-  const gfx::Point origin = gfx::ToRoundedPoint(ScalePointRelative(
-      gfx::PointF(pixel_bounds.origin()), screen_pixel_bounds.origin(),
-      screen_bounds.origin(), 1.0f / scale_factor));
-  dip_rect.set_origin(origin);
-  return dip_rect;
-}
-
-gfx::Rect DIPToScreenRect(HWND hwnd, const gfx::Rect& pixel_bounds) {
-  float scale_factor = GetScalingFactorFromDPI(GetDPIForHWND(hwnd));
-  gfx::Rect screen_rect = ScaleToRoundedRect(pixel_bounds, scale_factor);
-  auto monitor_info = MonitorInfoFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-  gfx::Rect screen_pixel_bounds(monitor_info->rcMonitor);
-  auto screen_bounds =
-      gfx::ScaleToEnclosingRect(screen_pixel_bounds, 1.0f / scale_factor);
-  const gfx::Point origin = gfx::ToRoundedPoint(ScalePointRelative(
-      gfx::PointF(pixel_bounds.origin()), screen_pixel_bounds.origin(),
-      screen_bounds.origin(), scale_factor));
-  screen_rect.set_origin(origin);
-  return screen_rect;
-}
-
-float GetScaleFactorForHWND(HWND hwnd) {
-  return GetScalingFactorFromDPI(GetDPIForHWND(hwnd));
-}
-
-gfx::Size DIPToScreenSize(HWND hwnd, const gfx::Size& dip_size) {
-  // Always ceil sizes. Otherwise we may be leaving off part of the bounds.
-  return ScaleToCeiledSize(dip_size, GetScaleFactorForHWND(hwnd));
-}
-
-gfx::Size ScreenToDIPSize(HWND hwnd, const gfx::Size& size_in_pixels) {
-  // Always ceil sizes. Otherwise we may be leaving off part of the bounds.
-  return ScaleToCeiledSize(size_in_pixels, 1.0f / GetScaleFactorForHWND(hwnd));
+  // For a partial update, keep the untouched field on the physical-pixel grid.
+  // Reconstructing the whole rect through integer DIP can move or resize it by
+  // one pixel at fractional scale factors.
+  gfx::Rect updated_pixel_bounds(pixel_bounds);
+  if (dip_origin) {
+    updated_pixel_bounds.set_origin(
+        DIPToScreenRectForWindow(nullptr, gfx::Rect(*dip_origin, gfx::Size()))
+            .origin());
+  }
+  if (dip_size) {
+    updated_pixel_bounds.set_size(ScaleWindowSizePreservingUnbounded(
+        *dip_size, GetScaleFactorForPixelRect(nullptr, pixel_bounds)));
+  }
+  return updated_pixel_bounds;
 }
 
 }  // namespace lynxtron

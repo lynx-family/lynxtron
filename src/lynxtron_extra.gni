@@ -8,6 +8,7 @@ declare_args() {
   lynxtron_app_extra_deps = []
   lynxtron_asar_extra_deps = []
   lynxtron_resource_fetcher_deps = [ "//src/shell/lynx/resource_fetcher" ]
+  lynxtron_http_service_deps = [ "//src/shell/lynx/http_service" ]
   lynxtron_app_resources_deps = [ "//src/shell/lynx:lynx_resources" ]
   lynxtron_lib_browser_module_list_path = []
   lynxtron_extension_extra_deps = []

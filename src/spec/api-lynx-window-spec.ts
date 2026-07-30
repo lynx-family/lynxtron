@@ -123,16 +123,38 @@ describe('LynxWindow module', () => {
         async () => {
           const w = new LynxWindow({
             show: false,
-            width: 320,
-            height: 240,
+            width: 400,
+            height: 400,
           });
 
           try {
-            expectBoundsEqual(w.getSize(), [320, 240]);
+            expectBoundsEqual(w.getSize(), [400, 400]);
             const bounds = w.getBounds();
-            expectBoundsEqual([bounds.width, bounds.height], [320, 240]);
+            expectBoundsEqual([bounds.width, bounds.height], [400, 400]);
           } finally {
             await closeWindow(w, { assertNotWindows: false });
+          }
+        }
+      );
+
+      ifit(process.platform === 'win32')(
+        'round trips fractional-scale window sizes with and without a position',
+        async () => {
+          for (const position of [undefined, { x: 37, y: 43 }]) {
+            const w = new LynxWindow({
+              show: false,
+              width: 401,
+              height: 399,
+              ...position,
+            });
+
+            try {
+              expectBoundsEqual(w.getSize(), [401, 399]);
+              const bounds = w.getBounds();
+              expectBoundsEqual([bounds.width, bounds.height], [401, 399]);
+            } finally {
+              await closeWindow(w, { assertNotWindows: false });
+            }
           }
         }
       );
@@ -205,6 +227,282 @@ describe('LynxWindow module', () => {
           await closeWindow(w, { assertNotWindows: false });
         }
       });
+
+      ifit(process.platform === 'win32')(
+        'restores content constraints after toggling resizable',
+        async () => {
+          const w = new LynxWindow({
+            show: false,
+            width: 420,
+            height: 320,
+            useContentSize: true,
+            minWidth: 300,
+            minHeight: 240,
+            maxWidth: 700,
+            maxHeight: 600,
+          });
+
+          try {
+            const windowSize = w.getSize();
+
+            w.setResizable(false);
+            expectBoundsEqual(w.getMinimumSize(), windowSize);
+            expectBoundsEqual(w.getMaximumSize(), windowSize);
+
+            w.setResizable(true);
+
+            w.setContentSize(200, 200);
+            const minContentSize = w.getContentSize();
+            expect(minContentSize[0]).to.be.at.least(300);
+            expect(minContentSize[1]).to.be.at.least(240);
+
+            w.setContentSize(800, 700);
+            const maxContentSize = w.getContentSize();
+            expect(maxContentSize[0]).to.be.at.most(700);
+            expect(maxContentSize[1]).to.be.at.most(600);
+          } finally {
+            await closeWindow(w, { assertNotWindows: false });
+          }
+        }
+      );
+
+      ifit(process.platform === 'win32')(
+        'restores window constraints after toggling resizable',
+        async () => {
+          const w = new LynxWindow({
+            show: false,
+            width: 420,
+            height: 320,
+            minWidth: 300,
+            minHeight: 240,
+            maxWidth: 700,
+            maxHeight: 600,
+          });
+
+          try {
+            const minimumSize = w.getMinimumSize();
+            const maximumSize = w.getMaximumSize();
+            const windowSize = w.getSize();
+
+            w.setResizable(false);
+            expectBoundsEqual(w.getMinimumSize(), windowSize);
+            expectBoundsEqual(w.getMaximumSize(), windowSize);
+
+            w.setResizable(true);
+            expectBoundsEqual(w.getMinimumSize(), minimumSize);
+            expectBoundsEqual(w.getMaximumSize(), maximumSize);
+          } finally {
+            await closeWindow(w, { assertNotWindows: false });
+          }
+        }
+      );
+
+      ifit(process.platform === 'win32')(
+        'updates fixed window constraints when setting content bounds',
+        async () => {
+          const w = new LynxWindow({
+            show: false,
+            width: 400,
+            height: 400,
+            resizable: false,
+          });
+
+          try {
+            const bounds = w.getContentBounds();
+            const size = w.getSize();
+            w.setContentBounds({
+              ...bounds,
+              width: bounds.width + 10,
+              height: bounds.height - 10,
+            });
+
+            expect(w.getSize()).to.not.deep.equal(size);
+            expectBoundsEqual(w.getMinimumSize(), w.getSize());
+            expectBoundsEqual(w.getMaximumSize(), w.getSize());
+          } finally {
+            await closeWindow(w, { assertNotWindows: false });
+          }
+        }
+      );
+
+      ifit(process.platform === 'win32')(
+        'does not shrink frameless non-resizable constructor bounds',
+        async () => {
+          const w = new LynxWindow({
+            show: false,
+            frame: false,
+            resizable: false,
+            width: 500,
+            height: 75,
+          });
+
+          try {
+            expectBoundsEqual(w.getSize(), [500, 75]);
+            const bounds = w.getBounds();
+            expectBoundsEqual([bounds.width, bounds.height], [500, 75]);
+          } finally {
+            await closeWindow(w, { assertNotWindows: false });
+          }
+        }
+      );
+
+      ifit(process.platform === 'win32')(
+        'does not shrink fixed bounds when bounds are reapplied',
+        async () => {
+          for (const frame of [true, false]) {
+            const w = new LynxWindow({
+              show: false,
+              frame,
+              width: 400,
+              height: 300,
+            });
+
+            try {
+              w.setResizable(false);
+              const bounds = w.getBounds();
+              w.setBounds(bounds);
+              expectBoundsEqual(w.getSize(), [400, 300]);
+              expectBoundsEqual(
+                [w.getBounds().width, w.getBounds().height],
+                [400, 300]
+              );
+            } finally {
+              await closeWindow(w, { assertNotWindows: false });
+            }
+          }
+        }
+      );
+
+      ifit(process.platform === 'win32')(
+        'does not shrink frameless fixed windows when moved',
+        async () => {
+          const w = new LynxWindow({
+            show: true,
+            frame: false,
+            width: 500,
+            height: 75,
+          });
+
+          try {
+            await waitUntil(() => w.isVisible());
+            w.setResizable(false);
+            const bounds = w.getBounds();
+            const move = once(w, 'move');
+            w.setPosition(bounds.x + 20, bounds.y + 20);
+            await move;
+
+            expectBoundsEqual(w.getSize(), [500, 75]);
+            const movedBounds = w.getBounds();
+            expectBoundsEqual(
+              [movedBounds.width, movedBounds.height],
+              [500, 75]
+            );
+          } finally {
+            await closeWindow(w, { assertNotWindows: false });
+          }
+        }
+      );
+
+      ifit(process.platform === 'win32')(
+        'does not change maximized bounds when toggling resizable',
+        async () => {
+          for (const frame of [true, false]) {
+            const w = new LynxWindow({
+              show: true,
+              frame,
+              thickFrame: true,
+            });
+
+            try {
+              await waitUntil(() => w.isVisible());
+              const maximized = once(w, 'maximize');
+              w.maximize();
+              await maximized;
+              expect(w.isMaximized()).to.equal(true);
+
+              const bounds = w.getBounds();
+              w.setResizable(false);
+              expectBoundsEqual(w.getBounds(), bounds);
+              w.setResizable(true);
+              expectBoundsEqual(w.getBounds(), bounds);
+            } finally {
+              await closeWindow(w, { assertNotWindows: false });
+            }
+          }
+        }
+      );
+
+      ifit(process.platform === 'win32')(
+        'sets restored content size while minimized',
+        async () => {
+          const w = new LynxWindow({
+            show: true,
+            width: 400,
+            height: 400,
+          });
+
+          try {
+            await waitUntil(() => w.isVisible());
+            const minimized = once(w, 'minimize');
+            w.minimize();
+            await minimized;
+
+            w.setContentSize(401, 399);
+
+            const restored = once(w, 'restore');
+            w.restore();
+            await restored;
+            await waitUntil(() => {
+              const size = w.getContentSize();
+              return size[0] === 401 && size[1] === 399;
+            });
+
+            expectBoundsEqual(w.getContentSize(), [401, 399]);
+          } finally {
+            await closeWindow(w, { assertNotWindows: false });
+          }
+        }
+      );
+
+      ifit(process.platform === 'win32')(
+        'preserves a pending content size across maximized minimization',
+        async () => {
+          const w = new LynxWindow({
+            show: true,
+            width: 400,
+            height: 400,
+          });
+
+          try {
+            await waitUntil(() => w.isVisible());
+            const maximized = once(w, 'maximize');
+            w.maximize();
+            await maximized;
+
+            const minimized = once(w, 'minimize');
+            w.minimize();
+            await minimized;
+            w.setContentSize(401, 399);
+
+            const restored = once(w, 'restore');
+            w.restore();
+            await restored;
+            expect(w.isMaximized()).to.equal(true);
+
+            const unmaximized = once(w, 'unmaximize');
+            w.unmaximize();
+            await unmaximized;
+            await waitUntil(() => {
+              const size = w.getContentSize();
+              return size[0] === 401 && size[1] === 399;
+            });
+
+            expectBoundsEqual(w.getContentSize(), [401, 399]);
+          } finally {
+            await closeWindow(w, { assertNotWindows: false });
+          }
+        }
+      );
     });
   });
 
@@ -880,37 +1178,21 @@ describe('LynxWindow module', () => {
           w = (null as unknown) as LynxWindow;
         });
 
-        // FIXME(Guo Xi): Fix it
-        ifit(process.platform !== 'win32')(
-          'can be changed with the fullScreen property',
-          async () => {
-            const shown = once(w, 'show');
-            w.show();
-            await shown;
+        it('can be changed with the fullScreen property', async () => {
+          const shown = once(w, 'show');
+          w.show();
+          await shown;
 
-            {
-              const events: string[] = [];
-              w.once('will-enter-full-screen', () => events.push('will-enter'));
-              w.once('enter-full-screen', () => events.push('enter'));
-              w.fullScreen = true;
-              await waitUntil(() => events.length === 2);
-              expect(events).to.deep.equal(['will-enter', 'enter']);
-            }
+          const entered = once(w, 'enter-full-screen');
+          w.fullScreen = true;
+          await entered;
+          expect(w.fullScreen).to.equal(true);
 
-            expect(w.fullScreen).to.equal(true);
-
-            {
-              const events: string[] = [];
-              w.once('will-leave-full-screen', () => events.push('will-leave'));
-              w.once('leave-full-screen', () => events.push('leave'));
-              w.fullScreen = false;
-              await waitUntil(() => events.length === 2);
-              expect(events).to.deep.equal(['will-leave', 'leave']);
-            }
-
-            expect(w.fullScreen).to.equal(false);
-          }
-        );
+          const left = once(w, 'leave-full-screen');
+          w.fullScreen = false;
+          await left;
+          expect(w.fullScreen).to.equal(false);
+        });
 
         it('can be changed with setFullScreen', async () => {
           const shown = once(w, 'show');
@@ -2115,6 +2397,22 @@ describe('LynxWindow module', () => {
           expectBoundsEqual(w.getBounds(), { ...fullBounds, ...boundsUpdate });
         });
 
+        it('rounds non-integer bounds', () => {
+          const bounds = {
+            x: 440.5,
+            y: 225.1,
+            width: 500.4,
+            height: 400.9,
+          };
+          w.setBounds(bounds);
+          expectBoundsEqual(w.getBounds(), {
+            x: 441,
+            y: 225,
+            width: 500,
+            height: 401,
+          });
+        });
+
         ifit(process.platform === 'darwin')(
           'emits resized event after animating',
           async () => {
@@ -2136,22 +2434,48 @@ describe('LynxWindow module', () => {
           }
         );
 
-        // FIXME(Guo Xi): Fix it
-        ifit(process.platform !== 'win32')(
-          'does not emit the resize event for move-only changes',
-          async () => {
-            const [x, y] = w.getPosition();
-            let resizeEmitted = false;
-            w.once('resize', () => {
-              resizeEmitted = true;
-            });
+        it('does not emit the resize event for move-only changes', async () => {
+          const [x, y] = w.getPosition();
+          let resizeEmitted = false;
+          w.once('resize', () => {
+            resizeEmitted = true;
+          });
 
-            w.setBounds({ x: x + 10, y: y + 10 });
-            await setTimeout(100);
+          w.setBounds({ x: x + 10, y: y + 10 });
+          await setTimeout(100);
 
-            expect(resizeEmitted).to.equal(false);
-          }
-        );
+          expect(resizeEmitted).to.equal(false);
+        });
+      });
+
+      describe('LynxWindow.setSize(width, height[, animate])', () => {
+        it('emits resize event for single-pixel size changes', async () => {
+          const [width, height] = w.getSize();
+          const position = w.getPosition();
+          const resize = once(w, 'resize');
+          w.setSize(width + 1, height - 1);
+          await resize;
+          expectBoundsEqual(w.getSize(), [width + 1, height - 1]);
+          expectBoundsEqual(w.getPosition(), position);
+        });
+      });
+
+      describe('LynxWindow.setPosition(x, y[, animate])', () => {
+        it('sets the window position', async () => {
+          const position = [10, 10] as const;
+          const size = w.getSize();
+          let resizeEmitted = false;
+          w.once('resize', () => {
+            resizeEmitted = true;
+          });
+          const move = once(w, 'move');
+          w.setPosition(position[0], position[1]);
+          await move;
+          await setTimeout(100);
+          expectBoundsEqual(w.getPosition(), [...position]);
+          expectBoundsEqual(w.getSize(), size);
+          expect(resizeEmitted).to.equal(false);
+        });
       });
 
       describe('LynxWindow.setMinimum/MaximumSize(width, height)', () => {
@@ -2168,45 +2492,96 @@ describe('LynxWindow module', () => {
           expectBoundsEqual(w.getMaximumSize(), [900, 600]);
         });
 
-        // FIXME(Guo Xi): Fix it
-        ifit(process.platform !== 'win32')(
-          'clamps the current window size when minimum size increases',
-          async () => {
-            const resize = once(w, 'resize');
-            w.setSize(200, 200);
-            await resize;
+        it('creates window at minimum size when smaller size is requested', async () => {
+          const w2 = new LynxWindow({
+            show: false,
+            width: 200,
+            height: 200,
+            minWidth: 300,
+            minHeight: 300,
+          });
 
-            w.setMinimumSize(300, 320);
-            await waitUntil(() => {
-              const [width, height] = w.getSize();
-              return width >= 300 && height >= 320;
-            });
-
-            const [width, height] = w.getSize();
-            expect(width).to.be.at.least(300);
-            expect(height).to.be.at.least(320);
+          try {
+            expectBoundsEqual(w2.getSize(), [300, 300]);
+          } finally {
+            await closeWindow(w2, { assertNotWindows: false });
           }
-        );
+        });
 
-        // FIXME(Guo Xi): Fix it
-        ifit(process.platform !== 'win32')(
-          'clamps the current window size when maximum size decreases',
-          async () => {
-            const resize = once(w, 'resize');
-            w.setSize(500, 480);
-            await resize;
+        it('centers using the constructor-clamped minimum size', async () => {
+          const constrainedWindow = new LynxWindow({
+            show: false,
+            width: 200,
+            height: 200,
+            minWidth: 300,
+            minHeight: 300,
+          });
+          const referenceWindow = new LynxWindow({
+            show: false,
+            width: 300,
+            height: 300,
+          });
 
-            w.setMaximumSize(260, 240);
-            await waitUntil(() => {
-              const [width, height] = w.getSize();
-              return width <= 260 && height <= 240;
+          try {
+            expectBoundsEqual(constrainedWindow.getSize(), [300, 300]);
+
+            const constrainedPosition = constrainedWindow.getPosition();
+            const referencePosition = referenceWindow.getPosition();
+            expect(
+              Math.abs(constrainedPosition[0] - referencePosition[0])
+            ).to.be.at.most(2);
+            expect(
+              Math.abs(constrainedPosition[1] - referencePosition[1])
+            ).to.be.at.most(2);
+          } finally {
+            await closeWindow(referenceWindow, {
+              assertNotWindows: false,
             });
-
-            const [width, height] = w.getSize();
-            expect(width).to.be.at.most(260);
-            expect(height).to.be.at.most(240);
+            await closeWindow(constrainedWindow, {
+              assertNotWindows: false,
+            });
           }
-        );
+        });
+
+        it('creates window at maximum size when larger size is requested', async () => {
+          const w2 = new LynxWindow({
+            show: false,
+            width: 300,
+            height: 300,
+            maxWidth: 200,
+            maxHeight: 200,
+          });
+
+          try {
+            expectBoundsEqual(w2.getSize(), [200, 200]);
+          } finally {
+            await closeWindow(w2, { assertNotWindows: false });
+          }
+        });
+
+        it('enforces minimum size', async () => {
+          w.setMinimumSize(300, 300);
+
+          const resize = once(w, 'resize');
+          w.setSize(100, 100);
+          await resize;
+
+          expectBoundsEqual(w.getSize(), [300, 300]);
+        });
+
+        it('enforces maximum size', async () => {
+          const initialResize = once(w, 'resize');
+          w.setSize(150, 150);
+          await initialResize;
+
+          w.setMaximumSize(200, 200);
+
+          const resize = once(w, 'resize');
+          w.setSize(500, 500);
+          await resize;
+
+          expectBoundsEqual(w.getSize(), [200, 200]);
+        });
       });
 
       describe('LynxWindow.center()', () => {
@@ -2263,6 +2638,31 @@ describe('LynxWindow module', () => {
             }
           }
         );
+
+        ifit(process.platform === 'win32')(
+          'keeps useContentSize window bounds when centering on Windows',
+          async () => {
+            const w2 = new LynxWindow({
+              show: false,
+              x: 10,
+              y: 10,
+              width: 401,
+              height: 399,
+              useContentSize: true,
+            });
+
+            try {
+              const size = w2.getSize();
+              const contentSize = w2.getContentSize();
+              w2.center();
+
+              expectBoundsEqual(w2.getSize(), size);
+              expectBoundsEqual(w2.getContentSize(), contentSize);
+            } finally {
+              await closeWindow(w2, { assertNotWindows: false });
+            }
+          }
+        );
       });
 
       describe('LynxWindow.setAspectRatio(ratio)', () => {
@@ -2276,13 +2676,39 @@ describe('LynxWindow module', () => {
           expectBoundsEqual(w.getSize(), size);
         });
 
-        // FIXME(Guo Xi): Fix it
-        ifit(process.platform !== 'win32')(
-          'does not change bounds when maximum size is set',
-          () => {
-            w.setMaximumSize(400, 400);
-            w.setAspectRatio(1.0);
-            expectBoundsEqual(w.getSize(), [400, 400]);
+        it('does not change bounds when maximum size is set', async () => {
+          const aspectRatioWindow = new LynxWindow({
+            show: false,
+            width: 400,
+            height: 400,
+          });
+
+          try {
+            aspectRatioWindow.setMaximumSize(400, 400);
+            aspectRatioWindow.setAspectRatio(1.0);
+            expectBoundsEqual(aspectRatioWindow.getSize(), [400, 400]);
+          } finally {
+            await closeWindow(aspectRatioWindow, { assertNotWindows: false });
+          }
+        });
+
+        ifit(process.platform === 'win32')(
+          'uses the same rounding for bounds and fixed constraints',
+          async () => {
+            const fixedWindow = new LynxWindow({
+              show: false,
+              width: 401,
+              height: 399,
+            });
+
+            try {
+              fixedWindow.setMinimumSize(401, 399);
+              fixedWindow.setMaximumSize(401, 399);
+              fixedWindow.setAspectRatio(401 / 399);
+              expectBoundsEqual(fixedWindow.getSize(), [401, 399]);
+            } finally {
+              await closeWindow(fixedWindow, { assertNotWindows: false });
+            }
           }
         );
       });
@@ -2936,6 +3362,23 @@ describe('LynxWindow module', () => {
           const after = w.getContentSize();
           expect(after).to.deep.equal(size);
         });
+
+        it('sets the content size for frameless windows', async () => {
+          const size = [400, 400];
+          const wFrameless = new LynxWindow({
+            show: false,
+            frame: false,
+          });
+
+          try {
+            const resize = once(wFrameless, 'resize');
+            wFrameless.setContentSize(size[0], size[1]);
+            await resize;
+            expectBoundsEqual(wFrameless.getContentSize(), size);
+          } finally {
+            await closeWindow(wFrameless, { assertNotWindows: false });
+          }
+        });
       });
 
       describe('LynxWindow content bounds', () => {
@@ -2978,6 +3421,23 @@ describe('LynxWindow module', () => {
           // Position might be adjusted by the system to keep window visible
           expect(result.x).to.be.a('number');
           expect(result.y).to.be.a('number');
+        });
+
+        it('sets the content bounds for frameless windows', async () => {
+          const bounds = { x: 10, y: 10, width: 400, height: 400 };
+          const wFrameless = new LynxWindow({
+            show: false,
+            frame: false,
+          });
+
+          try {
+            const resize = once(wFrameless, 'resize');
+            wFrameless.setContentBounds(bounds);
+            await resize;
+            expectBoundsEqual(wFrameless.getContentBounds(), bounds);
+          } finally {
+            await closeWindow(wFrameless, { assertNotWindows: false });
+          }
         });
 
         it('content size respects window frame', async () => {

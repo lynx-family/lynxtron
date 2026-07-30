@@ -17,7 +17,6 @@
 #include "base/memory/raw_ptr.h"
 #include "base/observer_list_types.h"
 #include "build/buildflag.h"
-#include "ui/display/display_export.h"
 
 namespace display {
 class Display;
@@ -26,7 +25,7 @@ class Display;
 using Displays = std::vector<Display>;
 
 // Observers for display configuration changes.
-class DISPLAY_EXPORT DisplayObserver : public base::CheckedObserver {
+class DisplayObserver : public base::CheckedObserver {
  public:
   enum DisplayMetric {
     DISPLAY_METRIC_NONE = 0,
@@ -84,7 +83,7 @@ class DISPLAY_EXPORT DisplayObserver : public base::CheckedObserver {
 // silently noop when there is not.  The non-optional ScopedDisplayObserver
 // will CHECK that display::Screen::Get() exists on construction to
 // receive events from.
-class DISPLAY_EXPORT ScopedOptionalDisplayObserver {
+class ScopedOptionalDisplayObserver {
  public:
   explicit ScopedOptionalDisplayObserver(DisplayObserver* observer);
   ~ScopedOptionalDisplayObserver();
@@ -93,8 +92,7 @@ class DISPLAY_EXPORT ScopedOptionalDisplayObserver {
   raw_ptr<DisplayObserver> observer_ = nullptr;
 };
 
-class DISPLAY_EXPORT ScopedDisplayObserver
-    : public ScopedOptionalDisplayObserver {
+class ScopedDisplayObserver : public ScopedOptionalDisplayObserver {
  public:
   explicit ScopedDisplayObserver(DisplayObserver* observer);
 };

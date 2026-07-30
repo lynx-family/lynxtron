@@ -1,0 +1,42 @@
+# Copyright 2026 The Lynxtron Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+
+source_set("http_service_binding") {
+  include_dirs = [
+    "../../../",
+    "../../",
+    "//node/deps/uv/include",
+  ]
+
+  sources = [
+    "lynx_http_service_binding.cc",
+    "lynx_http_service_binding.h",
+  ]
+
+  deps = [
+    "//base",
+    "//gin",
+    "//third_party/node:libnode",
+  ]
+}
+
+source_set("http_service") {
+  include_dirs = [
+    "../../../",
+    "../../",
+    "//node/deps/uv/include",
+  ]
+
+  sources = [
+    "lynx_http_service.cc",
+    "lynx_http_service.h",
+  ]
+
+  deps = [
+    ":http_service_binding",
+    "//base",
+    "//gin",
+    "//third_party/node:libnode",
+  ]
+}

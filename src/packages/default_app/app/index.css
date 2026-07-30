@@ -4,128 +4,132 @@
 
 .outlineFrame {
   display: flex;
-  height:max-content;
   flex-direction: column;
-  align-items: flex-start;
-  background: #060606;
+  background-color: #060606;
+  /* Subtle brand-green glow echoing the lynxjs.org hero texture. */
+  background-image: radial-gradient(
+    ellipse at 50% 30%,
+    rgba(79, 240, 159, 0.08) 0%,
+    rgba(6, 6, 6, 0) 60%
+  );
   width: 100%;
   height: 100%;
   overflow: hidden;
 }
-.autoWrapper {
+
+.versionBar {
   display: flex;
-  position: relative;
-  height: 100%;
-  width: 100%;
-  overflow: visible;
+  flex-direction: row;
+  flex-shrink: 0;
   justify-content: center;
   align-items: center;
+  padding: 24px 24px 0;
+  grid-column-gap: 12px;
 }
-.lynxtron {
-  flex-shrink: 0;
-  min-width: 69px;
-  overflow: visible;
-  line-height: 26px;
+.versionItem {
+  line-height: 18px;
   white-space: nowrap;
-  color: #ffffff;
-  font-family: "TikTok Sans";
-  font-size: 16px;
-  font-weight: 700;
+  color: #ffffff8c;
+  font-family: Inter;
+  font-size: 12px;
+}
+.versionSeparator {
+  line-height: 18px;
+  color: #ffffff2e;
+  font-family: Inter;
+  font-size: 12px;
 }
 
-.innerFrame {
+.mainArea {
   display: flex;
   flex-direction: column;
+  flex-grow: 1;
+  justify-content: center;
   align-items: center;
-  padding: 80px 160px;
-  width: 100%;
+  padding: 0 80px;
   overflow: visible;
-  grid-row-gap: 80px;
+  grid-row-gap: 48px;
 }
-.introduction {
-  display: flex;
-  flex-direction: column;
+
+.logo {
   flex-shrink: 0;
-  align-items: center;
-  overflow: visible;
-  grid-row-gap: 32px;
+  width: 128px;
+  height: 128px;
 }
-
-.lynxtronTitle {
+.runSection {
+  display: flex;
+  flex-direction: column;
   flex-shrink: 0;
   align-self: stretch;
-  overflow: visible;
+  align-items: center;
+  grid-row-gap: 16px;
+}
+.runHint {
   text-align: center;
-  line-height: 72px;
-  color: #ffffff;
-  font-family: Inter;
-  font-size: 72px;
-  font-weight: 700;
-}
-.contextWrapper {
-  flex-shrink: 0;
-  width: 640px;
-  overflow: visible;
-  text-align: center;
-  line-height: 24px;
-  color: #000000;
-  font-family: Inter;
-  font-size: 16px;
-}
-.contextBold {
-  overflow: visible;
-  line-height: 24px;
-  color: #ffffffe5;
-  font-family: Inter;
-  font-size: 16px;
-  font-weight: 600;
-}
-.contextLight {
-  overflow: visible;
-  line-height: 24px;
+  line-height: 20px;
   color: #ffffffa6;
   font-family: Inter;
-  font-size: 16px;
-}
-.quickStartWrapper {
-  display: flex;
-  position: relative;
-  flex-shrink: 0;
-  width: 141px;
-  height: 40px;
-  overflow: visible;
-}
-.quickStartBackground {
-  display: flex;
-  position: absolute;
-  top: 0;
-  left: 0;
-  border-radius: 100px;
-  background: #4ff09f;
-  width: 141px;
-  height: 40px;
-  overflow: visible;
-}
-.maskGroup {
-  display: flex;
-  position: absolute;
-  top: 0;
-  left: 0;
-  align-items: center;
-  padding: 12px 33px 11px;
-  height: 40px;
-  overflow: visible;
-  background-position: center;
-  background-size: cover;
-  background-repeat: no-repeat;
-}
-.quickStart {
-  min-width: 76px;
-  overflow: visible;
-  line-height: 17px;
-  white-space: nowrap;
-  color: #000000;
-  font-family: Inter;
   font-size: 14px;
-  font-weight: 500;
+}
+.commandBox {
+  border: 1px solid #2b2b2b;
+  border-radius: 12px;
+  background: #171717;
+  padding: 16px 24px;
+  max-width: 880px;
+}
+.commandText {
+  line-height: 20px;
+  color: #ffffffe5;
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px;
+}
+.commandPrompt {
+  line-height: 20px;
+  color: #4ff09f;
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.linksRow {
+  display: flex;
+  flex-direction: row;
+  flex-shrink: 0;
+  justify-content: center;
+  padding: 0 24px 48px;
+  grid-column-gap: 56px;
+}
+.linkItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  grid-row-gap: 12px;
+  /* Known issue: Lynx parses `cursor` (see
+     https://lynx.bytedance.net/api/css/properties/cursor) but the Lynxtron
+     desktop host does not apply it yet — no NSCursor plumbing in
+     shell/api/ui/mac — so this is currently a no-op. Kept so the pointer
+     shows up once engine support lands. */
+  cursor: pointer;
+}
+.linkCircle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid rgba(79, 240, 159, 0.24);
+  border-radius: 50%;
+  background: rgba(79, 240, 159, 0.07);
+  width: 56px;
+  height: 56px;
+}
+.linkIcon {
+  width: 24px;
+  height: 24px;
+}
+.linkLabel {
+  text-align: center;
+  line-height: 18px;
+  color: #ffffffa6;
+  font-family: Inter;
+  font-size: 13px;
 }

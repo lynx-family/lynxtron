@@ -379,14 +379,6 @@ export declare class BaseWindow extends EventEmitter {
   addListener(event: 'closed', listener: () => void): this;
   removeListener(event: 'closed', listener: () => void): this;
   /**
-   * Emitted before the window enters a full-screen state.
-   */
-  on(event: 'will-enter-full-screen', listener: () => void): this;
-  off(event: 'will-enter-full-screen', listener: () => void): this;
-  once(event: 'will-enter-full-screen', listener: () => void): this;
-  addListener(event: 'will-enter-full-screen', listener: () => void): this;
-  removeListener(event: 'will-enter-full-screen', listener: () => void): this;
-  /**
    * Emitted when the window enters a full-screen state.
    */
   on(event: 'enter-full-screen', listener: () => void): this;
@@ -410,14 +402,6 @@ export declare class BaseWindow extends EventEmitter {
   once(event: 'hide', listener: () => void): this;
   addListener(event: 'hide', listener: () => void): this;
   removeListener(event: 'hide', listener: () => void): this;
-  /**
-   * Emitted before the window leaves a full-screen state.
-   */
-  on(event: 'will-leave-full-screen', listener: () => void): this;
-  off(event: 'will-leave-full-screen', listener: () => void): this;
-  once(event: 'will-leave-full-screen', listener: () => void): this;
-  addListener(event: 'will-leave-full-screen', listener: () => void): this;
-  removeListener(event: 'will-leave-full-screen', listener: () => void): this;
   /**
    * Emitted when the window leaves a full-screen state.
    */

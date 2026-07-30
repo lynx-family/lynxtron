@@ -19,7 +19,6 @@ class Value;
 class ValueView;
 }  // namespace base
 
-// TODO(Guo Xi): remove content namespace
 namespace lynxtron {
 
 // Converts between v8::Value (JavaScript values in the v8 heap) and Chrome's

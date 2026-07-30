@@ -19,6 +19,7 @@
 #include "shell/api/lynx_view/module/lynx_bridge_module.h"
 #include "shell/api/lynx_view/module/lynx_hybrid_monitor_module.h"
 #include "shell/api/lynx_view/module/lynx_node_module.h"
+#include "shell/lynx/http_service/lynx_http_service.h"
 #include "shell/lynx/resource_fetcher/lynx_generic_resource_fetcher_factory.h"
 
 #if BUILDFLAG(IS_MAC)
@@ -122,6 +123,7 @@ std::unique_ptr<LynxView> LynxViewBuilder::Build() {
 #endif
   SetICUDataPath(icu_data_path.AsUTF8Unsafe());
 
+  RegisterLynxHttpService();
   SetGenericResourceFetcher(
       LynxGenericResourceFetcherFactory::Create(lynx_window_));
 

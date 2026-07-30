@@ -15,7 +15,6 @@
 #include <string>
 
 #include "base/memory/scoped_refptr.h"
-#include "ui/display/display_export.h"
 #include "ui/display/types/display_constants.h"
 #include "ui/gfx/display_color_spaces.h"
 #include "ui/gfx/geometry/rect.h"
@@ -30,7 +29,7 @@ namespace display {
 // system. For platforms that support DIP (density independent pixel),
 // |bounds()| and |work_area| will return values in DIP coordinate
 // system, not in backing pixels.
-class DISPLAY_EXPORT Display final {
+class Display final {
  public:
   // Screen Rotation in clock-wise degrees.
   // This enum corresponds to DisplayRotationDefaultProto::Rotation in

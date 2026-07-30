@@ -20,8 +20,6 @@
 #include "base/values.h"
 #include "build/build_config.h"
 #include "ui/display/display.h"
-#include "ui/display/display_export.h"
-// #include "ui/display/screen_infos.h"
 #include "ui/gfx/native_ui_types.h"
 
 namespace base {
@@ -46,7 +44,7 @@ class DisplayObserver;
 // Note that this class does not represent an individual display connected to a
 // computer -- see the Display class for that. A single Screen object exists
 // regardless of the number of connected displays.
-class DISPLAY_EXPORT Screen {
+class Screen {
  public:
   Screen();
 
@@ -76,21 +74,6 @@ class DISPLAY_EXPORT Screen {
   // Allows tests to override the cursor point location on the screen.
   virtual void SetCursorScreenPointForTesting(const gfx::Point& point);
 
-  // Returns true if the cursor is directly over |window|.
-  // virtual bool IsWindowUnderCursor(gfx::NativeWindow window) = 0;
-
-  // Returns the window at the given screen coordinate |point|.
-  // virtual gfx::NativeWindow GetWindowAtScreenPoint(const gfx::Point& point) =
-  // 0;
-
-  // Finds the topmost visible chrome window at |screen_point|. This should
-  // return nullptr if |screen_point| is in another program's window which
-  // occludes the topmost chrome window. Ignores the windows in |ignore|, which
-  // contain windows such as the tab being dragged right now.
-  // virtual gfx::NativeWindow GetLocalProcessWindowAtPoint(
-  //     const gfx::Point& point,
-  //     const std::set<gfx::NativeWindow>& ignore) = 0;
-
   // Returns the number of displays.  Mirrored displays are excluded; this
   // method is intended to return the number of distinct, usable displays.
   // The value returned must be at least 1, as GetAllDisplays returns a fake
@@ -110,15 +93,6 @@ class DISPLAY_EXPORT Screen {
   // supports system-controlled per-window scaling, such as Wayland.
   virtual Display GetDisplayNearestWindow(gfx::NativeWindow window) const = 0;
 
-  // Returns the display nearest the specified view. It may still use the window
-  // that contains the view (i.e. if a window is spread over two displays,
-  // the location of the view within that window won't influence the result).
-  //
-  // Warning: When determining which scale factor to use for a given native
-  // view, use `GetPreferredScaleFactorForView` instead, as it properly
-  // supports system-controlled per-window scaling, such as Wayland.
-  // virtual Display GetDisplayNearestView(gfx::NativeView view) const;
-
   // Returns the display nearest the specified DIP |point|.
   virtual Display GetDisplayNearestPoint(const gfx::Point& point) const = 0;
 
@@ -137,14 +111,6 @@ class DISPLAY_EXPORT Screen {
   // Sets the suggested display to use when creating a new window.
   virtual void SetDisplayForNewWindows(int64_t display_id);
 
-  // Returns ScreenInfos, attempting to set the current ScreenInfo to the
-  // display corresponding to `nearest_id`.  The returned result is guaranteed
-  // to be non-empty.  This function also performs fallback to ensure the result
-  // also has a valid current ScreenInfo and exactly one primary ScreenInfo
-  // (both of which may or may not be `nearest_id`).
-  // display::ScreenInfos GetScreenInfosNearestDisplay(int64_t nearest_id)
-  // const;
-
   // Returns whether the screensaver is currently running.
   virtual bool IsScreenSaverActive() const;
 
@@ -154,21 +120,6 @@ class DISPLAY_EXPORT Screen {
   // Adds/Removes display observers.
   virtual void AddObserver(DisplayObserver* observer) = 0;
   virtual void RemoveObserver(DisplayObserver* observer) = 0;
-
-  // Converts |screen_rect| to DIP coordinates in the context of |window|
-  // clamping to the enclosing rect if the coordinates do not fall on pixel
-  // boundaries. If |window| is null, the primary display is used as the
-  // context.
-  // virtual gfx::Rect ScreenToDIPRectInWindow(gfx::NativeWindow window,
-  //                                           const gfx::Rect& screen_rect)
-  //                                           const;
-
-  // Converts |dip_rect| to screen coordinates in the context of |window|
-  // clamping to the enclosing rect if the coordinates do not fall on pixel
-  // boundaries. If |window| is null, the primary display is used as the
-  // context.
-  // virtual gfx::Rect DIPToScreenRectInWindow(gfx::NativeWindow window,
-  //                                           const gfx::Rect& dip_rect) const;
 
   // Returns true if the display with |display_id| is found and returns that
   // display in |display|. Otherwise returns false and |display| remains
@@ -182,19 +133,6 @@ class DISPLAY_EXPORT Screen {
   // by implementing and setting self as a DisplayObserver. It is also possible
   // to get current workspace through the GetCurrentWorkspace method.
   virtual std::string GetCurrentWorkspace();
-
-  // Returns human readable description of the window manager, desktop, and
-  // other system properties related to the compositing.
-  // virtual base::Value::List GetGpuExtraInfo(
-  //     const gfx::GpuExtraInfo& gpu_extra_info);
-
-  // Returns the preferred scale factor for |window|, if the underlying platform
-  // supports per-window scaling, otherwise returns the scale factor of display
-  // nearst to |window|, using GetDisplayNearest[Window|View].
-  // virtual std::optional<float> GetPreferredScaleFactorForWindow(
-  //     gfx::NativeWindow window) const;
-  // virtual std::optional<float> GetPreferredScaleFactorForView(
-  //     gfx::NativeView view) const;
 
   // Returns true when running in headless mode.
   virtual bool IsHeadless() const;
@@ -223,16 +161,11 @@ class DISPLAY_EXPORT Screen {
 };
 
 #if BUILDFLAG(IS_APPLE)
-
-// TODO(oshima): move this to separate apple specific file.
-
-// TODO(crbug.com/40222482): Make this static private member of
-// ScopedNativeScreen.
-DISPLAY_EXPORT Screen* CreateNativeScreen();
+Screen* CreateNativeScreen();
 
 // ScopedNativeScreen creates a native screen if there is no screen created yet
 // (e.g. by a unit test).
-class DISPLAY_EXPORT ScopedNativeScreen final {
+class ScopedNativeScreen final {
  public:
   explicit ScopedNativeScreen(const base::Location& location = FROM_HERE);
   ScopedNativeScreen(const ScopedNativeScreen&) = delete;

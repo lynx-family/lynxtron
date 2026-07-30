@@ -312,7 +312,6 @@ bool IsVerticalEdge(gfx::ResizeEdge edge) {
 
   // Keep transition state in sync with NativeWindowMac::SetFullScreen().
   shell_->set_fullscreen_transition_state(FullScreenTransitionState::ENTERING);
-  shell_->NotifyWindowWillEnterFullScreen();
 
   // Set resizable to true before entering fullscreen.
   shell_->SetResizable(true);
@@ -330,8 +329,6 @@ bool IsVerticalEdge(gfx::ResizeEdge edge) {
 
 - (void)windowWillExitFullScreen:(NSNotification*)notification {
   shell_->set_fullscreen_transition_state(FullScreenTransitionState::EXITING);
-
-  shell_->NotifyWindowWillLeaveFullScreen();
 }
 
 - (void)windowDidExitFullScreen:(NSNotification*)notification {

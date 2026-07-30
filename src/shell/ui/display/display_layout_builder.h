@@ -11,7 +11,6 @@
 
 #include <memory>
 
-#include "shell/ui/display/display_export.h"
 #include "shell/ui/display/display_layout.h"
 
 namespace display {
@@ -19,7 +18,7 @@ namespace display {
 class DisplayLayout;
 
 // A utility class to create a DisplayLayout instance.
-class DISPLAY_EXPORT DisplayLayoutBuilder final {
+class DisplayLayoutBuilder final {
  public:
   // Creates a builder that uses a copy of the |layout| as a source.
   explicit DisplayLayoutBuilder(const DisplayLayout& layout);

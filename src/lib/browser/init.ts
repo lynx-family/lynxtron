@@ -14,6 +14,8 @@ import * as path from 'path';
 import type * as url from 'url';
 import type * as v8 from 'v8';
 
+import './api/lynx-http-service';
+
 // We modified the original process.argv to let node.js load the init.js,
 // we need to restore it here.
 process.argv.splice(1, 1);

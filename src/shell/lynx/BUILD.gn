@@ -55,7 +55,7 @@ if (is_mac) {
         "$root_build_dir/devtool_resources/notification_cancel.png",
         "$root_build_dir/devtool_resources/switchPage",
       ]
-      outputs = [ "{{bundle_resources_dir}}/Resource/{{source_file_part}}" ]
+      outputs = [ "{{bundle_resources_dir}}/{{source_file_part}}" ]
       public_deps = [ ":arrange_devtool_resources" ]
     }
 

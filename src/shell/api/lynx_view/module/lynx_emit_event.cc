@@ -22,13 +22,12 @@ LynxEmitEvent::LynxEmitEvent(InvokeCallback callback)
 LynxEmitEvent::~LynxEmitEvent() {
   if (callback_) {
     v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
+    v8::HandleScope scope(isolate);
+    v8::Local<v8::Context> context = isolate->GetCurrentContext();
     // If there's no current context, it means we're shutting down, so we don't
     // need to send an event.
-    if (!isolate->GetCurrentContext().IsEmpty()) {
-      v8::HandleScope scope(isolate);
-
+    if (!context.IsEmpty()) {
       v8::Local<v8::Object> data = v8::Object::New(isolate);
-      v8::Local<v8::Context> context = isolate->GetCurrentContext();
 
       if (data->Set(context, v8::String::NewFromUtf8Literal(isolate, "error"),
                     v8::String::NewFromUtf8Literal(isolate,

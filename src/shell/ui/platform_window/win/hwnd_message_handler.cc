@@ -27,16 +27,15 @@
 #include "base/win/win_util.h"
 #include "base/win/windows_types.h"
 #include "base/win/windows_version.h"
-#include "shell/api/dpi_win.h"
 #include "shell/common/win_util.h"
 #include "shell/ui/base/win/shell.h"
+#include "shell/ui/display/win/screen_win.h"
 #include "shell/ui/gfx/geometry/insets.h"
 #include "shell/ui/gfx/geometry/resize_utils.h"
 #include "shell/ui/gfx/win/hwnd_util.h"
 #include "shell/ui/platform_window/win/fullscreen_handler.h"
 #include "shell/ui/platform_window/win/hwnd_message_handler_delegate.h"
 #include "shell/ui/platform_window/win/scoped_fullscreen_visibility.h"
-#include "ui/display/win/screen_win.h"
 
 namespace ui {
 
@@ -130,6 +129,9 @@ gfx::Size GetNonClientSizeInPixels(HWND hwnd) {
   const int window_width = window_rect.right - window_rect.left;
   const int window_height = window_rect.bottom - window_rect.top;
 
+  // Both Win32 rects are physical pixels. Their size difference is the actual
+  // non-client area currently installed on this HWND, including its frame and
+  // menu, and can be added directly to pixel tracking constraints.
   return gfx::Size(std::max(0, window_width - client_width),
                    std::max(0, window_height - client_height));
 }
@@ -155,6 +157,21 @@ int AutoHideEdgeMaskFromAppbarEdge(UINT edge) {
   }
 }
 }  // namespace
+
+gfx::Size ExpandMaxTrackSizeForClientFrame(const gfx::Size& max_size,
+                                           const gfx::Size& non_client_size) {
+  gfx::Size expanded_size = max_size;
+  // Preserve both forms of "unbounded": zero is used before a maximum is
+  // supplied, while NativeWindowWin normalizes an unspecified axis to INT_MAX.
+  // Adding frame pixels to either sentinel would accidentally create a limit.
+  if (expanded_size.width() && expanded_size.width() != INT_MAX) {
+    expanded_size.Enlarge(non_client_size.width(), 0);
+  }
+  if (expanded_size.height() && expanded_size.height() != INT_MAX) {
+    expanded_size.Enlarge(0, non_client_size.height());
+  }
+  return expanded_size;
+}
 
 // static HWNDMessageHandler member initialization.
 base::LazyInstance<HWNDMessageHandler::FullscreenWindowMonitorMap>::
@@ -298,10 +315,9 @@ void HWNDMessageHandler::GetWindowPlacement(
   }
 }
 
-void HWNDMessageHandler::SetBounds(const gfx::Rect& bounds_in_pixels,
-                                   bool force_size_changed) {
+void HWNDMessageHandler::SetBounds(const gfx::Rect& bounds_in_pixels) {
   background_fullscreen_hack_ = false;
-  SetBoundsInternal(bounds_in_pixels, force_size_changed);
+  SetBoundsInternal(bounds_in_pixels);
 }
 
 void HWNDMessageHandler::SetDwmFrameExtension(DwmFrameState state) {
@@ -318,14 +334,6 @@ void HWNDMessageHandler::SetDwmFrameExtension(DwmFrameState state) {
 void HWNDMessageHandler::SetSize(const gfx::Size& size) {
   SetWindowPos(hwnd(), nullptr, 0, 0, size.width(), size.height(),
                SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE);
-}
-
-void HWNDMessageHandler::CenterWindow(const gfx::Size& size) {
-  HWND parent = GetParent(hwnd());
-  if (!IsWindow(hwnd())) {
-    parent = ::GetWindow(hwnd(), GW_OWNER);
-  }
-  gfx::CenterAndSizeWindow(parent, hwnd(), size);
 }
 
 void HWNDMessageHandler::StackAbove(HWND other_hwnd) {
@@ -571,7 +579,7 @@ void HWNDMessageHandler::SetAspectRatio(float aspect_ratio) {
     gfx::Rect rect(window_rect);
 
     SizeWindowToAspectRatio(WMSZ_BOTTOMRIGHT, &rect);
-    SetBoundsInternal(rect, false);
+    SetBoundsInternal(rect);
   }
 }
 
@@ -749,7 +757,7 @@ void HWNDMessageHandler::PostProcessActivateMessage(
     MONITORINFO monitor_info = {sizeof(monitor_info)};
     GetMonitorInfo(MonitorFromWindow(hwnd(), MONITOR_DEFAULTTOPRIMARY),
                    &monitor_info);
-    SetBoundsInternal(gfx::Rect(monitor_info.rcMonitor), false);
+    SetBoundsInternal(gfx::Rect(monitor_info.rcMonitor));
     // Inform the taskbar that this window is now a fullscreen window so it go
     // behind the window in the Z-Order. The taskbar heuristics to detect
     // fullscreen windows are not reliable. Marking it explicitly seems to work
@@ -930,7 +938,7 @@ LRESULT HWNDMessageHandler::OnCreate(CREATESTRUCT* create_struct) {
   //     std::make_unique<ui::SessionChangeObserver>(base::BindRepeating(
   //         &HWNDMessageHandler::OnSessionChange, base::Unretained(this)));
 
-  dpi_ = lynxtron::GetDPIForHWND(hwnd());
+  dpi_ = display::win::ScreenWin::GetDPIForHWND(hwnd());
   return 0;
 }
 
@@ -999,9 +1007,9 @@ LRESULT HWNDMessageHandler::OnDpiChanged(UINT msg,
   }
 
   dpi_ = LOWORD(w_param);
-  float scaling_factor = lynxtron::GetScalingFactorFromDPI(dpi_);
+  float scaling_factor = display::win::ScreenWin::GetScaleFactorForDPI(dpi_);
 
-  SetBoundsInternal(gfx::Rect(*reinterpret_cast<RECT*>(l_param)), false);
+  SetBoundsInternal(gfx::Rect(*reinterpret_cast<RECT*>(l_param)));
   delegate_->HandleWindowScaleFactorChanged(scaling_factor);
   return 0;
 }
@@ -1051,28 +1059,36 @@ void HWNDMessageHandler::OnExitSizeMove() {
   CheckAndHandleBackgroundFullscreenOnMonitor(hwnd());
 }
 
-void HWNDMessageHandler::OnGetMinMaxInfo(MINMAXINFO* minmax_info) {
-  gfx::Size min_window_size;
-  gfx::Size max_window_size;
-  delegate_->GetMinMaxSize(&min_window_size, &max_window_size);
-  min_window_size = delegate_->DIPToScreenSize(min_window_size);
-  max_window_size = delegate_->DIPToScreenSize(max_window_size);
+void HWNDMessageHandler::GetMinMaxTrackSizesInPixels(
+    gfx::Size* min_window_size,
+    gfx::Size* max_window_size) const {
+  delegate_->GetMinMaxSize(min_window_size, max_window_size);
+  // Keep HWNDMessageHandler platform-generic: the delegate owns the public DIP
+  // policy, while this layer converts those constraints to the physical pixels
+  // consumed by Win32 window sizing.
+  *min_window_size = delegate_->DIPToScreenSize(*min_window_size);
+  *max_window_size = delegate_->DIPToScreenSize(*max_window_size);
 
   // Add the native frame border size to the minimum and maximum size if the
   // view reports its size as the client size.
-  if (HasSystemFrame()) {
+  if (delegate_->MinMaxSizeIsClientSize() && HasSystemFrame()) {
     const gfx::Size non_client_size = GetNonClientSizeInPixels(hwnd());
-    min_window_size.Enlarge(non_client_size.width(), non_client_size.height());
-    if (max_window_size.width()) {
-      max_window_size.Enlarge(non_client_size.width(), 0);
-    }
-    if (max_window_size.height()) {
-      max_window_size.Enlarge(0, non_client_size.height());
-    }
+    min_window_size->Enlarge(non_client_size.width(), non_client_size.height());
+    *max_window_size =
+        ExpandMaxTrackSizeForClientFrame(*max_window_size, non_client_size);
   }
+}
+
+void HWNDMessageHandler::OnGetMinMaxInfo(MINMAXINFO* minmax_info) {
+  gfx::Size min_window_size;
+  gfx::Size max_window_size;
+  GetMinMaxTrackSizesInPixels(&min_window_size, &max_window_size);
+
   minmax_info->ptMinTrackSize.x = min_window_size.width();
   minmax_info->ptMinTrackSize.y = min_window_size.height();
   if (max_window_size.width() || max_window_size.height()) {
+    // A zero dimension means the application did not provide that maximum;
+    // retain the system default maximum tracking size for that dimension.
     if (!max_window_size.width()) {
       max_window_size.set_width(GetSystemMetrics(SM_CXMAXTRACK));
     }
@@ -1746,20 +1762,10 @@ void HWNDMessageHandler::UpdateDwmFrame() {
   }
 }
 
-void HWNDMessageHandler::SetBoundsInternal(const gfx::Rect& bounds_in_pixels,
-                                           bool force_size_changed) {
-  gfx::Size old_size = GetClientAreaBounds().size();
+void HWNDMessageHandler::SetBoundsInternal(const gfx::Rect& bounds_in_pixels) {
   SetWindowPos(hwnd(), nullptr, bounds_in_pixels.x(), bounds_in_pixels.y(),
                bounds_in_pixels.width(), bounds_in_pixels.height(),
                SWP_NOACTIVATE | SWP_NOZORDER);
-
-  // If HWND size is not changed, we will not receive standard size change
-  // notifications. If |force_size_changed| is |true|, we should pretend size is
-  // changed.
-  if (old_size == bounds_in_pixels.size() && force_size_changed &&
-      !background_fullscreen_hack_) {
-    delegate_->HandleClientSizeChanged(GetClientAreaBounds().size());
-  }
 }
 
 void HWNDMessageHandler::CheckAndHandleBackgroundFullscreenOnMonitor(
@@ -1785,7 +1791,7 @@ void HWNDMessageHandler::OnBackgroundFullscreen() {
   gfx::Rect shrunk_rect(monitor_info.rcMonitor);
   shrunk_rect.set_height(shrunk_rect.height() - 1);
   background_fullscreen_hack_ = true;
-  SetBoundsInternal(shrunk_rect, false);
+  SetBoundsInternal(shrunk_rect);
   // Inform the taskbar that this window is no longer a fullscreen window so it
   // can bring itself to the top of the Z-Order. The taskbar heuristics to
   // detect fullscreen windows are not reliable. Marking it explicitly seems to
@@ -1797,21 +1803,7 @@ void HWNDMessageHandler::SizeWindowToAspectRatio(UINT param,
                                                  gfx::Rect* window_rect) {
   gfx::Size min_window_size;
   gfx::Size max_window_size;
-  delegate_->GetMinMaxSize(&min_window_size, &max_window_size);
-  min_window_size = delegate_->DIPToScreenSize(min_window_size);
-  max_window_size = delegate_->DIPToScreenSize(max_window_size);
-  // Add the native frame border size to the minimum and maximum size if the
-  // view reports its size as the client size.
-  if (HasSystemFrame()) {
-    const gfx::Size non_client_size = GetNonClientSizeInPixels(hwnd());
-    min_window_size.Enlarge(non_client_size.width(), non_client_size.height());
-    if (max_window_size.width()) {
-      max_window_size.Enlarge(non_client_size.width(), 0);
-    }
-    if (max_window_size.height()) {
-      max_window_size.Enlarge(0, non_client_size.height());
-    }
-  }
+  GetMinMaxTrackSizesInPixels(&min_window_size, &max_window_size);
   gfx::SizeRectToAspectRatio(GetWindowResizeEdge(param), aspect_ratio_.value(),
                              min_window_size, max_window_size, window_rect);
 }

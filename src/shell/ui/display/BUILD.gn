@@ -12,7 +12,9 @@ config("display_config") {
   ]
 }
 
-component("display") {
+# Display is linked into its consumers and is not a standalone component DLL.
+# Keeping it as a source_set avoids an unnecessary DISPLAY_EXPORT boundary.
+source_set("display") {
   public_configs = [ ":display_config" ]
 
   sources = [
@@ -21,7 +23,6 @@ component("display") {
     "display.h",
     "display_change_notifier.cc",
     "display_change_notifier.h",
-    "display_export.h",
     "display_observer.cc",
     "display_observer.h",
     "screen.cc",
@@ -51,14 +52,10 @@ component("display") {
       "display_layout_builder.h",
       "win/base_window_finder_win.cc",
       "win/base_window_finder_win.h",
-      "win/color_profile_reader.cc",
-      "win/color_profile_reader.h",
       "win/desktop_screen_win.cc",
       "win/desktop_screen_win.h",
       "win/display_info.cc",
       "win/display_info.h",
-      "win/dpi.cc",
-      "win/dpi.h",
       "win/scaling_util.cc",
       "win/scaling_util.h",
       "win/screen_win.cc",

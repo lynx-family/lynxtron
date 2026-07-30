@@ -150,23 +150,6 @@ node::Environment* CreateEnvironment(v8::Isolate* isolate,
   return env;
 }
 
-ExplicitMicrotasksScope::ExplicitMicrotasksScope(v8::MicrotaskQueue* queue)
-    : microtask_queue_(queue), original_policy_(queue->microtasks_policy()) {
-  // TODO(Guo Xi): update comment
-  // In browser-like processes, some nested run loops (macOS usually) may
-  // re-enter. This is safe because we expect the policy was explicit in the
-  // first place for those processes. However, in renderer processes, there may
-  // be unexpected behavior if this code is triggered within a pending microtask
-  // scope.
-  DCHECK_EQ(original_policy_, v8::MicrotasksPolicy::kExplicit);
-
-  microtask_queue_->set_microtasks_policy(v8::MicrotasksPolicy::kExplicit);
-}
-
-ExplicitMicrotasksScope::~ExplicitMicrotasksScope() {
-  microtask_queue_->set_microtasks_policy(original_policy_);
-}
-
 }  // namespace lynxtron::util
 
 namespace lynxtron::Buffer {

@@ -14,7 +14,6 @@
 
 #include "base/observer_list.h"
 #include "build/buildflag.h"
-#include "ui/display/display_export.h"
 
 namespace display {
 class Display;
@@ -22,7 +21,7 @@ class DisplayObserver;
 
 // DisplayChangeNotifier is a class implementing the handling of DisplayObserver
 // notification for Screen.
-class DISPLAY_EXPORT DisplayChangeNotifier {
+class DisplayChangeNotifier {
  public:
   DisplayChangeNotifier();
 

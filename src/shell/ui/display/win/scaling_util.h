@@ -11,7 +11,6 @@
 
 #include <stdint.h>
 
-#include "shell/ui/display/display_export.h"
 #include "shell/ui/display/display_layout.h"
 #include "shell/ui/display/win/display_info.h"
 
@@ -23,8 +22,7 @@ namespace display {
 namespace win {
 
 // Whether or not |a| shares an edge with |b|.
-DISPLAY_EXPORT bool DisplayInfosTouch(const DisplayInfo& a,
-                                      const DisplayInfo& b);
+bool DisplayInfosTouch(const DisplayInfo& a, const DisplayInfo& b);
 
 // Returns a DisplayPlacement for |current| relative to |parent|.
 // Note that DisplayPlacement's are always in DIPs, so this also performs the
@@ -107,9 +105,8 @@ DISPLAY_EXPORT bool DisplayInfosTouch(const DisplayInfo& a,
 // |        |        |            bottom-right of the DisplayInfo.
 // |        |        |
 // +--------+--------+
-DISPLAY_EXPORT DisplayPlacement
-CalculateDisplayPlacement(const DisplayInfo& parent,
-                          const DisplayInfo& current);
+DisplayPlacement CalculateDisplayPlacement(const DisplayInfo& parent,
+                                           const DisplayInfo& current);
 
 // Returns the squared distance between two rects.
 // The distance between two rects is the length of the shortest segment that can
@@ -144,8 +141,8 @@ CalculateDisplayPlacement(const DisplayInfo& parent,
 //
 // The squared distance is used to avoid taking the square root as the common
 // usage is to compare distances greater than 1 unit.
-DISPLAY_EXPORT int64_t SquaredDistanceBetweenRects(const gfx::Rect& ref,
-                                                   const gfx::Rect& rect);
+int64_t SquaredDistanceBetweenRects(const gfx::Rect& ref,
+                                    const gfx::Rect& rect);
 
 }  // namespace win
 }  // namespace display
