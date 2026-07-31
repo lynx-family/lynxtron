@@ -308,7 +308,6 @@ gfx::Size NativeWindow::GetContentMaximumSize() const {
   return maximum_size;
 }
 
-// TODO(Guo Xi): review sheet related logic on macOS
 void NativeWindow::SetSheetOffset(const double offsetX, const double offsetY) {
   sheet_offset_x_ = offsetX;
   sheet_offset_y_ = offsetY;
