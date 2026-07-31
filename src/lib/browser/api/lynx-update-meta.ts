@@ -5,17 +5,21 @@
 import LynxTemplateData from './lynx-template-data';
 
 type LynxUpdateMetaInit = {
-  updateData: LynxTemplateData;
-  globalProps: LynxTemplateData;
+  updateData?: LynxTemplateData;
+  globalProps?: LynxTemplateData;
 };
 
 export class LynxUpdateMeta {
-  updateData: LynxTemplateData;
-  globalProps: LynxTemplateData;
+  updateData?: LynxTemplateData;
+  globalProps?: LynxTemplateData;
 
-  constructor(init?: Partial<LynxUpdateMetaInit>) {
-    this.updateData = init?.updateData ?? new LynxTemplateData({});
-    this.globalProps = init?.globalProps ?? new LynxTemplateData({});
+  constructor(init?: LynxUpdateMetaInit) {
+    if (init?.updateData) {
+      this.updateData = init.updateData;
+    }
+    if (init?.globalProps) {
+      this.globalProps = init.globalProps;
+    }
   }
 }
 

@@ -4,5 +4,6 @@ module.exports = {
     'contextbridge-lynx-node': './src/contextbridge-lynx-node/index.tsx',
     'lynx-fetch': './src/lynx-fetch/index.tsx',
     'lynx-node-bts-await': './src/lynx-node-bts-await/index.tsx',
+    'metadata-update': './src/metadata-update/index.tsx',
   },
 };
