@@ -2,7 +2,7 @@
 // Licensed under the Apache License Version 2.0 that can be
 // found in the LICENSE file in the root directory of this source tree.
 
-import { LynxTemplateData, LynxUpdateMeta, LynxWindow } from 'lynxtron';
+import { LynxWindow } from 'lynxtron';
 import { expect } from 'chai';
 import * as fs from 'node:fs';
 import { once } from 'node:events';
@@ -24,7 +24,6 @@ const bundlePath = path.resolve(
   __dirname,
   './case/lynx-card/dist/bridging-lynx-node.lynx.bundle'
 );
-
 const getBundleBuffer = () => {
   if (!fs.existsSync(bundlePath)) {
     return null;
@@ -66,12 +65,6 @@ describe('LynxWindow template APIs', () => {
 
   it('exposes loadBundle on LynxWindow', function () {
     expect(typeof (LynxWindow.prototype as any).loadBundle).to.equal(
-      'function'
-    );
-  });
-
-  it('exposes updateMetaData on LynxWindow', function () {
-    expect(typeof (LynxWindow.prototype as any).updateMetaData).to.equal(
       'function'
     );
   });
@@ -218,21 +211,6 @@ describe('LynxWindow template APIs', () => {
       })
     );
     expect(w.isDestroyed()).to.equal(false);
-  });
-
-  it('updateMetaData(meta) accepts updateData/globalProps', function () {
-    const w = new LynxWindow({
-      width: 400,
-      height: 300,
-      title: 'LynxWindow updateMetaData(meta)',
-      show: false,
-    });
-
-    const meta = new LynxUpdateMeta({
-      updateData: new LynxTemplateData({ foo: 'bar' }),
-      globalProps: new LynxTemplateData({ ver: 1 }),
-    });
-    expect(() => (w as any).updateMetaData(meta)).to.not.throw();
   });
 
   it('loadTemplate is absent when the new APIs are present', function () {

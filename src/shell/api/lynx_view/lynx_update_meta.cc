@@ -13,10 +13,14 @@ namespace lynxtron {
 
 std::shared_ptr<lynx::pub::LynxUpdateMeta> LynxUpdateMeta::BuildCore() const {
   auto meta = std::make_shared<lynx::pub::LynxUpdateMeta>();
-  meta->SetUpdateData(
-      std::make_shared<lynx::pub::LynxTemplateData>(update_data_));
-  meta->SetGlobalProps(
-      std::make_shared<lynx::pub::LynxTemplateData>(global_props_));
+  if (update_data_.has_value()) {
+    meta->SetUpdateData(
+        std::make_shared<lynx::pub::LynxTemplateData>(update_data_.value()));
+  }
+  if (global_props_.has_value()) {
+    meta->SetGlobalProps(
+        std::make_shared<lynx::pub::LynxTemplateData>(global_props_.value()));
+  }
   return meta;
 }
 

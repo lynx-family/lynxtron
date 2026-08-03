@@ -9,8 +9,8 @@ export class LynxUpdateMeta {
     updateData?: LynxTemplateData;
     globalProps?: LynxTemplateData;
   });
-  updateData: LynxTemplateData;
-  globalProps: LynxTemplateData;
+  updateData?: LynxTemplateData;
+  globalProps?: LynxTemplateData;
 }
 
 export default LynxUpdateMeta;

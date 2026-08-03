@@ -389,6 +389,9 @@ export declare class LynxWindow extends BaseWindow {
    *
    * This is the primary entry point for triggering template data updates on the client side.
    *
+   * Provide at least one of the following fields. Omitted fields leave their
+   * corresponding state unchanged.
+   *
    * - `meta.updateData`: Template data content used to update the page.
    * - `meta.globalProps`: Global props content used to update the page.
    *

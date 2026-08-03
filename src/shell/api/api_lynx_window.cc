@@ -533,9 +533,18 @@ void LynxWindow::EnsureLynxView() {
 
   if (data_str_.has_value() && global_props_.has_value()) {
     lynx_view_->UpdateData(data_str_.value(), global_props_.value());
-    data_str_.reset();
-    global_props_.reset();
+  } else if (data_str_.has_value() || global_props_.has_value()) {
+    auto meta = std::make_shared<lynxtron::LynxUpdateMeta>();
+    if (data_str_.has_value()) {
+      meta->SetUpdateData(data_str_.value());
+    }
+    if (global_props_.has_value()) {
+      meta->SetGlobalProps(global_props_.value());
+    }
+    lynx_view_->UpdateData(std::move(meta));
   }
+  data_str_.reset();
+  global_props_.reset();
 }
 
 void LynxWindow::SetFpsMonitorEnabled(bool enabled,
@@ -783,13 +792,11 @@ bool LynxWindow::SetGlobalProps(const gin_helper::Dictionary& global_props) {
   }
 
   if (!lynx_view_) {
-    data_str_ = "";
     global_props_ = std::move(global_props_string);
   } else {
     auto impl = std::make_shared<lynxtron::LynxUpdateMeta>();
-    impl->SetUpdateData("");
     impl->SetGlobalProps(global_props_string.value());
-    lynx_view_->UpdateData(impl);
+    lynx_view_->UpdateData(std::move(impl));
   }
   return true;
 }
@@ -805,54 +812,64 @@ bool LynxWindow::UpdateMetaData(gin::Arguments* args) {
   }
 
   v8::Local<v8::Value> update_data_value;
-  if (!meta.Get("updateData", &update_data_value)) {
-    args->ThrowTypeError("updateMetaData requires meta.updateData");
-    return false;
-  }
+  bool has_update_data = meta.Get("updateData", &update_data_value);
   v8::Local<v8::Value> global_props_value;
-  if (!meta.Get("globalProps", &global_props_value)) {
-    args->ThrowTypeError("updateMetaData requires meta.globalProps");
-    return false;
-  }
-
-  v8::Local<v8::Object> update_data_object;
-  if (!ExtractTemplateDataObject(isolate, update_data_value,
-                                 &update_data_object)) {
+  bool has_global_props = meta.Get("globalProps", &global_props_value);
+  if (!has_update_data && !has_global_props) {
     args->ThrowTypeError(
-        "updateMetaData requires meta.updateData as an object");
-    return false;
-  }
-  v8::Local<v8::Object> global_props_object;
-  if (!ExtractTemplateDataObject(isolate, global_props_value,
-                                 &global_props_object)) {
-    args->ThrowTypeError(
-        "updateMetaData requires meta.globalProps as an object");
+        "updateMetaData requires meta.updateData or meta.globalProps");
     return false;
   }
 
-  gin_helper::Dictionary update_data_dict(isolate, update_data_object);
-  gin_helper::Dictionary global_props_dict(isolate, global_props_object);
-  auto update_data_json = ConvertDictionaryToJsonString(update_data_dict);
-  if (!update_data_json.has_value()) {
-    return false;
-  }
-  auto global_props_json = ConvertDictionaryToJsonString(global_props_dict);
-  if (!global_props_json.has_value()) {
-    return false;
+  std::optional<std::string> update_data_json;
+  if (has_update_data) {
+    v8::Local<v8::Object> update_data_object;
+    if (!ExtractTemplateDataObject(isolate, update_data_value,
+                                   &update_data_object)) {
+      args->ThrowTypeError(
+          "updateMetaData requires meta.updateData as an object");
+      return false;
+    }
+    gin_helper::Dictionary update_data_dict(isolate, update_data_object);
+    update_data_json = ConvertDictionaryToJsonString(update_data_dict);
+    if (!update_data_json.has_value()) {
+      return false;
+    }
   }
 
-  std::string data_json = std::move(update_data_json).value();
-  std::string props_json = std::move(global_props_json).value();
-  auto impl = std::make_shared<lynxtron::LynxUpdateMeta>();
-  impl->SetUpdateData(data_json);
-  impl->SetGlobalProps(props_json);
+  std::optional<std::string> global_props_json;
+  if (has_global_props) {
+    v8::Local<v8::Object> global_props_object;
+    if (!ExtractTemplateDataObject(isolate, global_props_value,
+                                   &global_props_object)) {
+      args->ThrowTypeError(
+          "updateMetaData requires meta.globalProps as an object");
+      return false;
+    }
+    gin_helper::Dictionary global_props_dict(isolate, global_props_object);
+    global_props_json = ConvertDictionaryToJsonString(global_props_dict);
+    if (!global_props_json.has_value()) {
+      return false;
+    }
+  }
 
   if (!lynx_view_) {
-    data_str_ = std::move(data_json);
-    global_props_ = std::move(props_json);
+    if (update_data_json.has_value()) {
+      data_str_ = std::move(update_data_json);
+    }
+    if (global_props_json.has_value()) {
+      global_props_ = std::move(global_props_json);
+    }
     return true;
   }
 
+  auto impl = std::make_shared<lynxtron::LynxUpdateMeta>();
+  if (update_data_json.has_value()) {
+    impl->SetUpdateData(std::move(update_data_json).value());
+  }
+  if (global_props_json.has_value()) {
+    impl->SetGlobalProps(std::move(global_props_json).value());
+  }
   lynx_view_->UpdateData(std::move(impl));
   return true;
 }
