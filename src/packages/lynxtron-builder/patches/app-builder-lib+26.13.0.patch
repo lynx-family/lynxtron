@@ -1,8 +1,38 @@
+diff --git a/node_modules/app-builder-lib/out/codeSign/macCodeSign.js b/node_modules/app-builder-lib/out/codeSign/macCodeSign.js
+--- a/node_modules/app-builder-lib/out/codeSign/macCodeSign.js
++++ b/node_modules/app-builder-lib/out/codeSign/macCodeSign.js
+@@ -255,7 +255,7 @@ async function parseIdentity(line) {
+     const firstQuoteIndex = line.indexOf('"');
+     const name = line.substring(firstQuoteIndex + 1, line.lastIndexOf('"'));
+     const hash = line.substring(0, firstQuoteIndex - 1);
+-    const { Identity: IdentityClass } = await (0, dynamicImport_1.dynamicImport)("@electron/osx-sign/dist/cjs/util-identities");
++    const { Identity: IdentityClass } = await (0, dynamicImport_1.dynamicImport)("@electron/osx-sign/dist/cjs/util-identities.js");
+     return new IdentityClass(name, hash);
+ }
+ function findIdentity(certType, qualifier, keychain) {
+diff --git a/node_modules/app-builder-lib/out/mac/MacTargetHelper.js b/node_modules/app-builder-lib/out/mac/MacTargetHelper.js
+--- a/node_modules/app-builder-lib/out/mac/MacTargetHelper.js
++++ b/node_modules/app-builder-lib/out/mac/MacTargetHelper.js
+@@ -38,12 +38,12 @@
+             }
+             const noIdentity = !config.sign && identity == null;
+             if (qualifier === "-") {
+-                const { Identity: IdentityClass } = await (0, dynamicImport_1.dynamicImport)("@electron/osx-sign/dist/cjs/util-identities");
++                const { Identity: IdentityClass } = await (0, dynamicImport_1.dynamicImport)("@electron/osx-sign/dist/cjs/util-identities.js");
+                 identity = new IdentityClass("-", undefined);
+             }
+             else if (noIdentity && fallBackToAdhoc) {
+                 builder_util_1.log.warn(null, "falling back to ad-hoc signature for macOS application code signing");
+-                const { Identity: IdentityClass } = await (0, dynamicImport_1.dynamicImport)("@electron/osx-sign/dist/cjs/util-identities");
++                const { Identity: IdentityClass } = await (0, dynamicImport_1.dynamicImport)("@electron/osx-sign/dist/cjs/util-identities.js");
+                 identity = new IdentityClass("-", undefined);
+             }
+             else if (noIdentity) {
 diff --git a/node_modules/app-builder-lib/out/electron/ElectronFramework.js b/node_modules/app-builder-lib/out/electron/ElectronFramework.js
-index ce37e63..22b6ef2 100644
+index e153bfd..a9b4248 100644
 --- a/node_modules/app-builder-lib/out/electron/ElectronFramework.js
 +++ b/node_modules/app-builder-lib/out/electron/ElectronFramework.js
-@@ -16,8 +16,8 @@ const injectFFMPEG_1 = require("./injectFFMPEG");
+@@ -17,8 +17,8 @@ const injectFFMPEG_1 = require("./injectFFMPEG");
  function createBrandingOpts(opts) {
      var _a, _b;
      return {
@@ -13,7 +43,7 @@ index ce37e63..22b6ef2 100644
      };
  }
  function createDownloadOpts(opts, platform, arch, electronVersion) {
-@@ -85,7 +85,7 @@ class ElectronFramework {
+@@ -107,7 +107,7 @@ class ElectronFramework {
          // noinspection JSUnusedGlobalSymbols
          this.macOsDefaultTargets = ["zip", "dmg"];
          // noinspection JSUnusedGlobalSymbols
@@ -22,8 +52,22 @@ index ce37e63..22b6ef2 100644
          // noinspection JSUnusedGlobalSymbols
          this.isCopyElevateHelper = true;
          // noinspection JSUnusedGlobalSymbols
+@@ -216,8 +216,12 @@ async function unpack(prepareOptions, downloadOptions, distMacOsAppName) {
+     if (resolvedDist == null) {
+         // if no custom electronDist is provided, use the default unpack logic
+         builder_util_1.log.debug(null, "no custom electronDist provided, unpacking default Electron distribution");
++        // [PATCH] Lynxtron ships a custom electron artifact (lynxtron-v*.zip) via a mirror that does not publish a matching SHASUMS256.txt.
++        // Force isVerifyChecksum=false so @electron/get skips the checksum download (which would otherwise fetch garbage and fail with
++        // "Could not parse checksum file at line 1: PK ").
++        const patchedDownloadOptions = { ...downloadOptions, isVerifyChecksum: false };
+         const zipPath = await (0, electronGet_1.downloadElectronArtifactZip)({
+-            electronDownload: downloadOptions,
++            electronDownload: patchedDownloadOptions,
+             artifactName: "electron",
+             platformName: (_a = downloadOptions.platform) !== null && _a !== void 0 ? _a : prepareOptions.platformName,
+             arch: (_b = downloadOptions.arch) !== null && _b !== void 0 ? _b : prepareOptions.arch,
 diff --git a/node_modules/app-builder-lib/out/electron/electronMac.js b/node_modules/app-builder-lib/out/electron/electronMac.js
-index e5551f8..55cc93f 100644
+index e5551f8..9f71dd5 100644
 --- a/node_modules/app-builder-lib/out/electron/electronMac.js
 +++ b/node_modules/app-builder-lib/out/electron/electronMac.js
 @@ -13,30 +13,22 @@ function doRename(basePath, oldName, newName) {
@@ -188,7 +232,7 @@ index e5551f8..55cc93f 100644
      await (0, promises_1.rename)(path.dirname(contentsPath), appPath);
      // https://github.com/electron-userland/electron-builder/issues/840
 diff --git a/node_modules/app-builder-lib/out/electron/electronVersion.js b/node_modules/app-builder-lib/out/electron/electronVersion.js
-index 6a2d9a3..e164942 100644
+index 9c50e70..80023c4 100644
 --- a/node_modules/app-builder-lib/out/electron/electronVersion.js
 +++ b/node_modules/app-builder-lib/out/electron/electronVersion.js
 @@ -12,7 +12,7 @@ const semver = require("semver");
@@ -201,10 +245,10 @@ index 6a2d9a3..e164942 100644
      if (config == null) {
          config = await (0, config_1.getConfig)(projectDir, null, null);
 diff --git a/node_modules/app-builder-lib/out/node-module-collector/nodeModulesCollector.js b/node_modules/app-builder-lib/out/node-module-collector/nodeModulesCollector.js
-index 0956d26..549dd57 100644
+index 2200d74..35a1825 100644
 --- a/node_modules/app-builder-lib/out/node-module-collector/nodeModulesCollector.js
 +++ b/node_modules/app-builder-lib/out/node-module-collector/nodeModulesCollector.js
-@@ -107,6 +107,7 @@ class NodeModulesCollector {
+@@ -108,6 +108,7 @@ class NodeModulesCollector {
                      builder_util_1.log.debug(fields, "JSON parse error in dependency tree, retrying");
                      return true;
                  }
@@ -212,7 +256,7 @@ index 0956d26..549dd57 100644
                  builder_util_1.log.error(fields, "error parsing dependencies tree");
                  return false;
              },
-@@ -125,7 +126,8 @@ class NodeModulesCollector {
+@@ -126,7 +127,8 @@ class NodeModulesCollector {
              // Please for the love of all that is holy, this should cover 99% of cases where npm/pnpm/yarn output is clean JSON
              return JSON.parse(consoleOutput);
          }
@@ -222,7 +266,7 @@ index 0956d26..549dd57 100644
              // ignore
          }
          // DEDICATED FALLBACK FOR POLLUTED OUTPUT, non-trivial to implement correctly, not needed in most cases, and highly inefficient
-@@ -133,10 +135,13 @@ class NodeModulesCollector {
+@@ -134,10 +136,13 @@ class NodeModulesCollector {
          const bracketOpen = Math.max(consoleOutput.indexOf("{"), 0);
          const bracketOpenSquare = Math.max(consoleOutput.indexOf("["), 0);
          const start = Math.min(bracketOpen, bracketOpenSquare); // always non-negative due to Math.max above
@@ -237,11 +281,22 @@ index 0956d26..549dd57 100644
              }
              catch {
                  // ignore, try next
+diff --git a/node_modules/app-builder-lib/out/util/electronGet.js b/node_modules/app-builder-lib/out/util/electronGet.js
+--- a/node_modules/app-builder-lib/out/util/electronGet.js
++++ b/node_modules/app-builder-lib/out/util/electronGet.js
+@@ -186,7 +186,6 @@ async function downloadArtifactToFile(config, label) {
+     let lastLoggedMilestone = -1;
+     const state = { bar: undefined };
+     const downloadOptions = {
+-        timeout: { request: 10 * 60 * 1000 }, // prevent indefinite hang on stalled connections
+         ...config.downloadOptions,
+         agent: (_b = (_a = config.downloadOptions) === null || _a === void 0 ? void 0 : _a.agent) !== null && _b !== void 0 ? _b : (0, builder_util_1.buildGotProxyAgent)(),
+         getProgressCallback: info => {
 diff --git a/node_modules/app-builder-lib/out/platformPackager.js b/node_modules/app-builder-lib/out/platformPackager.js
-index 90d31da..ab332c5 100644
+index 4be3489..ccfa7dd 100644
 --- a/node_modules/app-builder-lib/out/platformPackager.js
 +++ b/node_modules/app-builder-lib/out/platformPackager.js
-@@ -425,6 +425,7 @@ class PlatformPackager {
+@@ -426,6 +426,7 @@ class PlatformPackager {
          return Promise.resolve(null);
      }
      async computeAsarOptions(customBuildOptions) {
@@ -250,7 +305,7 @@ index 90d31da..ab332c5 100644
              return null;
          }
 diff --git a/node_modules/app-builder-lib/out/util/appFileCopier.js b/node_modules/app-builder-lib/out/util/appFileCopier.js
-index f762b47..32a11a3 100644
+index 37ccda8..1c52e8e 100644
 --- a/node_modules/app-builder-lib/out/util/appFileCopier.js
 +++ b/node_modules/app-builder-lib/out/util/appFileCopier.js
 @@ -151,6 +151,23 @@ async function computeNodeModuleFileSets(platformPackager, mainMatcher) {
@@ -308,9 +363,9 @@ index f762b47..32a11a3 100644
          for (const dir of searchDirectories) {
              builder_util_1.log.info({ pm, searchDir: dir }, "searching for node modules");
              const collector = (0, node_module_collector_1.getCollectorByPackageManager)(pm, dir, tempDirManager);
--            deps = await collector.getNodeModules({ packageName: packager.metadata.name });
+-            deps = await collector.getNodeModules({ packageName: packager.nodePackageName });
 +            try {
-+                deps = await collector.getNodeModules({ packageName: packager.metadata.name });
++                deps = await collector.getNodeModules({ packageName: packager.nodePackageName });
 +            }
 +            catch (error) {
 +                lastError = error;
@@ -331,10 +386,10 @@ index f762b47..32a11a3 100644
          return [];
      }
 diff --git a/node_modules/app-builder-lib/out/util/packageMetadata.js b/node_modules/app-builder-lib/out/util/packageMetadata.js
-index 2f74568..aff70e7 100644
+index c967753..82f1fa7 100644
 --- a/node_modules/app-builder-lib/out/util/packageMetadata.js
 +++ b/node_modules/app-builder-lib/out/util/packageMetadata.js
-@@ -110,7 +110,7 @@ function checkDependencies(dependencies, errors) {
+@@ -111,7 +111,7 @@ function checkDependencies(dependencies, errors) {
      if (swVersion != null && !versionSatisfies(swVersion, ">=20.32.0")) {
          errors.push(`At least electron-builder-squirrel-windows 20.32.0 is required by current electron-builder version. Please set electron-builder-squirrel-windows to "^20.32.0"`);
      }
