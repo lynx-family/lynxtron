@@ -1,8 +1,8 @@
 diff --git a/node_modules/app-builder-lib/out/electron/ElectronFramework.js b/node_modules/app-builder-lib/out/electron/ElectronFramework.js
-index ce37e63..22b6ef2 100644
+index e153bfd..6de237f 100644
 --- a/node_modules/app-builder-lib/out/electron/ElectronFramework.js
 +++ b/node_modules/app-builder-lib/out/electron/ElectronFramework.js
-@@ -16,8 +16,8 @@ const injectFFMPEG_1 = require("./injectFFMPEG");
+@@ -17,8 +17,8 @@ const injectFFMPEG_1 = require("./injectFFMPEG");
  function createBrandingOpts(opts) {
      var _a, _b;
      return {
@@ -13,7 +13,7 @@ index ce37e63..22b6ef2 100644
      };
  }
  function createDownloadOpts(opts, platform, arch, electronVersion) {
-@@ -85,7 +85,7 @@ class ElectronFramework {
+@@ -107,7 +107,7 @@ class ElectronFramework {
          // noinspection JSUnusedGlobalSymbols
          this.macOsDefaultTargets = ["zip", "dmg"];
          // noinspection JSUnusedGlobalSymbols
@@ -23,7 +23,7 @@ index ce37e63..22b6ef2 100644
          this.isCopyElevateHelper = true;
          // noinspection JSUnusedGlobalSymbols
 diff --git a/node_modules/app-builder-lib/out/electron/electronMac.js b/node_modules/app-builder-lib/out/electron/electronMac.js
-index e5551f8..55cc93f 100644
+index e5551f8..9f71dd5 100644
 --- a/node_modules/app-builder-lib/out/electron/electronMac.js
 +++ b/node_modules/app-builder-lib/out/electron/electronMac.js
 @@ -13,30 +13,22 @@ function doRename(basePath, oldName, newName) {
@@ -188,7 +188,7 @@ index e5551f8..55cc93f 100644
      await (0, promises_1.rename)(path.dirname(contentsPath), appPath);
      // https://github.com/electron-userland/electron-builder/issues/840
 diff --git a/node_modules/app-builder-lib/out/electron/electronVersion.js b/node_modules/app-builder-lib/out/electron/electronVersion.js
-index 6a2d9a3..e164942 100644
+index 9c50e70..80023c4 100644
 --- a/node_modules/app-builder-lib/out/electron/electronVersion.js
 +++ b/node_modules/app-builder-lib/out/electron/electronVersion.js
 @@ -12,7 +12,7 @@ const semver = require("semver");
@@ -201,10 +201,10 @@ index 6a2d9a3..e164942 100644
      if (config == null) {
          config = await (0, config_1.getConfig)(projectDir, null, null);
 diff --git a/node_modules/app-builder-lib/out/node-module-collector/nodeModulesCollector.js b/node_modules/app-builder-lib/out/node-module-collector/nodeModulesCollector.js
-index 0956d26..549dd57 100644
+index 2200d74..35a1825 100644
 --- a/node_modules/app-builder-lib/out/node-module-collector/nodeModulesCollector.js
 +++ b/node_modules/app-builder-lib/out/node-module-collector/nodeModulesCollector.js
-@@ -107,6 +107,7 @@ class NodeModulesCollector {
+@@ -108,6 +108,7 @@ class NodeModulesCollector {
                      builder_util_1.log.debug(fields, "JSON parse error in dependency tree, retrying");
                      return true;
                  }
@@ -212,7 +212,7 @@ index 0956d26..549dd57 100644
                  builder_util_1.log.error(fields, "error parsing dependencies tree");
                  return false;
              },
-@@ -125,7 +126,8 @@ class NodeModulesCollector {
+@@ -126,7 +127,8 @@ class NodeModulesCollector {
              // Please for the love of all that is holy, this should cover 99% of cases where npm/pnpm/yarn output is clean JSON
              return JSON.parse(consoleOutput);
          }
@@ -222,7 +222,7 @@ index 0956d26..549dd57 100644
              // ignore
          }
          // DEDICATED FALLBACK FOR POLLUTED OUTPUT, non-trivial to implement correctly, not needed in most cases, and highly inefficient
-@@ -133,10 +135,13 @@ class NodeModulesCollector {
+@@ -134,10 +136,13 @@ class NodeModulesCollector {
          const bracketOpen = Math.max(consoleOutput.indexOf("{"), 0);
          const bracketOpenSquare = Math.max(consoleOutput.indexOf("["), 0);
          const start = Math.min(bracketOpen, bracketOpenSquare); // always non-negative due to Math.max above
@@ -238,10 +238,10 @@ index 0956d26..549dd57 100644
              catch {
                  // ignore, try next
 diff --git a/node_modules/app-builder-lib/out/platformPackager.js b/node_modules/app-builder-lib/out/platformPackager.js
-index 90d31da..ab332c5 100644
+index 4be3489..ccfa7dd 100644
 --- a/node_modules/app-builder-lib/out/platformPackager.js
 +++ b/node_modules/app-builder-lib/out/platformPackager.js
-@@ -425,6 +425,7 @@ class PlatformPackager {
+@@ -426,6 +426,7 @@ class PlatformPackager {
          return Promise.resolve(null);
      }
      async computeAsarOptions(customBuildOptions) {
@@ -250,7 +250,7 @@ index 90d31da..ab332c5 100644
              return null;
          }
 diff --git a/node_modules/app-builder-lib/out/util/appFileCopier.js b/node_modules/app-builder-lib/out/util/appFileCopier.js
-index f762b47..32a11a3 100644
+index 37ccda8..1c52e8e 100644
 --- a/node_modules/app-builder-lib/out/util/appFileCopier.js
 +++ b/node_modules/app-builder-lib/out/util/appFileCopier.js
 @@ -151,6 +151,23 @@ async function computeNodeModuleFileSets(platformPackager, mainMatcher) {
@@ -308,9 +308,9 @@ index f762b47..32a11a3 100644
          for (const dir of searchDirectories) {
              builder_util_1.log.info({ pm, searchDir: dir }, "searching for node modules");
              const collector = (0, node_module_collector_1.getCollectorByPackageManager)(pm, dir, tempDirManager);
--            deps = await collector.getNodeModules({ packageName: packager.metadata.name });
+-            deps = await collector.getNodeModules({ packageName: packager.nodePackageName });
 +            try {
-+                deps = await collector.getNodeModules({ packageName: packager.metadata.name });
++                deps = await collector.getNodeModules({ packageName: packager.nodePackageName });
 +            }
 +            catch (error) {
 +                lastError = error;
@@ -331,10 +331,10 @@ index f762b47..32a11a3 100644
          return [];
      }
 diff --git a/node_modules/app-builder-lib/out/util/packageMetadata.js b/node_modules/app-builder-lib/out/util/packageMetadata.js
-index 2f74568..aff70e7 100644
+index c967753..82f1fa7 100644
 --- a/node_modules/app-builder-lib/out/util/packageMetadata.js
 +++ b/node_modules/app-builder-lib/out/util/packageMetadata.js
-@@ -110,7 +110,7 @@ function checkDependencies(dependencies, errors) {
+@@ -111,7 +111,7 @@ function checkDependencies(dependencies, errors) {
      if (swVersion != null && !versionSatisfies(swVersion, ">=20.32.0")) {
          errors.push(`At least electron-builder-squirrel-windows 20.32.0 is required by current electron-builder version. Please set electron-builder-squirrel-windows to "^20.32.0"`);
      }

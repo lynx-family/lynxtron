@@ -1,8 +1,8 @@
 diff --git a/node_modules/dmg-builder/out/dmgUtil.js b/node_modules/dmg-builder/out/dmgUtil.js
-index f6f3e95..e3444aa 100644
+index aed2166..473c96f 100644
 --- a/node_modules/dmg-builder/out/dmgUtil.js
 +++ b/node_modules/dmg-builder/out/dmgUtil.js
-@@ -163,7 +163,12 @@ async function customizeDmg({ appPath, artifactPath, volumeName, specification,
+@@ -173,7 +173,12 @@ async function customizeDmg({ appPath, artifactPath, volumeName, specification,
      }
      if (!(0, builder_util_1.isEmptyOrSpaces)(settings.background)) {
          const size = await getImageSizeUsingSips(settings.background);
@@ -14,5 +14,5 @@ index f6f3e95..e3444aa 100644
 +        }
 +        settings.window = { position: { x: 400, y: Math.round((1440 - windowSize.height) / 2) }, size: windowSize, ...settings.window };
      }
-     const settingsFile = await packager.getTempFile(".json");
-     await (0, fs_extra_1.writeFile)(settingsFile, JSON.stringify(settings, null, 2));
+     const workspaceRoot = await packager.info.getWorkspaceRoot();
+     for (const item of (_f = settings.contents) !== null && _f !== void 0 ? _f : []) {
