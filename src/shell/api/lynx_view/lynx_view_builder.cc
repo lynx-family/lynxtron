@@ -19,6 +19,7 @@
 #include "shell/api/lynx_view/module/lynx_bridge_module.h"
 #include "shell/api/lynx_view/module/lynx_hybrid_monitor_module.h"
 #include "shell/api/lynx_view/module/lynx_node_module.h"
+#include "shell/api/lynx_view/testbench_replay_controller.h"
 #include "shell/lynx/http_service/lynx_http_service.h"
 #include "shell/lynx/resource_fetcher/lynx_generic_resource_fetcher_factory.h"
 
@@ -111,6 +112,16 @@ LynxViewBuilder& LynxViewBuilder::SetWebView2FixedRuntimePath(
   return *this;
 }
 
+LynxViewBuilder& LynxViewBuilder::SetTestbenchReplayUrl(
+    const std::string& url) {
+#if ENABLE_TESTBENCH_REPLAY
+  testbench_replay_enabled_ = IsTestbenchReplayUrl(url);
+#else
+  (void)url;
+#endif
+  return *this;
+}
+
 std::unique_ptr<LynxView> LynxViewBuilder::Build() {
   base::FilePath icu_data_path;
 #if BUILDFLAG(IS_MAC)
@@ -136,7 +147,16 @@ std::unique_ptr<LynxView> LynxViewBuilder::Build() {
   RegisterLynxHybridMonitorModuleToLynxView(impl_->builder.Impl(),
                                             lynx_window_);
 
+#if ENABLE_TESTBENCH_REPLAY
+  if (testbench_replay_enabled_) {
+    RegisterTestbenchReplayDataModule(impl_->builder.Impl());
+  }
+#endif
+
   auto view_impl = std::make_unique<LynxViewImpl>();
+#if ENABLE_TESTBENCH_REPLAY
+  view_impl->SetLynxWindow(lynx_window_);
+#endif
   view_impl->Initialize(impl_->builder.Build());
   return LynxView::Create(std::move(view_impl));
 }

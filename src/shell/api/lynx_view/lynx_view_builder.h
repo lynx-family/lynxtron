@@ -47,6 +47,7 @@ class LynxViewBuilder {
                                         lynx_native_view_creator creator,
                                         void* opaque = nullptr);
   LynxViewBuilder& SetWebView2FixedRuntimePath(const char* path);
+  LynxViewBuilder& SetTestbenchReplayUrl(const std::string& url);
 
   std::unique_ptr<LynxView> Build();
 
@@ -58,6 +59,7 @@ class LynxViewBuilder {
   std::unique_ptr<Impl> impl_;
   base::WeakPtr<api::LynxWindow> lynx_window_;
   std::vector<std::string> node_integration_preload_;
+  bool testbench_replay_enabled_ = false;
 };
 
 }  // namespace lynxtron

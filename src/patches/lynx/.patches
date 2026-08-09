@@ -3,4 +3,5 @@
 0003-Replace-MessageLoopimpl-with-libuv-for-lynx-bts.patch
 0004-Unify-V8-Version-for-Lynx-BTS-with-NodeJS.patch
 0005-Change-COREPACK_ENABLE_NETWORK-to-1-form-0.patch
+0006-BugFix-macOS-Align-TestBench-bridge-replay-with-Lynx.patch
 0008-BugFix-Copy-fetch-response-body-into-V8-sandbox.patch

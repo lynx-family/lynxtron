@@ -5,6 +5,7 @@
 #include "shell/api/api_lynx_window.h"
 
 #include <algorithm>
+#include <cmath>
 #include <initializer_list>
 #include <memory>
 #include <string_view>
@@ -22,6 +23,7 @@
 #include "shell/api/lynx_view/lynx_update_meta.h"
 #include "shell/api/lynx_view/lynx_view.h"
 #include "shell/api/lynx_view/lynx_view_builder.h"
+#include "shell/api/lynx_view/testbench_replay_controller.h"
 #include "shell/api/lynx_view/windowless_renderer.h"
 #include "shell/api/lynx_view_state_observer.h"
 #include "shell/api/lynx_window_manager.h"
@@ -368,6 +370,22 @@ void LynxWindow::OnWindowFocus() {
 
 void LynxWindow::OnWindowIsKeyChanged(bool is_key) {}
 
+#if ENABLE_TESTBENCH_REPLAY
+void LynxWindow::ResizeForTestbenchReplay(double width, double height) {
+  if (!window_ || width <= 0.0f || height <= 0.0f) {
+    return;
+  }
+  window_->SetSize(gfx::Size(static_cast<int>(std::ceil(width)),
+                             static_cast<int>(std::ceil(height))),
+                   false);
+  if (lynx_view_) {
+    const auto metrics = GetLynxContentMetrics(window_.get());
+    SyncLynxScreenMetrics(lynx_view_.get(), metrics);
+    SyncLynxViewport(lynx_view_.get(), metrics);
+  }
+}
+#endif
+
 void LynxWindow::OnWindowResize() {
   if (IsMinimized()) {
     return;
@@ -505,7 +523,21 @@ void LynxWindow::Blur() {
   BaseWindow::Blur();
 }
 
-void LynxWindow::EnsureLynxView() {
+void LynxWindow::EnsureLynxView(const std::string* testbench_url) {
+#if ENABLE_TESTBENCH_REPLAY
+  const bool requested_testbench = testbench_url != nullptr;
+  if (lynx_view_ && (lynx_view_is_testbench_ || requested_testbench)) {
+    if (last_render_active_) {
+      lynx_view_->EnterBackground();
+    }
+    lynx_view_.reset();
+    last_render_active_ = false;
+    lynx_view_is_testbench_ = false;
+  }
+#else
+  (void)testbench_url;
+#endif
+
   if (lynx_view_) {
     return;
   }
@@ -518,6 +550,11 @@ void LynxWindow::EnsureLynxView() {
       .SetFrame(0, 0, metrics.width, metrics.height)
       .SetNodeIntegrationPreload(node_integration_preload_)
       .SetLynxWindow(GetWeakPtr());
+#if ENABLE_TESTBENCH_REPLAY
+  if (testbench_url) {
+    builder.SetTestbenchReplayUrl(*testbench_url);
+  }
+#endif
   if (window_->IsWindowless()) {
     builder.SetWindowlessRenderer(CreateWindowlessRenderer());
   } else {
@@ -528,6 +565,9 @@ void LynxWindow::EnsureLynxView() {
     lynx_view_state_observer_->OnPreLynxViewCreate(&builder);
   }
   lynx_view_ = builder.Build();
+#if ENABLE_TESTBENCH_REPLAY
+  lynx_view_is_testbench_ = requested_testbench;
+#endif
   lynx_view_->SetClient(weak_factory_.GetWeakPtr());
   SyncRenderActiveState();
 
@@ -650,7 +690,11 @@ bool LynxWindow::LoadUrl(const std::string& url, gin::Arguments* args) {
     return false;
   }
 
+#if ENABLE_TESTBENCH_REPLAY
+  EnsureLynxView(IsTestbenchReplayUrl(url) ? &url : nullptr);
+#else
   EnsureLynxView();
+#endif
 
   auto data_json = ConvertDictionaryToJsonString(data);
   if (!data_json.has_value()) {

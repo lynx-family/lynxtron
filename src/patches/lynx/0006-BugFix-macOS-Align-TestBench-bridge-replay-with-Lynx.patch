@@ -1,0 +1,276 @@
+From e6b0d104629737be28b02f4d1aa18cb6711d5b17 Mon Sep 17 00:00:00 2001
+From: Lynxtron Authors <lynxtron@users.noreply.github.com>
+Date: Sat, 8 Aug 2026 11:32:32 +0800
+Subject: [PATCH] [BugFix][macOS] Align TestBench bridge replay with Lynx
+ Desktop
+
+---
+diff --git a/core/services/replay/lynx_callback_testbench.h b/core/services/replay/lynx_callback_testbench.h
+index 91de8f0cd1233c3f39894645c5fc16e4efeae296..2e8c1bab4d75930925a15d150e8a932d15d51bbf 100644
+--- a/core/services/replay/lynx_callback_testbench.h
++++ b/core/services/replay/lynx_callback_testbench.h
+@@ -17,3 +17,3 @@ class ModuleCallbackTestBench : public ModuleCallback {
+   ~ModuleCallbackTestBench() override = default;
+-  rapidjson::Value argument;
++  rapidjson::Document argument;
+   void Invoke(Runtime *runtime, ModuleCallbackFunctionHolder *holder) override;
+diff --git a/core/services/replay/lynx_module_binding_testbench.cc b/core/services/replay/lynx_module_binding_testbench.cc
+index f5b06b7432cd7ce59c1fb9f6e3796ff42fec7d99..5dd0a6fb393882863eff364a33da761442791f5b 100644
+--- a/core/services/replay/lynx_module_binding_testbench.cc
++++ b/core/services/replay/lynx_module_binding_testbench.cc
+@@ -29,8 +29,11 @@ Value LynxJSIModuleBindingTestBench::get(Runtime *rt, const PropNameID &prop) {
+   std::shared_ptr<LynxModule> module = nullptr;
+   if (lynxModuleSet.find(moduleName) != lynxModuleSet.end()) {
+-    return moduleBindingPtrLynx_->get(rt, prop);
+-  } else {
+-    module = moduleProvider_(moduleName);
++    Value native_module = moduleBindingPtrLynx_->get(rt, prop);
++    if (!native_module.isNull()) {
++      return native_module;
++    }
+   }
+
++  module = moduleProvider_(moduleName);
++
+   if (module == nullptr) {
+diff --git a/core/services/replay/lynx_module_testbench.cc b/core/services/replay/lynx_module_testbench.cc
+index 7d0e59730f675b99f0c3ca2b577e1509e9b06102..b71f60e87dd94dfd214f78422302e65099200e05 100644
+--- a/core/services/replay/lynx_module_testbench.cc
++++ b/core/services/replay/lynx_module_testbench.cc
+@@ -7 +7,2 @@
++#include <algorithm>
+ #include <cmath>
+@@ -20,2 +21,20 @@ namespace runtime {
+ namespace js {
++namespace {
++
++constexpr char kStarlingRequestPath[] = "/check_and_get_text/";
++
++bool IsEquivalentBridgeDiscriminator(const std::string& current,
++                                     const std::string& recorded) {
++  if (current == recorded) {
++    return true;
++  }
++  const auto current_path = current.find(kStarlingRequestPath);
++  const auto recorded_path = recorded.find(kStarlingRequestPath);
++  return current_path != std::string::npos &&
++         recorded_path != std::string::npos &&
++         current.substr(current_path) == recorded.substr(recorded_path);
++}
++
++}  // namespace
++
+ std::string ModuleTestBench::kUndefined = "undefined";
+@@ -192,2 +211,11 @@ void ModuleTestBench::InvokeJsbCallback(Function callback_function,
+                                         int64_t delay) {
++  auto owned_value = std::make_shared<rapidjson::Document>();
++  owned_value->CopyFrom(value, owned_value->GetAllocator());
++  InvokeJsbCallback(std::move(callback_function), std::move(owned_value),
++                    delay);
++}
++
++void ModuleTestBench::InvokeJsbCallback(
++    Function callback_function, std::shared_ptr<rapidjson::Document> value,
++    int64_t delay) {
+   int64_t callback_id =
+@@ -196,3 +224,3 @@ void ModuleTestBench::InvokeJsbCallback(Function callback_function,
+   auto wrapper = std::make_shared<ModuleCallbackTestBench>(callback_id);
+-  wrapper->argument = value;
++  wrapper->argument.CopyFrom(*value, wrapper->argument.GetAllocator());
+   if (delay < 0) {
+@@ -451 +479,112 @@ bool ModuleTestBench::isSameMethod(const MethodMetadata &method, Runtime *rt,
++bool ModuleTestBench::isSameBridgeCallMethod(const MethodMetadata &method,
++                                             Runtime *rt, const Value *args,
++                                             size_t count,
++                                             rapidjson::Value &value) {
++  if (name_ != "bridge" || method.name != "call" || count == 0 ||
++      !args[0].isString() || !value.HasMember("Method Name") ||
++      !value["Method Name"].IsString() ||
++      value["Method Name"].GetString() != method.name ||
++      !value.HasMember("Params") || !value["Params"].IsObject()) {
++    return false;
++  }
++
++  const auto &params = value["Params"];
++  if (!params.HasMember("args") || !params["args"].IsArray() ||
++      params["args"].Empty() || !params["args"][0].IsString() ||
++      args[0].getString(*rt).utf8(*rt) != params["args"][0].GetString()) {
++    return false;
++  }
++
++  const std::string recorded_discriminator =
++      GetRecordedBridgeCallDiscriminator(value);
++  return recorded_discriminator.empty() ||
++         IsEquivalentBridgeDiscriminator(
++             GetBridgeCallDiscriminator(rt, args, count),
++             recorded_discriminator);
++}
++
++std::string ModuleTestBench::GetBridgeCallName(Runtime *rt, const Value *args,
++                                               size_t count) {
++  if (count == 0 || !args || !args[0].isString()) {
++    return "";
++  }
++  return args[0].getString(*rt).utf8(*rt);
++}
++
++std::string ModuleTestBench::GetBridgeCallDiscriminator(Runtime *rt,
++                                                        const Value *args,
++                                                        size_t count) {
++  if (count < 2 || !args || !args[1].isObject()) {
++    return "";
++  }
++  auto params = args[1].getObject(*rt);
++  auto data_value = params.getProperty(*rt, "data");
++  if (!data_value || !data_value->isObject()) {
++    return "";
++  }
++  auto data = data_value->getObject(*rt);
++  static constexpr const char *kDiscriminatorKeys[] = {"url", "key",
++                                                       "eventName", "name"};
++  for (const char *key : kDiscriminatorKeys) {
++    auto value = data.getProperty(*rt, key);
++    if (value && value->isString()) {
++      return value->getString(*rt).utf8(*rt);
++    }
++  }
++  return "";
++}
++
++std::string ModuleTestBench::GetRecordedBridgeCallDiscriminator(
++    rapidjson::Value &value) {
++  if (!value.HasMember("Params") || !value["Params"].IsObject()) {
++    return "";
++  }
++  const auto &params = value["Params"];
++  if (!params.HasMember("args") || !params["args"].IsArray() ||
++      params["args"].Size() < 2 || !params["args"][1].IsObject()) {
++    return "";
++  }
++  const auto &bridge_params = params["args"][1];
++  if (!bridge_params.HasMember("data") ||
++      !bridge_params["data"].IsObject()) {
++    return "";
++  }
++  const auto &data = bridge_params["data"];
++  static constexpr const char *kDiscriminatorKeys[] = {"url", "key",
++                                                       "eventName", "name"};
++  for (const char *key : kDiscriminatorKeys) {
++    if (data.HasMember(key) && data[key].IsString()) {
++      return data[key].GetString();
++    }
++  }
++  return "";
++}
++
++std::string ModuleTestBench::BuildBridgeReplayKey(
++    const MethodMetadata &method, Runtime *rt, const Value *args,
++    size_t count) {
++  const std::string call_name = GetBridgeCallName(rt, args, count);
++  if (call_name.empty()) {
++    return "";
++  }
++  std::string key = method.name + "\n" + call_name;
++  const std::string discriminator =
++      GetBridgeCallDiscriminator(rt, args, count);
++  if (!discriminator.empty()) {
++    key += "\n" + discriminator;
++  }
++  return key;
++}
++
++void ModuleTestBench::CollectTopLevelCallbackFunctions(Runtime *rt,
++                                                       const Value *args,
++                                                       size_t count) {
++  for (size_t index = 0; index < count; ++index) {
++    const auto &arg = args[index];
++    if (arg.isObject() && arg.getObject(*rt).isFunction(*rt)) {
++      callbackFunctions.push_back(arg.getObject(*rt).getFunction(*rt));
++    }
++  }
++}
++
+ Value ModuleTestBench::getAttributeValue(Runtime *rt, std::string propName) {
+@@ -479,5 +618,28 @@ Value ModuleTestBench::invokeMethodKernel(const MethodMetadata &method,
+                                           size_t count) {
++  callbackFunctions.clear();
+   if (this->moduleData.IsArray()) {
+-    for (unsigned int index = 0; index < moduleData.Size(); index++) {
+-      if (isSameMethod(method, rt, args, count, moduleData[index])) {
++    std::string replay_key;
++    std::string name_only_key;
++    unsigned int start_index = 0;
++    if (name_ == "bridge" && method.name == "call") {
++      replay_key = BuildBridgeReplayKey(method, rt, args, count);
++      name_only_key = method.name + "\n" + GetBridgeCallName(rt, args, count);
++      start_index = static_cast<unsigned int>(std::max(
++          replay_offsets_[replay_key], replay_offsets_[name_only_key]));
++    }
++    for (unsigned int index = start_index; index < moduleData.Size(); index++) {
++      callbackFunctions.clear();
++      bool matched = isSameMethod(method, rt, args, count, moduleData[index]);
++      if (!matched) {
++        callbackFunctions.clear();
++        matched =
++            isSameBridgeCallMethod(method, rt, args, count, moduleData[index]);
++      }
++      if (matched) {
++        if (!replay_key.empty()) {
++          replay_offsets_[replay_key] = index + 1;
++          if (GetRecordedBridgeCallDiscriminator(moduleData[index]).empty()) {
++            replay_offsets_[name_only_key] = index + 1;
++          }
++        }
+         this->syncToPlatform(moduleData[index], method, rt, args, count);
+@@ -494,2 +656,6 @@ Value ModuleTestBench::invokeMethodKernel(const MethodMetadata &method,
+          */
++        if (name_ == "bridge" && method.name == "call" &&
++            callbackFunctions.size() < callbackValue.Size()) {
++          CollectTopLevelCallbackFunctions(rt, args, count);
++        }
+         if ((callbackValue.Size()) != 0 &&
+diff --git a/core/services/replay/lynx_module_testbench.h b/core/services/replay/lynx_module_testbench.h
+index 7859afa4fe0b97c636cd5234c5a2b02f4801fda6..7fc64cbb5b68a1aeb9dfb781703451b17756f27d 100644
+--- a/core/services/replay/lynx_module_testbench.h
++++ b/core/services/replay/lynx_module_testbench.h
+@@ -8,2 +8,3 @@
+ #include <string>
++#include <unordered_map>
+ #include <vector>
+@@ -95,2 +96,13 @@ class ModuleTestBench : public LynxJSIModule {
+                     const Value* args, size_t count, rapidjson::Value& value);
++  bool isSameBridgeCallMethod(const MethodMetadata& method, Runtime* rt,
++                              const Value* args, size_t count,
++                              rapidjson::Value& value);
++  std::string GetBridgeCallName(Runtime* rt, const Value* args, size_t count);
++  std::string GetBridgeCallDiscriminator(Runtime* rt, const Value* args,
++                                         size_t count);
++  std::string GetRecordedBridgeCallDiscriminator(rapidjson::Value& value);
++  std::string BuildBridgeReplayKey(const MethodMetadata& method, Runtime* rt,
++                                   const Value* args, size_t count);
++  void CollectTopLevelCallbackFunctions(Runtime* rt, const Value* args,
++                                        size_t count);
+   bool isSameArgs(Runtime* rt, const Value* args, size_t count,
+@@ -121,3 +133,5 @@ class ModuleTestBench : public LynxJSIModule {
+                          int64_t delay = -1);
++  void InvokeJsbCallback(Function callback_function,
++                         std::shared_ptr<rapidjson::Document> value,
++                         int64_t delay = -1);
+-
+   fml::Thread testbench_thread_;
+@@ -129,2 +143,3 @@ class ModuleTestBench : public LynxJSIModule {
+   std::shared_ptr<GroupInterceptor> group_interceptor_;
++  std::unordered_map<std::string, size_t> replay_offsets_;
+ };
+diff --git a/platform/embedder/lynx_recorder/test_bench_replay_data_module.cc b/platform/embedder/lynx_recorder/test_bench_replay_data_module.cc
+index bf77a0a8f3a31d8c9394fd4fc172d5011abe4841..c9661df0816fb1285674231072445402110fd821 100644
+--- a/platform/embedder/lynx_recorder/test_bench_replay_data_module.cc
++++ b/platform/embedder/lynx_recorder/test_bench_replay_data_module.cc
+@@ -166,4 +166,5 @@ std::string TestBenchReplayDataModule::GetRecordDataLocked() {
+       rapidjson::Value new_values(rapidjson::kArrayType);
+-      new_dom.AddMember(rapidjson::StringRef(module_name), new_values,
+-                        allocator);
++      rapidjson::Value module_name_key(module_name.c_str(), module_name.size(),
++                                       allocator);
++      new_dom.AddMember(module_name_key, new_values, allocator);
+     }

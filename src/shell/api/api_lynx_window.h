@@ -36,6 +36,9 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
 
   base::WeakPtr<LynxWindow> GetWeakPtr() { return weak_factory_.GetWeakPtr(); }
   std::string ResolveResourceUrl(const std::string& resource_url) const;
+#if ENABLE_TESTBENCH_REPLAY
+  void ResizeForTestbenchReplay(double width, double height);
+#endif
 
   bool OpenScheme(const std::string& url, gin::Arguments* args);
   void OpenOnlineScheme(const std::string& pc_open_type,
@@ -107,7 +110,7 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
  private:
   bool ComputeRenderActive() const;
   void SyncRenderActiveState();
-  void EnsureLynxView();
+  void EnsureLynxView(const std::string* testbench_url = nullptr);
   void OnPageStart(std::string_view url) override;
   void OnLoadSuccess() override;
   void OnFirstScreen() override;
@@ -163,6 +166,9 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
   int sample_interval_millis_ = 1000;
   std::vector<std::vector<int64_t>> last_frame_timings_;
   bool last_render_active_ = false;
+#if ENABLE_TESTBENCH_REPLAY
+  bool lynx_view_is_testbench_ = false;
+#endif
   base::WeakPtrFactory<LynxWindow> weak_factory_{this};
   std::unique_ptr<LynxViewStateObserver> lynx_view_state_observer_;
   std::optional<std::string> data_str_ = std::nullopt;
