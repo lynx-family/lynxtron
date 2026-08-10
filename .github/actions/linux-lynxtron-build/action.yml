@@ -1,0 +1,70 @@
+name: build linux lynxtron
+
+description: build linux lynxtron
+
+inputs:
+  build-arch:
+    description: The architecture of lynxtron we are building. It could be x64,arm64
+    required: true
+  enable-inspector:
+    description: Whether to enable the inspector (true/false).
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Python Setup
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+    - name: Setup Node.js 22.18.0
+      uses: actions/setup-node@v6
+      with:
+        node-version: '22.18.0'
+    - name: Install Common Dependencies
+      uses: ./lynxtron/.github/actions/common-deps
+      with:
+        run-habitat-sync: 'false'
+    - name: Prepare environment
+      shell: bash
+      run: |
+        set -euxo pipefail
+        cd "${{ github.workspace }}/lynxtron"
+        git config --global http.version HTTP/1.1
+        git config --global user.name "Lynxtron Scripts"
+        git config --global user.email "scripts@lynxtron.com"
+        source lynxtron_tools/envsetup.sh
+        python3 lynxtron_tools/prepare_build_env.py
+    - name: Install Linux sysroot
+      shell: bash
+      run: |
+        set -euxo pipefail
+        cd "${{ github.workspace }}/lynxtron"
+        case "${{ inputs.build-arch }}" in
+          x64)
+            SYSROOT_ARCH=amd64
+            ;;
+          arm64)
+            SYSROOT_ARCH=arm64
+            ;;
+          *)
+            echo "Unsupported Linux sysroot arch: ${{ inputs.build-arch }}"
+            exit 1
+            ;;
+        esac
+        python3 build/linux/sysroot_scripts/install-sysroot.py --arch="$SYSROOT_ARCH"
+    - name: Build Linux Lynxtron
+      shell: bash
+      run: |
+        set -euxo pipefail
+        cd "${{ github.workspace }}/lynxtron"
+        source lynxtron_tools/envsetup.sh
+        GN_EXTRA_ARGS=""
+        if [ "${{ inputs.enable-inspector }}" = "true" ]; then
+          GN_EXTRA_ARGS="--enable-inspector"
+        fi
+        python3 lynxtron_tools/gn/gn.py --linux-cpu ${{ inputs.build-arch }} $GN_EXTRA_ARGS
+        ninja -C out/Release lynxtron_app
+        grep -q 'USE_PARTITION_ALLOC_AS_MALLOC() (0)' out/Release/gen/base/allocator/partition_allocator/src/partition_alloc/buildflags.h
+        grep -q 'ENABLE_BACKUP_REF_PTR_SUPPORT() (0)' out/Release/gen/base/allocator/partition_allocator/src/partition_alloc/buildflags.h

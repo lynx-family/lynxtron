@@ -128,6 +128,62 @@ jobs:
           name: lynxtron-node-headers
           path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-node-headers.zip
 
+  build-linux:
+    needs: get-version
+    timeout-minutes: 120
+    runs-on: lynx-ubuntu-22.04-medium
+    strategy:
+      matrix:
+        arch: [x64]
+    steps:
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+        with:
+          path: lynxtron
+          ref: ${{ github.ref_name }}
+      - name: Build Linux Lynxtron
+        uses: ./lynxtron/.github/actions/linux-lynxtron-build
+        with:
+          build-arch: ${{ matrix.arch }}
+      - name: Package Linux binary
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd "${{ github.workspace }}/lynxtron"
+          source lynxtron_tools/envsetup.sh
+          VERSION=${{ needs.get-version.outputs.version }}
+          mkdir -p publish
+
+          ninja -C out/Release lynxtron_dist_zip
+          mv out/Release/dist.zip "publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}.zip"
+          ls -lh "publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}.zip"
+
+          SYMBOLS_DIR="out/Release/lynxtron-symbols"
+          rm -rf "$SYMBOLS_DIR"
+          mkdir -p "$SYMBOLS_DIR"
+          if [ -d "out/Release/debug" ]; then
+            cp -R out/Release/debug "$SYMBOLS_DIR/"
+          fi
+          while IFS= read -r rel_path; do
+            mkdir -p "$SYMBOLS_DIR/$(dirname "$rel_path")"
+            cp -R "out/Release/$rel_path" "$SYMBOLS_DIR/$rel_path"
+          done < <(cd out/Release && find . -type f \( -name "*.debug" -o -name "*.dwp" \) -print | sed 's#^\./##')
+
+          cd out/Release
+          python3 "${{ github.workspace }}/lynxtron/src/tools/compress_helper.py" lynxtron-symbols
+          mv lynxtron-symbols.zip "../../publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}-symbols.zip"
+          ls -lh "../../publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}-symbols.zip"
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lynxtron-linux-${{ matrix.arch }}
+          path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-linux-${{ matrix.arch }}.zip
+      - name: Upload Linux symbols
+        uses: actions/upload-artifact@v4
+        with:
+          name: lynxtron-linux-${{ matrix.arch }}-symbols
+          path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-linux-${{ matrix.arch }}-symbols.zip
+
   build-windows:
     needs: get-version
     timeout-minutes: 120
@@ -285,6 +341,64 @@ jobs:
         with:
           name: dev-lynxtron-darwin-${{ matrix.arch }}-symbols
           path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.dev_version }}-darwin-${{ matrix.arch }}-symbols.zip
+
+  build-linux-dev:
+    needs: get-version
+    timeout-minutes: 120
+    runs-on: lynx-ubuntu-22.04-medium
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64]
+    steps:
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+        with:
+          path: lynxtron
+          ref: ${{ github.ref_name }}
+      - name: Build Linux Lynxtron (dev)
+        uses: ./lynxtron/.github/actions/linux-lynxtron-build
+        with:
+          build-arch: ${{ matrix.arch }}
+          enable-inspector: 'true'
+      - name: Package Linux binary (dev)
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd "${{ github.workspace }}/lynxtron"
+          source lynxtron_tools/envsetup.sh
+          VERSION=${{ needs.get-version.outputs.dev_version }}
+          mkdir -p publish
+
+          ninja -C out/Release lynxtron_dist_zip
+          mv out/Release/dist.zip "publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}.zip"
+          ls -lh "publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}.zip"
+
+          SYMBOLS_DIR="out/Release/lynxtron-symbols"
+          rm -rf "$SYMBOLS_DIR"
+          mkdir -p "$SYMBOLS_DIR"
+          if [ -d "out/Release/debug" ]; then
+            cp -R out/Release/debug "$SYMBOLS_DIR/"
+          fi
+          while IFS= read -r rel_path; do
+            mkdir -p "$SYMBOLS_DIR/$(dirname "$rel_path")"
+            cp -R "out/Release/$rel_path" "$SYMBOLS_DIR/$rel_path"
+          done < <(cd out/Release && find . -type f \( -name "*.debug" -o -name "*.dwp" \) -print | sed 's#^\./##')
+
+          cd out/Release
+          python3 "${{ github.workspace }}/lynxtron/src/tools/compress_helper.py" lynxtron-symbols
+          mv lynxtron-symbols.zip "../../publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}-symbols.zip"
+          ls -lh "../../publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}-symbols.zip"
+      - name: Upload Linux artifact (dev)
+        uses: actions/upload-artifact@v4
+        with:
+          name: dev-lynxtron-linux-${{ matrix.arch }}
+          path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.dev_version }}-linux-${{ matrix.arch }}.zip
+      - name: Upload Linux symbols (dev)
+        uses: actions/upload-artifact@v4
+        with:
+          name: dev-lynxtron-linux-${{ matrix.arch }}-symbols
+          path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.dev_version }}-linux-${{ matrix.arch }}-symbols.zip
 
   build-windows-dev:
     needs: get-version
@@ -448,7 +562,14 @@ jobs:
           path: lynxtron/publish/cef_webview-v${{ needs.get-version.outputs.version }}-darwin-${{ matrix.arch }}.zip
 
   create-release:
-    needs: [get-version, build-cef-webview-macos, build-macos, build-windows]
+    needs:
+      [
+        get-version,
+        build-cef-webview-macos,
+        build-macos,
+        build-linux,
+        build-windows,
+      ]
     runs-on: lynx-ubuntu-22.04-medium
     permissions:
       contents: write
@@ -474,7 +595,7 @@ jobs:
           artifacts: 'artifacts/**/*.zip'
 
   create-release-dev:
-    needs: [get-version, build-macos-dev, build-windows-dev]
+    needs: [get-version, build-macos-dev, build-linux-dev, build-windows-dev]
     runs-on: lynx-ubuntu-22.04-medium
     permissions:
       contents: write

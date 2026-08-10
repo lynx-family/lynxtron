@@ -72,6 +72,21 @@ jobs:
         uses: ./lynxtron/.github/actions/macos-lynxtron-build
         with:
           build-arch: ${{ matrix.arch }}
+  linux-lynxtron-build:
+    timeout-minutes: 120
+    runs-on: lynx-ubuntu-22.04-medium
+    strategy:
+      matrix:
+        arch: [x64]
+    steps:
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+        with:
+          path: lynxtron
+      - name: Build Linux Lynxtron
+        uses: ./lynxtron/.github/actions/linux-lynxtron-build
+        with:
+          build-arch: ${{ matrix.arch }}
   windows-lynxtron-build:
     timeout-minutes: 120
     runs-on: lynx-windows-2022-large

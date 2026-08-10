@@ -59,7 +59,6 @@ def get_default_gn_args(is_debug, enable_enlarge_stack, enable_inspector):
     gn_args += 'enable_inspector=false '
   gn_args += 'jsengine_type="v8" '
   gn_args += 'use_primjs_napi=true '
-  gn_args += 'enable_skity=true '
   gn_args += 'textlayout_use_local_config=false '
   if enable_enlarge_stack:
     gn_args += 'enable_enlarge_stack=true '
@@ -70,8 +69,15 @@ def get_default_gn_args(is_debug, enable_enlarge_stack, enable_inspector):
     gn_args += 'shell_enable_metal=true '
     gn_args += 'use_clang_static_analyzer=false '
     gn_args += 'use_flutter_cxx=false '
+    gn_args += 'enable_skity=true '
   elif get_current_os() == 'win':
     gn_args += 'is_clang=true '
+    gn_args += 'enable_skity=true '
+  elif get_current_os() == 'linux':
+    gn_args += 'enable_desktop_embeddings=false '
+    gn_args += 'build_lepus_compile=false '
+    gn_args += 'enable_software_rendering=true '
+    gn_args += 'enable_skity=false '
 
   return gn_args
 
@@ -91,6 +97,7 @@ def parse_args(args):
   parser.add_argument('--gn-args', type=str, dest='gn_args')
   parser.add_argument('--is-debug', dest='is_debug', action='store_true', default=False)
   parser.add_argument('--mac-cpu', type=str, choices=['x64', 'arm64'], default='arm64')
+  parser.add_argument('--linux-cpu', type=str, choices=['x64', 'arm64'], default='x64')
   parser.add_argument('--windows-cpu', type=str, choices=['x64', 'arm64', 'x86'], default = 'x86')
   parser.add_argument('--enable-enlarge-stack', dest='enable_enlarge_stack', action='store_true', default=False)
   parser.add_argument('--enable-inspector', dest='enable_inspector', action='store_true', default=False)
@@ -106,6 +113,8 @@ def main(argv):
 
   if get_current_os() == 'mac':
     gn_args += f' target_cpu="{args.mac_cpu}"'
+  elif get_current_os() == 'linux':
+    gn_args += f' target_cpu="{args.linux_cpu}"'
   elif get_current_os() == 'win':
     gn_args += f' target_cpu="{args.windows_cpu}"'
 

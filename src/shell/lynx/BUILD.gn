@@ -88,14 +88,14 @@ if (is_mac) {
       public_deps += [ ":lynx_debug_resources_bundle_for_lynxtron" ]
     }
   }
-} else if (is_win) {
+} else if (is_win || is_linux) {
   build_kernel_js("lynx_core") {
     script = "//lynx/tools/js_tools/build.py"
     platform = "ios"
     output_path = "$root_build_dir"
   }
 
-  if (enable_inspector) {
+  if (is_win && enable_inspector) {
     action("copy_devtool_resources") {
       script = "//lynx/devtool/lynx_devtool/resources/arrange_resources.py"
       args = [
@@ -124,6 +124,11 @@ group("lynx_lib") {
     if (enable_inspector) {
       deps += [ ":copy_devtool_resources" ]
     }
+  } else if (is_linux) {
+    deps += [
+      ":lynx_core",
+      "//lynx/platform/linux:lynx_linux_group",
+    ]
   }
   public_configs = [ "//lynx/platform/embedder:public_api" ]
 }
