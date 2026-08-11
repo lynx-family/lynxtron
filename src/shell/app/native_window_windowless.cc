@@ -14,7 +14,7 @@ NativeWindowWindowless::NativeWindowWindowless(
     NativeWindow* parent)
     : NativeWindow(options, parent), bounds_(0, 0, width(), height()) {
   device_pixel_ratio_ =
-      options.ValueOrDefault(options::kDeviceScaleFactor, 1.0);
+      options.ValueOrDefault(options::kDeviceScaleFactor, 2.0);
 }
 
 NativeWindowWindowless::~NativeWindowWindowless() = default;
