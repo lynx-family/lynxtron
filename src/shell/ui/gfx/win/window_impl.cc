@@ -217,10 +217,16 @@ void WindowImpl::Init(HWND parent, const Rect& bounds) {
   }
 
   ATOM atom = GetWindowClassAtom();
+  HMODULE instance = nullptr;
+  void* window_proc = reinterpret_cast<void*>(
+      base::win::WrappedWindowProc<&WindowImpl::WndProc>);
+  CHECK(::GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+                                 GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                             static_cast<LPCSTR>(window_proc), &instance));
   auto weak_this = weak_factory_.GetWeakPtr();
   HWND hwnd = CreateWindowEx(window_ex_style_, reinterpret_cast<wchar_t*>(atom),
                              nullptr, window_style_, x, y, width, height,
-                             parent, nullptr, nullptr, this);
+                             parent, nullptr, instance, this);
   const DWORD create_window_error = ::GetLastError();
 
   // First nccalcsize (during CreateWindow) for captioned windows is
