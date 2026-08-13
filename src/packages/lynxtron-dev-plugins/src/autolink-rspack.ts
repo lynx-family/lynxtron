@@ -47,8 +47,7 @@ export function applyLynxtronAutoLink(
 
   compiler.hooks?.beforeRun?.tap('LynxtronAutoLink', regenerate);
   compiler.hooks?.watchRun?.tap('LynxtronAutoLink', regenerate);
-  compiler.hooks?.beforeRun?.tap('LynxtronAutoLinkStage', stage);
-  compiler.hooks?.watchRun?.tap('LynxtronAutoLinkStage', stage);
+  compiler.hooks?.afterEmit?.tap('LynxtronAutoLinkStage', stage);
 }
 
 function shouldInjectForTarget(target: unknown, force = false): boolean {
@@ -291,8 +290,7 @@ function createLynxtronAutoLinkStagePlugin(
         stageAutoLinkLibraries(root, compiler.options.output?.path, options);
       };
 
-      compiler.hooks?.beforeRun?.tap('LynxtronAutoLinkStage', stage);
-      compiler.hooks?.watchRun?.tap('LynxtronAutoLinkStage', stage);
+      compiler.hooks?.afterEmit?.tap('LynxtronAutoLinkStage', stage);
     },
   };
 }
@@ -303,10 +301,9 @@ function stageAutoLinkLibraries(
   options: LynxtronAutoLinkPluginOptions
 ): void {
   if (typeof outputPath !== 'string' || outputPath.length === 0) {
-    options.warn?.(
+    throw new Error(
       'Lynxtron AutoLink cannot stage native libraries without an output path.'
     );
-    return;
   }
 
   const resolution = resolveLynxtronAutoLinks({
@@ -322,6 +319,14 @@ function stageAutoLinkLibraries(
     resolution,
     options.nativeOutputDir
   );
+
+  if (resolution.warnings.length > 0) {
+    throw new Error(
+      `Lynxtron AutoLink cannot stage native libraries:\n${resolution.warnings.join(
+        '\n'
+      )}`
+    );
+  }
 
   for (const library of stagedLibraries) {
     stageAutoLinkLibrary(outputPath, library, options);
@@ -339,14 +344,15 @@ function stageAutoLinkLibrary(
   }
 
   if (hasGlob(library.sourcePath)) {
-    options.warn?.(
+    throw new Error(
       `Lynxtron AutoLink cannot stage glob native library path: ${library.sourcePath}`
     );
-    return;
   }
 
   if (!fs.existsSync(library.sourcePath)) {
-    return;
+    throw new Error(
+      `Lynxtron AutoLink native library does not exist: ${library.sourcePath}`
+    );
   }
 
   const targetPath = path.join(outputPath, library.stagedPath);
@@ -360,7 +366,9 @@ function stageAutoLinkPackage(
   options: LynxtronAutoLinkPluginOptions
 ): void {
   if (!fs.existsSync(library.sourcePath)) {
-    return;
+    throw new Error(
+      `Lynxtron AutoLink native package does not exist: ${library.sourcePath}`
+    );
   }
 
   const targetPath = path.join(outputPath, library.stagedPath);
