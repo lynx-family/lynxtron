@@ -109,7 +109,9 @@ def main(argv):
   gn_args = ''
   gn_args += get_default_gn_args(args.is_debug, args.enable_enlarge_stack, args.enable_inspector)
   if args.gn_args:
-    gn_args += args.gn_args
+    if not gn_args.endswith(' '):
+      gn_args += ' '
+    gn_args += args.gn_args.strip()
 
   if get_current_os() == 'mac':
     gn_args += f' target_cpu="{args.mac_cpu}"'

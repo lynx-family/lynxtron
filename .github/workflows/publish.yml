@@ -145,6 +145,7 @@ jobs:
         uses: ./lynxtron/.github/actions/linux-lynxtron-build
         with:
           build-arch: ${{ matrix.arch }}
+          gn-args: symbol_level=1
       - name: Package Linux binary
         shell: bash
         run: |
@@ -154,20 +155,41 @@ jobs:
           VERSION=${{ needs.get-version.outputs.version }}
           mkdir -p publish
 
-          ninja -C out/Release lynxtron_dist_zip
-          mv out/Release/dist.zip "publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}.zip"
-          ls -lh "publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}.zip"
-
           SYMBOLS_DIR="out/Release/lynxtron-symbols"
           rm -rf "$SYMBOLS_DIR"
           mkdir -p "$SYMBOLS_DIR"
-          if [ -d "out/Release/debug" ]; then
-            cp -R out/Release/debug "$SYMBOLS_DIR/"
+          LLVM_TOOLS_DIR="${{ github.workspace }}/lynxtron/third_party/llvm-build/Release+Asserts/bin"
+          extract_linux_symbols() {
+            local binary_path="$1"
+            local symbol_name="$2"
+
+            if [ ! -f "$binary_path" ]; then
+              return
+            fi
+
+            local symbol_path="$SYMBOLS_DIR/${symbol_name}.debug"
+            local stripped_path="${binary_path}.stripped"
+            python3 build/linux/strip_binary.py \
+              --llvm-strip-binary-path "$LLVM_TOOLS_DIR/llvm-strip" \
+              --llvm-objcopy-binary-path "$LLVM_TOOLS_DIR/llvm-objcopy" \
+              --binary-input "$binary_path" \
+              --symbol-output "$symbol_path" \
+              --stripped-binary-output "$stripped_path"
+            mv "$stripped_path" "$binary_path"
+          }
+
+          extract_linux_symbols out/Release/lynxtron lynxtron
+          extract_linux_symbols out/Release/liblynxtron.so liblynxtron.so
+          find "$SYMBOLS_DIR" -type f -ls
+          SYMBOLS_SIZE=$(find "$SYMBOLS_DIR" -type f -printf '%s\n' | awk '{sum += $1} END {print sum + 0}')
+          if [ "$SYMBOLS_SIZE" -le 1024 ]; then
+            echo "Linux symbols package is empty or unexpectedly small: ${SYMBOLS_SIZE} bytes"
+            exit 1
           fi
-          while IFS= read -r rel_path; do
-            mkdir -p "$SYMBOLS_DIR/$(dirname "$rel_path")"
-            cp -R "out/Release/$rel_path" "$SYMBOLS_DIR/$rel_path"
-          done < <(cd out/Release && find . -type f \( -name "*.debug" -o -name "*.dwp" \) -print | sed 's#^\./##')
+
+          ninja -C out/Release lynxtron_dist_zip
+          mv out/Release/dist.zip "publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}.zip"
+          ls -lh "publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}.zip"
 
           cd out/Release
           python3 "${{ github.workspace }}/lynxtron/src/tools/compress_helper.py" lynxtron-symbols
@@ -361,6 +383,7 @@ jobs:
         with:
           build-arch: ${{ matrix.arch }}
           enable-inspector: 'true'
+          gn-args: symbol_level=1
       - name: Package Linux binary (dev)
         shell: bash
         run: |
@@ -370,20 +393,41 @@ jobs:
           VERSION=${{ needs.get-version.outputs.dev_version }}
           mkdir -p publish
 
-          ninja -C out/Release lynxtron_dist_zip
-          mv out/Release/dist.zip "publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}.zip"
-          ls -lh "publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}.zip"
-
           SYMBOLS_DIR="out/Release/lynxtron-symbols"
           rm -rf "$SYMBOLS_DIR"
           mkdir -p "$SYMBOLS_DIR"
-          if [ -d "out/Release/debug" ]; then
-            cp -R out/Release/debug "$SYMBOLS_DIR/"
+          LLVM_TOOLS_DIR="${{ github.workspace }}/lynxtron/third_party/llvm-build/Release+Asserts/bin"
+          extract_linux_symbols() {
+            local binary_path="$1"
+            local symbol_name="$2"
+
+            if [ ! -f "$binary_path" ]; then
+              return
+            fi
+
+            local symbol_path="$SYMBOLS_DIR/${symbol_name}.debug"
+            local stripped_path="${binary_path}.stripped"
+            python3 build/linux/strip_binary.py \
+              --llvm-strip-binary-path "$LLVM_TOOLS_DIR/llvm-strip" \
+              --llvm-objcopy-binary-path "$LLVM_TOOLS_DIR/llvm-objcopy" \
+              --binary-input "$binary_path" \
+              --symbol-output "$symbol_path" \
+              --stripped-binary-output "$stripped_path"
+            mv "$stripped_path" "$binary_path"
+          }
+
+          extract_linux_symbols out/Release/lynxtron lynxtron
+          extract_linux_symbols out/Release/liblynxtron.so liblynxtron.so
+          find "$SYMBOLS_DIR" -type f -ls
+          SYMBOLS_SIZE=$(find "$SYMBOLS_DIR" -type f -printf '%s\n' | awk '{sum += $1} END {print sum + 0}')
+          if [ "$SYMBOLS_SIZE" -le 1024 ]; then
+            echo "Linux symbols package is empty or unexpectedly small: ${SYMBOLS_SIZE} bytes"
+            exit 1
           fi
-          while IFS= read -r rel_path; do
-            mkdir -p "$SYMBOLS_DIR/$(dirname "$rel_path")"
-            cp -R "out/Release/$rel_path" "$SYMBOLS_DIR/$rel_path"
-          done < <(cd out/Release && find . -type f \( -name "*.debug" -o -name "*.dwp" \) -print | sed 's#^\./##')
+
+          ninja -C out/Release lynxtron_dist_zip
+          mv out/Release/dist.zip "publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}.zip"
+          ls -lh "publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}.zip"
 
           cd out/Release
           python3 "${{ github.workspace }}/lynxtron/src/tools/compress_helper.py" lynxtron-symbols

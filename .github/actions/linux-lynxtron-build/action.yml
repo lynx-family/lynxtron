@@ -10,6 +10,10 @@ inputs:
     description: Whether to enable the inspector (true/false).
     required: false
     default: 'false'
+  gn-args:
+    description: Extra GN args passed to lynxtron_tools/gn/gn.py.
+    required: false
+    default: ''
 
 runs:
   using: composite
@@ -60,11 +64,14 @@ runs:
         set -euxo pipefail
         cd "${{ github.workspace }}/lynxtron"
         source lynxtron_tools/envsetup.sh
-        GN_EXTRA_ARGS=""
+        GN_EXTRA_ARGS=()
         if [ "${{ inputs.enable-inspector }}" = "true" ]; then
-          GN_EXTRA_ARGS="--enable-inspector"
+          GN_EXTRA_ARGS+=(--enable-inspector)
         fi
-        python3 lynxtron_tools/gn/gn.py --linux-cpu ${{ inputs.build-arch }} $GN_EXTRA_ARGS
+        if [ -n "${{ inputs.gn-args }}" ]; then
+          GN_EXTRA_ARGS+=(--gn-args="${{ inputs.gn-args }}")
+        fi
+        python3 lynxtron_tools/gn/gn.py --linux-cpu ${{ inputs.build-arch }} "${GN_EXTRA_ARGS[@]}"
         ninja -C out/Release lynxtron_app
         grep -q 'USE_PARTITION_ALLOC_AS_MALLOC() (0)' out/Release/gen/base/allocator/partition_allocator/src/partition_alloc/buildflags.h
         grep -q 'ENABLE_BACKUP_REF_PTR_SUPPORT() (0)' out/Release/gen/base/allocator/partition_allocator/src/partition_alloc/buildflags.h
