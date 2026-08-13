@@ -65,8 +65,10 @@ config("lynxtron_lib_config") {
   if (enable_trace == "perfetto") {
     defines += [ "ENABLE_TRACE_PERFETTO" ]
   }
-  defines +=
-      [ "ENABLE_TESTBENCH_REPLAY=${enable_lynxtron_mac_testbench_replay}" ]
+  defines += [
+    "ENABLE_HEADLESS=${is_headless}",
+    "ENABLE_TESTBENCH_REPLAY=${enable_lynxtron_mac_testbench_replay}",
+  ]
   if (is_mac && is_mas_build) {
     defines += [ "MAS_BUILD" ]
   }
@@ -528,8 +530,6 @@ source_set("lynxtron_lib") {
     "shell/api/lynx_view/module/lynx_native_module.h",
     "shell/api/lynx_view/module/lynx_node_module.cc",
     "shell/api/lynx_view/module/lynx_node_module.h",
-    "shell/api/lynx_view/windowless_renderer.cc",
-    "shell/api/lynx_view/windowless_renderer.h",
     "shell/api/lynx_view_state_observer.h",
     "shell/api/lynx_window_manager.cc",
     "shell/api/lynx_window_manager.h",
@@ -558,8 +558,6 @@ source_set("lynxtron_lib") {
     "shell/app/native_window.cc",
     "shell/app/native_window.h",
     "shell/app/native_window_observer.h",
-    "shell/app/native_window_windowless.cc",
-    "shell/app/native_window_windowless.h",
     "shell/app/node_main.cc",
     "shell/app/node_main.h",
     "shell/app/relauncher.cc",
@@ -635,6 +633,15 @@ source_set("lynxtron_lib") {
 
   # sources += ui_sources
   sources += gin_converters_sources
+
+  if (is_headless) {
+    sources += [
+      "shell/api/lynx_view/windowless_renderer.cc",
+      "shell/api/lynx_view/windowless_renderer.h",
+      "shell/app/native_window_windowless.cc",
+      "shell/app/native_window_windowless.h",
+    ]
+  }
 
   if (is_posix) {
     sources += [ "shell/app/main_parts_posix.cc" ]

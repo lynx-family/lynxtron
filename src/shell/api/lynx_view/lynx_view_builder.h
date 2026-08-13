@@ -16,7 +16,9 @@ namespace lynx {
 namespace pub {
 class LynxView;
 class LynxGenericResourceFetcher;
+#if ENABLE_HEADLESS
 class LynxWindowlessRenderer;
+#endif
 }  // namespace pub
 }  // namespace lynx
 
@@ -37,8 +39,10 @@ class LynxViewBuilder {
   LynxViewBuilder& SetParent(void* parent);
   LynxViewBuilder& SetGenericResourceFetcher(
       std::shared_ptr<lynx::pub::LynxGenericResourceFetcher> fetcher);
+#if ENABLE_HEADLESS
   LynxViewBuilder& SetWindowlessRenderer(
       std::shared_ptr<lynx::pub::LynxWindowlessRenderer> renderer);
+#endif
 
   LynxViewBuilder& SetLynxWindow(base::WeakPtr<api::LynxWindow> lynx_window);
   LynxViewBuilder& SetNodeIntegrationPreload(

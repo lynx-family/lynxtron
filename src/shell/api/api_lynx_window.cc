@@ -24,11 +24,15 @@
 #include "shell/api/lynx_view/lynx_view.h"
 #include "shell/api/lynx_view/lynx_view_builder.h"
 #include "shell/api/lynx_view/testbench_replay_controller.h"
+#if ENABLE_HEADLESS
 #include "shell/api/lynx_view/windowless_renderer.h"
+#endif
 #include "shell/api/lynx_view_state_observer.h"
 #include "shell/api/lynx_window_manager.h"
 #include "shell/app/application.h"
+#if ENABLE_HEADLESS
 #include "shell/app/native_window_windowless.h"
+#endif
 #include "shell/app/window_list.h"
 #include "shell/common/asar/archive.h"
 #include "shell/common/asar/asar_util.h"
@@ -151,7 +155,11 @@ bool ExtractTemplateDataObject(v8::Isolate* isolate,
 }
 
 bool ShouldCreateWindowlessNativeWindow(const gin_helper::Dictionary& options) {
+#if ENABLE_HEADLESS
   return options.ValueOrDefault(options::kWindowless, false);
+#else
+  return false;
+#endif
 }
 
 std::unique_ptr<NativeWindow> CreateLynxNativeWindow(
@@ -163,7 +171,9 @@ std::unique_ptr<NativeWindow> CreateLynxNativeWindow(
   }
 
   if (ShouldCreateWindowlessNativeWindow(options)) {
+#if ENABLE_HEADLESS
     return std::make_unique<NativeWindowWindowless>(options, parent_window);
+#endif
   }
 
   return std::unique_ptr<NativeWindow>(
@@ -556,7 +566,9 @@ void LynxWindow::EnsureLynxView(const std::string* testbench_url) {
   }
 #endif
   if (window_->IsWindowless()) {
+#if ENABLE_HEADLESS
     builder.SetWindowlessRenderer(CreateWindowlessRenderer());
+#endif
   } else {
     builder.SetParent(window_->GetNativeWindowHandle());
   }

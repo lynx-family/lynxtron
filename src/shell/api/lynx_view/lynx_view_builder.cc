@@ -13,7 +13,9 @@
 #include "base/path_service.h"
 #include "build/build_config.h"
 #include "lynx/platform/embedder/public/lynx_view.h"
+#if ENABLE_HEADLESS
 #include "lynx/platform/embedder/public/lynx_windowless_renderer.h"
+#endif
 #include "shell/api/lynx_view/lynx_view.h"
 #include "shell/api/lynx_view/lynx_view_impl.h"
 #include "shell/api/lynx_view/module/lynx_bridge_module.h"
@@ -69,11 +71,13 @@ LynxViewBuilder& LynxViewBuilder::SetGenericResourceFetcher(
   return *this;
 }
 
+#if ENABLE_HEADLESS
 LynxViewBuilder& LynxViewBuilder::SetWindowlessRenderer(
     std::shared_ptr<lynx::pub::LynxWindowlessRenderer> renderer) {
   impl_->builder.SetWindowlessRenderer(std::move(renderer));
   return *this;
 }
+#endif
 
 LynxViewBuilder& LynxViewBuilder::SetLynxWindow(
     base::WeakPtr<api::LynxWindow> lynx_window) {
