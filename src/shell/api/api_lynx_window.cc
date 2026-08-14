@@ -316,8 +316,6 @@ LynxWindow::LynxWindow(gin::Arguments* args,
       lynx_view_state_observer_ = std::unique_ptr<LynxViewStateObserver>(
           reinterpret_cast<LynxViewStateObserver*>(delegate.release()));
     }
-  } else {
-    LOG(ERROR) << "LynxViewStateObserver not found in registry.";
   }
   LynxWindowManager::GetInstance()->RegisterLynxWindow(GetWeakPtr());
 }
