@@ -50,9 +50,18 @@ runs:
         $env:PATH = "$cmakeBin;$env:PATH"
         Write-Host "CMake installed to $cmakeBin"
         cmake --version
-        $env:vs2022_install = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\BuildTools"
+        # Locate the Visual Studio 2022 install dynamically so the build works
+        # on any runner layout (GitHub-hosted Enterprise vs. self-hosted
+        # BuildTools) instead of assuming a hard-coded path.
+        $vsWhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+        $vsInstall = & $vsWhere -latest -products * `
+          -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+          -property installationPath
+        if (-not $vsInstall) { throw 'Visual Studio 2022 with VC++ tools was not found via vswhere.' }
+        Write-Host "Using Visual Studio install: $vsInstall"
+        $env:vs2022_install = $vsInstall
         $env:DEPOT_TOOLS_WIN_TOOLCHAIN = 0
-        $env:GYP_MSVS_OVERRIDE_PATH = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\BuildTools"
+        $env:GYP_MSVS_OVERRIDE_PATH = $vsInstall
         $env:WINDOWSSDKDIR = "${env:ProgramFiles(x86)}\Windows Kits\10"
         cd ${{ github.workspace }}/lynxtron
         .\lynxtron_tools\envsetup.ps1

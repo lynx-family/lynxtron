@@ -14,7 +14,7 @@ defaults:
 
 jobs:
   get-version:
-    runs-on: lynx-ubuntu-22.04-medium
+    runs-on: ubuntu-22.04
     defaults:
       run:
         working-directory: ./
@@ -54,7 +54,7 @@ jobs:
   build-macos:
     needs: get-version
     timeout-minutes: 120
-    runs-on: lynx-darwin-15.6.1-medium
+    runs-on: macos-15
     strategy:
       matrix:
         arch: [arm64]
@@ -131,7 +131,7 @@ jobs:
   build-linux:
     needs: get-version
     timeout-minutes: 120
-    runs-on: lynx-ubuntu-22.04-medium
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         arch: [x64]
@@ -209,7 +209,7 @@ jobs:
   build-windows:
     needs: get-version
     timeout-minutes: 120
-    runs-on: lynx-windows-2022-large
+    runs-on: windows-2022
     strategy:
       matrix:
         arch: [x64]
@@ -306,7 +306,7 @@ jobs:
   build-macos-dev:
     needs: get-version
     timeout-minutes: 120
-    runs-on: lynx-darwin-15.6.1-medium
+    runs-on: macos-15
     strategy:
       fail-fast: false
       matrix:
@@ -367,7 +367,7 @@ jobs:
   build-linux-dev:
     needs: get-version
     timeout-minutes: 120
-    runs-on: lynx-ubuntu-22.04-medium
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -447,7 +447,7 @@ jobs:
   build-windows-dev:
     needs: get-version
     timeout-minutes: 120
-    runs-on: lynx-windows-2022-large
+    runs-on: windows-2022
     strategy:
       fail-fast: false
       matrix:
@@ -532,7 +532,7 @@ jobs:
   build-cef-webview-macos:
     needs: get-version
     timeout-minutes: 120
-    runs-on: lynx-darwin-15.6.1-medium
+    runs-on: macos-15
     strategy:
       matrix:
         arch: [arm64]
@@ -614,7 +614,7 @@ jobs:
         build-linux,
         build-windows,
       ]
-    runs-on: lynx-ubuntu-22.04-medium
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
     defaults:
@@ -640,7 +640,7 @@ jobs:
 
   create-release-dev:
     needs: [get-version, build-macos-dev, build-linux-dev, build-windows-dev]
-    runs-on: lynx-ubuntu-22.04-medium
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
     defaults:
