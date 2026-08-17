@@ -53,8 +53,8 @@ jobs:
 
   build-macos:
     needs: get-version
-    timeout-minutes: 120
-    runs-on: lynx-darwin-15.6.1-medium
+    timeout-minutes: 240
+    runs-on: macos-15
     strategy:
       matrix:
         arch: [arm64]
@@ -130,7 +130,7 @@ jobs:
 
   build-linux:
     needs: get-version
-    timeout-minutes: 120
+    timeout-minutes: 240
     runs-on: lynx-ubuntu-22.04-medium
     strategy:
       matrix:
@@ -208,7 +208,7 @@ jobs:
 
   build-windows:
     needs: get-version
-    timeout-minutes: 120
+    timeout-minutes: 240
     runs-on: lynx-windows-2022-large
     strategy:
       matrix:
@@ -305,8 +305,8 @@ jobs:
 
   build-macos-dev:
     needs: get-version
-    timeout-minutes: 120
-    runs-on: lynx-darwin-15.6.1-medium
+    timeout-minutes: 240
+    runs-on: macos-15
     strategy:
       fail-fast: false
       matrix:
@@ -366,7 +366,7 @@ jobs:
 
   build-linux-dev:
     needs: get-version
-    timeout-minutes: 120
+    timeout-minutes: 240
     runs-on: lynx-ubuntu-22.04-medium
     strategy:
       fail-fast: false
@@ -446,7 +446,7 @@ jobs:
 
   build-windows-dev:
     needs: get-version
-    timeout-minutes: 120
+    timeout-minutes: 240
     runs-on: lynx-windows-2022-large
     strategy:
       fail-fast: false
@@ -531,8 +531,8 @@ jobs:
 
   build-cef-webview-macos:
     needs: get-version
-    timeout-minutes: 120
-    runs-on: lynx-darwin-15.6.1-medium
+    timeout-minutes: 240
+    runs-on: macos-15
     strategy:
       matrix:
         arch: [arm64]
