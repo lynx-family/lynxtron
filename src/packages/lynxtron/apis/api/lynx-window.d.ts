@@ -33,6 +33,10 @@ export interface LynxWindowConstructorOptions {
   /**
    * Whether to create the Lynx view with a windowless renderer instead of a
    * native parent window. Default is `false`.
+   *
+   * On Linux, Lynxtron only supports headless mode. You must set
+   * `windowless: true` when creating a `LynxWindow`; normal windowed mode is not
+   * supported.
    */
   windowless?: boolean;
   /**
