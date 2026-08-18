@@ -27,7 +27,7 @@ export interface LynxWindowConstructorOptions {
    */
   height?: number;
   /**
-   * Device scale factor used by windowless rendering. Default is `1`.
+   * Device scale factor used by windowless rendering. Default is `2`.
    */
   deviceScaleFactor?: number;
   /**
