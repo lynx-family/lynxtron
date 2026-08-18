@@ -505,8 +505,6 @@ source_set("lynxtron_lib") {
     "shell/api/api_tray.h",
     "shell/api/api_v8_util.cc",
     "shell/api/api_v8_util.h",
-    "shell/api/lynx_view/devtool_event_simulation_proxy.cc",
-    "shell/api/lynx_view/devtool_event_simulation_proxy.h",
     "shell/api/lynx_view/lynx_update_meta.cc",
     "shell/api/lynx_view/lynx_update_meta.h",
     "shell/api/lynx_view/lynx_view.cc",
@@ -1255,7 +1253,6 @@ test("lynxtron_unittests") {
     libs = [ "Wintrust.lib" ]
   }
   sources = [
-    "shell/api/lynx_view/devtool_event_simulation_proxy_unittest.cc",
     "shell/common/global_thread_unittest.cc",
     "shell/common/v8_util_unittest.cc",
     "shell/common/v8_value_converter_impl_unittest.cc",
