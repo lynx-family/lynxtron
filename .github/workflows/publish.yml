@@ -57,7 +57,7 @@ jobs:
     runs-on: macos-15
     strategy:
       matrix:
-        arch: [arm64]
+        arch: [x64]
     steps:
       - name: Download Source
         uses: actions/checkout@v4.2.2
@@ -128,181 +128,6 @@ jobs:
           name: lynxtron-node-headers
           path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-node-headers.zip
 
-  build-linux:
-    needs: get-version
-    timeout-minutes: 240
-    runs-on: lynx-ubuntu-22.04-medium
-    strategy:
-      matrix:
-        arch: [x64]
-    steps:
-      - name: Download Source
-        uses: actions/checkout@v4.2.2
-        with:
-          path: lynxtron
-          ref: ${{ github.ref_name }}
-      - name: Build Linux Lynxtron
-        uses: ./lynxtron/.github/actions/linux-lynxtron-build
-        with:
-          build-arch: ${{ matrix.arch }}
-          gn-args: symbol_level=1
-      - name: Package Linux binary
-        shell: bash
-        run: |
-          set -euxo pipefail
-          cd "${{ github.workspace }}/lynxtron"
-          source lynxtron_tools/envsetup.sh
-          VERSION=${{ needs.get-version.outputs.version }}
-          mkdir -p publish
-
-          SYMBOLS_DIR="out/Release/lynxtron-symbols"
-          rm -rf "$SYMBOLS_DIR"
-          mkdir -p "$SYMBOLS_DIR"
-          LLVM_TOOLS_DIR="${{ github.workspace }}/lynxtron/third_party/llvm-build/Release+Asserts/bin"
-          extract_linux_symbols() {
-            local binary_path="$1"
-            local symbol_name="$2"
-
-            if [ ! -f "$binary_path" ]; then
-              return
-            fi
-
-            local symbol_path="$SYMBOLS_DIR/${symbol_name}.debug"
-            local stripped_path="${binary_path}.stripped"
-            python3 build/linux/strip_binary.py \
-              --llvm-strip-binary-path "$LLVM_TOOLS_DIR/llvm-strip" \
-              --llvm-objcopy-binary-path "$LLVM_TOOLS_DIR/llvm-objcopy" \
-              --binary-input "$binary_path" \
-              --symbol-output "$symbol_path" \
-              --stripped-binary-output "$stripped_path"
-            mv "$stripped_path" "$binary_path"
-          }
-
-          extract_linux_symbols out/Release/lynxtron lynxtron
-          extract_linux_symbols out/Release/liblynxtron.so liblynxtron.so
-          find "$SYMBOLS_DIR" -type f -ls
-          SYMBOLS_SIZE=$(find "$SYMBOLS_DIR" -type f -printf '%s\n' | awk '{sum += $1} END {print sum + 0}')
-          if [ "$SYMBOLS_SIZE" -le 1024 ]; then
-            echo "Linux symbols package is empty or unexpectedly small: ${SYMBOLS_SIZE} bytes"
-            exit 1
-          fi
-
-          ninja -C out/Release lynxtron_dist_zip
-          mv out/Release/dist.zip "publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}.zip"
-          ls -lh "publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}.zip"
-
-          cd out/Release
-          python3 "${{ github.workspace }}/lynxtron/src/tools/compress_helper.py" lynxtron-symbols
-          mv lynxtron-symbols.zip "../../publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}-symbols.zip"
-          ls -lh "../../publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}-symbols.zip"
-      - name: Upload Linux artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: lynxtron-linux-${{ matrix.arch }}
-          path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-linux-${{ matrix.arch }}.zip
-      - name: Upload Linux symbols
-        uses: actions/upload-artifact@v4
-        with:
-          name: lynxtron-linux-${{ matrix.arch }}-symbols
-          path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-linux-${{ matrix.arch }}-symbols.zip
-
-  build-windows:
-    needs: get-version
-    timeout-minutes: 240
-    runs-on: lynx-windows-2022-large
-    strategy:
-      matrix:
-        arch: [x64]
-    steps:
-      - name: Configure Git
-        shell: PowerShell
-        run: |
-          git config --global core.autocrlf false
-          git config --global core.eol lf
-          git config --global http.sslBackend "schannel"
-        working-directory: ./
-      - name: Download Source
-        uses: actions/checkout@v4.2.2
-        with:
-          path: lynxtron
-          ref: ${{ github.ref_name }}
-      - name: Build Windows Lynxtron
-        uses: ./lynxtron/.github/actions/windows-lynxtron-build
-        with:
-          build-arch: ${{ matrix.arch }}
-          enable-inspector: ${{ needs.get-version.outputs.enable_inspector }}
-      - name: Package Windows binary
-        shell: PowerShell
-        run: |
-          $VERSION = "${{ needs.get-version.outputs.version }}"
-          $workspace = "${{ github.workspace }}\lynxtron"
-          $outDir = "$workspace\out"
-          $releaseDir = "$outDir\Release"
-          New-Item -ItemType Directory -Force -Path "$workspace\publish" | Out-Null
-
-          # Create lynxtron_archive directory for packaging
-          $archiveDir = "$outDir\lynxtron_archive"
-          if (Test-Path $archiveDir) { Remove-Item -Recurse -Force $archiveDir }
-          New-Item -ItemType Directory -Force -Path $archiveDir | Out-Null
-
-          # Copy all required files to archive directory
-          Copy-Item -Path "$releaseDir\*.exe" -Destination $archiveDir -Force
-          Copy-Item -Path "$releaseDir\*.dll" -Destination $archiveDir -Force
-          Copy-Item -Path "$releaseDir\*.lib" -Destination $archiveDir -Force
-          if (Test-Path "$releaseDir\lynx_core.js") { Copy-Item -Path "$releaseDir\lynx_core.js" -Destination $archiveDir -Force }
-          if (Test-Path "$releaseDir\lynx_core_dev.js") { Copy-Item -Path "$releaseDir\lynx_core_dev.js" -Destination $archiveDir -Force }
-          if (Test-Path "$releaseDir\devtool_resources") { Copy-Item -Recurse -Path "$releaseDir\devtool_resources" -Destination "$archiveDir\devtool_resources" -Force }
-          if (Test-Path "$releaseDir\resources") { Copy-Item -Recurse -Path "$releaseDir\resources" -Destination "$archiveDir\resources" -Force }
-          if (Test-Path "$releaseDir\icudtl.dat") { Copy-Item -Path "$releaseDir\icudtl.dat" -Destination $archiveDir -Force }
-          if (Test-Path "$releaseDir\snapshot_blob.bin") { Copy-Item -Path "$releaseDir\snapshot_blob.bin" -Destination $archiveDir -Force }
-
-          # Remove unnecessary executable files
-          $unwantedExes = @("mksnapshot.exe", "protoc.exe", "torque.exe", "cppgen_plugin.exe", "protozero_plugin.exe", "nasm.exe", "gen-regexp-special-case.exe", "node_js2c.exe", "bytecode_builtins_list_generator.exe")
-          foreach ($exe in $unwantedExes) {
-            $path = Join-Path $archiveDir $exe
-            if (Test-Path $path) { Remove-Item -Force $path }
-          }
-
-          # Create version file
-          Set-Content -Path "$archiveDir\version" -Value $VERSION
-
-          # Clean up empty directories
-          Get-ChildItem -Path $archiveDir -Recurse -Directory | Sort-Object FullName -Descending | ForEach-Object {
-            if ((Get-ChildItem $_.FullName -Force).Count -eq 0) { Remove-Item $_.FullName -Force }
-          }
-
-          # Compress using compress_helper.py
-          Set-Location $outDir
-          python "$workspace\src\tools\compress_helper.py" lynxtron_archive
-          Rename-Item -Path "$outDir\lynxtron_archive.zip" -NewName "lynxtron-v${VERSION}-win32-${{ matrix.arch }}.zip"
-          Move-Item -Path "$outDir\lynxtron-v${VERSION}-win32-${{ matrix.arch }}.zip" -Destination "$workspace\publish\" -Force
-
-          $zipPath = "$workspace\publish\lynxtron-v${VERSION}-win32-${{ matrix.arch }}.zip"
-          Write-Host "Created $zipPath"
-          Get-Item $zipPath | Select-Object Name, Length
-
-          # Package symbols (pdb files only)
-          $symbolsDir = "$outDir\lynxtron-symbols"
-          if (Test-Path $symbolsDir) { Remove-Item -Recurse -Force $symbolsDir }
-          New-Item -ItemType Directory -Force -Path $symbolsDir | Out-Null
-          Get-ChildItem -Path $releaseDir -Filter "*.pdb" -Recurse | Copy-Item -Destination $symbolsDir -Force
-          Set-Location $outDir
-          python "$workspace\src\tools\compress_helper.py" lynxtron-symbols
-          Rename-Item -Path "$outDir\lynxtron-symbols.zip" -NewName "lynxtron-v${VERSION}-win32-${{ matrix.arch }}-symbols.zip"
-          Move-Item -Path "$outDir\lynxtron-v${VERSION}-win32-${{ matrix.arch }}-symbols.zip" -Destination "$workspace\publish\" -Force
-          Write-Host "Created symbols package"
-          Get-Item "$workspace\publish\lynxtron-v${VERSION}-win32-${{ matrix.arch }}-symbols.zip" | Select-Object Name, Length
-      - name: Upload Windows artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: lynxtron-win32-${{ matrix.arch }}
-          path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-win32-${{ matrix.arch }}.zip
-      - name: Upload Windows symbols
-        uses: actions/upload-artifact@v4
-        with:
-          name: lynxtron-win32-${{ matrix.arch }}-symbols
-          path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-win32-${{ matrix.arch }}-symbols.zip
-
   build-macos-dev:
     needs: get-version
     timeout-minutes: 240
@@ -310,7 +135,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [arm64]
+        arch: [x64]
     steps:
       - name: Download Source
         uses: actions/checkout@v4.2.2
@@ -364,178 +189,13 @@ jobs:
           name: dev-lynxtron-darwin-${{ matrix.arch }}-symbols
           path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.dev_version }}-darwin-${{ matrix.arch }}-symbols.zip
 
-  build-linux-dev:
-    needs: get-version
-    timeout-minutes: 240
-    runs-on: lynx-ubuntu-22.04-medium
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [x64]
-    steps:
-      - name: Download Source
-        uses: actions/checkout@v4.2.2
-        with:
-          path: lynxtron
-          ref: ${{ github.ref_name }}
-      - name: Build Linux Lynxtron (dev)
-        uses: ./lynxtron/.github/actions/linux-lynxtron-build
-        with:
-          build-arch: ${{ matrix.arch }}
-          enable-inspector: 'true'
-          gn-args: symbol_level=1
-      - name: Package Linux binary (dev)
-        shell: bash
-        run: |
-          set -euxo pipefail
-          cd "${{ github.workspace }}/lynxtron"
-          source lynxtron_tools/envsetup.sh
-          VERSION=${{ needs.get-version.outputs.dev_version }}
-          mkdir -p publish
-
-          SYMBOLS_DIR="out/Release/lynxtron-symbols"
-          rm -rf "$SYMBOLS_DIR"
-          mkdir -p "$SYMBOLS_DIR"
-          LLVM_TOOLS_DIR="${{ github.workspace }}/lynxtron/third_party/llvm-build/Release+Asserts/bin"
-          extract_linux_symbols() {
-            local binary_path="$1"
-            local symbol_name="$2"
-
-            if [ ! -f "$binary_path" ]; then
-              return
-            fi
-
-            local symbol_path="$SYMBOLS_DIR/${symbol_name}.debug"
-            local stripped_path="${binary_path}.stripped"
-            python3 build/linux/strip_binary.py \
-              --llvm-strip-binary-path "$LLVM_TOOLS_DIR/llvm-strip" \
-              --llvm-objcopy-binary-path "$LLVM_TOOLS_DIR/llvm-objcopy" \
-              --binary-input "$binary_path" \
-              --symbol-output "$symbol_path" \
-              --stripped-binary-output "$stripped_path"
-            mv "$stripped_path" "$binary_path"
-          }
-
-          extract_linux_symbols out/Release/lynxtron lynxtron
-          extract_linux_symbols out/Release/liblynxtron.so liblynxtron.so
-          find "$SYMBOLS_DIR" -type f -ls
-          SYMBOLS_SIZE=$(find "$SYMBOLS_DIR" -type f -printf '%s\n' | awk '{sum += $1} END {print sum + 0}')
-          if [ "$SYMBOLS_SIZE" -le 1024 ]; then
-            echo "Linux symbols package is empty or unexpectedly small: ${SYMBOLS_SIZE} bytes"
-            exit 1
-          fi
-
-          ninja -C out/Release lynxtron_dist_zip
-          mv out/Release/dist.zip "publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}.zip"
-          ls -lh "publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}.zip"
-
-          cd out/Release
-          python3 "${{ github.workspace }}/lynxtron/src/tools/compress_helper.py" lynxtron-symbols
-          mv lynxtron-symbols.zip "../../publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}-symbols.zip"
-          ls -lh "../../publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}-symbols.zip"
-      - name: Upload Linux artifact (dev)
-        uses: actions/upload-artifact@v4
-        with:
-          name: dev-lynxtron-linux-${{ matrix.arch }}
-          path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.dev_version }}-linux-${{ matrix.arch }}.zip
-      - name: Upload Linux symbols (dev)
-        uses: actions/upload-artifact@v4
-        with:
-          name: dev-lynxtron-linux-${{ matrix.arch }}-symbols
-          path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.dev_version }}-linux-${{ matrix.arch }}-symbols.zip
-
-  build-windows-dev:
-    needs: get-version
-    timeout-minutes: 240
-    runs-on: lynx-windows-2022-large
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [x64]
-    steps:
-      - name: Configure Git
-        shell: PowerShell
-        run: |
-          git config --global core.autocrlf false
-          git config --global core.eol lf
-          git config --global http.sslBackend "schannel"
-        working-directory: ./
-      - name: Download Source
-        uses: actions/checkout@v4.2.2
-        with:
-          path: lynxtron
-          ref: ${{ github.ref_name }}
-      - name: Build Windows Lynxtron (dev)
-        uses: ./lynxtron/.github/actions/windows-lynxtron-build
-        with:
-          build-arch: ${{ matrix.arch }}
-          enable-inspector: 'true'
-      - name: Package Windows binary (dev)
-        shell: PowerShell
-        run: |
-          $VERSION = "${{ needs.get-version.outputs.dev_version }}"
-          $workspace = "${{ github.workspace }}\lynxtron"
-          $outDir = "$workspace\out"
-          $releaseDir = "$outDir\Release"
-          New-Item -ItemType Directory -Force -Path "$workspace\publish" | Out-Null
-
-          $archiveDir = "$outDir\lynxtron_archive"
-          if (Test-Path $archiveDir) { Remove-Item -Recurse -Force $archiveDir }
-          New-Item -ItemType Directory -Force -Path $archiveDir | Out-Null
-
-          Copy-Item -Path "$releaseDir\*.exe" -Destination $archiveDir -Force
-          Copy-Item -Path "$releaseDir\*.dll" -Destination $archiveDir -Force
-          Copy-Item -Path "$releaseDir\*.lib" -Destination $archiveDir -Force
-          if (Test-Path "$releaseDir\lynx_core.js") { Copy-Item -Path "$releaseDir\lynx_core.js" -Destination $archiveDir -Force }
-          if (Test-Path "$releaseDir\lynx_core_dev.js") { Copy-Item -Path "$releaseDir\lynx_core_dev.js" -Destination $archiveDir -Force }
-          if (Test-Path "$releaseDir\devtool_resources") { Copy-Item -Recurse -Path "$releaseDir\devtool_resources" -Destination "$archiveDir\devtool_resources" -Force }
-          if (Test-Path "$releaseDir\resources") { Copy-Item -Recurse -Path "$releaseDir\resources" -Destination "$archiveDir\resources" -Force }
-          if (Test-Path "$releaseDir\icudtl.dat") { Copy-Item -Path "$releaseDir\icudtl.dat" -Destination $archiveDir -Force }
-          if (Test-Path "$releaseDir\snapshot_blob.bin") { Copy-Item -Path "$releaseDir\snapshot_blob.bin" -Destination $archiveDir -Force }
-
-          $unwantedExes = @("mksnapshot.exe", "protoc.exe", "torque.exe", "cppgen_plugin.exe", "protozero_plugin.exe", "nasm.exe", "gen-regexp-special-case.exe", "node_js2c.exe", "bytecode_builtins_list_generator.exe")
-          foreach ($exe in $unwantedExes) {
-            $path = Join-Path $archiveDir $exe
-            if (Test-Path $path) { Remove-Item -Force $path }
-          }
-
-          Set-Content -Path "$archiveDir\version" -Value $VERSION
-
-          Get-ChildItem -Path $archiveDir -Recurse -Directory | Sort-Object FullName -Descending | ForEach-Object {
-            if ((Get-ChildItem $_.FullName -Force).Count -eq 0) { Remove-Item $_.FullName -Force }
-          }
-
-          Set-Location $outDir
-          python "$workspace\src\tools\compress_helper.py" lynxtron_archive
-          Rename-Item -Path "$outDir\lynxtron_archive.zip" -NewName "lynxtron-v${VERSION}-win32-${{ matrix.arch }}.zip"
-          Move-Item -Path "$outDir\lynxtron-v${VERSION}-win32-${{ matrix.arch }}.zip" -Destination "$workspace\publish\" -Force
-
-          $symbolsDir = "$outDir\lynxtron-symbols"
-          if (Test-Path $symbolsDir) { Remove-Item -Recurse -Force $symbolsDir }
-          New-Item -ItemType Directory -Force -Path $symbolsDir | Out-Null
-          Get-ChildItem -Path $releaseDir -Filter "*.pdb" -Recurse | Copy-Item -Destination $symbolsDir -Force
-          Set-Location $outDir
-          python "$workspace\src\tools\compress_helper.py" lynxtron-symbols
-          Rename-Item -Path "$outDir\lynxtron-symbols.zip" -NewName "lynxtron-v${VERSION}-win32-${{ matrix.arch }}-symbols.zip"
-          Move-Item -Path "$outDir\lynxtron-v${VERSION}-win32-${{ matrix.arch }}-symbols.zip" -Destination "$workspace\publish\" -Force
-      - name: Upload Windows artifact (dev)
-        uses: actions/upload-artifact@v4
-        with:
-          name: dev-lynxtron-win32-${{ matrix.arch }}
-          path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.dev_version }}-win32-${{ matrix.arch }}.zip
-      - name: Upload Windows symbols (dev)
-        uses: actions/upload-artifact@v4
-        with:
-          name: dev-lynxtron-win32-${{ matrix.arch }}-symbols
-          path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.dev_version }}-win32-${{ matrix.arch }}-symbols.zip
-
   build-cef-webview-macos:
     needs: get-version
     timeout-minutes: 240
     runs-on: macos-15
     strategy:
       matrix:
-        arch: [arm64]
+        arch: [x64]
     steps:
       - name: Download Source
         uses: actions/checkout@v4.2.2
@@ -611,8 +271,6 @@ jobs:
         get-version,
         build-cef-webview-macos,
         build-macos,
-        build-linux,
-        build-windows,
       ]
     runs-on: lynx-ubuntu-22.04-medium
     permissions:
@@ -639,7 +297,7 @@ jobs:
           artifacts: 'artifacts/**/*.zip'
 
   create-release-dev:
-    needs: [get-version, build-macos-dev, build-linux-dev, build-windows-dev]
+    needs: [get-version, build-macos-dev]
     runs-on: lynx-ubuntu-22.04-medium
     permissions:
       contents: write
