@@ -61,6 +61,7 @@ class Notification : public gin_helper::DeprecatedWrappable<Notification>,
                      public gin_helper::Constructible<Notification>,
                      public NotificationDelegate {
  public:
+  static bool IsSupported();
   static Notification* New(gin_helper::ErrorThrower thrower,
                            std::optional<base::Value::Dict> options);
 

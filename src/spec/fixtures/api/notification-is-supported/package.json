@@ -1,0 +1,6 @@
+{
+  "name": "notification-is-supported-demo",
+  "private": true,
+  "type": "module",
+  "main": "main.mjs"
+}

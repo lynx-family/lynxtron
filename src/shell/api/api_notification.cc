@@ -142,6 +142,11 @@ Notification::~Notification() {
   }
 }
 
+// static
+bool Notification::IsSupported() {
+  return PlatformNotificationService::GetInstance() != nullptr;
+}
+
 std::string Notification::GetTitle() const {
   return notification_ ? notification_->options().title : "";
 }
@@ -282,6 +287,7 @@ void Initialize(v8::Local<v8::Object> exports,
   gin_helper::Dictionary dict(isolate, exports);
   dict.Set("Notification",
            lynxtron::api::Notification::GetConstructor(isolate, context));
+  dict.SetMethod("isSupported", &lynxtron::api::Notification::IsSupported);
 }
 
 }  // namespace

@@ -26,6 +26,7 @@ export const dialog = lynxtron.dialog;
 export const devtool = lynxtron.devtool;
 export const screen = lynxtron.screen;
 export const nativeImage = lynxtron.nativeImage;
+export const Notification = lynxtron.Notification;
 export const protocol = lynxtron.protocol;
 export const Dock = lynxtron.Dock;
 export const CommandLine = lynxtron.CommandLine;
