@@ -27,16 +27,20 @@ export interface LynxWindowConstructorOptions {
    */
   height?: number;
   /**
-   * Device scale factor used by windowless rendering. Default is `2`.
+   * Device scale factor used by windowless rendering. Supported since `0.0.4`.
+   * Default is `1`, and changed to `2` since `0.0.10`.
    */
   deviceScaleFactor?: number;
   /**
    * Whether to create the Lynx view with a windowless renderer instead of a
-   * native parent window. Default is `false`.
+   * native parent window. Default is `false`. Supported since `0.0.4`.
    *
    * On Linux, Lynxtron only supports headless mode. You must set
    * `windowless: true` when creating a `LynxWindow`; normal windowed mode is not
    * supported.
+   *
+   * On macOS and Windows, this option can be used to dynamically choose between
+   * headless mode and windowed mode.
    */
   windowless?: boolean;
   /**
