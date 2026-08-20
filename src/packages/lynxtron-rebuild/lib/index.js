@@ -44,8 +44,11 @@ async function extractZip(zipPath, destDir) {
 }
 
 async function downloadHeaders(version, distDir) {
-  const url = `${BASE_URL}v${version}/lynxtron-v${version}-node-headers.zip`;
-  const zipPath = path.join(distDir, `lynxtron-v${version}-node-headers.zip`);
+  // Dev releases do not ship a separate node-headers asset; dev and non-dev
+  // builds use identical headers, so strip the `-dev` suffix when downloading.
+  const headersVersion = version.endsWith('-dev') ? version.slice(0, -'-dev'.length) : version;
+  const url = `${BASE_URL}v${headersVersion}/lynxtron-v${headersVersion}-node-headers.zip`;
+  const zipPath = path.join(distDir, `lynxtron-v${headersVersion}-node-headers.zip`);
   const headersPath = path.join(distDir, `v${version}`);
 
   if (fs.existsSync(headersPath)) {
