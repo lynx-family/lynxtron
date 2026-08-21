@@ -29,11 +29,6 @@ import {
 import { LynxBridgeInvokeEvent as LynxtronLynxBridgeInvokeEvent } from '../packages/lynxtron/apis/api/lynx-window';
 
 import {
-  TouchBar as LynxtronTouchBar,
-  TouchBarConstructorOptions as LynxtronTouchBarConstructorOptions,
-} from '../packages/lynxtron/apis/api/touch-bar';
-
-import {
   Dialog as LynxtronDialog,
   OpenDialogOptions as LynxtronOpenDialogOptions,
   OpenDialogReturnValue as LynxtronOpenDialogReturnValue,
@@ -49,8 +44,6 @@ declare global {
     type Menu = LynxtronMenu;
     type CommandLine = LynxtronCommandLine;
     type Screen = LynxtronScreen;
-    type TouchBar = LynxtronTouchBar;
-    type TouchBarConstructorOptions = LynxtronTouchBarConstructorOptions;
     type Tray = LynxtronTray;
 
     interface App extends LynxtronApp {}
@@ -73,35 +66,15 @@ declare global {
   }
 }
 
-type TouchBarItemType = NonNullable<
-  Lynxtron.TouchBarConstructorOptions['items']
->[0];
-
 declare class BaseWindowInternal extends LynxtronBaseWindow {
   _init(): void;
-  _touchBar: Lynxtron.TouchBar | null;
-  _setTouchBarItems: (items: TouchBarItemType[]) => void;
-  _setEscapeTouchBarItem: (item: TouchBarItemType | {}) => void;
-  _refreshTouchBarItem: (itemID: string) => void;
 }
 
 declare class LynxWindowInternal extends LynxtronLynxWindow {
   _init(): void;
-  _touchBar: Lynxtron.TouchBar | null;
-  _setTouchBarItems: (items: TouchBarItemType[]) => void;
-  _setEscapeTouchBarItem: (item: TouchBarItemType | {}) => void;
-  _refreshTouchBarItem: (itemID: string) => void;
   _getWindowButtonVisibility: () => boolean;
   _getAlwaysOnTopLevel: () => string;
   frameName: string;
-  on(
-    event: '-touch-bar-interaction',
-    listener: (event: Event, itemID: string, details: any) => void
-  ): this;
-  removeListener(
-    event: '-touch-bar-interaction',
-    listener: (event: Event, itemID: string, details: any) => void
-  ): this;
   on(event: string | symbol, listener: (...args: any[]) => void): this;
   removeListener(
     event: string | symbol,
