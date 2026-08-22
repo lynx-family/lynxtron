@@ -6,6 +6,11 @@ const path = require('node:path');
 
 const projectRoot = __dirname;
 const distDir = path.resolve(projectRoot, 'dist');
+const rspeedyPackagePath = require.resolve('@lynx-js/rspeedy/package.json');
+const rspeedyBin = path.resolve(
+  path.dirname(rspeedyPackagePath),
+  require(rspeedyPackagePath).bin.rspeedy
+);
 
 const { entries } = require('./cards.config');
 const allProjects = Object.keys(entries);
@@ -52,14 +57,13 @@ if (!selectedProject) {
 }
 
 for (const project of projects) {
-  const result = childProcess.spawnSync('rspeedy', ['build'], {
+  const result = childProcess.spawnSync(process.execPath, [rspeedyBin, 'build'], {
     cwd: projectRoot,
     stdio: 'inherit',
     env: {
       ...process.env,
       LYNX_CARD: project,
     },
-    shell: process.platform === 'win32',
   });
 
   if (result.status !== 0) {
