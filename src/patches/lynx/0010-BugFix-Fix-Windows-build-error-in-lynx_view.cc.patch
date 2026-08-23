@@ -1,0 +1,25 @@
+From cd812a26a87df14daa54a3d77f73fbe35b18563e Mon Sep 17 00:00:00 2001
+From: lynxtron <lynxtron@lynxjs.com>
+Date: Wed, 26 Aug 2026 17:00:00 +0800
+Subject: [PATCH] BugFix: Fix Windows build error in lynx_view.cc
+
+Remove an incomplete and stray lynx_template_renderer declaration that
+was inserted before the #if ENABLE_NAPI_BINDING block, causing:
+- mts_module_creators to be declared inside a constructor argument list
+- redefinition of lynx_template_renderer
+- multiple undeclared identifier errors
+
+diff --git a/platform/embedder/lynx_view.cc b/platform/embedder/lynx_view.cc
+index f28a3b8d..0d725321 100644
+--- a/platform/embedder/lynx_view.cc
++++ b/platform/embedder/lynx_view.cc
+@@ -175,9 +175,6 @@ LYNX_EXTERN_C lynx_view_t* lynx_view_create(lynx_view_builder_t* builder,
+ 
+   view->lynx_ui_renderer->SetTemplateRendererSettings(settings);
+ 
+-  auto lynx_template_renderer = std::make_unique<
+-      lynx::embedder::LynxTemplateRenderer>(
+-      settings, ui_delegate, nullptr, nullptr,
+ #if ENABLE_NAPI_BINDING
+   std::unordered_map<std::string, std::pair<napi_module_creator, void*>>
+       mts_module_creators;

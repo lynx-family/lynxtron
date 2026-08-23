@@ -9,7 +9,7 @@ inputs:
   enable-inspector:
     description: Whether to enable the inspector (true/false).
     required: false
-    default: 'false'
+    default: 'true'
 runs:
   using: composite
   steps:

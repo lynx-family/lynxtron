@@ -5,3 +5,5 @@
 0005-Change-COREPACK_ENABLE_NETWORK-to-1-form-0.patch
 0006-BugFix-macOS-Align-TestBench-bridge-replay-with-Lynx.patch
 0008-BugFix-Copy-fetch-response-body-into-V8-sandbox.patch
+0009-BugFix-Fix-Windows-build-error-in-TextView-GetTopView.patch
+0010-BugFix-Fix-Windows-build-error-in-lynx_view.cc.patch

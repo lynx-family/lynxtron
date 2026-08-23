@@ -1,0 +1,22 @@
+From cd812a26a87df14daa54a3d77f73fbe35b18563e Mon Sep 17 00:00:00 2001
+From: lynxtron <lynxtron@lynxjs.com>
+Date: Wed, 26 Aug 2026 16:40:24 +0800
+Subject: [PATCH] BugFix: Fix Windows build error in TextView::GetTopViewToAcceptEvent
+
+The call to GetViewAtPosition was missing the relative_position parameter,
+causing platform_try_hit_id (an int) to be passed as FloatPoint*, which
+resulted in a compilation error on Windows.
+
+diff --git a/clay/ui/component/text/text_view.cc b/clay/ui/component/text/text_view.cc
+index 4211f653..2929b57b 100644
+--- a/clay/ui/component/text/text_view.cc
++++ b/clay/ui/component/text/text_view.cc
+@@ -753,7 +753,7 @@ BaseView* TextView::GetTopViewToAcceptEvent(const FloatPoint& position,
+                           -BorderTop() - PaddingTop());
+   *relative_position = point_by_paragraph;
+   BaseView* view = nullptr;
+-  view = GetViewAtPosition(point_by_paragraph, position, platform_try_hit_id);
++  view = GetViewAtPosition(point_by_paragraph, position, relative_position, platform_try_hit_id);
+   BaseView* target = view ?: this;
+   // TextView overrides BaseView's target lookup, so apply the inherited
+   // event-through check before returning a text or inline-view hover target.
