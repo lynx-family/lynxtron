@@ -279,7 +279,6 @@ export interface Settings {
  */
 export interface App extends EventEmitter {
   setVersion(version: string): void;
-  setDesktopName(name: string): void;
   setAppPath(path: string | null): void;
   /**
    * Emitted when the application is activated. Various actions can trigger this
@@ -1306,12 +1305,6 @@ export interface App extends EventEmitter {
    */
   getAppPath(): string;
   /**
-   * The current value displayed in the counter badge.
-   *
-   * @platform linux,darwin
-   */
-  getBadgeCount(): number;
-  /**
    * The type of the currently running activity.
    *
    * @platform darwin
@@ -1329,22 +1322,6 @@ export interface App extends EventEmitter {
    * @platform win32
    */
   getJumpListSettings(): JumpListSettings;
-  /**
-   * The current application locale, fetched using Chromium's `l10n_util` library.
-   * Possible return values are documented here.
-   *
-   * To set the locale, you'll want to use a command line switch at app startup,
-   * which may be found here.
-   *
-   * > [!NOTE] When distributing your packaged app, you have to also ship the
-   * `locales` folder.
-   *
-   * > [!NOTE] This API must be called after the `ready` event is emitted.
-   *
-   * > [!NOTE] To see example return values of this API compared to other locale and
-   * language APIs, see `app.getPreferredSystemLanguages()`.
-   */
-  getLocale(): string;
   /**
    * User operating system's locale two-letter ISO 3166 country code. The value is
    * taken from native OS APIs.
@@ -1771,22 +1748,6 @@ export interface App extends EventEmitter {
    * otherwise. Users can pass a Menu to set this property.
    */
   applicationMenu: Menu | null;
-  /**
-   * An `Integer` property that returns the badge count for current app. Setting the
-   * count to `0` will hide the badge.
-   *
-   * On macOS, setting this with any nonzero integer shows on the dock icon. On
-   * Linux, this property only works for Unity launcher.
-   *
-   * > [!NOTE] Unity launcher requires a `.desktop` file to work. For more
-   * information, please read the Unity integration documentation.
-   *
-   * > [!NOTE] On macOS, you need to ensure that your application has the permission
-   * to display notifications for this property to take effect.
-   *
-   * @platform linux,darwin
-   */
-  badgeCount: number;
   /**
    * A `CommandLine` object that allows you to read and manipulate the command line
    * arguments.

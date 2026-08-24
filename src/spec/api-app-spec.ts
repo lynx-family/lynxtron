@@ -124,12 +124,6 @@ describe('app module', () => {
     });
   });
 
-  describe('app.getLocale()', () => {
-    it.skip('should not be empty', () => {
-      expect(app.getLocale()).to.not.equal('');
-    });
-  });
-
   describe('app.isPackaged', () => {
     it.skip('should be false during tests', () => {
       expect(app.isPackaged).to.equal(false);
@@ -541,7 +535,6 @@ describe('app module', () => {
     });
   });
 
-  // TODO(Guo Xi): app.badgeCount
   // TODO(Guo Xi): app.get/setLoginItemSettings API
   // TODO(Guo Xi): accessibility support functionality
   // TODO(Guo Xi): setJumpList(categories)

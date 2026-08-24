@@ -15,14 +15,6 @@ export default app;
 
 let dockMenu: Lynxtron.Menu | null = null;
 
-// Properties.
-const nativeBCGetter = app.getBadgeCount;
-const nativeBCSetter = app.setBadgeCount;
-Object.defineProperty(app, 'badgeCount', {
-  get: () => nativeBCGetter.call(app),
-  set: (count) => nativeBCSetter.call(app, count),
-});
-
 const nativeNGetter = app.getName;
 const nativeNSetter = app.setName;
 Object.defineProperty(app, 'name', {

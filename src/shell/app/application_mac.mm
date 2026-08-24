@@ -311,18 +311,6 @@ std::u16string Application::GetApplicationNameForProtocol(const GURL& url) {
   return app_display_name;
 }
 
-// bool Application::SetBadgeCount(std::optional<int> count) {
-//   DockSetBadgeText(!count.has_value() || count.value() != 0
-//                        ? badging::BadgeManager::GetBadgeString(count)
-//                        : "");
-//   if (count.has_value()) {
-//     badge_count_ = count.value();
-//   } else {
-//     badge_count_ = 0;
-//   }
-//   return true;
-// }
-
 void Application::SetUserActivity(const std::string& type,
                                   base::Value::Dict user_info,
                                   gin::Arguments* args) {

@@ -102,8 +102,6 @@ class App : public gin_helper::DeprecatedWrappable<App>,
                const std::string& name,
                const base::FilePath& path);
 
-  void SetDesktopName(const std::string& desktop_name);
-  std::string GetLocale();
   std::string GetLocaleCountryCode();
   void OnSecondInstance(const base::CommandLine cmd,
                         const base::FilePath& cwd,

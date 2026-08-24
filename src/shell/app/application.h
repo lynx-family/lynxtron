@@ -164,10 +164,6 @@ class Application : private WindowListObserver {
   v8::Local<v8::Promise> GetApplicationInfoForProtocol(v8::Isolate* isolate,
                                                        const GURL& url);
 
-  // Set/Get the badge count.
-  bool SetBadgeCount(std::optional<int> count);
-  int GetBadgeCount();
-
   void SetLoginItemSettings(LoginItemSettings settings);
   v8::Local<v8::Value> GetLoginItemSettings(const LoginItemSettings& options);
 
@@ -370,8 +366,6 @@ class Application : private WindowListObserver {
   // Null until/unless the default main message loop is running.
   base::OnceClosure quit_main_message_loop_;
 
-  int badge_count_ = 0;
-
   std::unique_ptr<gin_helper::Promise<void>> ready_promise_;
 
 #if BUILDFLAG(IS_MAC)
@@ -381,13 +375,6 @@ class Application : private WindowListObserver {
 #endif
 
   base::Value::Dict about_panel_options_;
-
-#if BUILDFLAG(IS_WIN)
-  void UpdateBadgeContents(HWND hwnd,
-                           const std::optional<std::string>& badge_content,
-                           const std::string& badge_alt_string);
-
-#endif
 };
 
 }  // namespace lynxtron
