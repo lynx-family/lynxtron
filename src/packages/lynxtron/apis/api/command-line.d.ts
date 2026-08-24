@@ -2,7 +2,7 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-export declare class CommandLine {
+export interface CommandLine {
   /**
    * Append an argument to the command line. The argument will be quoted correctly.
    * Switches will precede arguments regardless of appending order.

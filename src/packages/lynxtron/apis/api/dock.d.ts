@@ -5,7 +5,7 @@
 import { Menu } from './menu';
 import { NativeImage } from './native-image';
 
-export declare class Dock {
+export interface Dock {
   /**
    * an ID representing the request.
    *
