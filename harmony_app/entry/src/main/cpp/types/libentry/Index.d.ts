@@ -54,37 +54,13 @@ declare namespace lynxtron {
   // Registers a callback that receives request types from Node.js:
   //   type=0 → checkAppUpdate, type=1 → showUpdateDialog, type=2 → loadProduct
   function registerUpdateTSFN(callback: (type: number) => void): void;
+  function consumeCheckAppUpdateRequest(): boolean;
   // Reports the JSON-serialized CheckUpdateResult back to C++.
   function resolveCheckAppUpdate(json: string): void;
   // Reports the ShowUpdateResultCode (int) back to C++.
   function resolveShowUpdateDialog(code: number): void;
   // Reports the loadProduct result (JSON) back to C++.
   function resolveLoadProduct(json: string): void;
-
-  /**
-   * Forwards a HarmonyOS window state change into the native window observer
-   * pipeline, which emits the matching JS event on the LynxWindow.
-   *
-   * Supported states: foreground, background, show, hide, minimize, restore,
-   * maximize, enter-full-screen, leave-full-screen, resize, resized, move,
-   * moved, will-resize, close, closed.
-   *
-   * bounds is optional and only used by resize/resized/move/moved/will-resize.
-   */
-  function notifyWindowState(
-    windowId: number,
-    state: string,
-    resizeEdge?: number,
-  ): void;
-
-  /** Publishes the OS window rectangle to the native window observer. */
-  function notifyWindowRect(
-    windowId: number,
-    left: number,
-    top: number,
-    width: number,
-    height: number,
-  ): void;
 }
 
 export default lynxtron;

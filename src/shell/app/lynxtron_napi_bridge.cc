@@ -15,7 +15,6 @@
 // libelectron.so stays out of the import path.
 
 #include <ace/xcomponent/native_interface_xcomponent.h>
-#include <arkui/ui_input_event.h>
 #include <dlfcn.h>
 #include <hilog/log.h>
 
@@ -48,20 +47,18 @@
 #define LOG_DOMAIN 0x0000
 #define LOG_TAG "LynxtronBridge"
 
+#define ZYBAPI_TAG ""
+
 namespace {
 
-// Plain C enum matching gfx::ResizeEdge in
-// shell/ui/gfx/geometry/resize_utils.h. The NAPI bridge and liblynxtron.so do
-// not share C++ headers, so the values are duplicated here on purpose.
-enum LynxtronResizeEdge {
-  kLynxtronResizeEdgeBottom = 0,
-  kLynxtronResizeEdgeBottomLeft = 1,
-  kLynxtronResizeEdgeBottomRight = 2,
-  kLynxtronResizeEdgeLeft = 3,
-  kLynxtronResizeEdgeRight = 4,
-  kLynxtronResizeEdgeTop = 5,
-  kLynxtronResizeEdgeTopLeft = 6,
-  kLynxtronResizeEdgeTopRight = 7,
+// Optional bounds carried by ArkTS for will-resize events. Passed as a plain
+// C struct across the dlopen boundary so the NAPI bridge and liblynxtron.so
+// do not share C++ headers.
+struct LynxtronWindowBounds {
+  double left;
+  double top;
+  double width;
+  double height;
 };
 
 using LynxtronMainFn = int (*)(int, char**);
@@ -70,9 +67,7 @@ using LynxtronRegisterWindowOpCallbackFn =
     void (*)(int32_t, void (*)(int32_t, const char*, const char*));
 using LynxtronGetWindowIdFn = int32_t (*)();
 using LynxtronNotifyWindowStateFn =
-    void (*)(int32_t, const char*, int32_t);
-using LynxtronNotifyWindowRectFn =
-    void (*)(int32_t, int32_t, int32_t, int32_t, int32_t);
+    void (*)(int32_t, const char*, const LynxtronWindowBounds*);
 using LynxtronHandleOpenURLFn = void (*)(const char*);
 using LynxtronHandleOpenPathFn = void (*)(const char*);
 using LynxtronQuitFn = void (*)();
@@ -90,8 +85,6 @@ LynxtronQuitFn g_quit = nullptr;
 // stored ability context (see ExitCallJS). Event-driven, no polling.
 napi_threadsafe_function g_exit_tsfn = nullptr;
 
-// Logs the default display's available area at startup; diagnostic for
-// window sizing and centering.
 void LogDefaultDisplayAvailableArea() {
   uint64_t display_id = 0;
   NativeDisplayManager_ErrorCode status =
@@ -121,50 +114,6 @@ void LogDefaultDisplayAvailableArea() {
               available_area->left, available_area->top, available_area->width,
               available_area->height);
   OH_NativeDisplayManager_DestroyAvailableArea(available_area);
-}
-
-// Returns the id of the internal/main display. In mirror mode the system's
-// "default" display may be the external/mirrored display, which cannot host
-// independent Ability windows. Always launching on the internal display avoids
-// creating a WindowAbility that never reaches onWindowStageCreate.
-uint64_t GetInternalDisplayIdNative() {
-  uint64_t fallback_id = 0;
-  OH_NativeDisplayManager_GetDefaultDisplayId(&fallback_id);
-
-  NativeDisplayManager_DisplaysInfo* info = nullptr;
-  NativeDisplayManager_ErrorCode status =
-      OH_NativeDisplayManager_CreateAllDisplays(&info);
-  if (status != DISPLAY_MANAGER_OK || !info) {
-    OH_LOG_WARN(LOG_APP,
-                "GetInternalDisplayIdNative: CreateAllDisplays failed ret=%{public}d",
-                static_cast<int>(status));
-    return fallback_id;
-  }
-
-  uint64_t internal_id = fallback_id;
-  for (uint32_t i = 0; i < info->displaysLength; ++i) {
-    const auto* di = &info->displaysInfo[i];
-    NativeDisplayManager_SourceMode mode;
-    if (OH_NativeDisplayManager_GetDisplaySourceMode(di->id, &mode) ==
-            DISPLAY_MANAGER_OK &&
-        mode == DISPLAY_SOURCE_MODE_MAIN) {
-      internal_id = di->id;
-      OH_LOG_INFO(LOG_APP,
-                  "GetInternalDisplayIdNative: internal display id=%{public}llu",
-                  static_cast<unsigned long long>(internal_id));
-      break;
-    }
-  }
-
-  OH_NativeDisplayManager_DestroyAllDisplays(info);
-  return internal_id;
-}
-
-napi_value GetInternalDisplayId(napi_env env, napi_callback_info) {
-  napi_value result = nullptr;
-  napi_create_int64(env, static_cast<int64_t>(GetInternalDisplayIdNative()),
-                    &result);
-  return result;
 }
 
 bool EnsureLynxtronLoaded() {
@@ -336,8 +285,6 @@ struct WindowOpData {
 std::unordered_map<int32_t, napi_threadsafe_function> g_window_op_tsfn_map;
 std::mutex g_window_op_tsfn_mutex;
 
-// TSFN callback running on the ArkUI thread: invokes the registered ArkTS
-// window-op handler with (windowId, op, args).
 void WindowOpCallJS(napi_env env, napi_value js_cb, void* context,
                     void* data) {
   if (!env || !js_cb || !data) return;
@@ -394,8 +341,6 @@ struct CreateWindowRequest {
 napi_threadsafe_function g_create_window_tsfn = nullptr;
 std::mutex g_create_window_mutex;
 
-// TSFN callback running on the ArkUI thread: builds the CreateWindowOptions
-// object from the request and invokes the ArkTS create-window handler.
 void CreateWindowCallJS(napi_env env, napi_value js_cb, void* context,
                         void* data) {
   if (!env || !js_cb || !data) return;
@@ -448,7 +393,6 @@ void CreateWindowCallJS(napi_env env, napi_value js_cb, void* context,
   set_int("maxWidth", request->options.max_width);
   set_int("maxHeight", request->options.max_height);
   set_bool("modal", request->options.modal);
-  set_int("displayId", request->options.display_id);
 
   napi_value argv[1] = {options};
   napi_value undefined;
@@ -623,8 +567,6 @@ napi_value RegisterWindowOpCallback(napi_env env, napi_callback_info info) {
   return result;
 }
 
-// NAPI export getWindowId(): returns liblynxtron's C++ window id, or -1 when
-// more than one window exists (multi-window mode).
 napi_value GetWindowId(napi_env env, napi_callback_info info) {
   int32_t id = -1;
   if (EnsureLynxtronLoaded()) {
@@ -941,7 +883,7 @@ napi_value RegisterOpenPath(napi_env env, napi_callback_info info) {
 // injected handler below.  The handler allocates a request id, dispatches
 // (id, settings_json) to ArkTS through a TSFN, and returns immediately;
 // liblynxtron.so keeps blocking on its future.  When ArkTS finishes the
-// picker it calls resolveShowOpenDialog(id, uris, paths, canceled), which looks up
+// picker it calls resolveShowOpenDialog(id, paths, canceled), which looks up
 // the request and fires the stored callback — unblocking the C++ side.
 // ---------------------------------------------------------------------------
 namespace {
@@ -1443,26 +1385,12 @@ using SendPointerFn = void (*)(int32_t harmony_window_id,
                                int32_t device, int kind, size_t timestamp);
 SendPointerFn g_send_pointer = nullptr;
 
-using SendScrollFn = void (*)(int32_t harmony_window_id, double x, double y,
-                              double delta_x, double delta_y,
-                              size_t timestamp, bool precise);
-SendScrollFn g_send_scroll = nullptr;
-
 // ArkUI reports mouse events with no device id and may report the primary
 // touch contact as id 0.  Lynx keys pointer state by `device`, so sharing 0
 // makes a touch Down reuse the mouse Hover pointer and prevents a tap from
 // getting its required Add -> Down -> Up sequence.
 constexpr int32_t kLynxtronMouseDeviceId = 1;
 constexpr int32_t kLynxtronTouchDeviceIdBase = 1000;
-
-// OH_NativeXComponent_MouseEvent::button identifies the button that changed
-// for press/release events.  It is normally NONE for a MOVE event, even while
-// the user is holding the primary button down.  Keep the state per Harmony
-// window so a desktop drag is delivered to Lynx as Down -> Move -> Up rather
-// than Down -> Hover -> Up.  The latter prevents ScrollView/List from
-// recognizing a pan gesture.
-std::mutex g_mouse_buttons_mutex;
-std::unordered_map<int32_t, int64_t> g_mouse_buttons_by_window;
 
 using SendKeyFn = void (*)(int32_t harmony_window_id,
                            int type, uint64_t logical, uint64_t physical,
@@ -1591,26 +1519,6 @@ void ForwardPointer(int32_t harmony_window_id,
   g_send_pointer(harmony_window_id, phase, x, y, buttons, device, kind, timestamp);
 }
 
-void ForwardScroll(int32_t harmony_window_id, double x, double y,
-                   double delta_x, double delta_y, bool precise,
-                   size_t timestamp) {
-  if (!g_lynxtron_handle) return;
-  if (!g_send_scroll) {
-    g_send_scroll = reinterpret_cast<SendScrollFn>(
-        dlsym(g_lynxtron_handle, "LynxtronSendScrollEventForWindow"));
-  }
-  if (!g_send_scroll) {
-    OH_LOG_ERROR(LOG_APP,
-                 "[XC] dlsym LynxtronSendScrollEventForWindow failed: %{public}s",
-                 dlerror());
-    return;
-  }
-  OH_LOG_INFO(LOG_APP,
-              "[XC] scroll x=%{public}f y=%{public}f dx=%{public}f dy=%{public}f",
-              x, y, delta_x, delta_y);
-  g_send_scroll(harmony_window_id, x, y, delta_x, delta_y, timestamp, precise);
-}
-
 // Try to read the HarmonyOS window id encoded in the XComponent id string
 // (e.g. "lynxtron_surface_12345"). Falls back to -1 if the id is missing or
 // not in the expected format.
@@ -1688,9 +1596,6 @@ void OnSurfaceChanged(OH_NativeXComponent* component, void* window) {
 
 void OnSurfaceDestroyed(OH_NativeXComponent* component, void* window) {
   OH_LOG_INFO(LOG_APP, "[XC] OnSurfaceDestroyed");
-  const int32_t surface_window_id = GetSurfaceWindowId(component);
-  std::lock_guard<std::mutex> lock(g_mouse_buttons_mutex);
-  g_mouse_buttons_by_window.erase(surface_window_id);
   g_native_window = nullptr;
 }
 
@@ -1745,50 +1650,31 @@ OH_NativeXComponent_Callback g_xc_callback = {
 void DispatchMouseEvent(OH_NativeXComponent* component, void* window) {
   OH_NativeXComponent_MouseEvent me;
   if (OH_NativeXComponent_GetMouseEvent(component, window, &me) != 0) return;
-  int64_t changed_button = 0;
-  if (me.button == OH_NATIVEXCOMPONENT_LEFT_BUTTON) changed_button = 1;
-  else if (me.button == OH_NATIVEXCOMPONENT_RIGHT_BUTTON) changed_button = 2;
-  else if (me.button == OH_NATIVEXCOMPONENT_MIDDLE_BUTTON) changed_button = 4;
-
+  int64_t buttons = 0;
+  if (me.button == OH_NATIVEXCOMPONENT_LEFT_BUTTON) buttons = 1;
+  else if (me.button == OH_NATIVEXCOMPONENT_RIGHT_BUTTON) buttons = 2;
+  else if (me.button == OH_NATIVEXCOMPONENT_MIDDLE_BUTTON) buttons = 4;
+  int phase;
+  switch (me.action) {
+    case OH_NATIVEXCOMPONENT_MOUSE_PRESS:
+      phase = 0;
+      if (buttons == 0) buttons = 1;
+      break;
+    case OH_NATIVEXCOMPONENT_MOUSE_RELEASE:
+      phase = 1;
+      buttons = 0;
+      break;
+    case OH_NATIVEXCOMPONENT_MOUSE_MOVE:
+      phase = (buttons != 0) ? 2 : 3;  // drag vs hover
+      break;
+    default:
+      return;
+  }
+  const size_t timestamp = static_cast<size_t>(NowMicros());
   int32_t surface_window_id = GetSurfaceWindowId(component);
   if (surface_window_id <= 0) {
     surface_window_id = g_current_harmony_window_id;
   }
-
-  int64_t buttons = 0;
-  int phase;
-  {
-    std::lock_guard<std::mutex> lock(g_mouse_buttons_mutex);
-    int64_t& tracked_buttons = g_mouse_buttons_by_window[surface_window_id];
-    switch (me.action) {
-      case OH_NATIVEXCOMPONENT_MOUSE_PRESS:
-        // A missing button is treated as primary for compatibility with older
-        // HarmonyOS PC builds that omit it for the first press packet.
-        tracked_buttons |= changed_button != 0 ? changed_button : 1;
-        phase = 0;
-        break;
-      case OH_NATIVEXCOMPONENT_MOUSE_RELEASE:
-        tracked_buttons &= ~(changed_button != 0 ? changed_button : 1);
-        phase = 1;
-        break;
-      case OH_NATIVEXCOMPONENT_MOUSE_MOVE:
-        phase = tracked_buttons != 0 ? 2 : 3;  // drag vs hover
-        break;
-      case OH_NATIVEXCOMPONENT_MOUSE_CANCEL:
-        tracked_buttons = 0;
-        phase = 4;
-        break;
-      default:
-        return;
-    }
-    buttons = tracked_buttons;
-    if (tracked_buttons == 0 &&
-        (me.action == OH_NATIVEXCOMPONENT_MOUSE_RELEASE ||
-         me.action == OH_NATIVEXCOMPONENT_MOUSE_CANCEL)) {
-      g_mouse_buttons_by_window.erase(surface_window_id);
-    }
-  }
-  const size_t timestamp = static_cast<size_t>(NowMicros());
   ForwardPointer(surface_window_id, phase, me.x, me.y, buttons,
                  kLynxtronMouseDeviceId,
                  /*mouse=*/1, timestamp);
@@ -1800,25 +1686,6 @@ OH_NativeXComponent_MouseEvent_Callback g_mouse_callback = {
     .DispatchMouseEvent = DispatchMouseEvent,
     .DispatchHoverEvent = DispatchHoverEvent,
 };
-
-// Mouse-wheel and touchpad scrolling are delivered by ArkUI as AXIS events,
-// not through OH_NativeXComponent_MouseEvent. Forward their physical deltas
-// as Lynx scroll signals so ScrollView/List can consume them directly.
-void DispatchAxisEvent(OH_NativeXComponent* component,
-                       ArkUI_UIInputEvent* event,
-                       ArkUI_UIInputEvent_Type type) {
-  if (!component || !event || type != ARKUI_UIINPUTEVENT_TYPE_AXIS) return;
-  const double delta_x = OH_ArkUI_AxisEvent_GetHorizontalAxisValue(event);
-  const double delta_y = OH_ArkUI_AxisEvent_GetVerticalAxisValue(event);
-  if (delta_x == 0.0 && delta_y == 0.0) return;
-  int32_t surface_window_id = GetSurfaceWindowId(component);
-  if (surface_window_id <= 0) surface_window_id = g_current_harmony_window_id;
-  const int32_t source = OH_ArkUI_UIInputEvent_GetSourceType(event);
-  const bool precise = source != 1;
-  ForwardScroll(surface_window_id, OH_ArkUI_PointerEvent_GetX(event),
-                OH_ArkUI_PointerEvent_GetY(event), delta_x, delta_y, precise,
-                static_cast<size_t>(NowMicros()));
-}
 
 uint64_t ToLynxLogicalKey(OH_NativeXComponent_KeyCode code) {
   switch (code) {
@@ -1849,13 +1716,6 @@ uint64_t ToLynxLogicalKey(OH_NativeXComponent_KeyCode code) {
     default:
       if (code >= KEY_A && code <= KEY_Z) return static_cast<uint64_t>('a' + code - KEY_A);
       if (code >= KEY_0 && code <= KEY_9) return static_cast<uint64_t>('0' + code - KEY_0);
-      // HarmonyOS reports the numeric keypad independently from the number
-      // row.  Preserve the dedicated NumPad logical-key range; Lynx uses it
-      // to distinguish keypad navigation from digit input when NumLock is on.
-      if (code >= KEY_NUMPAD_0 && code <= KEY_NUMPAD_9) {
-        return 0x00200000230ULL +
-               static_cast<uint64_t>(code - KEY_NUMPAD_0);
-      }
       if (code >= KEY_F1 && code <= KEY_F12) return 0x00100000800ULL + code - KEY_F1 + 1;
       return 0;
   }
@@ -1863,10 +1723,7 @@ uint64_t ToLynxLogicalKey(OH_NativeXComponent_KeyCode code) {
 
 void DispatchKeyEvent(OH_NativeXComponent* component, void*) {
   OH_NativeXComponent_KeyEvent* key_event = nullptr;
-  if (OH_NativeXComponent_GetKeyEvent(component, &key_event) != 0 ||
-      !key_event) {
-    return;
-  }
+  if (OH_NativeXComponent_GetKeyEvent(component, &key_event) != 0 || !key_event) return;
   OH_NativeXComponent_KeyAction action = OH_NATIVEXCOMPONENT_KEY_ACTION_UNKNOWN;
   OH_NativeXComponent_KeyCode code = KEY_UNKNOWN;
   if (OH_NativeXComponent_GetKeyEventAction(key_event, &action) != 0 ||
@@ -1876,147 +1733,15 @@ void DispatchKeyEvent(OH_NativeXComponent* component, void*) {
     g_send_key = reinterpret_cast<SendKeyFn>(
         dlsym(g_lynxtron_handle, "LynxtronSendKeyEventForWindow"));
   }
-  if (!g_send_key) {
-    OH_LOG_ERROR(LOG_APP,
-                 "[KEY] LynxtronSendKeyEventForWindow unavailable "
-                 "handle=%{public}p error=%{public}s",
-                 g_lynxtron_handle, dlerror());
-  }
   if (g_send_key) {
     int32_t surface_window_id = GetSurfaceWindowId(component);
     if (surface_window_id <= 0) {
       surface_window_id = g_current_harmony_window_id;
     }
-    const uint64_t logical = ToLynxLogicalKey(code);
     g_send_key(surface_window_id,
                action == OH_NATIVEXCOMPONENT_KEY_ACTION_UP ? 0 : 1,
-               logical, 0, NowMicros());
-    // HarmonyOS PC delivers some hardware number-row keys as keypad-style
-    // events.  A key event carries no character payload, so Clay cannot turn
-    // those events into text even though letters work.  Queue the committed
-    // digit after key-down so the focused editor has processed the key first.
-    if (action != OH_NATIVEXCOMPONENT_KEY_ACTION_UP &&
-        ((code >= KEY_0 && code <= KEY_9) ||
-         (code >= KEY_NUMPAD_0 && code <= KEY_NUMPAD_9))) {
-      if (!g_send_text && g_lynxtron_handle) {
-        g_send_text = reinterpret_cast<SendTextFn>(
-            dlsym(g_lynxtron_handle, "LynxtronSendTextInputForWindow"));
-      }
-      if (g_send_text) {
-        char digit[2] = {
-            static_cast<char>('0' +
-                              ((code >= KEY_NUMPAD_0)
-                                   ? code - KEY_NUMPAD_0
-                                   : code - KEY_0)),
-            '\0'};
-        g_send_text(surface_window_id, digit, NowMicros());
-      }
-    }
+               ToLynxLogicalKey(code), 0, NowMicros());
   }
-}
-
-// NAPI export notifyWindowState(windowId, state, [resizeEdge]): forwards an
-// ArkTS window-state report into liblynxtron (LynxtronNotifyWindowState).
-napi_value NotifyWindowState(napi_env env, napi_callback_info info) {
-  OH_LOG_INFO(LOG_APP, "[WINEVENT] NotifyWindowState called");
-  size_t argc = 3;
-  napi_value args[3] = {nullptr, nullptr, nullptr};
-  napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
-
-  int32_t window_id = -1;
-  char state[64] = {0};
-  size_t state_len = 0;
-  int32_t resize_edge = kLynxtronResizeEdgeBottomRight;
-
-  if (argc >= 2 &&
-      napi_get_value_int32(env, args[0], &window_id) == napi_ok &&
-      napi_get_value_string_utf8(env, args[1], state, sizeof(state),
-                                 &state_len) == napi_ok) {
-    if (argc >= 3) {
-      napi_get_value_int32(env, args[2], &resize_edge);
-    }
-
-    OH_LOG_INFO(LOG_APP,
-                "[WINEVENT] notifyWindowState windowId=%{public}d "
-                "state=%{public}s resizeEdge=%{public}d argc=%{public}d",
-                window_id, state, resize_edge, (int)argc);
-
-    if (EnsureLynxtronLoaded()) {
-      auto fn = reinterpret_cast<LynxtronNotifyWindowStateFn>(
-          dlsym(g_lynxtron_handle, "LynxtronNotifyWindowState"));
-      if (fn) {
-        fn(window_id, state, resize_edge);
-      } else {
-        OH_LOG_ERROR(LOG_APP,
-                     "dlsym LynxtronNotifyWindowState FAILED: %{public}s",
-                     dlerror());
-      }
-    } else {
-      OH_LOG_ERROR(LOG_APP,
-                   "[WINEVENT] notifyWindowState: liblynxtron.so not loaded");
-    }
-  } else {
-    OH_LOG_ERROR(LOG_APP,
-                 "[WINEVENT] notifyWindowState: bad args argc=%{public}d",
-                 (int)argc);
-    napi_throw_error(env, nullptr,
-                     "notifyWindowState requires (windowId, state, [resizeEdge])");
-    return nullptr;
-  }
-
-  napi_value result = nullptr;
-  napi_get_undefined(env, &result);
-  return result;
-}
-
-static napi_value NotifyWindowRect(napi_env env, napi_callback_info info) {
-  size_t argc = 5;
-  napi_value args[5] = {nullptr};
-  napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
-
-  int32_t window_id = -1;
-  int32_t x = 0;
-  int32_t y = 0;
-  int32_t width = 0;
-  int32_t height = 0;
-
-  if (argc >= 5 &&
-      napi_get_value_int32(env, args[0], &window_id) == napi_ok &&
-      napi_get_value_int32(env, args[1], &x) == napi_ok &&
-      napi_get_value_int32(env, args[2], &y) == napi_ok &&
-      napi_get_value_int32(env, args[3], &width) == napi_ok &&
-      napi_get_value_int32(env, args[4], &height) == napi_ok) {
-    OH_LOG_INFO(LOG_APP,
-                "[WINEVENT] notifyWindowRect windowId=%{public}d "
-                "rect=%{public}d,%{public}d,%{public}dx%{public}d",
-                window_id, x, y, width, height);
-
-    if (EnsureLynxtronLoaded()) {
-      auto fn = reinterpret_cast<LynxtronNotifyWindowRectFn>(
-          dlsym(g_lynxtron_handle, "LynxtronNotifyWindowRect"));
-      if (fn) {
-        fn(window_id, x, y, width, height);
-      } else {
-        OH_LOG_ERROR(LOG_APP,
-                     "dlsym LynxtronNotifyWindowRect FAILED: %{public}s",
-                     dlerror());
-      }
-    } else {
-      OH_LOG_ERROR(LOG_APP,
-                   "[WINEVENT] notifyWindowRect: liblynxtron.so not loaded");
-    }
-  } else {
-    OH_LOG_ERROR(LOG_APP,
-                 "[WINEVENT] notifyWindowRect: bad args argc=%{public}d",
-                 (int)argc);
-    napi_throw_error(env, nullptr,
-                     "notifyWindowRect requires (windowId, x, y, width, height)");
-    return nullptr;
-  }
-
-  napi_value result = nullptr;
-  napi_get_undefined(env, &result);
-  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -2218,8 +1943,6 @@ void OnImeGetTextConfig(InputMethod_TextEditorProxy*,
   }
 }
 
-// IME InsertText callback (runs on the IME IPC thread): converts the committed
-// UTF-16 text to UTF-8 and forwards it to Lynx as text input.
 void OnImeInsertText(InputMethod_TextEditorProxy*, const char16_t* text,
                      size_t length) {
   std::string utf8 = Utf16ToUtf8(text, length);
@@ -2838,6 +2561,7 @@ napi_value SetWindowObject(napi_env env, napi_callback_info info) {
 
 napi_value SyncIme(napi_env env, napi_callback_info) {
   SyncImeImpl(env);
+  SyncWindowTitle(env);
   napi_value result = nullptr;
   napi_get_boolean(env, g_ime_proxy != nullptr, &result);
   return result;
@@ -2929,8 +2653,6 @@ napi_value GetWindowTitle(napi_env env, napi_callback_info) {
   return result;
 }
 
-// NAPI module init: exports the bridge methods and registers the XComponent
-// surface and input callbacks.
 napi_value Init(napi_env env, napi_value exports) {
   OH_LOG_INFO(LOG_APP, "Init() called by OHOS framework");
 
@@ -2985,10 +2707,6 @@ napi_value Init(napi_env env, napi_value exports) {
        nullptr, nullptr, nullptr, napi_default, nullptr},
 	   {"registerUpdateTSFN", nullptr, RegisterUpdateTSFN,
        nullptr, nullptr, nullptr, napi_default, nullptr},
-      {"notifyWindowState", nullptr, NotifyWindowState, nullptr, nullptr,
-       nullptr, napi_default, nullptr},
-      {"notifyWindowRect", nullptr, NotifyWindowRect, nullptr, nullptr,
-       nullptr, napi_default, nullptr},
   };
   napi_status status = napi_define_properties(
       env, exports, sizeof(desc) / sizeof(desc[0]), desc);
@@ -3009,9 +2727,6 @@ napi_value Init(napi_env env, napi_value exports) {
       int32_t rm =
           OH_NativeXComponent_RegisterMouseEventCallback(xc, &g_mouse_callback);
       OH_LOG_INFO(LOG_APP, "[XC] RegisterMouseEventCallback ret=%{public}d", rm);
-      int32_t ra = OH_NativeXComponent_RegisterUIInputEventCallback(
-          xc, DispatchAxisEvent, ARKUI_UIINPUTEVENT_TYPE_AXIS);
-      OH_LOG_INFO(LOG_APP, "[XC] RegisterAxisEventCallback ret=%{public}d", ra);
       int32_t rk = OH_NativeXComponent_RegisterKeyEventCallback(xc, DispatchKeyEvent);
       OH_LOG_INFO(LOG_APP, "[XC] RegisterKeyEventCallback ret=%{public}d", rk);
     } else {
