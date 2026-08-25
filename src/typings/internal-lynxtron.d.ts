@@ -14,7 +14,10 @@ import {
 import { Event as LynxtronEvent } from '../packages/lynxtron/apis/lynxtron';
 import { CommandLine as LynxtronCommandLine } from '../packages/lynxtron/apis/api/command-line';
 import { Screen as LynxtronScreen } from '../packages/lynxtron/apis/api/screen';
-import { NativeImage as LynxtronNativeImage } from '../packages/lynxtron/apis/api/native-image';
+import {
+  NativeImage as LynxtronNativeImage,
+  nativeImage as LynxtronNativeImageModule,
+} from '../packages/lynxtron/apis/api/native-image';
 import { Clipboard as LynxtronClipboard } from '../packages/lynxtron/apis/api/clipboard';
 import { Shell as LynxtronShell } from '../packages/lynxtron/apis/api/shell';
 import { MenuItem as LynxtronMenuItem } from '../packages/lynxtron/apis/api/menu';
@@ -91,7 +94,7 @@ declare module 'lynxtron' {
   export const MenuItem: typeof LynxtronMenuItem;
   export const clipboard: LynxtronClipboard;
   export const dialog: LynxtronDialog;
-  export const nativeImage: typeof LynxtronNativeImage;
+  export const nativeImage: typeof LynxtronNativeImageModule;
   export const screen: LynxtronScreen;
   export const shell: LynxtronShell;
   export const LynxTemplateData: typeof LynxtronLynxTemplateData;

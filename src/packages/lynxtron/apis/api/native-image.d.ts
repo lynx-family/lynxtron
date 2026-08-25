@@ -100,16 +100,16 @@ export interface ToPNGOptions {
   scaleFactor?: number;
 }
 
-export declare class NativeImage {
+export const nativeImage: {
   /**
    * Creates an empty `NativeImage` instance.
    */
-  static createEmpty(): NativeImage;
+  createEmpty(): NativeImage;
   /**
    * Creates a new `NativeImage` instance from `buffer` that contains the raw bitmap
    * pixel data returned by `toBitmap()`. The specific format is platform-dependent.
    */
-  static createFromBitmap(
+  createFromBitmap(
     buffer: Buffer,
     options: CreateFromBitmapOptions
   ): NativeImage;
@@ -117,7 +117,7 @@ export declare class NativeImage {
    * Creates a new `NativeImage` instance from `buffer`. Tries to decode as PNG or
    * JPEG first.
    */
-  static createFromBuffer(
+  createFromBuffer(
     buffer: Buffer,
     options?: CreateFromBufferOptions
   ): NativeImage;
@@ -125,7 +125,7 @@ export declare class NativeImage {
    * Creates a new `NativeImage` instance from `dataUrl`, a base 64 encoded Data URL
    * string.
    */
-  static createFromDataURL(dataURL: string): NativeImage;
+  createFromDataURL(dataURL: string): NativeImage;
   /**
    * Creates a new `NativeImage` instance from the `NSImage` that maps to the given
    * image name. See Apple's `NSImageName` documentation for a list of possible
@@ -155,16 +155,13 @@ export declare class NativeImage {
    *
    * @platform darwin
    */
-  static createFromNamedImage(
-    imageName: string,
-    hslShift?: number[]
-  ): NativeImage;
+  createFromNamedImage(imageName: string, hslShift?: number[]): NativeImage;
   /**
    * Creates a new `NativeImage` instance from an image file (e.g., PNG or JPEG)
    * located at `path`. This method returns an empty image if the `path` does not
    * exist, cannot be read, or is not a valid image.
    */
-  static createFromPath(path: string): NativeImage;
+  createFromPath(path: string): NativeImage;
   /**
    * fulfilled with the file's thumbnail preview image, which is a NativeImage.
    *
@@ -173,10 +170,10 @@ export declare class NativeImage {
    *
    * @platform darwin,win32
    */
-  static createThumbnailFromPath(
-    path: string,
-    size: Size
-  ): Promise<NativeImage>;
+  createThumbnailFromPath(path: string, size: Size): Promise<NativeImage>;
+};
+
+export interface NativeImage {
   /**
    * Add an image representation for a specific scale factor. This can be used to
    * programmatically add different scale factor representations to an image. This
