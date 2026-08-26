@@ -64,7 +64,6 @@
   V(lynxtron_binding_screen)               \
   V(lynxtron_binding_dialog)               \
   V(lynxtron_binding_lynx_template_bundle) \
-  V(lynxtron_binding_lynx_http_service)    \
   V(lynxtron_binding_power_monitor)
 
 #define ELECTRON_TESTING_BINDINGS(V) V(lynxtron_binding_testing)

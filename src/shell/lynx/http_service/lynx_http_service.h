@@ -7,6 +7,12 @@
 
 namespace lynxtron {
 
+// Registers the HTTP service that backs Lynx `fetch()` with the shared
+// LynxServiceCenter. The concrete provider is selected at build time through
+// the `lynxtron_http_service_deps` GN seam: the open-source build links a
+// transport backed by the platform's native networking stack, while the
+// closed-source build links its own native transport. Both expose this same
+// entry point so the call site stays provider agnostic.
 void RegisterLynxHttpService();
 
 }  // namespace lynxtron
