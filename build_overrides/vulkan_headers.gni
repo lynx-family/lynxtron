@@ -2,5 +2,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# This file is needed by the vulkan-headers build, but doesn't need to actually
-# set anything.
+import("//build/config/ozone.gni")
+
+# Keep the Vulkan platform declarations in sync with the Linux window-system
+# backends compiled by ANGLE.
+vulkan_use_x11 = ozone_platform_x11
+vulkan_use_wayland = ozone_platform_wayland

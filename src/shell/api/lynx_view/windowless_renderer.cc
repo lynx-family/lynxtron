@@ -49,11 +49,7 @@ void PostLynxWindowlessUITask(lynx_task_t task,
 #endif
 
 lynx_windowless_renderer_type_e GetWindowlessRendererType() {
-#if BUILDFLAG(IS_LINUX)
-  return kRendererTypeSoftware;
-#else
   return kRendererTypeAccelerated;
-#endif
 }
 
 class NoopWindowlessRenderer : public lynx::pub::LynxWindowlessRenderer {

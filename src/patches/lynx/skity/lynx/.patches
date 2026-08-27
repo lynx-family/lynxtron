@@ -1,4 +1,3 @@
 0001-Fix-skity-build-issues.patch
 0002-Fix-skity_build_gni.py-cmake-build-failure-on-Window.patch
 0003-Fix-Windows-V8-build-failure-when-enable_inspector-i.patch
-0004-Revert-async-font-manager-on-Windows.patch

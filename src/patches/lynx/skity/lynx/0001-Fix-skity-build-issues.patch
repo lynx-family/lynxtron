@@ -8,8 +8,8 @@ Subject: [PATCH] Fix skity build issues
 3. Filter out skity's own wuffs include path to use main project's wuffs
 ---
  clay/gfx/skity/BUILD.gn         |  2 +-
- clay/third_party/skity/BUILD.gn | 13 ++++++++++++-
- 2 files changed, 13 insertions(+), 2 deletions(-)
+ clay/third_party/skity/BUILD.gn | 18 ++++++++++++++++--
+ 2 files changed, 17 insertions(+), 3 deletions(-)
 
 diff --git a/clay/gfx/skity/BUILD.gn b/clay/gfx/skity/BUILD.gn
 index bdb779b9a..aa9b146cc 100644
@@ -18,7 +18,7 @@ index bdb779b9a..aa9b146cc 100644
 @@ -31,7 +31,7 @@ source_set("skity") {
      public_deps += [ "//third_party/skia" ]
    } else {
-     if (is_win || is_mac) {
+     if (is_win || is_mac || is_linux) {
 -      public_deps += [ "//clay/third_party/skity:skity_lib" ]
 +      public_deps += [ "//lynx/clay/third_party/skity:skity_lib" ]
      }
@@ -49,13 +49,26 @@ index 1d011815c..79da99011 100644
    include_dirs += wgsl_cross_include_dirs
    include_dirs += pugixml_static_include_dirs
  
-@@ -94,6 +104,7 @@ source_set("skity_lib") {
+@@ -88,14 +98,18 @@ source_set("skity_lib") {
+   sources += skity_sources
+   sources += wgsl_cross_sources
+   sources += pugixml_static_sources
+   sources += skity_codec_sources
+   deps = [
      "//third_party/libjpeg-turbo:turbojpeg",
      "//third_party/libpng",
      "//third_party/libwebp",
 +    "//third_party/wuffs",
      "//third_party/zlib",
    ]
+   if (is_linux) {
+     defines = [ "JSON_USE_EXCEPTION=0" ]
+-    deps += [ "../../../third_party/jsoncpp:jsoncpp" ]
++    deps += [
++      "../../../third_party/jsoncpp:jsoncpp",
++      "//third_party/fontconfig",
++    ]
+   }
  
 -- 
 2.50.1 (Apple Git-155)
