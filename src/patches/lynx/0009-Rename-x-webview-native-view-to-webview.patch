@@ -1,0 +1,20 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: zsy-jason <186247581+zsy-jason@users.noreply.github.com>
+Date: Thu, 28 Aug 2026 00:00:00 +0000
+Subject: [PATCH] Rename x-webview native view to webview
+
+diff --git a/platform/embedder/plugin/cef/src/cef_extension_module.cc b/platform/embedder/plugin/cef/src/cef_extension_module.cc
+index 000000000..000000000 100644
+--- a/platform/embedder/plugin/cef/src/cef_extension_module.cc
++++ b/platform/embedder/plugin/cef/src/cef_extension_module.cc
+@@ -21,8 +21,8 @@ namespace embedder {
+ 
+ void CEFExtensionModule::OnLynxViewCreate(lynx_view_t* lynx_view) {
+   LYNX_CAPI_TRACE_BEGIN(CEF_TRACE_CATEGORY, TRACE_NAME_REGISTER_VIEW);
+-  lynx_view_register_native_view(lynx_view, "x-webview",
+-                                 &cef_webview_create_view, lynx_view);
++  lynx_view_register_native_view(lynx_view, "webview",
++                                 &cef_webview_create_view, lynx_view);
+   LYNX_CAPI_TRACE_END(CEF_TRACE_CATEGORY, TRACE_NAME_REGISTER_VIEW);
+ }
+ 

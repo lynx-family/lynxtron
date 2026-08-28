@@ -57,7 +57,7 @@ jobs:
     runs-on: lynx-darwin-15.6.1-medium
     strategy:
       matrix:
-        arch: [arm64]
+        arch: [arm64, x64]
     steps:
       - name: Download Source
         uses: actions/checkout@v4.2.2
@@ -310,7 +310,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [arm64]
+        arch: [arm64, x64]
     steps:
       - name: Download Source
         uses: actions/checkout@v4.2.2
@@ -535,7 +535,7 @@ jobs:
     runs-on: lynx-darwin-15.6.1-medium
     strategy:
       matrix:
-        arch: [arm64]
+        arch: [arm64, x64]
     steps:
       - name: Download Source
         uses: actions/checkout@v4.2.2
