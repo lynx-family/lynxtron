@@ -45,6 +45,18 @@ if (selectedProject && !allProjects.includes(selectedProject)) {
 
 const projects = selectedProject ? [selectedProject] : allProjects;
 
+// Resolve rspeedy from this package's own node_modules so the build always uses
+// the version pinned here, regardless of what a parent PATH (e.g. the repo-root
+// node_modules/.bin injected by `npm run test`) might shadow it with. The package
+// only exports "./package.json", so locate that and derive the bin from there.
+const rspeedyPkgPath = require.resolve('@lynx-js/rspeedy/package.json', {
+  paths: [projectRoot],
+});
+const rspeedyBin = path.resolve(
+  path.dirname(rspeedyPkgPath),
+  require(rspeedyPkgPath).bin.rspeedy
+);
+
 if (!selectedProject) {
   fs.rmSync(distDir, { recursive: true, force: true });
 } else if (!fs.existsSync(distDir)) {
@@ -52,14 +64,13 @@ if (!selectedProject) {
 }
 
 for (const project of projects) {
-  const result = childProcess.spawnSync('rspeedy', ['build'], {
+  const result = childProcess.spawnSync(process.execPath, [rspeedyBin, 'build'], {
     cwd: projectRoot,
     stdio: 'inherit',
     env: {
       ...process.env,
       LYNX_CARD: project,
     },
-    shell: process.platform === 'win32',
   });
 
   if (result.status !== 0) {

@@ -46,10 +46,10 @@ __metadata:
 
 "@lynxtron-ci/dialog-helper@file:./fixtures/native-addon/dialog-helper::locator=electron-test-main%40workspace%3A.":
   version: 0.0.1
-  resolution: "@lynxtron-ci/dialog-helper@file:./fixtures/native-addon/dialog-helper#./fixtures/native-addon/dialog-helper::hash=d59aef&locator=electron-test-main%40workspace%3A."
+  resolution: "@lynxtron-ci/dialog-helper@file:./fixtures/native-addon/dialog-helper#./fixtures/native-addon/dialog-helper::hash=aff2bb&locator=electron-test-main%40workspace%3A."
   dependencies:
     node-gyp: "npm:^11.5.0"
-  checksum: cc3df545263a7bb839a5b424a257b6cea99c12087df30b4b6588290b038d2b544b60cb0d50695227f97001331e6bdf2765e6f5998389f95160ee94d36cf8d4b5
+  checksum: 9394e13422093dc64ce5f45fa0e9fa8e657ef157ca1e1e6fcc8817399df19c8427a2051c90006ae97900e44fcb505e0c7c63e5915846fbdf423ccd153d81e434
   languageName: node
   linkType: hard
 
