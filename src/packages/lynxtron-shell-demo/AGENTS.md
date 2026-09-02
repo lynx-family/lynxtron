@@ -6,8 +6,15 @@ This document equips AI agents to author and modify code in this Lynxtron applic
 
 Read the docs below in advance to help you understand the library or frameworks this project depends on.
 
-- Lynx: [llms.txt](https://lynxjs.org/llms.txt).
-  While dealing with a Lynx task, an agent **MUST** read this doc because it is an entry point of all available docs about Lynx.
+- Lynx and Lynxtron: [llms.txt](https://lynxjs.org/llms.txt).
+  While dealing with a Lynx or Lynxtron task, an agent **MUST** read this document because it indexes the available documentation for both Lynx and Lynxtron.
+- Runtime debugging: use the `agent-lynx` CLI to inspect and verify a running Lynx application. The CLI includes the official `lynx-devtool` skill; load its complete instructions before debugging:
+
+  ```bash
+  npx --yes agent-lynx skills get lynx-devtool
+  ```
+
+  If `agent-lynx` is already available on `PATH`, omit the `npx --yes` prefix.
 
 ## Overview
 
