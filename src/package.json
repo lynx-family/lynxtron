@@ -52,6 +52,7 @@
   "resolutions": {
     "nan": "nodejs/nan#e14bdcd1f72d62bca1d541b66da43130384ec213",
     "memfs": "4.56.10",
-    "@jsonjoy.com/fs-snapshot": "4.56.10"
+    "@jsonjoy.com/fs-snapshot": "4.56.10",
+    "yauzl": "^3.3.1"
   }
 }
