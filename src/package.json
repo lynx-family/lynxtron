@@ -40,10 +40,12 @@
   ],
   "workspaces": [
     "packages/default_app/app",
+    "packages/cef-webview",
     "packages/lynxtron",
     "packages/lynxtron-builder",
     "packages/lynxtron-shell-demo",
     "packages/lynxtron-dev-plugins",
+    "packages/lynxtron-rebuild",
     "packages/create-lynxtron",
     "spec/case/lynx-card",
     "packages/lynx-library-headers"

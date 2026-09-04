@@ -1,8 +1,19 @@
 {
   "$schema": "https://unpkg.com/@changesets/config@2.3.1/schema.json",
-  "changelog": "@changesets/cli",
+  "changelog": "@changesets/cli/changelog",
   "commit": false,
   "access": "public",
   "baseBranch": "main",
+  "fixed": [
+    [
+      "@lynx-js/cef-webview",
+      "@lynx-js/lynx-library-headers",
+      "@lynx-js/lynxtron",
+      "@lynx-js/lynxtron-builder",
+      "@lynx-js/lynxtron-dev-plugins",
+      "@lynx-js/lynxtron-rebuild",
+      "create-lynxtron"
+    ]
+  ],
   "ignore": ["lynxtron-shell-demo", "lynxtron-default-app"]
 }

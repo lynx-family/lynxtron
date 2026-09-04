@@ -1,6 +1,6 @@
 {
   "name": "@lynx-js/lynxtron",
-  "version": "0.0.0-alpha",
+  "version": "0.0.18",
   "description": "lynxtron npm package test",
   "type": "module",
   "types": "./apis/lynxtron.d.ts",

@@ -1,0 +1,99 @@
+name: changesets release
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: changesets-release-main
+  cancel-in-progress: false
+
+jobs:
+  changesets:
+    runs-on: lynx-ubuntu-22.04-medium
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      should_publish: ${{ steps.release.outputs.should_publish }}
+      source_sha: ${{ steps.release.outputs.source_sha }}
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        working-directory: src
+        run: node tools/yarn.js install --immutable --mode=skip-build
+      - name: Create or update Version Packages pull request
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          cwd: src
+          version: node tools/yarn.js version-packages
+          title: 'chore: version packages'
+          commit: 'chore: version packages'
+      - name: Select stable release
+        id: release
+        shell: bash
+        env:
+          HAS_CHANGESETS: ${{ steps.changesets.outputs.hasChangesets }}
+        run: |
+          set -euo pipefail
+
+          if [ "$HAS_CHANGESETS" != "false" ]; then
+            echo "Changesets are pending; the Version Packages pull request will be created or updated."
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          version=$(node -p "require('./src/packages/lynxtron/package.json').version")
+          if ! printf '%s\n' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Changesets stable release version is invalid: '$version'"
+            exit 1
+          fi
+
+          for package_dir in \
+            cef-webview \
+            create-lynxtron \
+            lynx-library-headers \
+            lynxtron \
+            lynxtron-builder \
+            lynxtron-dev-plugins \
+            lynxtron-rebuild; do
+            package_version=$(node -p "require('./src/packages/${package_dir}/package.json').version")
+            if [ "$package_version" != "$version" ]; then
+              echo "Published package versions must stay fixed: ${package_dir} has ${package_version}, expected ${version}"
+              exit 1
+            fi
+          done
+
+          tag="v${version}"
+          if git show-ref --verify --quiet "refs/tags/${tag}"; then
+            echo "${tag} is already published; skipping."
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          echo "source_sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+  publish:
+    needs: changesets
+    if: needs.changesets.outputs.should_publish == 'true'
+    permissions:
+      contents: write
+      id-token: write
+    uses: ./.github/workflows/publish.yml
+    with:
+      source_ref: ${{ needs.changesets.outputs.source_sha }}
+      tag: ${{ needs.changesets.outputs.tag }}
+    secrets: inherit

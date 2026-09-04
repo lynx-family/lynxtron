@@ -1,7 +1,7 @@
 {
   "name": "@lynx-js/cef-webview",
   "author": "Lynxtron Authors",
-  "version": "0.0.1",
+  "version": "0.0.18",
   "type": "module",
   "description": "a webview element based on cef",
   "repository": {
@@ -37,9 +37,9 @@
     "zip-lib": "1.4.0"
   },
   "devDependencies": {
-    "node-addon-api": "^7.0.0",
+    "@lynx-js/lynxtron": "workspace:*",
     "cmake-js": "^7.4.0",
-    "@lynx-js/lynxtron": "*"
+    "node-addon-api": "^7.0.0"
   },
   "engines": {
     "node": "^22.18.0 || ^24.0.0 || ^26.0.0"

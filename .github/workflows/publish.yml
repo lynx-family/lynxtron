@@ -1,10 +1,25 @@
 name: publish
 
 on:
+  workflow_call:
+    inputs:
+      source_ref:
+        description: 'branch, tag, or commit to publish'
+        required: true
+        type: string
+      tag:
+        description: 'release tag'
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
+      source_ref:
+        description: 'branch, tag, or commit to publish (e.g. feature/my-change)'
+        required: true
+        default: main
+        type: string
       tag:
-        description: 'release tag (e.g. v1.2.3). Release and DevTool runtimes are published together.'
+        description: 'release tag (e.g. v1.2.3-alpha.0). Release and DevTool runtimes are published together.'
         required: true
         type: string
 
@@ -19,28 +34,61 @@ jobs:
       run:
         working-directory: ./
     env:
-      INPUT_TAG: ${{ github.event.inputs.tag }}
+      INPUT_TAG: ${{ inputs.tag }}
+      TRIGGER_EVENT: ${{ github.event_name }}
     outputs:
+      source_sha: ${{ steps.set-version.outputs.source_sha }}
       version: ${{ steps.set-version.outputs.version }}
       tag: ${{ steps.set-version.outputs.tag }}
+      prerelease: ${{ steps.set-version.outputs.prerelease }}
     steps:
+      - name: Resolve source revision
+        uses: actions/checkout@v4.2.2
+        with:
+          path: source
+          ref: ${{ inputs.source_ref }}
+          fetch-depth: 1
       - name: Validate and set version
         id: set-version
         run: |
+          set -eu
           if [ -z "$INPUT_TAG" ]; then
             echo "tag input is required."
             exit 1
           fi
           tag="v${INPUT_TAG#v}"
           version="${tag#v}"
+          if ! printf '%s\n' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$'; then
+            echo "tag must contain a valid semantic version; got '$INPUT_TAG'"
+            exit 1
+          fi
           case "$version" in
             *-dev|*-dev.*)
               echo "tag must not include a '-dev' pre-release label; use a regular version because Release and DevTool runtimes are published together"
               exit 1
               ;;
           esac
+          case "$version" in
+            *-*) prerelease=true ;;
+            *) prerelease=false ;;
+          esac
+          if [ "$TRIGGER_EVENT" = "workflow_dispatch" ]; then
+            case "$version" in
+              *-alpha|*-alpha.*) ;;
+              *)
+                echo "manually dispatched branch releases must use an alpha version (e.g. v1.2.3-alpha.0)"
+                exit 1
+                ;;
+            esac
+          elif [ "$prerelease" = "true" ]; then
+            echo "Changesets releases from main must use a stable version; got '$version'"
+            exit 1
+          fi
+          source_sha=$(git -C source rev-parse HEAD)
+          echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
 
   build-macos:
     needs: get-version
@@ -55,7 +103,7 @@ jobs:
         uses: actions/checkout@v4.2.2
         with:
           path: lynxtron
-          ref: ${{ github.ref_name }}
+          ref: ${{ needs.get-version.outputs.source_sha }}
       - name: Build macOS Lynxtron
         uses: ./lynxtron/.github/actions/macos-lynxtron-build
         with:
@@ -136,7 +184,7 @@ jobs:
         uses: actions/checkout@v4.2.2
         with:
           path: lynxtron
-          ref: ${{ github.ref_name }}
+          ref: ${{ needs.get-version.outputs.source_sha }}
       - name: Build Linux Lynxtron
         uses: ./lynxtron/.github/actions/linux-lynxtron-build
         with:
@@ -222,7 +270,7 @@ jobs:
         uses: actions/checkout@v4.2.2
         with:
           path: lynxtron
-          ref: ${{ github.ref_name }}
+          ref: ${{ needs.get-version.outputs.source_sha }}
       - name: Build Windows Lynxtron
         uses: ./lynxtron/.github/actions/windows-lynxtron-build
         with:
@@ -313,7 +361,7 @@ jobs:
         uses: actions/checkout@v4.2.2
         with:
           path: lynxtron
-          ref: ${{ github.ref_name }}
+          ref: ${{ needs.get-version.outputs.source_sha }}
       - name: Build macOS Lynxtron (DevTool)
         uses: ./lynxtron/.github/actions/macos-lynxtron-build
         with:
@@ -374,7 +422,7 @@ jobs:
         uses: actions/checkout@v4.2.2
         with:
           path: lynxtron
-          ref: ${{ github.ref_name }}
+          ref: ${{ needs.get-version.outputs.source_sha }}
       - name: Build Linux Lynxtron (DevTool)
         uses: ./lynxtron/.github/actions/linux-lynxtron-build
         with:
@@ -461,7 +509,7 @@ jobs:
         uses: actions/checkout@v4.2.2
         with:
           path: lynxtron
-          ref: ${{ github.ref_name }}
+          ref: ${{ needs.get-version.outputs.source_sha }}
       - name: Build Windows Lynxtron (DevTool)
         uses: ./lynxtron/.github/actions/windows-lynxtron-build
         with:
@@ -539,7 +587,7 @@ jobs:
         uses: actions/checkout@v4.2.2
         with:
           path: lynxtron
-          ref: ${{ github.ref_name }}
+          ref: ${{ needs.get-version.outputs.source_sha }}
       - name: Install Common Dependencies
         uses: ./lynxtron/.github/actions/common-deps
         with:
@@ -650,7 +698,9 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ needs.get-version.outputs.tag }}
+          commit: ${{ needs.get-version.outputs.source_sha }}
           name: Release ${{ needs.get-version.outputs.tag }}
+          prerelease: ${{ needs.get-version.outputs.prerelease == 'true' }}
           generateReleaseNotes: true
           allowUpdates: true
           artifactErrorsFailBuild: true
@@ -670,7 +720,7 @@ jobs:
         uses: actions/checkout@v4.2.2
         with:
           path: lynxtron
-          ref: ${{ github.ref_name }}
+          ref: ${{ needs.get-version.outputs.source_sha }}
       - name: Python Setup
         uses: actions/setup-python@v5
         with:
