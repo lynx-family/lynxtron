@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   POSTINSTALL_RUNTIME_VARIANT,
   getPostinstallRuntimeOptions,
+  shouldSkipPostinstallRuntime,
 } from './install-policy.js';
 
 test('npm postinstall always installs the DevTool runtime', () => {
@@ -19,5 +20,15 @@ test('npm postinstall always installs the DevTool runtime', () => {
       customUrl: 'https://downloads.example.test/devtool.zip',
       force: true,
     }
+  );
+});
+
+test('source builds can skip the unpublished postinstall runtime', () => {
+  assert.equal(shouldSkipPostinstallRuntime({}), false);
+  assert.equal(shouldSkipPostinstallRuntime({ LYNXTRON_SKIP_DOWNLOAD: '0' }), false);
+  assert.equal(shouldSkipPostinstallRuntime({ LYNXTRON_SKIP_DOWNLOAD: '1' }), true);
+  assert.equal(
+    shouldSkipPostinstallRuntime({ LYNXTRON_SKIP_DOWNLOAD: 'true' }),
+    true
   );
 });

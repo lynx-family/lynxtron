@@ -4,8 +4,4 @@
 
 import path from 'path';
 
-const bundleFileName = 'main.lynx.bundle';
-
-export const LYNX_BUNDLE_PATH = __dirname.includes('app.asar')
-  ? path.join(process.resourcesPath, 'resources', 'app', bundleFileName)
-  : path.join(__dirname, bundleFileName);
+export const LYNX_BUNDLE_PATH = path.join(__dirname, 'main.lynx.bundle');

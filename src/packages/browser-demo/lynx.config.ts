@@ -11,6 +11,11 @@ const __dirname = path.dirname(__filename);
 const rootPath = process.cwd();
 console.log('rootPath: ', path.resolve(rootPath, './src/assets'));
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@assets': path.resolve(rootPath, './src/assets'),
+    },
+  },
   output: {
     filename: '[name].[platform].bundle',
   },
@@ -20,9 +25,6 @@ export default defineConfig({
       source: {
         entry: {
           main: './src/app/index.tsx',
-        },
-        alias: {
-          '@assets': path.resolve(rootPath, './src/assets'),
         },
       },
       output: {
@@ -37,9 +39,6 @@ export default defineConfig({
       source: {
         entry: {
           main: './src/app/index.tsx',
-        },
-        alias: {
-          '@assets': path.resolve(rootPath, './src/assets'),
         },
       },
       output: {

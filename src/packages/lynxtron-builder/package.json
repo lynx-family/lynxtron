@@ -11,6 +11,7 @@
     "cli.js",
     "patch.js",
     "runtime-config.js",
+    "autolink-packaging.js",
     "README.md",
     "package.json"
   ],

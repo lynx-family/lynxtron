@@ -74,7 +74,11 @@ test('local runtime directories isolate release and DevTool binaries', () => {
   assert.match(getRuntimeExecutablePath('devtool', packageRoot), /dist[\\/]devtool[\\/]/);
 });
 
-test('DevTool download URL uses the stable release tag and suffixed asset', () => {
+test('runtime download URLs use the stable release tag and variant filename', () => {
+  assert.equal(
+    getRuntimeDownloadUrl({ version: '2.0.0', platform: 'linux', arch: 'x64', variant: 'release' }),
+    'https://github.com/lynx-family/lynxtron/releases/download/v2.0.0/lynxtron-v2.0.0-linux-x64.zip'
+  );
   assert.equal(
     getRuntimeDownloadUrl({ baseUrl: 'https://downloads.example.test/', version: '2.0.0', platform: 'linux', arch: 'x64', variant: 'devtool' }),
     'https://downloads.example.test/v2.0.0/lynxtron-v2.0.0-linux-x64-devtool.zip'
@@ -170,7 +174,10 @@ test('concurrent processes install a runtime only once', async () => {
   }
 });
 
-test('runtime archives preserve executable modes and safe relative symlinks', async () => {
+test('runtime archives preserve executable modes and safe relative symlinks', async t => {
+  if (process.platform === 'win32') {
+    return t.skip('Windows runtime archives do not contain symlinks');
+  }
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'lynxtron-runtime-archive-'));
   const archivePath = path.join(root, 'runtime.zip');
   const outputPath = path.join(root, 'output');
@@ -193,7 +200,10 @@ test('runtime archives preserve executable modes and safe relative symlinks', as
   }
 });
 
-test('runtime archives cannot overwrite files through an escaping symlink', async () => {
+test('runtime archives cannot overwrite files through an escaping symlink', async t => {
+  if (process.platform === 'win32') {
+    return t.skip('Windows runtime archives do not contain symlinks');
+  }
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'lynxtron-runtime-escape-'));
   const archivePath = path.join(root, 'runtime.zip');
   const outputPath = path.join(root, 'output');

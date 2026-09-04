@@ -15,7 +15,9 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "postinstall": "node scripts/install.js"
+    "build": "yarn workspace @lynx-js/lynx-library-headers copy-headers && cmake-js build && node scripts/stage-build.js",
+    "postinstall": "node scripts/install.js",
+    "test": "node --test test/*.test.js"
   },
   "keywords": [
     "lynx",
@@ -37,9 +39,10 @@
     "zip-lib": "1.4.0"
   },
   "devDependencies": {
-    "node-addon-api": "^7.0.0",
+    "@lynx-js/lynx-library-headers": "workspace:*",
+    "@lynx-js/lynxtron": "workspace:*",
     "cmake-js": "^7.4.0",
-    "@lynx-js/lynxtron": "*"
+    "node-addon-api": "^7.0.0"
   },
   "engines": {
     "node": "^22.18.0 || ^24.0.0 || ^26.0.0"

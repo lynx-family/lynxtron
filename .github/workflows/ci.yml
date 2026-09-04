@@ -109,3 +109,25 @@ jobs:
         uses: ./lynxtron/.github/actions/windows-lynxtron-build
         with:
           build-arch: ${{ matrix.arch }}
+      - name: Build Windows CEF webview
+        shell: PowerShell
+        run: |
+          $workspace = "${{ github.workspace }}\lynxtron"
+          $env:PATH = "C:\cmake\bin;$workspace\buildtools\gn;$workspace\buildtools\ninja;$env:PATH"
+          $env:vs2022_install = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\BuildTools"
+          $env:DEPOT_TOOLS_WIN_TOOLCHAIN = 0
+          $env:GYP_MSVS_OVERRIDE_PATH = $env:vs2022_install
+          $env:WINDOWSSDKDIR = "${env:ProgramFiles(x86)}\Windows Kits\10"
+          $env:npm_config_platform = "win32"
+          $env:npm_config_arch = "${{ matrix.arch }}"
+          & "$workspace\lynxtron_tools\hab.ps1" sync "$workspace\src" -f --no-history --target extension --target-only
+          if ($LASTEXITCODE -ne 0) { throw "Failed to sync the CEF extension dependencies" }
+          Set-Location "$workspace\src"
+          node tools/yarn.js workspace @lynx-js/cef-webview build
+          if ($LASTEXITCODE -ne 0) { throw "Failed to build the Windows CEF webview" }
+          if (-not (Test-Path "packages\cef-webview\dist\win32\${{ matrix.arch }}\cef_extension.node")) {
+            throw "Windows CEF webview build did not produce cef_extension.node"
+          }
+          if (-not (Test-Path "packages\cef-webview\dist\win32\${{ matrix.arch }}\libcef.dll")) {
+            throw "Windows CEF webview build did not stage libcef.dll"
+          }

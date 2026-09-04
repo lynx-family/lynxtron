@@ -12,6 +12,7 @@ const {
   resolveCliArchitectures,
   resolveTargetPlatform,
 } = require('./runtime-config.js');
+const { prepareAutoLinkPackaging } = require('./autolink-packaging.js');
 
 const projectRoot = process.cwd();
 const configPath = path.join(projectRoot, 'electron-builder.yml');
@@ -96,6 +97,13 @@ function runBuild(arch, rawArgs, { filterTargets = false } = {}) {
         filterTargets,
       });
     }
+
+    prepareAutoLinkPackaging({
+      config,
+      projectRoot,
+      platform: prepared.platform,
+      arch: prepared.arch,
+    });
 
     fs.writeFileSync(tempConfigPath, JSON.stringify(config, null, 2));
 

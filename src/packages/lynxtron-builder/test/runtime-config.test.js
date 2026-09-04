@@ -28,6 +28,10 @@ function prepare({ config = {}, args = [], env = {}, arch } = {}) {
 test('builder defaults to the release runtime', () => {
   const result = prepare();
   assert.equal(result.variant, 'release');
+  assert.equal(
+    result.config.electronDownload.mirror,
+    'https://github.com/lynx-family/lynxtron/releases/download/'
+  );
   assert.equal(result.config.electronDownload.customFilename, 'lynxtron-v1.2.3-darwin-arm64.zip');
 });
 

@@ -1,5 +1,12 @@
 export const POSTINSTALL_RUNTIME_VARIANT = 'devtool';
 
+export function shouldSkipPostinstallRuntime(env = process.env) {
+  return (
+    env.LYNXTRON_SKIP_DOWNLOAD === '1' ||
+    env.LYNXTRON_SKIP_DOWNLOAD === 'true'
+  );
+}
+
 export function getPostinstallRuntimeOptions(env = process.env) {
   return {
     variant: POSTINSTALL_RUNTIME_VARIANT,

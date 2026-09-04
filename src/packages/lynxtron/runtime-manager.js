@@ -14,7 +14,11 @@ import {
   VERSION,
 } from './utils/env-config.js';
 
-const { getRuntimeArtifactFilename, normalizeRuntimeVariant } = runtimeArtifacts;
+const {
+  DEFAULT_RUNTIME_DOWNLOAD_MIRROR,
+  getRuntimeArtifactFilename,
+  normalizeRuntimeVariant,
+} = runtimeArtifacts;
 const { extract: extractZip } = zipLib;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -33,7 +37,7 @@ export function getRuntimeExecutablePath(variant, packageRoot = __dirname) {
 }
 
 export function getRuntimeDownloadUrl({
-  baseUrl = BASE_URL,
+  baseUrl = BASE_URL || DEFAULT_RUNTIME_DOWNLOAD_MIRROR,
   version = VERSION,
   platform = PLATFORM,
   arch = ARCH,

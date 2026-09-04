@@ -14,9 +14,11 @@ files:
   - '**/*.jsn'
   - '**/*.png'
   - '**/*.exe'
+  - '.lynxtron/native/**/*'
 asar: true
 asarUnpack:
   - statics/
+  - '.lynxtron/native/**/*'
 npmRebuild: false
 extraResources:
   - from: src/assets

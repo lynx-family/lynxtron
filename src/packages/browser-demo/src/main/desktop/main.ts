@@ -33,7 +33,13 @@ app.whenReady().then(() => {
         name
       );
 
-      if (name === 'showDialog') {
+      if (name === 'navigationDiagnostic') {
+        console.log(
+          `[browser-demo][navigation] ${data?.stage || 'event'}`,
+          JSON.stringify(data)
+        );
+        callback.sendReply({});
+      } else if (name === 'showDialog') {
         const { message } = data;
         dialog.showMessageBox({ message });
         callback.sendReply();

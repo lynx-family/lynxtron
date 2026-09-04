@@ -23,7 +23,8 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
   set(FRAMEWORK_DST_PATH ${CMAKE_BINARY_DIR}/frameworks)
 endif()
 
-set(HOST_EXECUTABLE_NAME "lynxtron")
+set(CEF_WEBVIEW_HELPER_NAME "LynxtronWebview")
+set(CEF_WEBVIEW_HELPER_BUNDLE_ID "org.lynxjs.lynxtron.webview.helper")
 set(PROJECT_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../..)
 set(LYNX_ROOT_DIR ${PROJECT_ROOT_DIR}/lynx)
 
@@ -64,6 +65,8 @@ if(NOT LYNX_LIBRARY_HEADERS_DIR)
   )
 endif()
 
+include("${LYNX_LIBRARY_HEADERS_DIR}/cmake/lynx-library-headers.cmake")
+
 execute_process(
   COMMAND node -p
           "require('node:path').dirname(require.resolve('node-addon-api/package.json'))"
@@ -86,6 +89,7 @@ add_subdirectory(${CEF_PLUGIN_SRC_DIR} cef_webview)
 set(CEF_EXTENSION_TARGET "cef_extension")
 set(CEF_EXTENSION_SRCS
   bindings/bind_napi.cc
+  bindings/register_webview.cc
   )
 
 add_library(${CEF_EXTENSION_TARGET} SHARED ${CEF_EXTENSION_SRCS})
@@ -96,6 +100,7 @@ if(MSVC)
   target_compile_options(${CEF_EXTENSION_TARGET} PRIVATE /FS)
 endif()
 target_include_directories(${CEF_EXTENSION_TARGET} PRIVATE
+  ${LYNX_LIBRARY_HEADERS_DIR}/include
   ${CMAKE_JS_INC}
   ${NODE_ADDON_API_DIR}
   ${PROJECT_ROOT_DIR}
@@ -107,7 +112,7 @@ target_include_directories(${CEF_EXTENSION_TARGET} PRIVATE
 
 add_dependencies(${CEF_EXTENSION_TARGET} cef_webview)
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-  target_link_libraries(${CEF_EXTENSION_TARGET} 
+  target_link_libraries(${CEF_EXTENSION_TARGET}
     cef_webview
     libcef_dll_wrapper 
     ${CEF_STANDARD_LIBS}
@@ -116,21 +121,38 @@ endif()
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
   # Add libcef logical target
   ADD_LOGICAL_TARGET("libcef_lib" "${CEF_LIB_DEBUG}" "${CEF_LIB_RELEASE}")
-  # Determine architecture
-  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    set(ARCHITECTURE "x64")
-  else()
-    set(ARCHITECTURE "x86")
-  endif()
-  
-  target_link_libraries(${CEF_EXTENSION_TARGET} 
+
+  add_executable(cef_subprocess WIN32 bindings/cef_subprocess_win.cc)
+  target_include_directories(cef_subprocess PRIVATE ${CEF_ROOT})
+  target_link_libraries(
+    cef_subprocess PRIVATE cef_webview libcef_dll_wrapper libcef_lib
+                           ${CEF_STANDARD_LIBS}
+  )
+
+  target_link_libraries(${CEF_EXTENSION_TARGET} PRIVATE
     cef_webview
     libcef_dll_wrapper 
     libcef_lib
     ${CEF_STANDARD_LIBS}
-    "${CMAKE_SOURCE_DIR}/node_modules/lynxtron/dist/win32/${ARCHITECTURE}/lynxtron/lxtn.dll.lib"
     imm32.lib
     )
+  lynx_link_lynxtron_runtime(${CEF_EXTENSION_TARGET})
+
+  # Keep the CEF runtime next to the Node addon. The Windows loader resolves
+  # libcef.dll and its dependencies from this directory, and CEF resolves its
+  # resource packs and locales from the same module directory by default.
+  COPY_FILES(
+    "${CEF_EXTENSION_TARGET}"
+    "${CEF_BINARY_FILES}"
+    "${CEF_BINARY_DIR}"
+    "$<TARGET_FILE_DIR:${CEF_EXTENSION_TARGET}>"
+  )
+  COPY_FILES(
+    "${CEF_EXTENSION_TARGET}"
+    "${CEF_RESOURCE_FILES}"
+    "${CEF_RESOURCE_DIR}"
+    "$<TARGET_FILE_DIR:${CEF_EXTENSION_TARGET}>"
+  )
 endif()
 
 set_target_properties(${CEF_EXTENSION_TARGET} PROPERTIES

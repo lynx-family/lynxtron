@@ -281,7 +281,17 @@ export function App() {
 
   const handleInput = (event: InputEvent) => {
     'background only';
-    const currentValue = event.detail.value.trim();
+    const rawValue = event?.detail?.value;
+    const currentValue = String(rawValue ?? '').trim();
+    console.log(
+      '[browser-demo][navigation] address confirmed',
+      JSON.stringify({ selectedTabId, rawValue, currentValue })
+    );
+    NativeModules.bridge.call(
+      'navigationDiagnostic',
+      { stage: 'address-confirmed', selectedTabId, rawValue, currentValue },
+      () => {}
+    );
     // Update input_value for currently selected tab
     setTabs((prevTabs) =>
       prevTabs.map((tab) => {
@@ -541,7 +551,7 @@ export function App() {
               <HomePage onConvertToLynxTab={openLynxJSWebsite} />
             )}
             {tab.input_value && (
-              <x-webview
+              <webview
                 className="webview-container"
                 id={`webview-${tab.id}`}
                 src={tab.input_value}
@@ -557,6 +567,19 @@ export function App() {
                   handleOpenWindow(e);
                 }}
                 bindload={() => {
+                  console.log(
+                    '[browser-demo][navigation] webview loaded',
+                    JSON.stringify({ tabId: tab.id, src: tab.input_value })
+                  );
+                  NativeModules.bridge.call(
+                    'navigationDiagnostic',
+                    {
+                      stage: 'webview-loaded',
+                      tabId: tab.id,
+                      src: tab.input_value,
+                    },
+                    () => {}
+                  );
                   // Initial page info fetch
                   const initJsCode = `
                     (function(){
@@ -598,6 +621,40 @@ export function App() {
                       },
                     })
                     .exec();
+                }}
+                binderror={(e: any) => {
+                  const diagnostic = {
+                    stage: 'webview-load-failed',
+                    tabId: tab.id,
+                    requestedSrc: tab.input_value,
+                    detail: e?.detail,
+                  };
+                  console.error(
+                    '[browser-demo][navigation] webview load failed',
+                    JSON.stringify(diagnostic)
+                  );
+                  NativeModules.bridge.call(
+                    'navigationDiagnostic',
+                    diagnostic,
+                    () => {}
+                  );
+                }}
+                bindlocationchange={(e: any) => {
+                  const diagnostic = {
+                    stage: 'webview-location-changed',
+                    tabId: tab.id,
+                    requestedSrc: tab.input_value,
+                    detail: e?.detail,
+                  };
+                  console.log(
+                    '[browser-demo][navigation] webview location changed',
+                    JSON.stringify(diagnostic)
+                  );
+                  NativeModules.bridge.call(
+                    'navigationDiagnostic',
+                    diagnostic,
+                    () => {}
+                  );
                 }}
                 bindmessage={(e: any) => {
                   console.log('bindmessage start', e);

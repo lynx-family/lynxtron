@@ -1,0 +1,292 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Lynxtron Authors <lynxtron@lynxjs.org>
+Date: Thu, 3 Sep 2026 00:00:00 +0000
+Subject: [PATCH] Fix CEF OSR rendering on Windows
+
+diff --git a/clay/lynx_adaptor/native_platform_view.cc b/clay/lynx_adaptor/native_platform_view.cc
+--- a/clay/lynx_adaptor/native_platform_view.cc
++++ b/clay/lynx_adaptor/native_platform_view.cc
+@@ -126,8 +126,8 @@ bool NativePlatformView::PresentSurface(
+   return true;
+ }
+ 
+-ClaySharedImageNativeHandle NativePlatformView::AcquireSurface(int width,
+-                                                               int height) {
++ClaySharedImageNativeHandle NativePlatformView::AcquireSurface(
++    int width, int height, const ClayTransformation* transform) {
+   if (!sink_ref_) {
+     return nullptr;
+   }
+@@ -142,6 +142,12 @@ ClaySharedImageNativeHandle NativePlatformView::AcquireSurface(int width,
+   if (!backing) {
+     return nullptr;
+   }
++  if (transform) {
++    backing->SetTransformation(skity::Matrix(
++        transform->scaleX, transform->skewX, transform->transX,
++        transform->skewY, transform->scaleY, transform->transY,
++        transform->pers0, transform->pers1, transform->pers2));
++  }
+   auto fence_sync = backing->GetFenceSync();
+   if (fence_sync) {
+     fence_sync->ClientWait();
+diff --git a/clay/lynx_adaptor/native_platform_view.h b/clay/lynx_adaptor/native_platform_view.h
+--- a/clay/lynx_adaptor/native_platform_view.h
++++ b/clay/lynx_adaptor/native_platform_view.h
+@@ -80,7 +80,8 @@ class CLAY_EXPORT NativePlatformView {
+   bool PresentSurface(int width, int height,
+                       const ClayTransformation* transform,
+                       ClaySharedImageNativeHandle gfx_handle);
+-  ClaySharedImageNativeHandle AcquireSurface(int width, int height);
++  ClaySharedImageNativeHandle AcquireSurface(
++      int width, int height, const ClayTransformation* transform = nullptr);
+   bool SwapBack();
+   ClaySharedImageSinkRef GetSharedImageSink();
+ 
+diff --git a/platform/embedder/lynx_native_view.cc b/platform/embedder/lynx_native_view.cc
+--- a/platform/embedder/lynx_native_view.cc
++++ b/platform/embedder/lynx_native_view.cc
+@@ -277,6 +277,19 @@ LYNX_EXTERN_C lynx_surface_handle_t* lynx_native_view_acquire_surface(
+   auto handle = self->AcquireSurface(width, height);
+   return reinterpret_cast<lynx_surface_handle_t*>(handle);
+ }
++LYNX_EXTERN_C lynx_surface_handle_t*
++lynx_native_view_acquire_surface_with_transform(
++    lynx_native_view_t* view, int width, int height, const float* transform) {
++  static_assert(sizeof(ClayTransformation) == sizeof(float) * 3 * 3);
++  auto self = reinterpret_cast<LynxNativeViewPrivate*>(view);
++  if (!self->GetSharedImageSink()) {
++    return nullptr;
++  }
++  auto handle = self->AcquireSurface(
++      width, height,
++      reinterpret_cast<const ClayTransformation*>(transform));
++  return reinterpret_cast<lynx_surface_handle_t*>(handle);
++}
+ LYNX_EXTERN_C bool lynx_native_view_swap_back(lynx_native_view_t* view) {
+   return reinterpret_cast<LynxNativeViewPrivate*>(view)->SwapBack();
+ }
+diff --git a/platform/embedder/plugin/cef/src/CMakeLists.txt b/platform/embedder/plugin/cef/src/CMakeLists.txt
+--- a/platform/embedder/plugin/cef/src/CMakeLists.txt
++++ b/platform/embedder/plugin/cef/src/CMakeLists.txt
+@@ -63,5 +63,6 @@ endif()
+ if(OS_WINDOWS)
+   target_compile_definitions(${CEF_WEBVIEW_TARGET} PRIVATE OS_WIN lynx_EXPORTS)
+   target_compile_options(${CEF_WEBVIEW_TARGET} PRIVATE /wd4267)
++  target_link_libraries(${CEF_WEBVIEW_TARGET} PUBLIC d3d11.lib)
+ endif()
+ 
+diff --git a/platform/embedder/plugin/cef/src/cef_webview_client.cc b/platform/embedder/plugin/cef/src/cef_webview_client.cc
+--- a/platform/embedder/plugin/cef/src/cef_webview_client.cc
++++ b/platform/embedder/plugin/cef/src/cef_webview_client.cc
+@@ -147,6 +147,9 @@ void CEFWebviewClient::OnLoadEnd(CefRefPtr<CefBrowser> browser,
+   }
+   if (httpStatusCode == 200 && frame->IsMain() && !loaded_) {
+     loaded_ = true;
++    if (webview_->UseOSR()) {
++      browser->GetHost()->SendExternalBeginFrame();
++    }
+     webview_->TriggerEvent(
+         "load", lynx::pub::LynxValue(lynx::pub::LynxValue::kCreateAsNullTag));
+   } else {
+diff --git a/platform/embedder/plugin/cef/src/win/cef_webview_client_win.cc b/platform/embedder/plugin/cef/src/win/cef_webview_client_win.cc
+--- a/platform/embedder/plugin/cef/src/win/cef_webview_client_win.cc
++++ b/platform/embedder/plugin/cef/src/win/cef_webview_client_win.cc
+@@ -5,6 +5,7 @@
+ #include "platform/embedder/plugin/cef/src/win/cef_webview_client_win.h"
+ 
+ #include <VersionHelpers.h>
++#include <d3d11_1.h>
+ 
+ #include <algorithm>
+ #include <limits>
+@@ -17,11 +18,35 @@ namespace lynx {
+ namespace plugin {
+ namespace embedder {
+ 
++namespace {
++
++HRESULT OpenSharedTexture(ID3D11Device* device, HANDLE handle,
++                          ID3D11Texture2D** texture) {
++  HRESULT result = device->OpenSharedResource(
++      handle, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(texture));
++  if (SUCCEEDED(result)) {
++    return result;
++  }
++
++  Microsoft::WRL::ComPtr<ID3D11Device1> device1;
++  if (FAILED(device->QueryInterface(IID_PPV_ARGS(&device1)))) {
++    return result;
++  }
++  return device1->OpenSharedResource1(
++      handle, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(texture));
++}
++
++}  // namespace
++
+ CEFWebviewClientWin::CEFWebviewClientWin(CEFWebviewWin* webview)
+     : CEFWebviewClient(webview) {
+   parent_ = reinterpret_cast<HWND>(
+       lynx_view_get_native_window(webview->GetLynxView()));
+   ime_handler_ = std::make_unique<OsrImeHandlerWin>(parent_);
++  D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
++                    D3D11_CREATE_DEVICE_BGRA_SUPPORT, nullptr, 0,
++                    D3D11_SDK_VERSION, &d3d11_device_, nullptr,
++                    &d3d11_context_);
+ }
+ 
+ void CEFWebviewClientWin::GetViewRect(CefRefPtr<CefBrowser> browser,
+@@ -34,6 +59,16 @@ void CEFWebviewClientWin::GetViewRect(CefRefPtr<CefBrowser> browser,
+            std::max(1L, bounds.bottom - bounds.top));
+ }
+ 
++bool CEFWebviewClientWin::GetScreenInfo(CefRefPtr<CefBrowser> browser,
++                                        CefScreenInfo& screen_info) {
++  CefRect view_rect;
++  GetViewRect(browser, view_rect);
++  screen_info.device_scale_factor = 1.0f;
++  screen_info.rect = view_rect;
++  screen_info.available_rect = view_rect;
++  return true;
++}
++
+ bool CEFWebviewClientWin::GetScreenPoint(CefRefPtr<CefBrowser> browser,
+                                          int viewX, int viewY, int& screenX,
+                                          int& screenY) {
+@@ -48,11 +83,44 @@ bool CEFWebviewClientWin::GetScreenPoint(CefRefPtr<CefBrowser> browser,
+ void CEFWebviewClientWin::OnAcceleratedPaint(
+     CefRefPtr<CefBrowser> browser, PaintElementType type,
+     const RectList& dirtyRects, const CefAcceleratedPaintInfo& info) {
+-  // TODO: check image sink
++  if (type != PET_VIEW || !d3d11_device_ || !d3d11_context_) {
++    return;
++  }
++
++  const int width = info.extra.source_size.width;
++  const int height = info.extra.source_size.height;
+   static const float transform[3 * 3] = {1, 0, 0, 0, -1, 1, 0, 0, 1};
+-  webview_->PresentSurface(
+-      info.extra.source_size.width, info.extra.source_size.height, transform,
+-      reinterpret_cast<lynx_surface_handle_t*>(info.shared_texture_handle));
++  HANDLE destination_handle = reinterpret_cast<HANDLE>(
++      webview_->AcquireSurface(width, height, transform));
++  if (!destination_handle) {
++    return;
++  }
++
++  Microsoft::WRL::ComPtr<ID3D11Texture2D> source_texture;
++  Microsoft::WRL::ComPtr<ID3D11Texture2D> destination_texture;
++  const HRESULT source_result = OpenSharedTexture(
++      d3d11_device_.Get(), info.shared_texture_handle,
++      source_texture.GetAddressOf());
++  const HRESULT destination_result = OpenSharedTexture(
++      d3d11_device_.Get(), destination_handle,
++      destination_texture.GetAddressOf());
++  if (FAILED(source_result) || FAILED(destination_result)) {
++    return;
++  }
++
++  Microsoft::WRL::ComPtr<IDXGIKeyedMutex> destination_mutex;
++  destination_texture.As(&destination_mutex);
++  if (destination_mutex &&
++      destination_mutex->AcquireSync(0, 2000) != S_OK) {
++    return;
++  }
++
++  d3d11_context_->CopyResource(destination_texture.Get(), source_texture.Get());
++  d3d11_context_->Flush();
++  if (destination_mutex) {
++    destination_mutex->ReleaseSync(0);
++  }
++  webview_->SwapBack();
+ }
+ 
+ void CEFWebviewClientWin::OnImeCompositionRangeChanged(
+diff --git a/platform/embedder/plugin/cef/src/win/cef_webview_client_win.h b/platform/embedder/plugin/cef/src/win/cef_webview_client_win.h
+--- a/platform/embedder/plugin/cef/src/win/cef_webview_client_win.h
++++ b/platform/embedder/plugin/cef/src/win/cef_webview_client_win.h
+@@ -6,6 +6,8 @@
+ #define PLATFORM_EMBEDDER_PLUGIN_CEF_SRC_WIN_CEF_WEBVIEW_CLIENT_WIN_H_
+ 
+ #include <Windows.h>
++#include <d3d11.h>
++#include <wrl/client.h>
+ 
+ #include <memory>
+ 
+@@ -25,5 +27,8 @@ class CEFWebviewClientWin : public CEFWebviewClient {
+   // CefRenderHandler
+   void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) override;
+ 
++  bool GetScreenInfo(CefRefPtr<CefBrowser> browser,
++                     CefScreenInfo& screen_info) override;
++
+   bool GetScreenPoint(CefRefPtr<CefBrowser> browser, int viewX, int viewY,
+                       int& screenX, int& screenY) override;
+@@ -54,6 +59,8 @@ class CEFWebviewClientWin : public CEFWebviewClient {
+ 
+  private:
+   HWND parent_;
++  Microsoft::WRL::ComPtr<ID3D11Device> d3d11_device_;
++  Microsoft::WRL::ComPtr<ID3D11DeviceContext> d3d11_context_;
+   std::unique_ptr<OsrImeHandlerWin> ime_handler_;
+ };
+ 
+diff --git a/platform/embedder/plugin/cef/src/win/cef_webview_initializer.cc b/platform/embedder/plugin/cef/src/win/cef_webview_initializer.cc
+--- a/platform/embedder/plugin/cef/src/win/cef_webview_initializer.cc
++++ b/platform/embedder/plugin/cef/src/win/cef_webview_initializer.cc
+@@ -94,9 +94,12 @@ class CEFWebviewApp : public CefApp,
+ 
+ }  // namespace
+ 
++extern "C" int cef_webview_execute_process(HINSTANCE instance) {
++  return CefExecuteProcess(CefMainArgs(instance), new CEFWebviewApp, nullptr);
++}
++
+ LYNX_EXTERN_C bool cef_extension_module_initialize() {
+-  CefMainArgs main_args(::GetModuleHandle(nullptr));
+-  int exit_code = CefExecuteProcess(main_args, new CEFWebviewApp, nullptr);
++  int exit_code = cef_webview_execute_process(::GetModuleHandle(nullptr));
+   if (exit_code >= 0) {
+     return false;
+   }
+diff --git a/platform/embedder/plugin/cef/src/win/cef_webview_win.cc b/platform/embedder/plugin/cef/src/win/cef_webview_win.cc
+--- a/platform/embedder/plugin/cef/src/win/cef_webview_win.cc
++++ b/platform/embedder/plugin/cef/src/win/cef_webview_win.cc
+@@ -151,6 +151,7 @@ void CEFWebviewWin::SetupClient() {
+     auto* native_window = lynx_view_get_native_window(lynx_view_);
+     window_info.SetAsWindowless(reinterpret_cast<HWND>(native_window));
+     window_info.shared_texture_enabled = 1;
++    window_info.external_begin_frame_enabled = 1;
+     settings.windowless_frame_rate = fps_;
+   } else if (isWindows7) {
+     window_info.SetAsChild(GetOrCreateOwnedWin(),
+diff --git a/platform/embedder/public/capi/lynx_native_view_capi.h b/platform/embedder/public/capi/lynx_native_view_capi.h
+--- a/platform/embedder/public/capi/lynx_native_view_capi.h
++++ b/platform/embedder/public/capi/lynx_native_view_capi.h
+@@ -151,6 +151,9 @@ LYNX_CAPI_EXPORT bool lynx_native_view_present_surface(
+ // graphics API/device that matches the active Windows backend.
+ LYNX_CAPI_EXPORT lynx_surface_handle_t* lynx_native_view_acquire_surface(
+     lynx_native_view_t*, int width, int height);
++LYNX_CAPI_EXPORT lynx_surface_handle_t*
++lynx_native_view_acquire_surface_with_transform(
++    lynx_native_view_t*, int width, int height, const float* transform);
+ LYNX_CAPI_EXPORT bool lynx_native_view_swap_back(lynx_native_view_t*);
+ LYNX_CAPI_EXPORT void lynx_native_view_trigger_event(lynx_native_view_t*,
+                                                      const char* name,
+diff --git a/platform/embedder/public/lynx_native_view.h b/platform/embedder/public/lynx_native_view.h
+--- a/platform/embedder/public/lynx_native_view.h
++++ b/platform/embedder/public/lynx_native_view.h
+@@ -157,6 +157,12 @@ class LynxNativeView {
+     return lynx_native_view_acquire_surface(native_view_, width, height);
+   }
+ 
++  inline lynx_surface_handle_t* AcquireSurface(int width, int height,
++                                                const float* transform) {
++    return lynx_native_view_acquire_surface_with_transform(
++        native_view_, width, height, transform);
++  }
++
+   /**
+    * @apidoc
+    * @brief Swap the current back buffer to pending front

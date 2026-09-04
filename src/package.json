@@ -30,6 +30,7 @@
     "pre-flight": "pre-flight",
     "tsc": "tsc",
     "webpack": "webpack",
+    "start:browser-demo": "node tools/yarn.js workspace @lynx-js/cef-webview build && node tools/yarn.js workspace @lynx-js/lynxtron-dev-plugins build && node tools/yarn.js workspace lynxtron-browser-demo start",
     "test": "node ./script/spec-runner.js",
     "test:build:lynx": "npm --prefix spec/case/lynx-card run build --"
   },
@@ -40,6 +41,8 @@
   ],
   "workspaces": [
     "packages/default_app/app",
+    "packages/browser-demo",
+    "packages/cef-webview",
     "packages/lynxtron",
     "packages/lynxtron-builder",
     "packages/lynxtron-shell-demo",

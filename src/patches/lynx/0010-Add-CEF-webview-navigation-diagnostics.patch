@@ -1,0 +1,86 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Lynxtron Authors <lynxtron@lynxjs.org>
+Date: Thu, 3 Sep 2026 00:00:00 +0000
+Subject: [PATCH] Add CEF webview navigation diagnostics
+
+diff --git a/platform/embedder/plugin/cef/src/cef_webview.cc b/platform/embedder/plugin/cef/src/cef_webview.cc
+index 1f735097..48f6bb5d 100644
+--- a/platform/embedder/plugin/cef/src/cef_webview.cc
++++ b/platform/embedder/plugin/cef/src/cef_webview.cc
+@@ -4,6 +4,7 @@
+ 
+ #include "platform/embedder/plugin/cef/src/cef_webview.h"
+ 
++#include <cstdio>
+ #include <utility>
+ 
+ #include "platform/embedder/plugin/cef/src/cef_webview_constants.h"
+@@ -229,6 +230,18 @@ void CEFWebview::OnPropertiesChanged(const lynx::pub::LynxValue& attrs,
+   if (attrs.HasProperty(kPropertySrc)) {
+     std::string url = attrs.GetProperty(kPropertySrc).StdString();
+     bool navigate = url_ != url;
++    if (enable_devtool_) {
++      fprintf(stderr,
++              "[cef-webview][navigation] src update: value=\"%s\", "
++              "length=%zu, changed=%d, browser_created=%d\n",
++              url.c_str(), url.size(), navigate, browser_ ? 1 : 0);
++      fflush(stderr);
++      LYNX_CAPI_LOG(
++          LYNX_LOG_WARNING, LOG_TAG,
++          "[navigation] src update: value=\"%s\", length=%zu, changed=%d, "
++          "browser_created=%d",
++          url.c_str(), url.size(), navigate, browser_ ? 1 : 0);
++    }
+     url_ = url;
+     if (!browser_) {
+       SetupClient();
+diff --git a/platform/embedder/plugin/cef/src/cef_webview_client.cc b/platform/embedder/plugin/cef/src/cef_webview_client.cc
+index 510d8274..df9b7030 100644
+--- a/platform/embedder/plugin/cef/src/cef_webview_client.cc
++++ b/platform/embedder/plugin/cef/src/cef_webview_client.cc
+@@ -4,6 +4,7 @@
+ 
+ #include "platform/embedder/plugin/cef/src/cef_webview_client.h"
+ 
++#include <cstdio>
+ #include <utility>
+ 
+ #include "platform/embedder/plugin/cef/src/cef_webview.h"
+@@ -97,6 +98,18 @@ bool CEFWebviewClient::OnBeforeBrowse(CefRefPtr<CefBrowser> browser,
+                                       CefRefPtr<CefFrame> frame,
+                                       CefRefPtr<CefRequest> request,
+                                       bool user_gesture, bool is_redirect) {
++  if (webview_ && webview_->EnableDevtool() && frame->IsMain()) {
++    const std::string request_url = request->GetURL().ToString();
++    fprintf(stderr,
++            "[cef-webview][navigation] before browse: url=\"%s\", "
++            "user_gesture=%d, redirect=%d\n",
++            request_url.c_str(), user_gesture, is_redirect);
++    fflush(stderr);
++    LYNX_CAPI_LOG(
++        LYNX_LOG_WARNING, LOG_TAG,
++        "[navigation] before browse: url=\"%s\", user_gesture=%d, redirect=%d",
++        request_url.c_str(), user_gesture, is_redirect);
++  }
+   message_router_->OnBeforeBrowse(browser, frame);
+   return false;
+ }
+@@ -152,10 +165,16 @@ void CEFWebviewClient::OnLoadError(CefRefPtr<CefBrowser> browser,
+                   "OnLoadError but webview instance is null");
+     return;
+   }
+-  LYNX_CAPI_LOG(LYNX_LOG_INFO, LOG_TAG,
+-                "OnLoadError: error code: %d, error text:%s, failed url:%s",
++  LYNX_CAPI_LOG(LYNX_LOG_ERROR, LOG_TAG,
++                "[navigation] load error: code=%d, text=\"%s\", url=\"%s\"",
+                 static_cast<int>(errorCode), errorText.ToString().c_str(),
+                 failedUrl.ToString().c_str());
++  fprintf(stderr,
++          "[cef-webview][navigation] load error: code=%d, text=\"%s\", "
++          "url=\"%s\"\n",
++          static_cast<int>(errorCode), errorText.ToString().c_str(),
++          failedUrl.ToString().c_str());
++  fflush(stderr);
+   lynx::pub::LynxValue detail(lynx::pub::LynxValue::kCreateAsMapTag);
+   detail.SetProperty("errorCode", lynx::pub::LynxValue(int(errorCode)));
+   detail.SetProperty("errorMsg", lynx::pub::LynxValue(errorText.ToString()));

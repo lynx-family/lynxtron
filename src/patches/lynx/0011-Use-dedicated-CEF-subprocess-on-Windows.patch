@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Lynxtron Authors <lynxtron@lynxjs.org>
+Date: Thu, 3 Sep 2026 00:00:00 +0000
+Subject: [PATCH] Use dedicated CEF subprocess on Windows
+
+diff --git a/platform/embedder/plugin/cef/src/win/cef_webview_initializer.cc b/platform/embedder/plugin/cef/src/win/cef_webview_initializer.cc
+index c61fa728..20f9e6f5 100644
+--- a/platform/embedder/plugin/cef/src/win/cef_webview_initializer.cc
++++ b/platform/embedder/plugin/cef/src/win/cef_webview_initializer.cc
+@@ -10,1 +10,5 @@
++#include <windows.h>
++
++#include <string>
++
+ namespace {
+@@ -102,1 +106,20 @@ LYNX_EXTERN_C bool cef_extension_module_initialize() {
++  HMODULE module = nullptr;
++  if (::GetModuleHandleExW(
++          GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
++              GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
++          reinterpret_cast<LPCWSTR>(&cef_extension_module_initialize),
++          &module)) {
++    wchar_t module_path[MAX_PATH];
++    const DWORD length = ::GetModuleFileNameW(module, module_path, MAX_PATH);
++    if (length > 0 && length < MAX_PATH) {
++      std::wstring subprocess_path(module_path, length);
++      const size_t separator = subprocess_path.find_last_of(L"\\/");
++      if (separator != std::wstring::npos) {
++        subprocess_path.resize(separator + 1);
++        subprocess_path.append(L"cef_subprocess.exe");
++        CefString(&settings.browser_subprocess_path) = subprocess_path;
++      }
++    }
++  }
++
+   settings.no_sandbox = 1;

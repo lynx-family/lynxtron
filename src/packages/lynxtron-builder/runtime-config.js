@@ -205,7 +205,7 @@ function prepareRuntimeConfig({
     }
     config.electronDownload = {
       version: effectiveVersion,
-      mirror: '',
+      mirror: runtimeArtifacts.DEFAULT_RUNTIME_DOWNLOAD_MIRROR,
       customDir: `v${effectiveVersion}`,
       customFilename: runtimeArtifacts.getRuntimeArtifactFilename({
         version: effectiveVersion,

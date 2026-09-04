@@ -47,8 +47,9 @@ export function applyLynxtronAutoLink(
 
   compiler.hooks?.beforeRun?.tap('LynxtronAutoLink', regenerate);
   compiler.hooks?.watchRun?.tap('LynxtronAutoLink', regenerate);
-  compiler.hooks?.beforeRun?.tap('LynxtronAutoLinkStage', stage);
-  compiler.hooks?.watchRun?.tap('LynxtronAutoLinkStage', stage);
+  // Rsbuild cleans the output directory after beforeRun. Stage native files
+  // after Rspack emits assets so the cleanup cannot remove them.
+  compiler.hooks?.afterEmit?.tap('LynxtronAutoLinkStage', stage);
 }
 
 function shouldInjectForTarget(target: unknown, force = false): boolean {
@@ -146,13 +147,6 @@ function writeAutoLinkProxyModules(
   const aliases: Record<string, string> = {};
 
   for (const library of stagedLibraries) {
-    if (
-      library.copyMode !== 'package' ||
-      library.requireSpecifier === undefined
-    ) {
-      continue;
-    }
-
     const proxyPath = path.join(
       generatedDir,
       `${sanitizeProxyFileName(library.requireSpecifier)}.mjs`
@@ -174,7 +168,9 @@ import __path from 'node:path';
 import { fileURLToPath as __fileURLToPath } from 'node:url';
 
 const __lynxtronAutoLinkProxySourceDir = __path.dirname(
-  __fileURLToPath(import.meta.url),
+  typeof __filename === 'string'
+    ? __filename
+    : __fileURLToPath(import.meta.url),
 );
 const __lynxtronAutoLinkProxyPackageRoot = ${JSON.stringify(
     normalizeStagedPath(library.stagedPath)
@@ -291,8 +287,7 @@ function createLynxtronAutoLinkStagePlugin(
         stageAutoLinkLibraries(root, compiler.options.output?.path, options);
       };
 
-      compiler.hooks?.beforeRun?.tap('LynxtronAutoLinkStage', stage);
-      compiler.hooks?.watchRun?.tap('LynxtronAutoLinkStage', stage);
+      compiler.hooks?.afterEmit?.tap('LynxtronAutoLinkStage', stage);
     },
   };
 }
@@ -324,125 +319,49 @@ function stageAutoLinkLibraries(
   );
 
   for (const library of stagedLibraries) {
-    stageAutoLinkLibrary(outputPath, library, options);
+    stageAutoLinkLibrary(outputPath, library);
   }
 }
 
 function stageAutoLinkLibrary(
   outputPath: string,
-  library: LynxtronAutoLinkStagedLibrary,
-  options: LynxtronAutoLinkPluginOptions
-): void {
-  if (library.copyMode === 'package') {
-    stageAutoLinkPackage(outputPath, library, options);
-    return;
-  }
-
-  if (hasGlob(library.sourcePath)) {
-    options.warn?.(
-      `Lynxtron AutoLink cannot stage glob native library path: ${library.sourcePath}`
-    );
-    return;
-  }
-
-  if (!fs.existsSync(library.sourcePath)) {
-    return;
-  }
-
-  const targetPath = path.join(outputPath, library.stagedPath);
-  fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-  fs.copyFileSync(library.sourcePath, targetPath);
-}
-
-function stageAutoLinkPackage(
-  outputPath: string,
-  library: LynxtronAutoLinkStagedLibrary,
-  options: LynxtronAutoLinkPluginOptions
+  library: LynxtronAutoLinkStagedLibrary
 ): void {
   if (!fs.existsSync(library.sourcePath)) {
     return;
   }
 
   const targetPath = path.join(outputPath, library.stagedPath);
-  const packageFiles = readPackageFiles(library.sourcePath);
 
   fs.rmSync(targetPath, { recursive: true, force: true });
   fs.mkdirSync(targetPath, { recursive: true });
-  copyPath(
-    path.join(library.sourcePath, 'package.json'),
-    path.join(targetPath, 'package.json')
-  );
-  copyPath(
-    path.join(library.sourcePath, 'lynx.lib.json'),
-    path.join(targetPath, 'lynx.lib.json')
-  );
 
-  if (packageFiles.length === 0) {
-    copyDirectory(library.sourcePath, targetPath);
-    return;
-  }
-
-  for (const entry of packageFiles) {
-    const normalizedEntry = normalizePackageFileEntry(entry);
-
-    if (normalizedEntry === undefined) {
-      options.warn?.(
-        `Lynxtron AutoLink cannot stage package file pattern: ${entry}`
-      );
-      continue;
-    }
-
+  for (const entry of library.files) {
     copyPath(
-      path.join(library.sourcePath, normalizedEntry),
-      path.join(targetPath, normalizedEntry)
+      path.join(library.sourcePath, entry),
+      path.join(targetPath, entry)
     );
   }
 }
 
-function readPackageFiles(packageRoot: string): string[] {
+function copyPath(sourcePath: string, targetPath: string): void {
+  let stat: fs.Stats;
   try {
-    const packageJson = JSON.parse(
-      fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf8')
-    ) as { files?: unknown };
-
-    if (Array.isArray(packageJson.files)) {
-      return packageJson.files.filter(
-        (item): item is string =>
-          typeof item === 'string' && item.length > 0 && !item.startsWith('!')
-      );
+    stat = fs.lstatSync(sourcePath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return;
     }
-  } catch {}
-
-  return [];
-}
-
-function normalizePackageFileEntry(entry: string): string | undefined {
-  const normalizedEntry = entry
-    .replaceAll('\\', '/')
-    .replace(/^\.\//, '')
-    .replace(/\/\*\*\/\*$/, '')
-    .replace(/\/\*$/, '');
-
-  if (
-    normalizedEntry.length === 0 ||
-    normalizedEntry.includes('..') ||
-    normalizedEntry.includes('*')
-  ) {
-    return undefined;
+    throw error;
   }
 
-  return normalizedEntry;
-}
-
-function copyPath(sourcePath: string, targetPath: string): void {
-  if (!fs.existsSync(sourcePath)) {
+  if (stat.isSymbolicLink()) {
+    copySymbolicLink(sourcePath, targetPath, path.dirname(sourcePath));
     return;
   }
 
-  const stat = fs.statSync(sourcePath);
-
   if (stat.isDirectory()) {
-    copyDirectory(sourcePath, targetPath);
+    copyDirectory(sourcePath, targetPath, sourcePath);
     return;
   }
 
@@ -450,7 +369,11 @@ function copyPath(sourcePath: string, targetPath: string): void {
   fs.copyFileSync(sourcePath, targetPath);
 }
 
-function copyDirectory(sourcePath: string, targetPath: string): void {
+function copyDirectory(
+  sourcePath: string,
+  targetPath: string,
+  sourceRoot = sourcePath
+): void {
   if (shouldSkipPackageEntry(path.basename(sourcePath))) {
     return;
   }
@@ -466,12 +389,37 @@ function copyDirectory(sourcePath: string, targetPath: string): void {
     const targetEntry = path.join(targetPath, entry.name);
 
     if (entry.isDirectory()) {
-      copyDirectory(sourceEntry, targetEntry);
+      copyDirectory(sourceEntry, targetEntry, sourceRoot);
+    } else if (entry.isSymbolicLink()) {
+      copySymbolicLink(sourceEntry, targetEntry, sourceRoot);
     } else if (entry.isFile()) {
       fs.mkdirSync(path.dirname(targetEntry), { recursive: true });
       fs.copyFileSync(sourceEntry, targetEntry);
     }
   }
+}
+
+function copySymbolicLink(
+  sourcePath: string,
+  targetPath: string,
+  sourceRoot: string
+): void {
+  const linkTarget = fs.readlinkSync(sourcePath);
+  const resolvedTarget = path.resolve(path.dirname(sourcePath), linkTarget);
+  const relativeTarget = path.relative(sourceRoot, resolvedTarget);
+
+  if (
+    path.isAbsolute(linkTarget) ||
+    relativeTarget === '..' ||
+    relativeTarget.startsWith(`..${path.sep}`)
+  ) {
+    throw new Error(
+      `Lynxtron AutoLink refuses to stage symbolic link outside its package: ${sourcePath} -> ${linkTarget}`
+    );
+  }
+
+  fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+  fs.symlinkSync(linkTarget, targetPath);
 }
 
 function shouldSkipPackageEntry(name: string): boolean {
@@ -483,10 +431,6 @@ function shouldSkipPackageEntry(name: string): boolean {
     name === '_tmp_extract' ||
     name.endsWith('.zip')
   );
-}
-
-function hasGlob(value: string): boolean {
-  return value.includes('*');
 }
 
 function prependAutoLinkEntry(
