@@ -7,7 +7,7 @@ import { Readable } from 'stream';
 
 // UtilityProcess API
 
-export class UtilityProcess extends EventEmitter {
+export interface UtilityProcess extends EventEmitter {
   /**
    * The `PID` of the process.
    */
