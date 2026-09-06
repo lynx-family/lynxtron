@@ -1,0 +1,24 @@
+# create-lynxtron
+
+## 0.0.19
+
+### Patch Changes
+
+- fd5a222: Enable inline CSS variables in the default Lynxtron page configuration.
+- d23dd56: Declare support for Node.js 24 and 26 across all published Lynxtron packages
+  while retaining Node.js 22.18 and later within the Node.js 22 release line.
+  Use the maintained zip-lib extraction APIs, backed by yauzl 3, so binary
+  installation completes safely on Node.js 26. Serialize concurrent runtime
+  installation across processes so simultaneous first launches reuse one download.
+
+  Publish Release and DevTool runtimes under one package version. The `lynxtron`
+  CLI defaults to DevTool while `lynxtron-builder` defaults to Release, with CLI,
+  environment, and electron-builder.yml overrides for explicit selection.
+  Keep Release and DevTool downloads under distinct electron-builder cache keys so
+  switching variants at the same version cannot reuse the other runtime archive.
+  Publish both macOS x64 and arm64 runtime archives so universal packaging can
+  resolve both slices for Release and DevTool builds.
+
+- 005d052: Migrate the Lynxtron shell template host builds from the Rspack CLI to
+  Rsbuild, add a first-class Lynxtron Rsbuild plugin, and allow the development
+  plugins to run with Rsbuild 2.1.5 and later.

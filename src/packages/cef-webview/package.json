@@ -1,7 +1,7 @@
 {
   "name": "@lynx-js/cef-webview",
   "author": "Lynxtron Authors",
-  "version": "0.0.18",
+  "version": "0.0.19",
   "type": "module",
   "description": "a webview element based on cef",
   "repository": {

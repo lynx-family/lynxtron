@@ -1,6 +1,6 @@
 {
   "name": "@lynx-js/lynxtron-rebuild",
-  "version": "0.0.18",
+  "version": "0.0.19",
   "description": "Rebuild native modules for Lynxtron",
   "main": "lib/index.js",
   "repository": {
