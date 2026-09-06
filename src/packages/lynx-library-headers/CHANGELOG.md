@@ -1,5 +1,13 @@
 # @lynx-js/lynx-library-headers
 
+## 0.0.20
+
+### Patch Changes
+
+- 331ae3f: Fix CEF webview publish build by using yarn instead of npm to resolve workspace:\* protocol.
+- Updated dependencies [331ae3f]
+  - @lynx-js/lynxtron@0.0.20
+
 ## 0.0.19
 
 ### Patch Changes

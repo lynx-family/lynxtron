@@ -1,5 +1,11 @@
 # @lynx-js/cef-webview
 
+## 0.0.20
+
+### Patch Changes
+
+- 331ae3f: Fix CEF webview publish build by using yarn instead of npm to resolve workspace:\* protocol.
+
 ## 0.0.19
 
 ### Patch Changes
