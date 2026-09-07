@@ -1,5 +1,13 @@
 # @lynx-js/lynx-library-headers
 
+## 0.0.21
+
+### Patch Changes
+
+- 61aa47b: Fix skity rendering issue with paints_into_platform_view_slice limited to Window
+- Updated dependencies [61aa47b]
+  - @lynx-js/lynxtron@0.0.21
+
 ## 0.0.20
 
 ### Patch Changes

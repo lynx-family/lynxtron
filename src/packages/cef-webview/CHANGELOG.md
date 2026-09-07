@@ -1,5 +1,11 @@
 # @lynx-js/cef-webview
 
+## 0.0.21
+
+### Patch Changes
+
+- 61aa47b: Fix skity rendering issue with paints_into_platform_view_slice limited to Window
+
 ## 0.0.20
 
 ### Patch Changes
