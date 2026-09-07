@@ -4,13 +4,20 @@
 
 #include "shell/app/library_main.h"
 
+#include <stdio.h>
+
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "base/at_exit.h"
 #include "base/command_line.h"
 #include "base/environment.h"
+#include "base/files/file_path.h"
+#include "base/files/file_util.h"
 #include "base/i18n/icu_util.h"
+#include "base/logging.h"
+#include "base/path_service.h"
 #include "build/buildflag.h"
 #if defined(ADDRESS_SANITIZER)
 #include "base/debug/asan_service.h"
@@ -129,6 +136,69 @@ int LynxtronMain(int argc, char* argv[]) {
   base::apple::SetOverrideOuterBundlePath(
       lynxtron::MainApplicationBundlePath());
 #endif
+
+#if BUILDFLAG(IS_HARMONY)
+  // A HAP has no console: the ArkTS app process closes stdout/stderr, so
+  // everything V8 and Node write straight to those descriptors — V8_Fatal
+  // messages, uncaught JS exceptions during bootstrap — is discarded, and a
+  // fatal error shows up as nothing but a SIGTRAP in the system crash log.
+  // Chromium's own logging goes to --log-file and is unaffected; this only
+  // rescues the two runtimes that bypass it.
+  {
+    auto env = base::Environment::Create();
+    std::optional<std::string> files_dir = env->GetVar("LYNXTRON_FILES_DIR");
+    if (files_dir && !files_dir->empty()) {
+      const std::string stdio_log = *files_dir + "/lynxtron_stdio.log";
+      if (freopen(stdio_log.c_str(), "w", stderr)) {
+        setvbuf(stderr, nullptr, _IONBF, 0);
+        if (freopen(stdio_log.c_str(), "a", stdout)) {
+          setvbuf(stdout, nullptr, _IONBF, 0);
+        }
+      }
+    }
+  }
+
+  // Point DIR_ASSETS at the HAP's resfile directory before anything reads it.
+  //
+  // On other platforms DIR_ASSETS derives from DIR_EXE, but a HAP's native
+  // code runs inside the ArkTS app process, so /proc/self/exe names the
+  // runtime host rather than anything of ours and the staged runtime files —
+  // icudtl.dat, snapshot_blob.bin, resources/default_app.asar,
+  // resources/lynx_core.js — sit somewhere else entirely.  Without this,
+  // InitializeICU() aborts the process on "Invalid file descriptor to ICU
+  // data received" before the first window is ever created.
+  //
+  // The ETS bridge publishes the ability context's resourceDir as
+  // LYNXTRON_EXE_PATH, which is authoritative: it already carries whatever
+  // module name the HAP was packaged under.  Fall back to the conventional
+  // mount points only for processes started without an ability context.
+  {
+    base::FilePath assets;
+    auto env = base::Environment::Create();
+    std::optional<std::string> resource_dir = env->GetVar("LYNXTRON_EXE_PATH");
+    if (resource_dir && !resource_dir->empty()) {
+      assets = base::FilePath(*resource_dir);
+    } else {
+      static constexpr const char* kCandidateAssetDirs[] = {
+          "/data/storage/el1/bundle/entry/resources/resfile",
+          "/data/storage/el1/bundle/resources/resfile",
+          "/data/storage/el2/base/resources/resfile",
+      };
+      for (const char* candidate : kCandidateAssetDirs) {
+        base::FilePath dir(candidate);
+        if (base::PathExists(dir.AppendASCII("icudtl.dat"))) {
+          assets = dir;
+          break;
+        }
+      }
+    }
+    if (assets.empty() ||
+        !base::PathService::Override(base::DIR_ASSETS, assets)) {
+      LOG(ERROR) << "Could not locate the HAP resfile directory; ICU and the "
+                    "Node.js bootstrap will fail to load their data files.";
+    }
+  }
+#endif  // BUILDFLAG(IS_HARMONY)
 
   base::i18n::InitializeICU();
 

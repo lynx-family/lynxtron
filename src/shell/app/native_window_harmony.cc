@@ -208,7 +208,7 @@ class NativeWindowHarmony : public NativeWindow {
     options.Get("modal", &modal);
 
     int display_id = -1;
-    options.Get(options::kDisplayId, &display_id);
+    options.Get("displayId", &display_id);
 
     std::string type = "main";
     options.Get(options::kType, &type);
@@ -476,8 +476,8 @@ class NativeWindowHarmony : public NativeWindow {
   gfx::Rect GetBounds() const override { return bounds_; }
   float GetDevicePixelRatio() const override { return device_pixel_ratio_; }
   gfx::Rect GetNormalBounds() const override { return bounds_; }
-  gfx::Rect GetWindowBounds() const override { return window_bounds_; }
-  gfx::Size GetWindowSize() const override { return window_bounds_.size(); }
+  gfx::Rect GetWindowBounds() const { return window_bounds_; }
+  gfx::Size GetWindowSize() const { return window_bounds_.size(); }
 
   // Updates the cached window rect (windowRect) reported by ArkTS. This is the
   // actual OS window size including decorations/avoidance areas, which differs
@@ -604,11 +604,11 @@ class NativeWindowHarmony : public NativeWindow {
   }
 
   // --- window button (decor + three-button) visibility ---
-  void SetWindowButtonVisibility(bool visible) override {
+  void SetWindowButtonVisibility(bool visible) {
     is_window_buttons_visible_ = visible;
     DispatchWindowCommand(visible ? kWinCmdShowDecor : kWinCmdHideDecor);
   }
-  bool GetWindowButtonVisibility() const override {
+  bool GetWindowButtonVisibility() const {
     return is_window_buttons_visible_;
   }
 
@@ -627,10 +627,10 @@ class NativeWindowHarmony : public NativeWindow {
   void SetHarmonyWindowId(int32_t id) {
     harmony_window_id_ = id;
   }
-  int32_t GetHarmonyWindowId() const override {
+  int32_t GetHarmonyWindowId() const {
     return harmony_window_id_;
   }
-  int32_t GetCppWindowId() const override {
+  int32_t GetCppWindowId() const {
     return window_id_;
   }
   base::WeakPtr<NativeWindowHarmony> GetHarmonyWeakPtr() {
@@ -708,6 +708,55 @@ class NativeWindowHarmony : public NativeWindow {
   ui::ZOrderLevel z_order_ = ui::ZOrderLevel::kNormal;
   base::WeakPtrFactory<NativeWindowHarmony> weak_factory_{this};
 };
+
+std::shared_ptr<lynx::pub::LynxWindowlessRenderer>
+GetHarmonyWindowlessRendererFor(NativeWindow* window) {
+  // NativeWindowHarmony is file-local, so identify the window by looking it up
+  // in the registry rather than downcasting a base pointer that may well be a
+  // NativeWindowWindowless.
+  int32_t cpp_window_id = -1;
+  int32_t harmony_window_id = -1;
+  {
+    std::lock_guard<std::mutex> lock(g_window_map_mutex);
+    for (const auto& entry : g_id_to_window) {
+      if (entry.second == window) {
+        cpp_window_id = entry.second->window_id();
+        harmony_window_id = entry.second->harmony_window_id();
+        break;
+      }
+    }
+  }
+  if (cpp_window_id <= 0 && harmony_window_id <= 0) {
+    return nullptr;
+  }
+
+  std::shared_ptr<lynx::pub::LynxWindowlessRenderer> renderer;
+  if (harmony_window_id > 0) {
+    renderer = GetHarmonyWindowlessRendererForWindow(harmony_window_id);
+    if (!renderer) {
+      // The XComponent surface has not arrived yet.  A placeholder keyed by
+      // this window's HarmonyOS id lets the LynxView be built now without
+      // borrowing another window's renderer.
+      renderer =
+          GetOrCreateHarmonyPlaceholderRendererForWindow(harmony_window_id);
+    }
+  } else {
+    // The ArkTS side creates the OS window asynchronously and has not bound a
+    // HarmonyOS id yet.  Key the placeholder by the stable C++ window id;
+    // BindHarmonyWindowIdForPlaceholder() re-keys it once the id is known.
+    renderer = GetOrCreateHarmonyPlaceholderRendererForCppWindow(cpp_window_id);
+  }
+
+  if (renderer) {
+    CaptureHarmonyLynxPlatformTaskRunner();
+  } else {
+    OH_LOG_WARN(LOG_APP,
+                "[LynxtronWindow] no windowless renderer for cpp_id=%{public}d "
+                "harmony_id=%{public}d",
+                cpp_window_id, harmony_window_id);
+  }
+  return renderer;
+}
 
 // Called from lynxtron_napi_bridge.cc via dlsym. visibility("default") keeps
 // it in the dynamic symbol table despite -fvisibility=hidden + stripping.

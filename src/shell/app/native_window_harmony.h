@@ -6,8 +6,26 @@
 #define SHELL_APP_NATIVE_WINDOW_HARMONY_H_
 
 #include <cstdint>
+#include <memory>
+
+namespace lynx {
+namespace pub {
+class LynxWindowlessRenderer;
+}  // namespace pub
+}  // namespace lynx
 
 namespace lynxtron {
+
+class NativeWindow;
+
+// Returns the windowless renderer that draws `window`'s content into its
+// XComponent surface.  HarmonyOS has no desktop windowing, so every window
+// renders this way rather than through a native parent handle.  When the
+// surface has not arrived yet a placeholder is returned, which forwards to the
+// real renderer once CreateHarmonyWindowlessRenderer() binds it.  Returns
+// nullptr if `window` is not a HarmonyOS window.
+std::shared_ptr<lynx::pub::LynxWindowlessRenderer>
+GetHarmonyWindowlessRendererFor(NativeWindow* window);
 
 // Called by the XComponent surface lifecycle when ArkUI changes the content
 // size. The update is delivered on Lynxtron's UI sequence so its LynxView
