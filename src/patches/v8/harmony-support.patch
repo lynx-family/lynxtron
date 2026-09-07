@@ -1,0 +1,35 @@
+From 28fc8570b800730d4f7a882132afdf9ea7157c65 Mon Sep 17 00:00:00 2001
+From: Lynxtron Scripts <scripts@lynxtron>
+Date: Mon, 7 Sep 2026 19:23:37 +0800
+Subject: [PATCH] Build V8 for HarmonyOS
+
+Add the OHOS target to V8's build so it compiles with the NDK clang
+toolchain and links into liblynxtron.so.
+---
+ BUILD.gn | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/BUILD.gn b/BUILD.gn
+index 372864df..f06381d3 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -1051,6 +1051,10 @@ if (target_os == "android") {
+ } else if (target_os == "linux") {
+   enabled_external_v8_defines += [ "V8_HAVE_TARGET_OS" ]
+   enabled_external_v8_defines += [ "V8_TARGET_OS_LINUX" ]
++} else if (target_os == "harmony") {
++  # HarmonyOS shares the Linux kernel and uapi.
++  enabled_external_v8_defines += [ "V8_HAVE_TARGET_OS" ]
++  enabled_external_v8_defines += [ "V8_TARGET_OS_LINUX" ]
+ } else if (target_os == "mac") {
+   enabled_external_v8_defines += [ "V8_HAVE_TARGET_OS" ]
+   enabled_external_v8_defines += [ "V8_TARGET_OS_MACOS" ]
+@@ -6780,7 +6784,7 @@ v8_component("v8_libbase") {
+     }
+   }
+ 
+-  if (is_linux || is_chromeos) {
++  if (is_linux || is_chromeos || is_harmony) {
+     sources += [
+       "src/base/debug/stack_trace_posix.cc",
+       "src/base/platform/platform-linux.cc",
