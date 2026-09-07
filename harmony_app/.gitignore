@@ -18,6 +18,8 @@ entry/src/main/resources/resfile/
 .vscode/
 
 # Local signing material
+signing.local.env
+signing.local.env.*
 *.p12
 *.pfx
 *.jks

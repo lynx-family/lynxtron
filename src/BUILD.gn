@@ -474,7 +474,6 @@ source_set("lynxtron_lib") {
     "shell/api/api_asar.cc",
     "shell/api/api_base_window.cc",
     "shell/api/api_base_window.h",
-    "shell/api/api_clipboard.cc",
     "shell/api/api_clipboard.h",
     "shell/api/api_command_line.cc",
     "shell/api/api_devtool.cc",
@@ -627,6 +626,8 @@ source_set("lynxtron_lib") {
     "shell/ui/tray_icon.h",
   ]
 
+  sources += [ "shell/api/api_clipboard.cc" ]
+
   sources += gin_helper_sources
 
   # sources += ui_sources
@@ -740,6 +741,59 @@ source_set("lynxtron_lib") {
     ]
   }
 
+  if (is_harmony) {
+    sources += [
+      "shell/api/api_clipboard_harmony.cc",
+      "shell/api/api_menu_harmony.cc",
+      "shell/api/api_native_image_harmony.cc",
+      "shell/api/api_power_monitor_harmony.cc",
+      "shell/api/ui/file_dialog_harmony.cc",
+      "shell/api/ui/message_box_harmony.cc",
+      "shell/app/application_harmony.cc",
+      "shell/app/icon_manager_harmony.cc",
+      "shell/app/lynx_bringup_harmony.cc",
+      "shell/app/lynx_napi_v8_bridge_harmony.cc",
+      "shell/app/lynx_windowless_renderer_harmony.cc",
+      "shell/app/native_window_harmony.cc",
+      "shell/app/relauncher_harmony.cc",
+      "shell/app/surface_render_harmony.cc",
+      "shell/app/window_creation_bridge_harmony.cc",
+      "shell/common/application_info_harmony.cc",
+      "shell/common/node_bindings_harmony.cc",
+      "shell/common/platform_util_harmony.cc",
+      # HarmonyOS uses the POSIX process-singleton implementation (Unix
+      # domain socket + lock files).  Omitting these sources leaves the API
+      # calls in api_app.cc as unresolved symbols in liblynxtron.so, which
+      # causes dlopen() to fail before the first Lynx window is created.
+      "shell/common/process_singleton/process_singleton_lock_posix.cc",
+      "shell/common/process_singleton/process_singleton_lock_posix.h",
+      "shell/common/process_singleton/process_singleton_posix.cc",
+    ]
+    deps += [
+      ":clipboard_ohos_wrap",
+      "//lynx/base/src:base_group",
+      "//lynx/clay/lynx_adaptor:lynx_adaptor",
+      "//lynx/clay/shell/platform/embedder:embedder",
+      "//lynx/clay/shell/platform/headless:headless",
+      "//lynx/platform/embedder:embedder",
+      "//lynx/core/runtime/js/jsi/jsvm:jsvm",
+      "//lynx/core/runtime/common/napi:napi_binding_jsvm",
+      "//lynx/core/runtime/common/napi:napi_binding_v8",
+      "//lynx/third_party/napi:v8",
+      "//lynx/third_party/napi:quickjs",
+
+      # Lynx runs its background JS on Node's V8 here, the same way the linux
+      # desktop build does (see lynx/platform/linux/BUILD.gn's jsengine_type
+      # == "v8" branch).  lynx_v8_bridge carries the V8 JSI implementation --
+      # makeV8Runtime() and V8PlatformData -- which nothing else in the
+      # harmony graph provides.  Its absence links fine, because a shared
+      # library tolerates undefined symbols, and only surfaces as a dlopen
+      # relocation error on device.
+      "//lynx/core/runtime/profile/v8:v8_profile",
+      "//lynx/devtool/lynx_devtool/js_debug:lynx_v8_bridge",
+    ]
+  }
+
   if (is_win) {
     sources += [
       "shell/api/api_clipboard_win.cc",
@@ -795,6 +849,14 @@ source_set("lynxtron_lib") {
   if (enable_lynxtron_mac_testbench_replay) {
     deps += [ ":lynxtron_testbench_replay" ]
   }
+}
+
+if (is_harmony) {
+  source_set("clipboard_ohos_wrap") {
+    sources = [ "shell/api/clipboard_ohos_wrap.c" ]
+    include_dirs = [ "." ]
+  }
+
 }
 
 if (is_mac) {
@@ -1170,6 +1232,43 @@ if (is_linux) {
   }
 }
 
+if (is_harmony) {
+  shared_library("lynxtron_app") {
+    output_name = "lynxtron"
+    output_extension = "so"
+    include_dirs = [ "." ]
+    sources = [ "shell/app/main_harmony.cc" ]
+    deps = [ ":lynxtron_lib" ]
+    libs = [
+      "hilog_ndk.z",
+      "EGL",
+      "GLESv3",
+      "native_vsync",
+      "native_image",
+      "pasteboard",
+      "udmf",
+      "ace_napi.z",
+      "ohfileshare",
+      "ohfileuri",
+    ]
+  }
+
+  shared_library("lynxtron_napi_bridge") {
+    output_name = "lynxtron_napi"
+    output_extension = "so"
+    sources = [ "shell/app/lynxtron_napi_bridge.cc" ]
+    include_dirs = [ "." ]
+    libs = [
+      "ace_napi.z",
+      "ace_ndk.z",
+      "hilog_ndk.z",
+      "ohinputmethod",
+      "native_display_manager",
+      "native_window_manager",
+    ]
+  }
+}
+
 template("dist_zip") {
   _runtime_deps_target = "${target_name}__deps"
   _runtime_deps_file =
@@ -1222,6 +1321,7 @@ dist_zip("lynxtron_dist_zip") {
   outputs = [ "$root_build_dir/dist.zip" ]
 }
 
+if (!is_harmony) {
 test("lynxtron_unittests") {
   deps = [
     ":lynxtron_lib",
@@ -1269,6 +1369,7 @@ test("lynxtron_unittests") {
       "shell/ui/platform_window/win/hwnd_message_handler_unittest.cc",
     ]
   }
+}
 }
 
 group("lynxtron_extension_group") {

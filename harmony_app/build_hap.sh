@@ -8,35 +8,95 @@
 #   ./build_hap.sh --signed  # also run b_sign_hap_release.sh
 #
 # Requires:
-#   /opt/compilers/ohos_tools/commandline-tools-linux-x64-6.0.2.640/
-#     command-line-tools/{hvigor/bin,ohpm/bin,bin,tool/node/bin}/
-#   /opt/compilers/ohos_tools/jdk-17.0.6/
+#   A HarmonyOS Command Line Tools installation whose bundled SDK is at least
+#   as new as build-profile.json5's compileSdkVersion (currently API 24 /
+#   6.1.1).  Point COMMAND_LINE_TOOLS or DEVECO_SDK_HOME at it, or drop it in
+#   one of the searched roots below.
+#   /opt/compilers/ohos_tools/jdk-17.0.6/       (or JAVA_HOME)
 #   /opt/compilers/ohos_tools/tools/haps_signed/  (only for --signed)
 
 set -e
 
 OHOS_TOOLS=${OHOS_TOOLS:-/opt/compilers/ohos_tools}
-OHOS_SDK_VERSION=${OHOS_SDK_VERSION:-commandline-tools-linux-x64-6.0.2.640}
 HAP_SIGNED_DIR=${OHOS_TOOLS}/tools/haps_signed
 
 # Java JDK
-export JAVA_HOME=${OHOS_TOOLS}/jdk-17.0.6
+export JAVA_HOME=${JAVA_HOME:-${OHOS_TOOLS}/jdk-17.0.6}
 export PATH=${JAVA_HOME}/bin:${PATH}
 export CLASSPATH=.:${JAVA_HOME}/lib/dt.jar:${JAVA_HOME}/lib/tools.jar
-
-# OHOS command-line tools
-export DEVECO_SDK_HOME=${DEVECO_SDK_HOME:-${OHOS_TOOLS}/${OHOS_SDK_VERSION}/command-line-tools/sdk}
-export PATH=${DEVECO_SDK_HOME}:${PATH}
-export PATH=${OHOS_TOOLS}/${OHOS_SDK_VERSION}/command-line-tools/bin:${PATH}
-export PATH=${OHOS_TOOLS}/${OHOS_SDK_VERSION}/command-line-tools/ohpm/bin:${PATH}
-export PATH=${OHOS_TOOLS}/${OHOS_SDK_VERSION}/command-line-tools/tool/node/bin:${PATH}
-export PATH=${OHOS_TOOLS}/${OHOS_SDK_VERSION}/command-line-tools/hvigor/bin:${PATH}
 
 # Repo paths
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 LYNXTRON_ROOT=$(cd "${SCRIPT_DIR}/.." && pwd)
 GN_OUT_DIR=${LYNXTRON_ROOT}/out/harmony_arm64_Release
 LIBS_DIR=${SCRIPT_DIR}/entry/libs/arm64-v8a
+
+# OHOS command-line tools.
+#
+# hvigor resolves compileSdkVersion against the SDK bundled with the tools it
+# runs from, and reports nothing but "SDK component missing" when that SDK is
+# older than the project asks for.  Several Command Line Tools releases are
+# usually installed side by side, so rather than hard-coding one directory
+# name, pick the newest installation that actually satisfies build-profile's
+# compileSdkVersion and fail with a message that names the shortfall.
+REQUIRED_API=$(sed -n 's/.*"compileSdkVersion" *: *"[^(]*(\([0-9]\+\))".*/\1/p' \
+               "${SCRIPT_DIR}/build-profile.json5" | head -n1)
+REQUIRED_API=${REQUIRED_API:-24}
+
+# api_version_of <command-line-tools dir> -> apiVersion from version.txt, or ''.
+api_version_of() {
+  sed -n 's/^apiVersion *: *\([0-9]\+\).*/\1/p' "$1/version.txt" 2>/dev/null | head -n1
+}
+
+if [ -n "${COMMAND_LINE_TOOLS:-}" ]; then
+  :
+elif [ -n "${DEVECO_SDK_HOME:-}" ]; then
+  COMMAND_LINE_TOOLS=$(cd "${DEVECO_SDK_HOME}/.." && pwd)
+else
+  # Roots that may hold several `<name>/command-line-tools` installations, plus
+  # OHOS_SDK_VERSION for callers that still pin one explicitly.
+  CLT_CANDIDATES=()
+  if [ -n "${OHOS_SDK_VERSION:-}" ]; then
+    CLT_CANDIDATES+=("${OHOS_TOOLS}/${OHOS_SDK_VERSION}/command-line-tools")
+  fi
+  for ROOT in "${LYNXTRON_ROOT}/deveco" "${LYNXTRON_ROOT}/.." "${OHOS_TOOLS}"; do
+    [ -d "${ROOT}" ] || continue
+    for CANDIDATE in "${ROOT}"/command-line-tools "${ROOT}"/*/command-line-tools; do
+      if [ -d "${CANDIDATE}/sdk" ]; then
+        CLT_CANDIDATES+=("${CANDIDATE}")
+      fi
+    done
+  done
+
+  BEST_API=0
+  for CANDIDATE in "${CLT_CANDIDATES[@]}"; do
+    API=$(api_version_of "${CANDIDATE}")
+    [ -n "${API}" ] || continue
+    if [ "${API}" -ge "${REQUIRED_API}" ] && [ "${API}" -gt "${BEST_API}" ]; then
+      BEST_API=${API}
+      COMMAND_LINE_TOOLS=${CANDIDATE}
+    fi
+  done
+
+  if [ -z "${COMMAND_LINE_TOOLS:-}" ]; then
+    echo "[build_hap] ERROR: no Command Line Tools installation provides API ${REQUIRED_API}"
+    echo "[build_hap]        (build-profile.json5 compileSdkVersion). Searched:"
+    for CANDIDATE in "${CLT_CANDIDATES[@]}"; do
+      API=$(api_version_of "${CANDIDATE}")
+      echo "[build_hap]          ${CANDIDATE} (apiVersion ${API:-unknown})"
+    done
+    echo "[build_hap]        Set COMMAND_LINE_TOOLS or DEVECO_SDK_HOME to a newer install."
+    exit 2
+  fi
+fi
+
+export DEVECO_SDK_HOME=${DEVECO_SDK_HOME:-${COMMAND_LINE_TOOLS}/sdk}
+export PATH=${DEVECO_SDK_HOME}:${PATH}
+export PATH=${COMMAND_LINE_TOOLS}/bin:${PATH}
+export PATH=${COMMAND_LINE_TOOLS}/ohpm/bin:${PATH}
+export PATH=${COMMAND_LINE_TOOLS}/tool/node/bin:${PATH}
+export PATH=${COMMAND_LINE_TOOLS}/hvigor/bin:${PATH}
+echo "[build_hap] command line tools: ${COMMAND_LINE_TOOLS} (apiVersion $(api_version_of "${COMMAND_LINE_TOOLS}"))"
 
 cd "${SCRIPT_DIR}"
 
@@ -94,12 +154,20 @@ fi
 #   lynx/tools/js_tools/build.py --platform android   (harmony uses the android
 #   flavor, same as lynx/explorer/harmony/script/build.py does)
 LYNX_CORE_JS=${LYNX_CORE_JS_OVERRIDE:-${LYNXTRON_ROOT}/lynx/js_libraries/lynx-core/output/lynx_core.js}
+if [ ! -f "${LYNX_CORE_JS}" ]; then
+  echo "[build_hap] lynx_core.js is absent; building the Android-compatible runtime."
+  (
+    cd "${LYNXTRON_ROOT}/lynx"
+    python3 tools/js_tools/build.py --platform android
+  )
+fi
 if [ -f "${LYNX_CORE_JS}" ]; then
   cp "${LYNX_CORE_JS}" "${RESFILE_DIR}/resources/lynx_core.js"
   echo "[build_hap] staged resfile/resources/lynx_core.js ($(stat -c%s "${RESFILE_DIR}/resources/lynx_core.js") bytes)"
 else
-  echo "[build_hap] WARNING: ${LYNX_CORE_JS} not found — Lynx JS runtime will"
-  echo "[build_hap]          fail to load and no JS event will fire."
+  echo "[build_hap] ERROR: ${LYNX_CORE_JS} was not generated."
+  echo "[build_hap]        Refusing to package an app with a non-functional Lynx JS runtime."
+  exit 1
 fi
 
 # Step 2 render: stage a Lynx demo bundle as resfile/resources/main.lynx.bundle.
@@ -110,7 +178,10 @@ fi
 #
 # Pick the demo with the LYNX_DEMO env var (default: view). Either a shorthand
 # key from the table below, or an absolute path to any *.lynx.bundle.
-LYNX_DEMO=${LYNX_DEMO:-view}
+# Default to Lynxtron's packaged default application so device validation
+# immediately shows whether the real application bootstrapped.  Individual
+# Lynx demo bundles remain available via e.g. `LYNX_DEMO=view`.
+LYNX_DEMO=${LYNX_DEMO:-none}
 PNPM_DIR=${SCRIPT_DIR}/../lynx/node_modules/.pnpm
 case "${LYNX_DEMO}" in
   view)   LYNX_BUNDLE_SRC=${PNPM_DIR}/@lynx-example+view@0.3.0/node_modules/@lynx-example/view/dist/main.lynx.bundle ;;
@@ -159,36 +230,71 @@ echo ""
 echo "[build_hap] unsigned hap: ${UNSIGNED_HAP}"
 ls -la "${UNSIGNED_HAP}" 2>/dev/null || echo "[build_hap] (not produced)"
 
-# Optional signing. The certificate, its alias and its passwords are
-# developer-specific secrets and are not stored in the repository; supply them
-# through the environment.
+# Optional signing.
+#
+# The certificate, its alias and its passwords are developer-specific secrets,
+# so nothing about them is stored in the repository.  Supply them through the
+# environment, or through an untracked config file next to this script:
+#
+#   harmony_app/signing.local.env        (git-ignored)
+#
+#     SIGN_CERT_DIR=/path/to/your/ohos/certs
+#     SIGN_KEY_ALIAS=your-key-alias
+#     SIGN_CERT_FILE=your-cert.cer            # relative to SIGN_CERT_DIR
+#     SIGN_PROFILE_FILE=your-profile.p7b      # relative to SIGN_CERT_DIR
+#     SIGN_KEYSTORE_FILE=your-keystore.p12    # relative to SIGN_CERT_DIR
+#     SIGN_KEY_PWD=...
+#     SIGN_KEYSTORE_PWD=...                   # defaults to SIGN_KEY_PWD
+#
+# Set SIGN_ENV_FILE to point somewhere else, e.g. a path outside the checkout.
 if [ "$1" = "--signed" ]; then
-  CERT_DIR=${SIGN_CERT_DIR:?set SIGN_CERT_DIR to your certificate directory}
-  CERT_PW=${SIGN_KEY_PWD:?set SIGN_KEY_PWD to your keystore password}
-  SIGN_TOOL="${HAP_SIGNED_DIR}/hap-sign-tool.jar"
+  SIGN_ENV_FILE=${SIGN_ENV_FILE:-${SCRIPT_DIR}/signing.local.env}
+  if [ -f "${SIGN_ENV_FILE}" ]; then
+    # shellcheck disable=SC1090
+    . "${SIGN_ENV_FILE}"
+  fi
+
+  SIGN_KEYSTORE_PWD=${SIGN_KEYSTORE_PWD:-${SIGN_KEY_PWD:-}}
+  SIGN_SIG_ALG=${SIGN_SIG_ALG:-SHA256withECDSA}
+  SIGN_TOOL=${SIGN_TOOL:-${HAP_SIGNED_DIR}/hap-sign-tool.jar}
+
+  MISSING=""
+  for VAR in SIGN_CERT_DIR SIGN_KEY_ALIAS SIGN_CERT_FILE SIGN_PROFILE_FILE \
+             SIGN_KEYSTORE_FILE SIGN_KEY_PWD SIGN_KEYSTORE_PWD; do
+    eval "VALUE=\${${VAR}:-}"
+    if [ -z "${VALUE}" ]; then
+      MISSING="${MISSING} ${VAR}"
+    fi
+  done
+  if [ -n "${MISSING}" ]; then
+    echo "[build_hap] signing requested but not configured; missing:${MISSING}"
+    echo "[build_hap] set them in the environment or in ${SIGN_ENV_FILE}"
+    echo "[build_hap] the unsigned hap above is still usable."
+    exit 2
+  fi
 
   if [ ! -f "${SIGN_TOOL}" ]; then
     echo "[build_hap] hap-sign-tool.jar not found at ${SIGN_TOOL}, skipping signing."
     exit 0
   fi
-  if [ ! -d "${CERT_DIR}" ]; then
-    echo "[build_hap] cert dir ${CERT_DIR} not found, skipping signing."
+  if [ ! -d "${SIGN_CERT_DIR}" ]; then
+    echo "[build_hap] cert dir ${SIGN_CERT_DIR} not found, skipping signing."
     exit 0
   fi
 
   SIGNED_OUT="${HAP_OUT_DIR}/lynxtron-default-signed.hap"
   rm -f "${SIGNED_OUT}"
   java -jar "${SIGN_TOOL}" sign-app \
-    -keyAlias "${SIGN_KEY_ALIAS:?set SIGN_KEY_ALIAS}" \
-    -signAlg 'SHA256withECDSA' \
-    -mode 'localSign' \
-    -appCertFile "${CERT_DIR}/${SIGN_CERT_FILE:?set SIGN_CERT_FILE}" \
-    -profileFile "${CERT_DIR}/${SIGN_PROFILE_FILE:?set SIGN_PROFILE_FILE}" \
-    -inFile      "${UNSIGNED_HAP}" \
-    -outFile     "${SIGNED_OUT}" \
-    -keystoreFile "${CERT_DIR}/${SIGN_KEYSTORE_FILE:?set SIGN_KEYSTORE_FILE}" \
-    -keyPwd      "${CERT_PW}" \
-    -keystorePwd "${CERT_PW}"
+    -keyAlias      "${SIGN_KEY_ALIAS}" \
+    -signAlg       "${SIGN_SIG_ALG}" \
+    -mode          'localSign' \
+    -appCertFile   "${SIGN_CERT_DIR}/${SIGN_CERT_FILE}" \
+    -profileFile   "${SIGN_CERT_DIR}/${SIGN_PROFILE_FILE}" \
+    -inFile        "${UNSIGNED_HAP}" \
+    -outFile       "${SIGNED_OUT}" \
+    -keystoreFile  "${SIGN_CERT_DIR}/${SIGN_KEYSTORE_FILE}" \
+    -keyPwd        "${SIGN_KEY_PWD}" \
+    -keystorePwd   "${SIGN_KEYSTORE_PWD}"
   echo ""
   echo "[build_hap] signed hap: ${SIGNED_OUT}"
 fi
