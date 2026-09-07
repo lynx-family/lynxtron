@@ -5,25 +5,40 @@
 #
 # Usage:
 #   ./build_hap.sh           # build unsigned hap (default)
-#   ./build_hap.sh --signed  # also run b_sign_hap_release.sh
+#   ./build_hap.sh --signed  # additionally sign the hap
 #
 # Requires:
-#   A HarmonyOS Command Line Tools installation whose bundled SDK is at least
-#   as new as build-profile.json5's compileSdkVersion (currently API 24 /
-#   6.1.1).  Point COMMAND_LINE_TOOLS or DEVECO_SDK_HOME at it, or drop it in
-#   one of the searched roots below.
-#   /opt/compilers/ohos_tools/jdk-17.0.6/       (or JAVA_HOME)
-#   /opt/compilers/ohos_tools/tools/haps_signed/  (only for --signed)
+#   - A HarmonyOS Command Line Tools installation whose bundled SDK is at
+#     least as new as build-profile.json5's compileSdkVersion.  Point
+#     COMMAND_LINE_TOOLS or DEVECO_SDK_HOME at it, or leave it in one of the
+#     searched roots (see below); OHOS_TOOLS adds another root to search.
+#   - A Java 17 JDK.  Set JAVA_HOME, or have `java` on PATH.
+#   - A completed native GN build in out/harmony_arm64_Release.
+#
+#   Signing (--signed only) is configured separately; see the signing section
+#   at the end of this file.
 
 set -e
 
-OHOS_TOOLS=${OHOS_TOOLS:-/opt/compilers/ohos_tools}
-HAP_SIGNED_DIR=${OHOS_TOOLS}/tools/haps_signed
-
-# Java JDK
-export JAVA_HOME=${JAVA_HOME:-${OHOS_TOOLS}/jdk-17.0.6}
+# Java JDK.  hvigor 6.x is built and tested against Java 17.
+if [ -z "${JAVA_HOME:-}" ] && [ "$(uname -s)" = "Darwin" ] && \
+   [ -x /usr/libexec/java_home ]; then
+  JAVA_HOME=$(/usr/libexec/java_home -v 17 2>/dev/null || true)
+fi
+if [ -z "${JAVA_HOME:-}" ] && command -v java >/dev/null 2>&1; then
+  # Resolve `java` through any symlinks and strip the trailing /bin/java.
+  JAVA_BIN=$(command -v java)
+  if command -v readlink >/dev/null 2>&1; then
+    JAVA_BIN=$(readlink -f "${JAVA_BIN}" 2>/dev/null || echo "${JAVA_BIN}")
+  fi
+  JAVA_HOME=$(dirname "$(dirname "${JAVA_BIN}")")
+fi
+if [ -z "${JAVA_HOME:-}" ] || [ ! -x "${JAVA_HOME}/bin/java" ]; then
+  echo "[build_hap] a Java 17 JDK is required; set JAVA_HOME or put java on PATH."
+  exit 2
+fi
+export JAVA_HOME
 export PATH=${JAVA_HOME}/bin:${PATH}
-export CLASSPATH=.:${JAVA_HOME}/lib/dt.jar:${JAVA_HOME}/lib/tools.jar
 
 # Repo paths
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -59,8 +74,8 @@ else
   if [ -n "${OHOS_SDK_VERSION:-}" ]; then
     CLT_CANDIDATES+=("${OHOS_TOOLS}/${OHOS_SDK_VERSION}/command-line-tools")
   fi
-  for ROOT in "${LYNXTRON_ROOT}/deveco" "${LYNXTRON_ROOT}/.." "${OHOS_TOOLS}"; do
-    [ -d "${ROOT}" ] || continue
+  for ROOT in "${LYNXTRON_ROOT}/deveco" "${LYNXTRON_ROOT}/.." "${OHOS_TOOLS:-}"; do
+    [ -n "${ROOT}" ] && [ -d "${ROOT}" ] || continue
     for CANDIDATE in "${ROOT}"/command-line-tools "${ROOT}"/*/command-line-tools; do
       if [ -d "${CANDIDATE}/sdk" ]; then
         CLT_CANDIDATES+=("${CANDIDATE}")
@@ -256,7 +271,8 @@ if [ "$1" = "--signed" ]; then
 
   SIGN_KEYSTORE_PWD=${SIGN_KEYSTORE_PWD:-${SIGN_KEY_PWD:-}}
   SIGN_SIG_ALG=${SIGN_SIG_ALG:-SHA256withECDSA}
-  SIGN_TOOL=${SIGN_TOOL:-${HAP_SIGNED_DIR}/hap-sign-tool.jar}
+  # hap-sign-tool.jar ships inside the Command Line Tools.
+  SIGN_TOOL=${SIGN_TOOL:-${COMMAND_LINE_TOOLS}/sdk/default/openharmony/toolchains/lib/hap-sign-tool.jar}
 
   MISSING=""
   for VAR in SIGN_CERT_DIR SIGN_KEY_ALIAS SIGN_CERT_FILE SIGN_PROFILE_FILE \
