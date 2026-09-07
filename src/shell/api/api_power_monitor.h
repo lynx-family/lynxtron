@@ -8,6 +8,8 @@
 #include <memory>
 #include <string>
 
+#include "base/memory/weak_ptr.h"
+#include "base/task/single_thread_task_runner.h"
 #include "base/power_monitor/power_observer.h"
 #include "build/build_config.h"
 #include "shell/api/event_emitter_mixin.h"
@@ -45,6 +47,13 @@ class PowerMonitor : public gin_helper::DeprecatedWrappable<PowerMonitor>,
   bool IsOnBatteryPower() const;
   bool GetOnBatteryPower() const;
 
+#if BUILDFLAG(IS_HARMONY)
+  void EmitLockScreen();
+  void EmitUnlockScreen();
+  void QueueLockScreen();
+  void QueueUnlockScreen();
+#endif
+
   PowerMonitor(const PowerMonitor&) = delete;
   PowerMonitor& operator=(const PowerMonitor&) = delete;
 
@@ -67,6 +76,12 @@ class PowerMonitor : public gin_helper::DeprecatedWrappable<PowerMonitor>,
   void OnSessionChange(WPARAM wparam, const bool* is_current_session);
 
   std::unique_ptr<ui::SessionChangeObserver> session_change_observer_;
+#endif
+
+#if BUILDFLAG(IS_HARMONY)
+  scoped_refptr<base::SingleThreadTaskRunner> task_runner_;
+  base::WeakPtr<PowerMonitor> weak_this_;
+  base::WeakPtrFactory<PowerMonitor> weak_factory_{this};
 #endif
 };
 

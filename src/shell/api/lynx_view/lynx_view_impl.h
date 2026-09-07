@@ -56,6 +56,15 @@ class LynxViewImpl : public lynx::pub::LynxViewClient {
   void UpdateData(const std::string& data, const std::string& global_props);
   void UpdateScreenMetrics(float width, float height, float device_pixel_ratio);
   void SetFrame(float x, float y, float width, float height);
+  int GetNodeForLocation(int x, int y);
+  void SendTouchEvent(const std::string& name,
+                      int32_t id,
+                      float x,
+                      float y,
+                      float client_x,
+                      float client_y,
+                      float page_x,
+                      float page_y);
   void* GetNativeWindow();
   void Focus();
   void Close();
