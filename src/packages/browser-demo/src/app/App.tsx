@@ -281,7 +281,8 @@ export function App() {
 
   const handleInput = (event: InputEvent) => {
     'background only';
-    const currentValue = event.detail.value.trim();
+    const rawValue = event?.detail?.value;
+    const currentValue = String(rawValue ?? '').trim();
     // Update input_value for currently selected tab
     setTabs((prevTabs) =>
       prevTabs.map((tab) => {
@@ -541,7 +542,7 @@ export function App() {
               <HomePage onConvertToLynxTab={openLynxJSWebsite} />
             )}
             {tab.input_value && (
-              <x-webview
+              <webview
                 className="webview-container"
                 id={`webview-${tab.id}`}
                 src={tab.input_value}

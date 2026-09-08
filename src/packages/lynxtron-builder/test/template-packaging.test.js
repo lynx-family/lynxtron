@@ -4,7 +4,7 @@ const path = require('node:path');
 const test = require('node:test');
 const yaml = require('js-yaml');
 
-for (const name of ['lynxtron-shell-demo']) {
+for (const name of ['lynxtron-shell-demo', 'browser-demo']) {
   test(`${name} packages the application directory only once`, () => {
     const packageRoot = path.resolve(__dirname, '../..', name);
     const config = yaml.load(
