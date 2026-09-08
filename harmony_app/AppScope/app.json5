@@ -3,7 +3,7 @@
     // bundleName must match the bundle-name recorded in the signing profile
     // used by build_hap.sh (apl=normal).
     "bundleName": "com.huawei.lynxtron",
-    "vendor": "huawei",
+    "vendor": "bytedance",
     "versionCode": 1000000,
     "versionName": "1.0.0",
     "icon": "$media:app_icon",
