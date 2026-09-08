@@ -1,6 +1,7 @@
 [
   { "patch_dir": "src/patches/base", "repo": "base" },
   { "patch_dir": "src/patches/build", "repo": "build" },
+  { "patch_dir": "src/patches/buildtools", "repo": "buildtools" },
   { "patch_dir": "src/patches/node", "repo": "third_party/node" },
   { "patch_dir": "src/patches/url", "repo": "url" },
   { "patch_dir": "src/patches/tools", "repo": "tools" },
