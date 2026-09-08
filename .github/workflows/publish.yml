@@ -611,10 +611,19 @@ jobs:
         uses: ./lynxtron/.github/actions/common-deps
         with:
           run-habitat-sync: 'false'
+          cache-scope: 'full-build'
+      - name: Restore CEF Habitat objects
+        uses: lynx-infra/cache@5c6160a6a4c7fca80a2f3057bb9dfc9513fcb732
+        with:
+          path: lynxtron/.habitat_cache/objects/cef-builds.spotifycdn.com
+          key: hab-cef-objects-v3-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('lynxtron/src/dependencies/DEPS.extension') }}
+          restore-keys: |
+            hab-cef-objects-v3-${{ runner.os }}-${{ runner.arch }}-
       - name: Prepare environment
         shell: bash
         env:
           HABITAT_CONCURRENCY: 2
+          HABITAT_CACHE_DIR: ${{ github.workspace }}/lynxtron/.habitat_cache
         run: |
           set -euxo pipefail
           cd ${{ github.workspace }}/lynxtron
@@ -628,7 +637,7 @@ jobs:
           # Sync CEF binary distribution required by cef-webview CMakeLists.
           cd ${{ github.workspace }}/lynxtron/src
           for attempt in 1 2 3; do
-            if "${{ github.workspace }}/lynxtron/lynxtron_tools/hab" sync . -f --no-history --target extension --target-only; then
+            if python3 "${{ github.workspace }}/lynxtron/lynxtron_tools/habitat_lock.py" -- "${{ github.workspace }}/lynxtron/lynxtron_tools/hab" sync . -f --no-history --cache-dir "$HABITAT_CACHE_DIR" --target extension --target-only; then
               break
             fi
             if [ "$attempt" -eq 3 ]; then

@@ -34,6 +34,7 @@ jobs:
         with:
           target: 'tools_shared'
           target_only: 'true'
+          cache-scope: 'tools-shared'
       - name: Run file type check
         run: |
           cd ${{ github.workspace }}/lynxtron

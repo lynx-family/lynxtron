@@ -30,6 +30,7 @@ runs:
       uses: ./lynxtron/.github/actions/common-deps
       with:
         run-habitat-sync: 'false'
+        cache-scope: 'full-build'
     - name: Prepare environment
       shell: bash
       run: |

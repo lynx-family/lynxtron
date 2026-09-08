@@ -25,27 +25,63 @@ runs:
       uses: ./lynxtron/.github/actions/common-deps
       with:
         run-habitat-sync: 'false'
+        cache-scope: 'full-build'
     - name: Prepare environment
       shell: pwsh
+      env:
+        # Habitat may materialize and run Node/Corepack dependencies in the
+        # same graph. Serializing fetches avoids Windows file-lock races while
+        # replacing buildtools/node on persistent self-hosted runners.
+        HABITAT_CONCURRENCY: '1'
       run: |
         cd ${{ github.workspace }}/lynxtron
         git config --global user.name 'Lynxtron Scripts'
         git config --global user.email 'scripts@lynxtron.com'
         lynxtron_tools/envsetup.ps1
         python lynxtron_tools/prepare_build_env.py
+    - name: Restore CMake
+      uses: lynx-infra/cache@5c6160a6a4c7fca80a2f3057bb9dfc9513fcb732
+      with:
+        path: C:\cmake
+        key: cmake-${{ runner.os }}-${{ runner.arch }}-3.30.5-5ab6e1faf20256ee4f04886597e8b6c3b1bd1297b58a68a58511af013710004b
     - name: Build Lynxtron
       shell: pwsh
       run: |-
         $cmakeVersion = "3.30.5"
         $cmakeUrl = "https://github.com/Kitware/CMake/releases/download/v$cmakeVersion/cmake-$cmakeVersion-windows-x86_64.zip"
+        $cmakeSha256 = "5ab6e1faf20256ee4f04886597e8b6c3b1bd1297b58a68a58511af013710004b"
         $cmakeZip = "$env:TEMP\cmake.zip"
         $cmakeDir = "C:\cmake"
-        Write-Host "Downloading CMake $cmakeVersion..."
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        Invoke-WebRequest -Uri $cmakeUrl -OutFile $cmakeZip -UseBasicParsing
-        Write-Host "Extracting CMake..."
-        Expand-Archive -Path $cmakeZip -DestinationPath "C:\" -Force
-        Rename-Item -Path "C:\cmake-$cmakeVersion-windows-x86_64" -NewName "cmake" -Force
+        $cmakeExe = Join-Path $cmakeDir "bin\cmake.exe"
+        if (-not (Test-Path -LiteralPath $cmakeExe -PathType Leaf)) {
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+            try {
+              Write-Host "Downloading CMake $cmakeVersion (attempt $attempt/3)..."
+              Invoke-WebRequest -Uri $cmakeUrl -OutFile $cmakeZip -UseBasicParsing
+              $actualSha256 = (Get-FileHash -Path $cmakeZip -Algorithm SHA256).Hash.ToLowerInvariant()
+              if ($actualSha256 -ne $cmakeSha256) {
+                throw "CMake archive checksum mismatch: expected $cmakeSha256, got $actualSha256"
+              }
+              break
+            }
+            catch {
+              Remove-Item -LiteralPath $cmakeZip -Force -ErrorAction SilentlyContinue
+              if ($attempt -eq 3) { throw }
+              $delay = 10 * [Math]::Pow(2, $attempt - 1)
+              Write-Warning "CMake download failed: $($_.Exception.Message). Retrying in $delay seconds."
+              Start-Sleep -Seconds $delay
+            }
+          }
+          $extractedCmakeDir = "C:\cmake-$cmakeVersion-windows-x86_64"
+          Remove-Item -LiteralPath $extractedCmakeDir -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath $cmakeDir -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Host "Extracting CMake..."
+          Expand-Archive -Path $cmakeZip -DestinationPath "C:\" -Force
+          Move-Item -LiteralPath $extractedCmakeDir -Destination $cmakeDir
+        } else {
+          Write-Host "Using cached CMake $cmakeVersion."
+        }
         $cmakeBin = Join-Path $cmakeDir "bin"
         $env:PATH = "$cmakeBin;$env:PATH"
         Write-Host "CMake installed to $cmakeBin"

@@ -32,8 +32,23 @@ const windowsBuildActionPath = path.resolve(
 const windowsBuildAction = yaml.load(
   fs.readFileSync(windowsBuildActionPath, 'utf8')
 );
+const commonDepsActionPath = path.resolve(
+  __dirname,
+  '../../../../.github/actions/common-deps/action.yml'
+);
+const commonDepsAction = yaml.load(
+  fs.readFileSync(commonDepsActionPath, 'utf8')
+);
 const windowsEnvSetupSource = fs.readFileSync(
   path.resolve(__dirname, '../../../../lynxtron_tools/envsetup.ps1'),
+  'utf8'
+);
+const prepareBuildEnvSource = fs.readFileSync(
+  path.resolve(__dirname, '../../../../lynxtron_tools/prepare_build_env.py'),
+  'utf8'
+);
+const habitatLockSource = fs.readFileSync(
+  path.resolve(__dirname, '../../../../lynxtron_tools/habitat_lock.py'),
   'utf8'
 );
 
@@ -278,6 +293,15 @@ test('macOS publish jobs preserve sibling architectures and cache CEF dependenci
   );
   assert.ok(cacheStep, 'CEF builds must restore and save the Habitat cache');
   assert.equal(cacheStep.with['run-habitat-sync'], 'false');
+  assert.equal(cacheStep.with['cache-scope'], 'full-build');
+
+  const cefObjectCacheStep = cefJob.steps.find(
+    (step) => step.name === 'Restore CEF Habitat objects'
+  );
+  assert.ok(cefObjectCacheStep);
+  assert.match(cefObjectCacheStep.with.path, /cef-builds\.spotifycdn\.com/);
+  assert.match(cefObjectCacheStep.with.path, /^lynxtron\//);
+  assert.match(cefObjectCacheStep.with.key, /DEPS\.extension/);
 
   const prepareStep = cefJob.steps.find((step) => step.name === 'Prepare environment');
   assert.equal(prepareStep.env.HABITAT_CONCURRENCY, 2);
@@ -314,6 +338,64 @@ test('Windows builds use and validate the pinned resource compiler', () => {
       buildScript.indexOf('ninja.exe -C out\\Release lynxtron_app'),
     'resource compiler validation must run before the expensive build'
   );
+});
+
+test('Habitat restores scoped immutable objects and serializes mutable Git writers', () => {
+  const objectCacheStep = commonDepsAction.runs.steps.find(
+    (step) => step.name === 'Restore Habitat HTTP objects'
+  );
+  assert.ok(objectCacheStep);
+  assert.match(objectCacheStep.with.path, /\.habitat_cache\/objects/);
+  assert.match(objectCacheStep.with.path, /^lynxtron\//);
+  assert.doesNotMatch(objectCacheStep.with.path, /\.habitat_cache\/git/);
+  assert.match(objectCacheStep.with.key, /runner\.os/);
+  assert.match(objectCacheStep.with.key, /runner\.arch/);
+  assert.match(objectCacheStep.with.key, /inputs\.cache-scope/);
+
+  const staticCacheStep = ciJobs['static-check'].steps.find(
+    (step) => step.uses === './lynxtron/.github/actions/common-deps'
+  );
+  assert.equal(staticCacheStep.with['cache-scope'], 'tools-shared');
+
+  const windowsCommonDepsStep = windowsBuildAction.runs.steps.find(
+    (step) => step.uses === './lynxtron/.github/actions/common-deps'
+  );
+  assert.equal(windowsCommonDepsStep.with['cache-scope'], 'full-build');
+
+  const syncStep = commonDepsAction.runs.steps.find(
+    (step) => step.name === 'run habitat sync'
+  );
+  assert.match(syncStep.run, /habitat_lock\.py/);
+  assert.match(syncStep.run, /--cache-dir/);
+  assert.match(syncStep.env.HABITAT_CACHE_DIR, /github\.workspace/);
+  assert.match(prepareBuildEnvSource, /with habitat_cache_lock\(description\)/);
+  assert.match(prepareBuildEnvSource, /--cache-dir/);
+  assert.match(habitatLockSource, /\.habitat_cache/);
+  assert.match(habitatLockSource, /LOCK_EX \| fcntl\.LOCK_NB/);
+  assert.match(habitatLockSource, /msvcrt\.LK_NBLCK/);
+});
+
+test('Windows serializes Habitat fetches and caches a verified CMake archive', () => {
+  const prepareStep = windowsBuildAction.runs.steps.find(
+    (step) => step.name === 'Prepare environment'
+  );
+  assert.equal(prepareStep.env.HABITAT_CONCURRENCY, '1');
+  assert.match(prepareBuildEnvSource, /os\.environ\.setdefault\("HABITAT_CONCURRENCY"/);
+
+  const cmakeCacheStep = windowsBuildAction.runs.steps.find(
+    (step) => step.name === 'Restore CMake'
+  );
+  assert.ok(cmakeCacheStep);
+  assert.equal(cmakeCacheStep.with.path, 'C:\\cmake');
+  assert.match(cmakeCacheStep.with.key, /runner\.arch/);
+  assert.match(cmakeCacheStep.with.key, /3\.30\.5/);
+
+  const buildStep = windowsBuildAction.runs.steps.find(
+    (step) => step.name === 'Build Lynxtron'
+  );
+  assert.match(buildStep.run, /Get-FileHash -Path \$cmakeZip -Algorithm SHA256/);
+  assert.match(buildStep.run, /for \(\$attempt = 1; \$attempt -le 3; \$attempt\+\+\)/);
+  assert.match(buildStep.run, /Using cached CMake/);
 });
 
 test('npm packages are published once without a legacy dev release channel', () => {

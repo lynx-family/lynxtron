@@ -7,9 +7,9 @@ inputs:
     description: concurrency of requests
     default: '2'
     required: false
-  cache-backend:
-    description: cache backend for habitat
-    default: 'lynx-infra'
+  cache-scope:
+    description: Isolated Habitat HTTP cache scope for this dependency graph
+    default: ''
     required: false
   target:
     description: habitat target
@@ -23,34 +23,27 @@ inputs:
     description: whether to run habitat sync
     default: 'true'
     required: false
-  # actions/cache stores files with relative directory, which causes inconsistency between self-hosted runner and
-  # container runner. Therefore, add this temporary option to modify cache key prefix as a workaround. Delete this when
-  # we are able to adjust the container runner's directory structure to the same as self-hosted runner.
-  cache-key-prefix:
-    description: cache key prefix for cache action
-    default: ''
-    required: false
 
 runs:
   using: composite
   steps:
-    - name: setup cache action
-      if: ${{ inputs.cache-backend == 'lynx-infra' }}
+    # Cache only immutable HTTP archives. Git mirrors are intentionally kept out
+    # of the action cache: they are mutable, much larger, and protected by the
+    # per-repository fetch transaction in habitat_lock.py.
+    #
+    # Keep narrow graphs (for example tools_shared in static-check) separate
+    # from full builds. A cache entry is immutable after an exact hit, so sharing
+    # one key allowed a narrow job to permanently seed an incomplete cache.
+    - name: Restore Habitat HTTP objects
+      if: ${{ inputs.cache-scope != '' }}
       uses: lynx-infra/cache@5c6160a6a4c7fca80a2f3057bb9dfc9513fcb732
       with:
-        path: ~/.habitat_cache
-        key: hab${{ inputs.cache-key-prefix }}-${{ runner.os }}-${{ hashFiles('lynxtron/.habitat', 'lynxtron/src/dependencies/DEPS') }}
+        path: |
+          lynxtron/.habitat_cache/objects
+          !lynxtron/.habitat_cache/objects/cef-builds.spotifycdn.com/**
+        key: hab-objects-v3-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-scope }}-${{ hashFiles('lynxtron/.habitat', 'lynxtron/src/dependencies/DEPS', 'lynxtron/src/**/.habitat', 'lynxtron/lynxtron_tools/hab') }}
         restore-keys: |
-          hab${{ inputs.cache-key-prefix }}-${{ runner.os }}-
-
-    - name: setup cache action
-      if: ${{ inputs.cache-backend == 'github' }}
-      uses: actions/cache@v4
-      with:
-        path: ~/.habitat_cache
-        key: hab${{ inputs.cache-key-prefix }}-${{ runner.os }}-${{ hashFiles('lynxtron/.habitat', 'lynxtron/src/dependencies/DEPS') }}
-        restore-keys: |
-          hab${{ inputs.cache-key-prefix }}-${{ runner.os }}-
+          hab-objects-v3-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-scope }}-
 
     - name: run habitat sync
       if: ${{ inputs.run-habitat-sync == 'true' }}
@@ -59,12 +52,13 @@ runs:
       run: |
         set -x
         if [[ "${{ inputs.target }}" == "" ]]; then
-          ${{ github.workspace }}/lynxtron/lynxtron_tools/hab sync .
+          python3 ${{ github.workspace }}/lynxtron/lynxtron_tools/habitat_lock.py -- ${{ github.workspace }}/lynxtron/lynxtron_tools/hab sync . --cache-dir "$HABITAT_CACHE_DIR"
         elif [[ "${{ inputs.target_only }}" == "true" ]]; then
-          ${{ github.workspace }}/lynxtron/lynxtron_tools/hab sync . --target ${{ inputs.target }} --target-only
+          python3 ${{ github.workspace }}/lynxtron/lynxtron_tools/habitat_lock.py -- ${{ github.workspace }}/lynxtron/lynxtron_tools/hab sync . --cache-dir "$HABITAT_CACHE_DIR" --target ${{ inputs.target }} --target-only
         else
-          ${{ github.workspace }}/lynxtron/lynxtron_tools/hab sync . --target ${{ inputs.target }}
+          python3 ${{ github.workspace }}/lynxtron/lynxtron_tools/habitat_lock.py -- ${{ github.workspace }}/lynxtron/lynxtron_tools/hab sync . --cache-dir "$HABITAT_CACHE_DIR" --target ${{ inputs.target }}
         fi
       env:
         HABITAT_CONCURRENCY: ${{ inputs.concurrency }}
+        HABITAT_CACHE_DIR: ${{ github.workspace }}/lynxtron/.habitat_cache
         GIT_LFS_SKIP_SMUDGE: 1
