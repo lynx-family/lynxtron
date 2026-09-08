@@ -46,6 +46,11 @@ LYNXTRON_ROOT=$(cd "${SCRIPT_DIR}/.." && pwd)
 GN_OUT_DIR=${LYNXTRON_ROOT}/out/harmony_arm64_Release
 LIBS_DIR=${SCRIPT_DIR}/entry/libs/arm64-v8a
 
+# `stat` takes different flags in GNU coreutils and on BSD/macOS.
+file_size() {
+  stat -c%s "$1" 2>/dev/null || stat -f%z "$1" 2>/dev/null || echo "?"
+}
+
 # OHOS command-line tools.
 #
 # hvigor resolves compileSdkVersion against the SDK bundled with the tools it
@@ -127,7 +132,7 @@ mkdir -p "${LIBS_DIR}"
 for SO in liblynxtron.so liblynxtron_napi.so; do
   if [ -f "${GN_OUT_DIR}/${SO}" ]; then
     cp "${GN_OUT_DIR}/${SO}" "${LIBS_DIR}/"
-    echo "[build_hap] staged ${SO} ($(stat -c%s "${LIBS_DIR}/${SO}") bytes)"
+    echo "[build_hap] staged ${SO} ($(file_size "${LIBS_DIR}/${SO}") bytes)"
   else
     echo "[build_hap] WARNING: ${GN_OUT_DIR}/${SO} not found."
   fi
@@ -143,7 +148,7 @@ mkdir -p "${RESFILE_DIR}"
 for RES in icudtl.dat snapshot_blob.bin v8_context_snapshot.bin; do
   if [ -f "${GN_OUT_DIR}/${RES}" ]; then
     cp "${GN_OUT_DIR}/${RES}" "${RESFILE_DIR}/"
-    echo "[build_hap] staged resfile/${RES} ($(stat -c%s "${RESFILE_DIR}/${RES}") bytes)"
+    echo "[build_hap] staged resfile/${RES} ($(file_size "${RESFILE_DIR}/${RES}") bytes)"
   else
     echo "[build_hap] (skip) ${GN_OUT_DIR}/${RES} not found."
   fi
@@ -155,7 +160,7 @@ done
 mkdir -p "${RESFILE_DIR}/resources"
 if [ -f "${GN_OUT_DIR}/resources/default_app.asar" ]; then
   cp "${GN_OUT_DIR}/resources/default_app.asar" "${RESFILE_DIR}/resources/"
-  echo "[build_hap] staged resfile/resources/default_app.asar ($(stat -c%s "${RESFILE_DIR}/resources/default_app.asar") bytes)"
+  echo "[build_hap] staged resfile/resources/default_app.asar ($(file_size "${RESFILE_DIR}/resources/default_app.asar") bytes)"
 else
   echo "[build_hap] (skip) ${GN_OUT_DIR}/resources/default_app.asar not found — build src:default_app_asar first."
 fi
@@ -178,7 +183,7 @@ if [ ! -f "${LYNX_CORE_JS}" ]; then
 fi
 if [ -f "${LYNX_CORE_JS}" ]; then
   cp "${LYNX_CORE_JS}" "${RESFILE_DIR}/resources/lynx_core.js"
-  echo "[build_hap] staged resfile/resources/lynx_core.js ($(stat -c%s "${RESFILE_DIR}/resources/lynx_core.js") bytes)"
+  echo "[build_hap] staged resfile/resources/lynx_core.js ($(file_size "${RESFILE_DIR}/resources/lynx_core.js") bytes)"
 else
   echo "[build_hap] ERROR: ${LYNX_CORE_JS} was not generated."
   echo "[build_hap]        Refusing to package an app with a non-functional Lynx JS runtime."
@@ -215,7 +220,7 @@ if [ "${LYNX_DEMO}" = "none" ]; then
   echo "[build_hap] no demo staged — will render built-in default_app welcome page"
 elif [ -f "${LYNX_BUNDLE_SRC}" ]; then
   cp "${LYNX_BUNDLE_SRC}" "${RESFILE_DIR}/resources/main.lynx.bundle"
-  echo "[build_hap] staged resfile/resources/main.lynx.bundle from ${LYNX_BUNDLE_SRC} ($(stat -c%s "${RESFILE_DIR}/resources/main.lynx.bundle") bytes)"
+  echo "[build_hap] staged resfile/resources/main.lynx.bundle from ${LYNX_BUNDLE_SRC} ($(file_size "${RESFILE_DIR}/resources/main.lynx.bundle") bytes)"
 else
   echo "[build_hap] (skip) ${LYNX_BUNDLE_SRC} not found — no demo staged."
 fi
