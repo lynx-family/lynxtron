@@ -2,7 +2,7 @@
   "app": {
     // bundleName must match the bundle-name recorded in the signing profile
     // used by build_hap.sh (apl=normal).
-    "bundleName": "com.huawei.electron",
+    "bundleName": "com.huawei.lynxtron",
     "vendor": "huawei",
     "versionCode": 1000000,
     "versionName": "1.0.0",
