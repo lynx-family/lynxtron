@@ -91,7 +91,10 @@ export interface NotificationConstructorOptions {
   toastXml?: string;
 }
 
-export declare class Notification extends EventEmitter {
+// Runtime inherits EventEmitter instance methods, but not its static members.
+export interface Notification extends EventEmitter {}
+
+export declare class Notification {
   /**
    * A `NotificationAction[]` property representing the actions of the notification.
    */
