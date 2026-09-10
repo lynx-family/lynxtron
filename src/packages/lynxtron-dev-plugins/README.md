@@ -84,6 +84,10 @@ export default defineConfig({
 });
 ```
 
+The Rspeedy ready plugin also keeps development URL output compatible with
+`--environment`: only active environments are printed when a subset is selected.
+Custom `server.printUrls` callbacks and `server.printUrls: false` are preserved.
+
 ## Rspack Usage
 
 The lower-level Rspack plugin remains available for projects that do not use
