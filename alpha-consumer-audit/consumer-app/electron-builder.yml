@@ -1,0 +1,45 @@
+productName: "Consumer App"
+appId: com.lynxtron.consumer.app
+directories:
+  buildResources: resources
+  output: dist
+  app: dist/desktop
+files:
+  - index.js
+  - '**/*.lynx.bundle'
+  - '**/*.js'
+  - '**/*.css'
+  - '**/*.html'
+  - '**/*.json'
+  - '**/*.jsn'
+  - '**/*.png'
+  - '**/*.exe'
+asar: true
+asarUnpack:
+  - statics/
+npmRebuild: false
+extraResources:
+  - from: src/assets
+    to: assets
+icon: lynxtron.png
+electronBranding:
+  projectName: lynxtron
+  productName: Lynxtron
+mac:
+  artifactName: ConsumerApp-v${version}-darwin-${arch}.${ext}
+  extendInfo:
+    CFBundleURLSchemes:
+      - ConsumerApp
+  identity: null
+win:
+  target:
+    - target: nsis
+      arch: x64
+  artifactName: ConsumerApp-v${version}-win-x64.${ext}
+nsis:
+  artifactName: ConsumerApp-v${version}-win-x64-Setup.${ext}
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true

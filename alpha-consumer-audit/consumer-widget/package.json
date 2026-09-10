@@ -1,0 +1,36 @@
+{
+  "name": "@alpha-consumer/widget",
+  "version": "0.0.1",
+  "description": "A native Lynx library",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "default": "./src/index.ts"
+    },
+    "./lynxtron": "./lynxtron/index.cjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "lynxtron",
+    "shared",
+    "generated",
+    "src",
+    "types",
+    "lynx.lib.json",
+    "README.md"
+  ],
+  "scripts": {
+    "codegen": "lynx-autolink-codegen",
+    "build:lynxtron": "cmake -S lynxtron -B build/lynxtron -DCMAKE_BUILD_TYPE=Release && cmake --build build/lynxtron --config Release"
+  },
+  "devDependencies": {
+    "@lynx-js/autolink-codegen": "^0.5.0",
+    "@lynx-js/lynx-library-headers": "0.0.21-alpha.main.1",
+    "@lynx-js/weak-node-api": "^0.0.9"
+  }
+}

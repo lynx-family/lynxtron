@@ -1,0 +1,57 @@
+file(GLOB LYNX_ELEMENT_SOURCES CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/*.cc"
+)
+
+set(LYNX_ELEMENT_BACKEND_SOURCES)
+set(LYNX_ELEMENT_PLATFORM_SOURCES)
+
+if(LYNX_NATIVE_ELEMENT_BACKEND_TEXTURE)
+  file(GLOB LYNX_ELEMENT_BACKEND_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/backends/texture/*.cc"
+  )
+
+  if(APPLE)
+    file(GLOB_RECURSE LYNX_ELEMENT_PLATFORM_SOURCES CONFIGURE_DEPENDS
+      "${CMAKE_CURRENT_SOURCE_DIR}/backends/texture/macos/*.cc"
+      "${CMAKE_CURRENT_SOURCE_DIR}/backends/texture/macos/*.mm"
+    )
+  elseif(WIN32)
+    file(GLOB_RECURSE LYNX_ELEMENT_PLATFORM_SOURCES CONFIGURE_DEPENDS
+      "${CMAKE_CURRENT_SOURCE_DIR}/backends/texture/windows/*.cc"
+    )
+  endif()
+else()
+  if(APPLE)
+    file(GLOB_RECURSE LYNX_ELEMENT_PLATFORM_SOURCES CONFIGURE_DEPENDS
+      "${CMAKE_CURRENT_SOURCE_DIR}/backends/native-ui/macos/*.cc"
+      "${CMAKE_CURRENT_SOURCE_DIR}/backends/native-ui/macos/*.mm"
+    )
+  elseif(WIN32)
+    file(GLOB_RECURSE LYNX_ELEMENT_PLATFORM_SOURCES CONFIGURE_DEPENDS
+      "${CMAKE_CURRENT_SOURCE_DIR}/backends/native-ui/windows/*.cc"
+    )
+  endif()
+endif()
+
+list(APPEND LYNX_ELEMENT_BACKEND_SOURCES ${LYNX_ELEMENT_PLATFORM_SOURCES})
+
+add_library(WidgetAddonElements OBJECT
+  ${LYNX_ELEMENT_SOURCES}
+  ${LYNX_ELEMENT_BACKEND_SOURCES}
+)
+
+target_include_directories(WidgetAddonElements PRIVATE
+  "${CMAKE_CURRENT_SOURCE_DIR}/../.."
+  "${LYNX_EXTENSION_HEADERS_DIR}/include"
+)
+
+target_compile_definitions(WidgetAddonElements PRIVATE
+  LYNX_NATIVE_ELEMENT_BACKEND_TEXTURE=${LYNX_NATIVE_ELEMENT_BACKEND_TEXTURE}
+)
+
+if(APPLE AND LYNX_ELEMENT_PLATFORM_SOURCES)
+  set_source_files_properties(
+    ${LYNX_ELEMENT_PLATFORM_SOURCES}
+    PROPERTIES COMPILE_FLAGS "-fobjc-arc"
+  )
+endif()

@@ -1,0 +1,44 @@
+{
+  "name": "consumer-app",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "dev": "cross-env NODE_ENV=development concurrently -k --prefix none \"rspeedy dev --environment lynx\" \"dev-ready-rspeedy && rsbuild dev --environment desktop\"",
+    "build": "rspeedy build --environment lynx && rsbuild build --environment desktop",
+    "start": "npm run build && lynxtron dist/desktop",
+    "test": "rstest",
+    "pack": "npm run build && lynxtron-builder --publish never"
+  },
+  "private": true,
+  "devDependencies": {
+    "@lynx-js/config-rsbuild-plugin": "latest",
+    "@lynx-js/lynx-core": "latest",
+    "@lynx-js/lynxtron": "0.0.21-alpha.main.1",
+    "@lynx-js/lynxtron-builder": "0.0.21-alpha.main.1",
+    "@lynx-js/lynxtron-dev-plugins": "0.0.21-alpha.main.1",
+    "@lynx-js/preact-devtools": "latest",
+    "@lynx-js/react": "latest",
+    "@lynx-js/react-rsbuild-plugin": "latest",
+    "@lynx-js/rspeedy": "latest",
+    "@lynx-js/type-config": "latest",
+    "@lynx-js/types": "latest",
+    "@rsbuild/core": "2.1.5",
+    "@rsbuild/plugin-type-check": "latest",
+    "@rstest/core": "^0.11.1",
+    "@testing-library/jest-dom": "^6.9.0",
+    "@types/react": "^18.3.24",
+    "compressing": "^1.10.0",
+    "concurrently": "^8.2.2",
+    "cross-env": "^10.1.0",
+    "jsdom": "^26.1.0",
+    "typescript": "~5.9.3"
+  },
+  "engines": {
+    "node": "^22.18.0 || ^24.0.0 || ^26.0.0"
+  },
+  "dependencies": {
+    "@alpha-consumer/widget": "file:../consumer-widget/alpha-consumer-widget-0.0.1.tgz",
+    "@lynx-js/cef-webview": "0.0.21-alpha.main.1"
+  }
+}

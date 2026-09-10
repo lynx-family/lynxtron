@@ -1,0 +1,135 @@
+cmake_minimum_required(VERSION 3.18.1)
+
+project(WidgetAddon LANGUAGES C CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_C_VISIBILITY_PRESET hidden)
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_OBJC_VISIBILITY_PRESET hidden)
+set(CMAKE_OBJCXX_VISIBILITY_PRESET hidden)
+set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
+
+get_filename_component(
+  LYNX_LIBRARY_PACKAGE_ROOT
+  "${CMAKE_CURRENT_SOURCE_DIR}/.."
+  ABSOLUTE
+)
+
+if(NOT DEFINED LYNX_LIBRARY_PLATFORM)
+  if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    set(LYNX_LIBRARY_PLATFORM "macos")
+  elseif(WIN32)
+    set(LYNX_LIBRARY_PLATFORM "windows")
+  elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(LYNX_LIBRARY_PLATFORM "linux")
+  else()
+    string(TOLOWER "${CMAKE_SYSTEM_NAME}" LYNX_LIBRARY_PLATFORM)
+  endif()
+endif()
+
+if(NOT DEFINED LYNX_LIBRARY_ARCH)
+  if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64|AARCH64)$")
+    set(LYNX_LIBRARY_ARCH "arm64")
+  elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64)$")
+    set(LYNX_LIBRARY_ARCH "x64")
+  else()
+    string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" LYNX_LIBRARY_ARCH)
+  endif()
+endif()
+
+set(
+  LYNX_LIBRARY_OUTPUT_DIR
+  "${LYNX_LIBRARY_PACKAGE_ROOT}/dist/${LYNX_LIBRARY_PLATFORM}/${LYNX_LIBRARY_ARCH}"
+)
+set(LYNX_LIBRARY_OUTPUT_NAME "widget")
+
+if(NOT DEFINED LYNX_LIBRARY_NODE_API_WEAK_SUFFIX)
+  set(
+    LYNX_LIBRARY_NODE_API_WEAK_SUFFIX
+    ON
+    CACHE BOOL
+    "Use weak suffix NAPI symbols for shared native modules"
+  )
+endif()
+
+set(
+  LYNX_LIBRARY_USE_PRIMJS_NAPI_MODULE
+  ON
+  CACHE BOOL
+  "Register standard Node-API modules through weak-node-api"
+  FORCE
+)
+set(
+  LYNX_LIBRARY_MANUAL_NAPI_REGISTRATION
+  ON
+  CACHE BOOL
+  "Register standard Node-API modules from the Lynxtron entry"
+  FORCE
+)
+
+add_subdirectory(
+  "${LYNX_LIBRARY_PACKAGE_ROOT}/shared"
+  "${CMAKE_CURRENT_BINARY_DIR}/shared"
+)
+
+add_library(
+  WidgetAddon
+  MODULE
+  "${CMAKE_CURRENT_SOURCE_DIR}/library_entry.cc"
+)
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/generated_napi_registration.cc")
+  target_sources(WidgetAddon PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/generated_napi_registration.cc"
+  )
+  target_compile_definitions(WidgetAddon PRIVATE
+    LYNX_LIBRARY_HAS_NAPI_NATIVE_MODULES=1
+  )
+endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/generated_platform_registration.cc")
+  target_sources(WidgetAddon PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/generated_platform_registration.cc"
+  )
+  target_compile_definitions(WidgetAddon PRIVATE
+    LYNX_LIBRARY_HAS_PLATFORM_NATIVE_MODULES=1
+  )
+endif()
+
+target_include_directories(WidgetAddon PRIVATE
+  "${LYNX_LIBRARY_PACKAGE_ROOT}"
+)
+
+target_link_libraries(WidgetAddon PRIVATE
+  ${LYNX_SHARED_TARGETS}
+  ${LYNX_SHARED_PLATFORM_LINK_LIBRARIES}
+)
+
+if(LYNX_SHARED_PLATFORM_COMPILE_DEFINITIONS)
+  target_compile_definitions(WidgetAddon PRIVATE
+    ${LYNX_SHARED_PLATFORM_COMPILE_DEFINITIONS}
+  )
+endif()
+
+if(LYNX_SHARED_PLATFORM_LINK_OPTIONS)
+  target_link_options(WidgetAddon PRIVATE
+    ${LYNX_SHARED_PLATFORM_LINK_OPTIONS}
+  )
+endif()
+
+set_target_properties(WidgetAddon PROPERTIES
+  OUTPUT_NAME "${LYNX_LIBRARY_OUTPUT_NAME}"
+  PREFIX ""
+  SUFFIX ".node"
+  ARCHIVE_OUTPUT_DIRECTORY "${LYNX_LIBRARY_OUTPUT_DIR}"
+  LIBRARY_OUTPUT_DIRECTORY "${LYNX_LIBRARY_OUTPUT_DIR}"
+  RUNTIME_OUTPUT_DIRECTORY "${LYNX_LIBRARY_OUTPUT_DIR}"
+  ARCHIVE_OUTPUT_DIRECTORY_DEBUG "${LYNX_LIBRARY_OUTPUT_DIR}"
+  LIBRARY_OUTPUT_DIRECTORY_DEBUG "${LYNX_LIBRARY_OUTPUT_DIR}"
+  RUNTIME_OUTPUT_DIRECTORY_DEBUG "${LYNX_LIBRARY_OUTPUT_DIR}"
+  ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${LYNX_LIBRARY_OUTPUT_DIR}"
+  LIBRARY_OUTPUT_DIRECTORY_RELEASE "${LYNX_LIBRARY_OUTPUT_DIR}"
+  RUNTIME_OUTPUT_DIRECTORY_RELEASE "${LYNX_LIBRARY_OUTPUT_DIR}"
+)

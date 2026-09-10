@@ -1,0 +1,113 @@
+#include "shared/elements/ConsumerWidgetElement.h"
+
+#import <Cocoa/Cocoa.h>
+
+namespace {
+
+NSString* NSStringFromStdString(const std::string& value) {
+  NSString* result = [NSString stringWithUTF8String:value.c_str()];
+  return result != nil ? result : @"";
+}
+
+class ConsumerWidgetElementNativeUIView : public ConsumerWidgetElementView {
+ public:
+  explicit ConsumerWidgetElementNativeUIView(void* opaque)
+      : ConsumerWidgetElementView(opaque) {
+    RunOnMainThreadSync(^{
+      label_ = [NSTextField labelWithString:NSStringFromStdString(value())];
+      label_.textColor = [NSColor blackColor];
+    });
+  }
+
+  ~ConsumerWidgetElementNativeUIView() override {
+    RunOnMainThreadSync(^{
+      [label_ removeFromSuperview];
+      label_ = nil;
+    });
+  }
+
+  bool IsSurfaceEnabled() override { return false; }
+
+  void OnAttach() override {
+    RunOnMainThreadSync(^{
+      AttachToParent();
+    });
+  }
+
+  void OnDetach() override {
+    RunOnMainThreadSync(^{
+      [label_ removeFromSuperview];
+    });
+  }
+
+  void OnLayoutChanged(
+      float left,
+      float top,
+      float width,
+      float height,
+      float pixel_ratio) override {
+    (void)pixel_ratio;
+    RunOnMainThreadSync(^{
+      NSView* lynx_parent = ParentView();
+      NSView* parent = AttachToParent(lynx_parent);
+      if (lynx_parent == nil || parent == nil) {
+        return;
+      }
+
+      const NSRect frame_in_lynx = NSMakeRect(left, top, width, height);
+      label_.frame = [lynx_parent convertRect:frame_in_lynx toView:parent];
+    });
+  }
+
+ private:
+  using MainThreadBlock = void (^)(void);
+
+  void OnValueChanged(const std::string& value) override {
+    std::string text = value;
+    RunOnMainThreadSync(^{
+      if (label_ != nil) {
+        label_.stringValue = NSStringFromStdString(text);
+      }
+    });
+  }
+
+  static void RunOnMainThreadSync(MainThreadBlock block) {
+    if ([NSThread isMainThread]) {
+      block();
+      return;
+    }
+    dispatch_sync(dispatch_get_main_queue(), block);
+  }
+
+  NSView* ParentView() {
+    if (lynx_view() == nullptr) {
+      return nil;
+    }
+    return (__bridge NSView*)lynx_view_get_native_window(lynx_view());
+  }
+
+  NSView* AttachToParent() { return AttachToParent(ParentView()); }
+
+  NSView* AttachToParent(NSView* lynx_parent) {
+    if (label_ == nil || lynx_parent == nil) {
+      return nil;
+    }
+    NSView* parent =
+        lynx_parent.window.contentView != nil ? lynx_parent.window.contentView
+                                              : lynx_parent;
+    if (label_.superview != parent) {
+      [label_ removeFromSuperview];
+      [parent addSubview:label_ positioned:NSWindowAbove relativeTo:nil];
+    }
+    return parent;
+  }
+
+  NSTextField* label_ = nil;
+};
+
+}  // namespace
+
+lynx_native_view_t* CreateConsumerWidgetElementNativeUINativeView(void* opaque) {
+  auto* view = new ConsumerWidgetElementNativeUIView(opaque);
+  return view->native_view();
+}

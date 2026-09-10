@@ -1,0 +1,13 @@
+{
+  "platforms": {
+    "lynxtron": {
+      "path": "dist"
+    },
+    "macos": {
+      "sourceDir": "shared"
+    },
+    "windows": {
+      "sourceDir": "shared"
+    }
+  }
+}

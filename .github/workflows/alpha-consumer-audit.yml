@@ -1,0 +1,108 @@
+name: Alpha 100 fresh consumer audit
+on:
+  push:
+    branches: [feature/AUDIT-100-alpha-consumer]
+permissions:
+  contents: read
+jobs:
+  macos-consumer:
+    runs-on: macos-14
+    timeout-minutes: 40
+    env:
+      npm_config_registry: https://registry.npmjs.org
+      AUDIT_EVIDENCE: ${{ github.workspace }}/evidence
+    defaults:
+      run:
+        shell: bash
+        working-directory: alpha-consumer-audit
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: alpha-consumer-audit
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          registry-url: https://registry.npmjs.org
+      - name: Record clean consumer environment
+        run: |
+          mkdir -p "$AUDIT_EVIDENCE" artifacts
+          { sw_vers; uname -m; node -v; npm -v; cmake --version; xcodebuild -version; } | tee "$AUDIT_EVIDENCE/environment.txt"
+      - name: Build native component and produce npm tarball
+        id: library
+        run: |
+          cd consumer-widget
+          npm ci 2>&1 | tee "$AUDIT_EVIDENCE/library-install.log"
+          npm run codegen 2>&1 | tee "$AUDIT_EVIDENCE/library-codegen.log"
+          npm run build:lynxtron 2>&1 | tee "$AUDIT_EVIDENCE/library-build.log"
+          npm pack --pack-destination ../artifacts 2>&1 | tee "$AUDIT_EVIDENCE/library-pack.log"
+      - name: Install app and the macOS component npm tarball
+        id: install
+        run: |
+          cd consumer-app
+          npm install --save-exact ../artifacts/alpha-consumer-widget-0.0.1.tgz 2>&1 | tee "$AUDIT_EVIDENCE/app-install.log"
+          npm ls --depth=0 2>&1 | tee "$AUDIT_EVIDENCE/app-versions.txt"
+          cp package-lock.json "$AUDIT_EVIDENCE/mac-app-package-lock.json"
+      - name: Validate development app
+        id: dev
+        continue-on-error: true
+        run: |
+          cd consumer-app
+          python3 ../verify-launch.py dev npm run dev
+      - name: Build production app
+        id: build
+        continue-on-error: true
+        run: |
+          cd consumer-app
+          npm run build 2>&1 | tee "$AUDIT_EVIDENCE/build.log"
+      - name: Validate production build
+        if: steps.build.outcome == 'success'
+        id: launch
+        continue-on-error: true
+        run: |
+          cd consumer-app
+          python3 ../verify-launch.py build-launch ./node_modules/.bin/lynxtron dist/desktop
+      - name: Pack DMG using generated application configuration
+        if: steps.build.outcome == 'success'
+        id: pack
+        continue-on-error: true
+        run: |
+          cd consumer-app
+          npm run pack 2>&1 | tee "$AUDIT_EVIDENCE/pack.log"
+      - name: Mount DMG, install application, and verify launch
+        if: steps.pack.outcome == 'success'
+        id: dmg
+        continue-on-error: true
+        run: |
+          dmg=$(find consumer-app/dist -maxdepth 1 -name '*.dmg' -print -quit)
+          test -n "$dmg"
+          hdiutil verify "$dmg" 2>&1 | tee "$AUDIT_EVIDENCE/dmg-verify.log"
+          mount="$RUNNER_TEMP/alpha-consumer-dmg"
+          mkdir -p "$mount" "$HOME/Applications"
+          hdiutil attach "$dmg" -nobrowse -mountpoint "$mount"
+          trap 'hdiutil detach "$mount" || true' EXIT
+          bundle=$(find "$mount" -maxdepth 1 -name '*.app' -print -quit)
+          test -n "$bundle"
+          installed="$HOME/Applications/$(basename "$bundle")"
+          ditto "$bundle" "$installed"
+          { codesign --verify --deep --strict --verbose=2 "$installed"; } > "$AUDIT_EVIDENCE/codesign.txt" 2>&1 || true
+          { spctl --assess --type execute --verbose=4 "$installed"; } > "$AUDIT_EVIDENCE/gatekeeper.txt" 2>&1 || true
+          executable=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$installed/Contents/Info.plist")
+          find "$installed/Contents" -name '*.node' -o -name '*CEF*' -o -name '*Chromium*' > "$AUDIT_EVIDENCE/installed-native-files.txt"
+          cd "$RUNNER_TEMP"
+          python3 "$GITHUB_WORKSPACE/alpha-consumer-audit/verify-launch.py" installed-dmg "$installed/Contents/MacOS/$executable"
+      - name: Preserve evidence and installer
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alpha-100-macos-consumer
+          path: |
+            evidence/
+            alpha-consumer-audit/artifacts/*.tgz
+            alpha-consumer-audit/consumer-app/dist/*.dmg
+          retention-days: 7
+      - name: Summarize verification stages
+        if: always()
+        env:
+          RESULTS: ${{ toJSON(steps) }}
+        run: |
+          node -e 'const s=JSON.parse(process.env.RESULTS); for (const k of ["library","install","dev","build","launch","pack","dmg"]) {console.log(k, s[k]?.outcome); if(s[k]?.outcome!=="success") process.exitCode=1;}'
