@@ -17,4 +17,4 @@ You can also override the variant for one command:
 lynxtron-builder --lynxtron-runtime=devtool --mac
 ```
 
-Selection precedence is command line, `LYNXTRON_RUNTIME_VARIANT`, `electron-builder.yml`, then the `release` default. An explicitly configured `electronDownload` remains authoritative.
+Selection precedence is command line, `LYNXTRON_RUNTIME_VARIANT`, `electron-builder.yml`, then the `release` default. By default, the builder downloads the matching versioned runtime from the Lynxtron GitHub release. An explicitly configured `electronDownload` remains authoritative.

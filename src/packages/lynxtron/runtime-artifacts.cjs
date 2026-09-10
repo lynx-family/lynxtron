@@ -1,4 +1,6 @@
 const VALID_RUNTIME_VARIANTS = Object.freeze(['release', 'devtool']);
+const DEFAULT_RUNTIME_DOWNLOAD_MIRROR =
+  'https://github.com/lynx-family/lynxtron/releases/download/';
 
 function normalizeRuntimeVariant(value, fallback = 'release') {
   const variant = value == null ? fallback : value;
@@ -63,6 +65,7 @@ function resolveRuntimeVariant({
 }
 
 module.exports = {
+  DEFAULT_RUNTIME_DOWNLOAD_MIRROR,
   VALID_RUNTIME_VARIANTS,
   getRuntimeArtifactFilename,
   normalizeRuntimeVariant,

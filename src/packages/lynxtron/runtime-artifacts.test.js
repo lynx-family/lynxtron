@@ -4,11 +4,19 @@ import assert from 'node:assert/strict';
 import runtimeArtifacts from './runtime-artifacts.cjs';
 
 const {
+  DEFAULT_RUNTIME_DOWNLOAD_MIRROR,
   getRuntimeArtifactFilename,
   normalizeRuntimeVariant,
   parseRuntimeArguments,
   resolveRuntimeVariant,
 } = runtimeArtifacts;
+
+test('runtime downloads use the Lynxtron GitHub releases', () => {
+  assert.equal(
+    DEFAULT_RUNTIME_DOWNLOAD_MIRROR,
+    'https://github.com/lynx-family/lynxtron/releases/download/'
+  );
+});
 
 test('release and DevTool runtimes share a version and differ only by filename suffix', () => {
   assert.equal(

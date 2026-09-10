@@ -74,7 +74,11 @@ test('local runtime directories isolate release and DevTool binaries', () => {
   assert.match(getRuntimeExecutablePath('devtool', packageRoot), /dist[\\/]devtool[\\/]/);
 });
 
-test('DevTool download URL uses the stable release tag and suffixed asset', () => {
+test('runtime download URLs use the stable release tag and variant filename', () => {
+  assert.equal(
+    getRuntimeDownloadUrl({ version: '2.0.0', platform: 'linux', arch: 'x64', variant: 'release' }),
+    'https://github.com/lynx-family/lynxtron/releases/download/v2.0.0/lynxtron-v2.0.0-linux-x64.zip'
+  );
   assert.equal(
     getRuntimeDownloadUrl({ baseUrl: 'https://downloads.example.test/', version: '2.0.0', platform: 'linux', arch: 'x64', variant: 'devtool' }),
     'https://downloads.example.test/v2.0.0/lynxtron-v2.0.0-linux-x64-devtool.zip'
