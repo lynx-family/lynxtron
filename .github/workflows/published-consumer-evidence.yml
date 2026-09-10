@@ -1,0 +1,23 @@
+name: Extract fresh consumer evidence
+on:
+  push:
+    branches: [feature/AUDIT-100-evidence]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: published-alpha-fresh-macos
+          run-id: 34471313419
+          github-token: ${{ github.token }}
+          path: recovered
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fresh-consumer-evidence-only
+          path: recovered/evidence/
+          retention-days: 7
