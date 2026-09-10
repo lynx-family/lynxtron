@@ -1,0 +1,88 @@
+name: Published alpha fresh CEF consumer
+on:
+  push:
+    branches: [feature/AUDIT-100-published-consumer]
+permissions:
+  contents: read
+jobs:
+  macos-consumer:
+    runs-on: macos-14
+    timeout-minutes: 30
+    env:
+      npm_config_registry: https://registry.npmjs.org
+      AUDIT_EVIDENCE: ${{ github.workspace }}/evidence
+      AUDIT_MARKERS: '["HOST_STARTED", "APP_READY", "HTTP_LISTENING", "CEF_INITIALIZED", "WINDOW_LOAD_REQUESTED", "CEF_DOM_READY"]'
+      AUDIT_PORT: '18769'
+    defaults:
+      run:
+        shell: bash
+        working-directory: published-consumer-audit/fresh-alpha
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: published-consumer-audit
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          registry-url: https://registry.npmjs.org
+      - name: Record environment and install published packages
+        id: install
+        run: |
+          mkdir -p "$AUDIT_EVIDENCE"
+          { sw_vers; uname -m; node -v; npm -v; } | tee "$AUDIT_EVIDENCE/environment.txt"
+          npm ci 2>&1 | tee "$AUDIT_EVIDENCE/install.log"
+          npm ls --depth=0 2>&1 | tee "$AUDIT_EVIDENCE/versions.txt"
+      - name: Run development app
+        id: dev
+        continue-on-error: true
+        run: python3 ../verify-launch.py dev npm run dev
+      - name: Build production app
+        id: build
+        continue-on-error: true
+        run: npm run build 2>&1 | tee "$AUDIT_EVIDENCE/build.log"
+      - name: Run production build
+        id: launch
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        run: python3 ../verify-launch.py production ./node_modules/.bin/lynxtron dist/desktop
+      - name: Pack DMG with generated configuration
+        id: pack
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        run: npm run pack 2>&1 | tee "$AUDIT_EVIDENCE/pack.log"
+      - name: Install from DMG and launch through LaunchServices
+        id: installed
+        if: steps.pack.outcome == 'success'
+        continue-on-error: true
+        run: |
+          dmg=$(find dist -maxdepth 1 -name '*.dmg' -print -quit)
+          test -n "$dmg"
+          hdiutil verify "$dmg" 2>&1 | tee "$AUDIT_EVIDENCE/dmg-verify.log"
+          mount="$RUNNER_TEMP/published-alpha-dmg"
+          mkdir -p "$mount" "$HOME/Applications"
+          hdiutil attach "$dmg" -nobrowse -mountpoint "$mount"
+          trap 'hdiutil detach "$mount" || true' EXIT
+          bundle=$(find "$mount" -maxdepth 1 -name '*.app' -print -quit)
+          test -n "$bundle"
+          installed="$HOME/Applications/$(basename "$bundle")"
+          ditto "$bundle" "$installed"
+          { codesign --verify --deep --strict --verbose=2 "$installed"; } > "$AUDIT_EVIDENCE/codesign.txt" 2>&1 || true
+          { spctl --assess --type execute --verbose=4 "$installed"; } > "$AUDIT_EVIDENCE/gatekeeper.txt" 2>&1 || true
+          find "$installed/Contents" -name '*.node' -o -name '*CEF*' -o -name '*Chromium*' > "$AUDIT_EVIDENCE/native-files.txt"
+          cd "$RUNNER_TEMP"
+          python3 "$GITHUB_WORKSPACE/published-consumer-audit/verify-launch.py" installed "$installed"
+      - name: Upload logs, screenshots and DMG
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-alpha-fresh-macos
+          path: |
+            evidence/
+            published-consumer-audit/fresh-alpha/dist/*.dmg
+          retention-days: 7
+      - name: Report actual stage outcomes
+        if: always()
+        env:
+          RESULTS: ${{ toJSON(steps) }}
+        run: |
+          node -e 'const s=JSON.parse(process.env.RESULTS); for(const k of ["install","dev","build","launch","pack","installed"]) {console.log(k,s[k]?.outcome); if(s[k]?.outcome!=="success") process.exitCode=1;}'
