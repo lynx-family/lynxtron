@@ -1,13 +1,13 @@
 {
   "platforms": {
     "lynxtron": {
-      "path": "dist"
+      "targets": [
+        { "os": "win32", "arch": "x64", "files": ["dist/windows/x64/widget.node"] },
+        { "os": "darwin", "arch": "arm64", "files": ["dist/macos/arm64/widget.node"] },
+        { "os": "darwin", "arch": "x64", "files": ["dist/macos/x64/widget.node"] }
+      ]
     },
-    "macos": {
-      "sourceDir": "shared"
-    },
-    "windows": {
-      "sourceDir": "shared"
-    }
+    "macos": { "sourceDir": "shared" },
+    "windows": { "sourceDir": "shared" }
   }
 }
