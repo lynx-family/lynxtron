@@ -13,7 +13,7 @@ deps = {
         # Temporarily track the companion Lynx PR. Switch this back to the
         # upstream repository once that PR has landed.
         'url': 'https://github.com/MichaelWHL/lynx.git',
-        'commit': '6553652f5a543e8f66e5f1dfb93a7a76b6aead97',
+        'commit': '38c0a3579664df32bde64b76225a40451166417a',
         "deps_file": "dependencies/DEPS.lynxtron",
         "ignore_in_git": True,
     },
