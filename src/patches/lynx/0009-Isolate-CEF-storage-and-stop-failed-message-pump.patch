@@ -1,0 +1,346 @@
+diff --git a/platform/embedder/plugin/cef/include/cef_extension_module_creator.h b/platform/embedder/plugin/cef/include/cef_extension_module_creator.h
+index c18534fc54..191d5d541c 100644
+--- a/platform/embedder/plugin/cef/include/cef_extension_module_creator.h
++++ b/platform/embedder/plugin/cef/include/cef_extension_module_creator.h
+@@ -9,7 +9,17 @@
+ #include "platform/embedder/public/lynx_extension_module.h"
+ 
+ LYNX_EXTERN_C_BEGIN
++// UTF-8 paths, copied during initialization. Call on the main thread before
++// creating webviews. Empty cache_path selects in-memory web data; otherwise
++// it must be equal to or contained within the absolute root_cache_path.
++typedef struct cef_extension_settings_t {
++  const char* root_cache_path;
++  const char* cache_path;
++} cef_extension_settings_t;
++
+ LYNX_CAPI_EXPORT bool cef_extension_module_initialize();
++LYNX_CAPI_EXPORT bool cef_extension_module_initialize_with_settings(
++    const cef_extension_settings_t* settings);
+ 
+ LYNX_CAPI_EXPORT lynx_extension_module_t*
+ cef_extension_module_create_extension_module(void* opaque);
+diff --git a/platform/embedder/plugin/cef/src/cef_extension_module.cc b/platform/embedder/plugin/cef/src/cef_extension_module.cc
+index ad217b2152..e521a566e7 100644
+--- a/platform/embedder/plugin/cef/src/cef_extension_module.cc
++++ b/platform/embedder/plugin/cef/src/cef_extension_module.cc
+@@ -4,6 +4,7 @@
+ 
+ #include "platform/embedder/plugin/cef/src/cef_extension_module.h"
+ 
++#include "include/cef_request_context_handler.h"
+ #include "platform/embedder/plugin/cef/src/cef_webview.h"
+ #include "platform/embedder/plugin/cef/src/cef_webview_constants.h"
+ #include "platform/embedder/public/capi/lynx_log_capi.h"
+@@ -18,6 +19,30 @@ namespace lynx {
+ namespace plugin {
+ namespace embedder {
+ 
++namespace {
++CefRefPtr<CefRequestContext> webview_request_context;
++}  // namespace
++
++bool InitializeWebviewRequestContext(const cef_extension_settings_t* settings) {
++  if (settings) {
++    // Chrome bootstrap always backs the global context with its initial disk
++    // profile. An explicit context is required for empty-path incognito mode.
++    CefRequestContextSettings context_settings;
++    CefString(&context_settings.cache_path) =
++        settings->cache_path ? settings->cache_path : "";
++    webview_request_context =
++        CefRequestContext::CreateContext(context_settings, nullptr);
++  } else {
++    webview_request_context = CefRequestContext::GetGlobalContext();
++  }
++  return webview_request_context != nullptr;
++}
++
++CefRefPtr<CefRequestContext> GetWebviewRequestContext() {
++  return webview_request_context ? webview_request_context
++                                 : CefRequestContext::GetGlobalContext();
++}
++
+ void CEFExtensionModule::OnLynxViewCreate(lynx_view_t* lynx_view) {
+   LYNX_CAPI_TRACE_BEGIN(CEF_TRACE_CATEGORY, TRACE_NAME_REGISTER_VIEW);
+   lynx_view_register_native_view(lynx_view, "x-webview",
+diff --git a/platform/embedder/plugin/cef/src/cef_extension_module.h b/platform/embedder/plugin/cef/src/cef_extension_module.h
+index bfbb67905e..600629624b 100644
+--- a/platform/embedder/plugin/cef/src/cef_extension_module.h
++++ b/platform/embedder/plugin/cef/src/cef_extension_module.h
+@@ -5,12 +5,19 @@
+ #ifndef PLATFORM_EMBEDDER_PLUGIN_CEF_SRC_CEF_EXTENSION_MODULE_H_
+ #define PLATFORM_EMBEDDER_PLUGIN_CEF_SRC_CEF_EXTENSION_MODULE_H_
+ 
++#include "include/cef_request_context.h"
+ #include "platform/embedder/plugin/cef/include/cef_extension_module_creator.h"
+ 
+ namespace lynx {
+ namespace plugin {
+ namespace embedder {
+ 
++// Configure once after CEF initialization, before creating any webviews. All
++// webviews and their cookie APIs share this context. Legacy hosts retain the
++// global context when no storage settings are supplied.
++bool InitializeWebviewRequestContext(const cef_extension_settings_t* settings);
++CefRefPtr<CefRequestContext> GetWebviewRequestContext();
++
+ class CEFExtensionModule : public lynx::pub::LynxExtensionModule {
+  public:
+   void OnLynxViewCreate(lynx_view_t* lynx_view) override;
+diff --git a/platform/embedder/plugin/cef/src/cef_webview.cc b/platform/embedder/plugin/cef/src/cef_webview.cc
+index bae95ec834..dbc0fe1c52 100644
+--- a/platform/embedder/plugin/cef/src/cef_webview.cc
++++ b/platform/embedder/plugin/cef/src/cef_webview.cc
+@@ -6,6 +6,7 @@
+ 
+ #include <utility>
+ 
++#include "platform/embedder/plugin/cef/src/cef_extension_module.h"
+ #include "platform/embedder/plugin/cef/src/cef_webview_constants.h"
+ #include "platform/embedder/public/capi/lynx_log_capi.h"
+ 
+@@ -304,7 +305,7 @@ void CEFWebview::OnMethodInvoked(
+     const char* method, const lynx::pub::LynxValue& attrs,
+     std::function<void(int, lynx::pub::LynxValue&&)> callback) {
+   if (strcmp(method, kMethodCookiesGet) == 0) {
+-    auto cookie_manager = CefCookieManager::GetGlobalManager(nullptr);
++    auto cookie_manager = GetWebviewRequestContext()->GetCookieManager(nullptr);
+     auto visitor =
+         new GetCookieVisitor([callback](lynx::pub::LynxValue cookies) {
+           callback(kSuccess, std::move(cookies));
+@@ -325,7 +326,7 @@ void CEFWebview::OnMethodInvoked(
+                    lynx::pub::LynxValue::CreateAsNullTag::kCreateAsNullTag));
+       return;
+     }
+-    auto cookie_manager = CefCookieManager::GetGlobalManager(nullptr);
++    auto cookie_manager = GetWebviewRequestContext()->GetCookieManager(nullptr);
+     auto set_callback = new SetCookieCallback([callback](bool success) {
+       callback(kSuccess, lynx::pub::LynxValue(success));
+     });
+@@ -334,7 +335,7 @@ void CEFWebview::OnMethodInvoked(
+     return;
+   } else if (strcmp(method, kMethodCookiesRemove) == 0) {
+     std::string name = attrs.GetProperty(kCookieName).StdString();
+-    auto cookie_manager = CefCookieManager::GetGlobalManager(nullptr);
++    auto cookie_manager = GetWebviewRequestContext()->GetCookieManager(nullptr);
+     auto visitor = new DeleteCookieVisitor(name, [callback](int deleted) {
+       callback(kSuccess, lynx::pub::LynxValue(deleted));
+     });
+@@ -347,7 +348,7 @@ void CEFWebview::OnMethodInvoked(
+     return;
+   }
+   if (strcmp(method, kMethodCookiesFlushStore) == 0) {
+-    auto cookie_manager = CefCookieManager::GetGlobalManager(nullptr);
++    auto cookie_manager = GetWebviewRequestContext()->GetCookieManager(nullptr);
+     bool success = cookie_manager->FlushStore(nullptr);
+     callback(kSuccess, lynx::pub::LynxValue(success));
+     return;
+diff --git a/platform/embedder/plugin/cef/src/cef_webview_client.cc b/platform/embedder/plugin/cef/src/cef_webview_client.cc
+index 17e42225c5..ff19b62609 100644
+--- a/platform/embedder/plugin/cef/src/cef_webview_client.cc
++++ b/platform/embedder/plugin/cef/src/cef_webview_client.cc
+@@ -6,6 +6,7 @@
+ 
+ #include <utility>
+ 
++#include "platform/embedder/plugin/cef/src/cef_extension_module.h"
+ #include "platform/embedder/plugin/cef/src/cef_webview.h"
+ #include "platform/embedder/plugin/cef/src/cef_webview_constants.h"
+ #include "platform/embedder/public/capi/lynx_log_capi.h"
+@@ -49,7 +50,7 @@ void CEFWebviewClient::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
+   }
+ 
+   if (!webview_->set_cookie_methods_.empty()) {
+-    auto cookie_manager = CefCookieManager::GetGlobalManager(nullptr);
++    auto cookie_manager = GetWebviewRequestContext()->GetCookieManager(nullptr);
+     for (const auto& m : webview_->set_cookie_methods_) {
+       cookie_manager->SetCookie(m.url, m.cookie, nullptr);
+     }
+diff --git a/platform/embedder/plugin/cef/src/macos/CEFWebviewInitializer.mm b/platform/embedder/plugin/cef/src/macos/CEFWebviewInitializer.mm
+index 6125deac55..bbdb482a90 100644
+--- a/platform/embedder/plugin/cef/src/macos/CEFWebviewInitializer.mm
++++ b/platform/embedder/plugin/cef/src/macos/CEFWebviewInitializer.mm
+@@ -13,6 +13,7 @@
+ #include "include/wrapper/cef_library_loader.h"
+ #include "include/wrapper/cef_message_router.h"
+ #include "platform/embedder/plugin/cef/include/cef_extension_module_creator.h"
++#include "platform/embedder/plugin/cef/src/cef_extension_module.h"
+ 
+ constexpr int64_t max_delay_ms = 10;
+ 
+@@ -102,13 +103,24 @@ bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame>
+ 
+   // CefBrowserProcessHandler
+   void OnScheduleMessagePumpWork(int64_t delay_ms) override {
++    // Work may be queued during initialization, including before failure.
++    // Keep the receiver alive until the main thread discards queued work.
++    CefRefPtr<CEFWebviewApp> self = this;
+     dispatch_async(dispatch_get_main_queue(), ^{
+-      OnScheduleWorkMainThread(delay_ms);
++      self->OnScheduleWorkMainThread(delay_ms);
+     });
+   }
+ 
++  void StopMessagePump() {
++    message_pump_stopped_ = true;
++    Stop();
++  }
++
+  private:
+   void OnScheduleWorkMainThread(int64_t delay_ms) {
++    if (message_pump_stopped_) {
++      return;
++    }
+     if (IsWorkPending()) {
+       Stop();
+     }
+@@ -138,20 +150,33 @@ void DoWork() {
+ 
+   void Schedule(int64_t delay) {
+     auto max_delay = (double)delay;
++    CefRefPtr<CEFWebviewApp> self = this;
+     _timer = [NSTimer scheduledTimerWithTimeInterval:max_delay / 1000
+                                              repeats:YES
+                                                block:^(NSTimer *t) {
+-                                                 Stop();
+-                                                 DoWork();
++                                                 if (!self->message_pump_stopped_) {
++                                                   self->Stop();
++                                                   self->DoWork();
++                                                 }
+                                                }];
+   }
+ 
++  bool message_pump_stopped_ = false;
+   NSTimer *_timer = nil;
+   CefRefPtr<CefMessageRouterRendererSide> message_router_;
+   IMPLEMENT_REFCOUNTING(CEFWebviewApp);
+ };
+ 
+ LYNX_EXTERN_C bool cef_extension_module_initialize() {
++  return cef_extension_module_initialize_with_settings(nullptr);
++}
++
++LYNX_EXTERN_C bool cef_extension_module_initialize_with_settings(
++    const cef_extension_settings_t *storage_settings) {
++  if (storage_settings &&
++      (!storage_settings->root_cache_path || !storage_settings->root_cache_path[0])) {
++    return false;
++  }
+   CEFBundlePaths paths = {};
+   if (!ResolveCEFBundlePaths(&paths)) {
+     fprintf(stderr, "Failed to locate the CEF framework and helper app.\n");
+@@ -171,6 +196,11 @@ LYNX_EXTERN_C bool cef_extension_module_initialize() {
+   command_line->InitFromArgv(argc, argv);
+ 
+   CefSettings settings;
++  if (storage_settings) {
++    CefString(&settings.root_cache_path) = storage_settings->root_cache_path;
++    CefString(&settings.cache_path) =
++        storage_settings->cache_path ? storage_settings->cache_path : "";
++  }
+   settings.external_message_pump = true;
+   settings.no_sandbox = true;
+   settings.windowless_rendering_enabled = true;
+@@ -182,9 +212,11 @@ LYNX_EXTERN_C bool cef_extension_module_initialize() {
+   CefRefPtr<CEFWebviewApp> app(new CEFWebviewApp);
+ 
+   if (!CefInitialize(main_args, settings, app.get(), nullptr)) {
+-    cef_unload_library();
++    app->StopMessagePump();
++    // Pending blocks still own CEF objects. Keep the library resident, as on
++    // success, until process exit; never pump a failed CEF context.
+     return false;
+   }
+ 
+-  return true;
++  return lynx::plugin::embedder::InitializeWebviewRequestContext(storage_settings);
+ }
+diff --git a/platform/embedder/plugin/cef/src/macos/CEFWebviewMac.mm b/platform/embedder/plugin/cef/src/macos/CEFWebviewMac.mm
+index 4e74bc53a6..02767dbb69 100644
+--- a/platform/embedder/plugin/cef/src/macos/CEFWebviewMac.mm
++++ b/platform/embedder/plugin/cef/src/macos/CEFWebviewMac.mm
+@@ -5,6 +5,7 @@
+ #include "platform/embedder/plugin/cef/src/macos/CEFWebviewMac.h"
+ 
+ #include "include/cef_app.h"
++#include "platform/embedder/plugin/cef/src/cef_extension_module.h"
+ #include "platform/embedder/plugin/cef/src/cef_webview_constants.h"
+ #include "platform/embedder/plugin/cef/src/macos/CEFWebviewClientMac.h"
+ #include "platform/embedder/public/capi/lynx_log_capi.h"
+@@ -105,7 +106,8 @@
+     window_info.SetAsChild(CAST_NSVIEW_TO_CEF_WINDOW_HANDLE(view), CefRect(0, 0, 800, 600));
+   }
+   client_ = new CEFWebviewClientMac(this);
+-  CefBrowserHost::CreateBrowser(window_info, client_, url_, settings, nullptr, nullptr);
++  CefBrowserHost::CreateBrowser(window_info, client_, url_, settings, nullptr,
++                               GetWebviewRequestContext());
+ }
+ 
+ void CEFWebviewMac::OnMouseWheelEvent(int x, int y, int modifiers, double delta_x, double delta_y) {
+diff --git a/platform/embedder/plugin/cef/src/win/cef_webview_initializer.cc b/platform/embedder/plugin/cef/src/win/cef_webview_initializer.cc
+index 7fee269a7b..6835cfba5d 100644
+--- a/platform/embedder/plugin/cef/src/win/cef_webview_initializer.cc
++++ b/platform/embedder/plugin/cef/src/win/cef_webview_initializer.cc
+@@ -10,6 +10,7 @@
+ #include "include/cef_render_process_handler.h"
+ #include "include/wrapper/cef_message_router.h"
+ #include "platform/embedder/plugin/cef/include/cef_extension_module_creator.h"
++#include "platform/embedder/plugin/cef/src/cef_extension_module.h"
+ 
+ namespace {
+ class CEFWebviewApp : public CefApp,
+@@ -99,12 +100,25 @@ extern "C" int cef_webview_execute_process(HINSTANCE instance) {
+ }
+ 
+ LYNX_EXTERN_C bool cef_extension_module_initialize() {
++  return cef_extension_module_initialize_with_settings(nullptr);
++}
++
++LYNX_EXTERN_C bool cef_extension_module_initialize_with_settings(
++    const cef_extension_settings_t* storage_settings) {
+   CefMainArgs main_args(::GetModuleHandle(nullptr));
+   int exit_code = cef_webview_execute_process(::GetModuleHandle(nullptr));
+   if (exit_code >= 0) {
+     return false;
+   }
+   CefSettings settings;
++  if (storage_settings) {
++    if (!storage_settings->root_cache_path || !storage_settings->root_cache_path[0]) {
++      return false;
++    }
++    CefString(&settings.root_cache_path) = storage_settings->root_cache_path;
++    CefString(&settings.cache_path) =
++        storage_settings->cache_path ? storage_settings->cache_path : "";
++  }
+ 
+   HMODULE module = nullptr;
+   if (::GetModuleHandleExW(
+@@ -137,5 +151,5 @@ LYNX_EXTERN_C bool cef_extension_module_initialize() {
+     return false;
+   }
+ 
+-  return true;
++  return lynx::plugin::embedder::InitializeWebviewRequestContext(storage_settings);
+ }
+diff --git a/platform/embedder/plugin/cef/src/win/cef_webview_win.cc b/platform/embedder/plugin/cef/src/win/cef_webview_win.cc
+index e010b6ec8c..9fd39124ef 100644
+--- a/platform/embedder/plugin/cef/src/win/cef_webview_win.cc
++++ b/platform/embedder/plugin/cef/src/win/cef_webview_win.cc
+@@ -9,6 +9,7 @@
+ 
+ #include <set>
+ 
++#include "platform/embedder/plugin/cef/src/cef_extension_module.h"
+ #include "platform/embedder/plugin/cef/src/cef_webview_constants.h"
+ #include "platform/embedder/plugin/cef/src/win/cef_webview_client_win.h"
+ #include "platform/embedder/plugin/cef/src/win/dpi_utils_win32.h"
+@@ -206,7 +207,7 @@ void CEFWebviewWin::SetupClient() {
+   }
+   client_ = new CEFWebviewClientWin(this);
+   CefBrowserHost::CreateBrowser(window_info, client_, url_, settings, nullptr,
+-                                nullptr);
++                                GetWebviewRequestContext());
+ }
+ 
+ namespace {

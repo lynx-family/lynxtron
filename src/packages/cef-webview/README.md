@@ -30,8 +30,9 @@ runtime files remain adjacent to the addon outside ASAR.
 
 ```ts
 import cefWebview from '@lynx-js/cef-webview/lynxtron';
+import { app } from 'lynxtron';
 
-cefWebview.initialize();
+app.whenReady().then(() => cefWebview.initialize());
 ```
 
 Once initialized, you can use the `<webview>` element in your Lynx templates:
@@ -39,6 +40,21 @@ Once initialized, you can use the `<webview>` element in your Lynx templates:
 ```xml
 <webview src="https://www.example.com" width="100%" height="500px"></webview>
 ```
+
+## Storage configuration
+
+Call `initialize()` after `app.whenReady()`. Imports do not access host storage.
+`storagePath` optionally supplies an absolute root directory; the default is
+`app.getPath('userData')/cef-webview`. `persistent` defaults to `false`, selecting
+in-memory web data. With `persistent: true`, web data is stored in
+`storagePath/profile`. Installation-level CEF files can still exist under the
+root in memory mode.
+
+Configure host `userData` before initialization to isolate apps or Go showcases.
+Webviews within one app share their plugin context. Repeated identical
+initialization succeeds; changed settings or initialization failure throw.
+Profile isolation does not change macOS keychain names. See the
+[storage design](./STORAGE-DESIGN.md) for ownership and boundaries.
 
 ## Building
 

@@ -38,8 +38,48 @@ if (!nativeBinding) {
   );
 }
 
+let initializedSettings;
+
 function initialize(options = {}) {
-  return nativeBinding.initialize(options);
+  if (!options || typeof options !== 'object' || Array.isArray(options)) {
+    throw new TypeError('initialize options must be an object');
+  }
+  for (const key of Object.keys(options)) {
+    if (key !== 'storagePath' && key !== 'persistent') {
+      throw new TypeError(`Unknown initialize option: ${key}`);
+    }
+  }
+  if (options.persistent !== undefined && typeof options.persistent !== 'boolean') {
+    throw new TypeError('persistent must be a boolean');
+  }
+  const { app } = require('lynxtron');
+  if (!app.isReady()) {
+    throw new Error('CEF must be initialized after app.whenReady()');
+  }
+  const storagePath = options.storagePath === undefined
+    ? path.join(app.getPath('userData'), 'cef-webview')
+    : options.storagePath;
+  if (typeof storagePath !== 'string' || storagePath.includes('\0') ||
+      !path.isAbsolute(storagePath)) {
+    throw new TypeError('storagePath must be an absolute path without NUL characters');
+  }
+  const rootCachePath = path.normalize(storagePath);
+  const settings = {
+    rootCachePath,
+    cachePath: options.persistent ? path.join(rootCachePath, 'profile') : '',
+  };
+  if (initializedSettings) {
+    if (initializedSettings.rootCachePath !== settings.rootCachePath ||
+        initializedSettings.cachePath !== settings.cachePath) {
+      throw new Error('CEF is already initialized with different storage settings');
+    }
+    return true;
+  }
+  if (nativeBinding.initialize(settings) !== true) {
+    throw new Error('CEF initialization failed');
+  }
+  initializedSettings = settings;
+  return true;
 }
 
 const cefWebview = {

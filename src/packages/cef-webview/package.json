@@ -9,9 +9,10 @@
     "url": "https://github.com/lynx-family/lynxtron.git"
   },
   "main": "index.cjs",
+  "types": "index.d.cts",
   "exports": {
-    ".": "./index.cjs",
-    "./lynxtron": "./index.cjs",
+    ".": { "types": "./index.d.cts", "default": "./index.cjs" },
+    "./lynxtron": { "types": "./index.d.cts", "default": "./index.cjs" },
     "./package.json": "./package.json"
   },
   "scripts": {
@@ -26,6 +27,8 @@
   ],
   "files": [
     "index.cjs",
+    "index.d.cts",
+    "STORAGE-DESIGN.md",
     "lynx.lib.json",
     "README.md",
     "dist/**/*",

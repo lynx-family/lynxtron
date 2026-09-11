@@ -19,9 +19,11 @@ const manifest = JSON.parse(
   fs.readFileSync(path.resolve(__dirname, '../lynx.lib.json'), 'utf8')
 );
 
-function loadEntry({ platform, arch, manifest }) {
+function loadEntry({ platform, arch, manifest, nativeResult = true }) {
   const module = { exports: {} };
   const loadedPaths = [];
+  const nativeCalls = [];
+  const host = { ready: true, reads: 0 };
   const context = {
     __dirname: platform === 'win32' ? 'C:\\cef-webview' : '/cef-webview',
     module,
@@ -34,17 +36,28 @@ function loadEntry({ platform, arch, manifest }) {
       if (specifier === './lynx.lib.json') {
         return manifest;
       }
+      if (specifier === 'lynxtron') {
+        host.reads++;
+        return { app: {
+          isReady: () => host.ready,
+          getPath: (name) => {
+            assert.equal(name, 'userData');
+            return platform === 'win32' ? 'C:\\Users\\测试\\AppData\\Roaming\\Example' : '/Users/test/Library/Application Support/Example';
+          },
+        } };
+      }
       loadedPaths.push(specifier);
       return {
         initialize(options) {
-          return { options, platform, arch };
+          nativeCalls.push(JSON.parse(JSON.stringify(options)));
+          return nativeResult;
         },
       };
     },
   };
 
   vm.runInNewContext(entrySource, context, { filename: 'index.cjs' });
-  return { entry: module.exports, loadedPaths, process: context.process };
+  return { entry: module.exports, loadedPaths, process: context.process, nativeCalls, host };
 }
 
 test('loads the Windows x64 binary selected by lynx.lib.json', () => {
@@ -81,11 +94,42 @@ test('loads the Windows x64 binary selected by lynx.lib.json', () => {
     process.env.PATH,
     'C:\\cef-webview\\dist\\win32\\x64;C:\\Windows\\System32'
   );
-  assert.deepEqual(entry.initialize({ cachePath: 'cache' }), {
-    options: { cachePath: 'cache' },
-    platform: 'win32',
-    arch: 'x64',
+  assert.equal(entry.initialize(), true);
+});
+
+for (const platform of ['darwin', 'win32']) {
+  test(`${platform}: deferred host access, storage mapping and idempotence`, () => {
+    const arch = platform === 'win32' ? 'x64' : 'arm64';
+    const instance = loadEntry({ platform, arch, manifest });
+    assert.equal(instance.host.reads, 0);
+    instance.host.ready = false;
+    assert.throws(() => instance.entry.initialize(), /after app.whenReady/);
+    assert.equal(instance.nativeCalls.length, 0);
+    instance.host.ready = true;
+    assert.equal(instance.entry.initialize(), true);
+    const pathImpl = platform === 'win32' ? path.win32 : path.posix;
+    assert.equal(instance.nativeCalls[0].cachePath, '');
+    assert.ok(pathImpl.isAbsolute(instance.nativeCalls[0].rootCachePath));
+    assert.ok(instance.nativeCalls[0].rootCachePath.endsWith('cef-webview'));
+    assert.equal(instance.entry.initialize({ persistent: false }), true);
+    assert.equal(instance.nativeCalls.length, 1);
+    assert.throws(() => instance.entry.initialize({ persistent: true }), /different storage/);
+    const fresh = loadEntry({ platform, arch, manifest });
+    const storagePath = platform === 'win32' ? 'D:\\测试\\webview' : '/tmp/test-webview';
+    assert.equal(fresh.entry.initialize({ storagePath, persistent: true }), true);
+    assert.deepEqual(fresh.nativeCalls, [{rootCachePath: storagePath, cachePath: pathImpl.join(storagePath, 'profile')}]);
   });
+}
+
+test('rejects invalid options and does not cache native initialization failure', () => {
+  const instance = loadEntry({platform:'darwin',arch:'arm64',manifest,nativeResult:false});
+  for (const options of [null, [], 1, {unknown:true}, {persistent:'true'}, {storagePath:'relative'}, {storagePath:'/tmp/a\0b'}]) {
+    assert.throws(() => instance.entry.initialize(options));
+  }
+  assert.equal(instance.nativeCalls.length, 0);
+  assert.throws(() => instance.entry.initialize(), /CEF initialization failed/);
+  assert.throws(() => instance.entry.initialize(), /CEF initialization failed/);
+  assert.equal(instance.nativeCalls.length, 2);
 });
 
 test('fails clearly when the installed package has no matching binary', () => {
