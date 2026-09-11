@@ -13,21 +13,8 @@ const DEFAULT_DEPENDENCY_FIELDS = [
 ] as const;
 export const DEFAULT_LYNXTRON_NATIVE_OUTPUT_DIR = '.lynxtron/native';
 
-const PLATFORM_ALIASES: Record<string, string[]> = {
-  darwin: ['macos', 'darwin'],
-  macos: ['macos', 'darwin'],
-  win32: ['windows', 'win32'],
-  windows: ['windows', 'win32'],
-  linux: ['linux'],
-};
-
-const ARCH_ALIASES: Record<string, string[]> = {
-  arm64: ['arm64'],
-  x64: ['x64', 'x86_64'],
-  x86_64: ['x64', 'x86_64'],
-  ia32: ['ia32', 'x86'],
-  x86: ['ia32', 'x86'],
-};
+const MANIFEST_PLATFORMS = new Set(['darwin', 'win32', 'linux']);
+const MANIFEST_ARCHITECTURES = new Set(['arm64', 'x64', 'ia32']);
 
 export interface LynxtronAutoLinkOptions {
   root?: string;
@@ -37,24 +24,17 @@ export interface LynxtronAutoLinkOptions {
   warn?: (message: string) => void;
 }
 
-export interface LynxDesktopManifestEntry {
-  src?: string;
-  binary?: LynxNodeApiBinaryEntry | LynxNodeApiBinaryEntry[];
-}
-
 export interface LynxNodeApiManifestEntry {
-  path?: string | string[];
-  binary?: LynxNodeApiBinaryEntry | LynxNodeApiBinaryEntry[];
+  targets?: LynxtronRuntimeTarget[];
 }
 
-export interface LynxNodeApiBinaryEntry {
-  os?: string;
-  arch?: string;
-  arc?: string;
-  path?: string | string[];
+export interface LynxtronRuntimeTarget {
+  os: string;
+  arch: string;
+  files?: string[];
+  frameworks?: string[];
+  appBundles?: string[];
 }
-
-export type LynxtronAutoLinkStageMode = 'file' | 'package';
 
 export interface LynxtronAutoLinkLibrary {
   name: string;
@@ -64,10 +44,13 @@ export interface LynxtronAutoLinkLibrary {
   manifest: Record<string, unknown>;
   platformKey: string;
   archKey: string;
-  libs: string[];
-  libPaths: string[];
-  stageMode: LynxtronAutoLinkStageMode;
-  nodeModulesPath: string;
+  files: string[];
+  filePaths: string[];
+  frameworks: string[];
+  frameworkPaths: string[];
+  appBundles: string[];
+  appBundlePaths: string[];
+  entry: string;
   warnings: string[];
 }
 
@@ -79,23 +62,12 @@ export interface LynxtronAutoLinkResolution {
   warnings: string[];
 }
 
-export interface LynxtronAutoLinkFileSet {
-  from: string;
-  to: string;
-  filter: string[];
-}
-
 export interface LynxtronAutoLinkStagedLibrary {
   name: string;
   sourcePath: string;
   stagedPath: string;
-  requirePath: string;
-  requireSpecifier?: string;
-  copyMode: LynxtronAutoLinkStageMode;
-}
-
-export interface LynxtronAutoLinkCodegenOptions {
-  stagedLibraries?: LynxtronAutoLinkStagedLibrary[];
+  requireSpecifier: string;
+  files: string[];
 }
 
 interface PackageJson {
@@ -108,8 +80,9 @@ interface PackageJson {
 interface MatchedManifestEntry {
   platformKey: string;
   archKey: string;
-  libs: string[];
-  stageMode: LynxtronAutoLinkStageMode;
+  files: string[];
+  frameworks: string[];
+  appBundles: string[];
 }
 
 export function resolveLynxtronAutoLinks(
@@ -155,61 +128,72 @@ export function resolveLynxtronAutoLinks(
       continue;
     }
 
-    const libs = matchedEntry.libs.map((libraryPath) =>
-      expandManifestVariables(
-        libraryPath,
-        platform,
-        arch,
-        matchedEntry.platformKey,
-        matchedEntry.archKey
-      )
+    const files = matchedEntry.files;
+
+    const filePaths = files.map((filePath) =>
+      path.join(resolvedPackage.packageRoot, filePath)
+    );
+    const frameworks = matchedEntry.frameworks;
+    const frameworkPaths = frameworks.map((frameworkPath) =>
+      path.join(resolvedPackage.packageRoot, frameworkPath)
+    );
+    const appBundles = matchedEntry.appBundles;
+    const appBundlePaths = appBundles.map((appBundlePath) =>
+      path.join(resolvedPackage.packageRoot, appBundlePath)
     );
 
-    if (libs.length === 0) {
+    if (
+      files.length === 0 &&
+      frameworks.length === 0 &&
+      appBundles.length === 0
+    ) {
       continue;
     }
-
-    const libPaths = libs.map((libraryPath) =>
-      path.join(resolvedPackage.packageRoot, libraryPath)
-    );
     const libraryWarnings: string[] = [];
+    const requireFromPackage = createRequire(resolvedPackage.packageJsonPath);
+    const lynxtronSpecifier = getNodeApiPackageSpecifier(dependencyName);
+    let entry = '';
 
-    if (matchedEntry.stageMode === 'package') {
-      const requireFromPackage = createRequire(resolvedPackage.packageJsonPath);
-      const lynxtronSpecifier = getNodeApiPackageSpecifier(dependencyName);
-
-      try {
-        requireFromPackage.resolve(lynxtronSpecifier);
-      } catch {
+    try {
+      const entryPath = requireFromPackage.resolve(lynxtronSpecifier);
+      const relativeEntry = path.relative(
+        resolvedPackage.packageRoot,
+        entryPath
+      );
+      if (relativeEntry.startsWith('..') || path.isAbsolute(relativeEntry)) {
         libraryWarnings.push(
-          `Lynxtron AutoLink package "${dependencyName}" declares Lynxtron assets, but ${lynxtronSpecifier} cannot be resolved.`
+          `Lynxtron AutoLink package "${dependencyName}" resolves ${lynxtronSpecifier} outside its package.`
         );
+      } else {
+        entry = normalizeFilterPath(relativeEntry);
       }
-
-      for (const [index, libPath] of libPaths.entries()) {
-        if (hasGlob(libs[index])) {
-          continue;
-        }
-
-        if (!fs.existsSync(libPath)) {
-          libraryWarnings.push(
-            `Lynxtron AutoLink package "${dependencyName}" declares Lynxtron assets ${libs[index]}, but the path does not exist.`
-          );
-        }
-      }
-    } else {
-      for (const [index, libPath] of libPaths.entries()) {
-        if (hasGlob(libs[index])) {
-          continue;
-        }
-
-        if (!fs.existsSync(libPath)) {
-          libraryWarnings.push(
-            `Lynxtron AutoLink package "${dependencyName}" declares Node-API binary ${libs[index]}, but the file does not exist.`
-          );
-        }
-      }
+    } catch {
+      libraryWarnings.push(
+        `Lynxtron AutoLink package "${dependencyName}" declares Lynxtron assets, but ${lynxtronSpecifier} cannot be resolved.`
+      );
     }
+
+    validateArtifactPaths({
+      dependencyName,
+      kind: 'file',
+      paths: files,
+      absolutePaths: filePaths,
+      warnings: libraryWarnings,
+    });
+    validateArtifactPaths({
+      dependencyName,
+      kind: 'Framework',
+      paths: frameworks,
+      absolutePaths: frameworkPaths,
+      warnings: libraryWarnings,
+    });
+    validateArtifactPaths({
+      dependencyName,
+      kind: 'app bundle',
+      paths: appBundles,
+      absolutePaths: appBundlePaths,
+      warnings: libraryWarnings,
+    });
 
     for (const warning of libraryWarnings) {
       warnings.push(warning);
@@ -224,10 +208,13 @@ export function resolveLynxtronAutoLinks(
       manifest,
       platformKey: matchedEntry.platformKey,
       archKey: matchedEntry.archKey,
-      libs,
-      libPaths,
-      stageMode: matchedEntry.stageMode,
-      nodeModulesPath: packageNameToNodeModulesPath(dependencyName),
+      files,
+      filePaths,
+      frameworks,
+      frameworkPaths,
+      appBundles,
+      appBundlePaths,
+      entry,
       warnings: libraryWarnings,
     });
   }
@@ -241,27 +228,6 @@ export function resolveLynxtronAutoLinks(
   };
 }
 
-export function createLynxtronAutoLinkFileSets(
-  resolution: LynxtronAutoLinkResolution
-): LynxtronAutoLinkFileSet[] {
-  return resolution.libraries.map((library) => {
-    const filters =
-      library.stageMode === 'package'
-        ? ['package.json', 'lynx.lib.json', '**/*']
-        : [
-            'package.json',
-            'lynx.lib.json',
-            ...library.libs.map(normalizeFilterPath),
-          ];
-
-    return {
-      from: library.packageRoot,
-      to: library.nodeModulesPath,
-      filter: Array.from(new Set(filters)),
-    };
-  });
-}
-
 export function createLynxtronAutoLinkStagedLibraries(
   resolution: LynxtronAutoLinkResolution,
   nativeOutputDir = DEFAULT_LYNXTRON_NATIVE_OUTPUT_DIR
@@ -270,164 +236,32 @@ export function createLynxtronAutoLinkStagedLibraries(
   const stagedLibraries: LynxtronAutoLinkStagedLibrary[] = [];
 
   for (const library of resolution.libraries) {
-    if (library.stageMode === 'package') {
-      const stagedPackagePath = path.posix.join(
-        outputRoot,
-        packageNameToNodeModulesPath(library.name)
-      );
+    const stagedPackagePath = path.posix.join(
+      outputRoot,
+      packageNameToNodeModulesPath(library.name)
+    );
 
-      stagedLibraries.push({
-        name: library.name,
-        sourcePath: library.packageRoot,
-        stagedPath: stagedPackagePath,
-        requirePath: stagedPackagePath,
-        requireSpecifier: getNodeApiPackageSpecifier(library.name),
-        copyMode: 'package',
-      });
-      continue;
-    }
-
-    for (const [index, sourcePath] of library.libPaths.entries()) {
-      const stagedPath = path.posix.join(
-        outputRoot,
-        packageNameToNodeModulesPath(library.name),
-        normalizeFilterPath(library.libs[index])
-      );
-
-      stagedLibraries.push({
-        name: library.name,
-        sourcePath,
-        stagedPath,
-        requirePath: stagedPath,
-        copyMode: 'file',
-      });
-    }
+    stagedLibraries.push({
+      name: library.name,
+      sourcePath: library.packageRoot,
+      stagedPath: stagedPackagePath,
+      requireSpecifier: getNodeApiPackageSpecifier(library.name),
+      files: getAutoLinkPackageFiles(library),
+    });
   }
 
   return stagedLibraries;
 }
 
-export function generateLynxtronAutoLinkCode(
-  resolution: LynxtronAutoLinkResolution,
-  options: LynxtronAutoLinkCodegenOptions = {}
-): string {
-  if (options.stagedLibraries !== undefined) {
-    return generateLynxtronAutoLinkStagedCode(options.stagedLibraries);
-  }
-
-  if (resolution.libraries.length === 0) {
-    return 'export {};\n';
-  }
-
-  const records = resolution.libraries.map(
-    (library) =>
-      `  { packageName: ${JSON.stringify(library.name)}, libs: ${JSON.stringify(
-        library.libs
-      )}, stageMode: ${JSON.stringify(
-        library.stageMode
-      )}, specifier: ${JSON.stringify(
-        library.stageMode === 'package'
-          ? getNodeApiPackageSpecifier(library.name)
-          : undefined
-      )} },`
-  );
-
-  return `import __fs from 'node:fs';
-import { createRequire as __createRequire } from 'node:module';
-import __path from 'node:path';
-
-const __lynxtronAutoLinkRequire = typeof __non_webpack_require__ === 'function'
-  ? __non_webpack_require__
-  : __createRequire(import.meta.url);
-const __lynxtronAutoLinkNodeApiAddons = new Set();
-
-const __lynxtronAutoLinkLibraries = [
-${records.join('\n')}
-];
-
-function __lynxtronAutoLinkResolvePackageRoot(packageName) {
-  try {
-    return __path.dirname(
-      __lynxtronAutoLinkRequire.resolve(\`\${packageName}/package.json\`),
-    );
-  } catch {}
-
-  const entryPath = __lynxtronAutoLinkRequire.resolve(packageName);
-  let current = __fs.statSync(entryPath).isDirectory()
-    ? entryPath
-    : __path.dirname(entryPath);
-
-  while (true) {
-    const packageJsonPath = __path.join(current, 'package.json');
-
-    if (__fs.existsSync(packageJsonPath)) {
-      try {
-        const packageJson = JSON.parse(
-          __fs.readFileSync(packageJsonPath, 'utf8'),
-        );
-
-        if (packageJson && packageJson.name === packageName) {
-          return current;
-        }
-      } catch {}
-    }
-
-    const parent = __path.dirname(current);
-
-    if (parent === current) {
-      throw new Error(
-        \`Cannot resolve AutoLink package root for \${packageName}\`,
-      );
-    }
-
-    current = parent;
-  }
-}
-
-function __lynxtronAutoLinkLoadNodeApiAddon(libraryPath, isPackageEntry) {
-  const loadPath = isPackageEntry
-    ? __lynxtronAutoLinkRequire.resolve(libraryPath)
-    : __path.resolve(libraryPath);
-
-  if (__lynxtronAutoLinkNodeApiAddons.has(loadPath)) {
-    return;
-  }
-
-  __lynxtronAutoLinkRequire(isPackageEntry ? libraryPath : loadPath);
-  __lynxtronAutoLinkNodeApiAddons.add(loadPath);
-}
-
-for (const __lynxtronAutoLinkRecord of __lynxtronAutoLinkLibraries) {
-  let __lynxtronAutoLinkPackageRoot;
-
-  if (__lynxtronAutoLinkRecord.stageMode === 'package') {
-    __lynxtronAutoLinkLoadNodeApiAddon(
-      __lynxtronAutoLinkRecord.specifier,
-      true,
-    );
-    continue;
-  }
-
-  for (const __lynxtronAutoLinkLib of __lynxtronAutoLinkRecord.libs) {
-    __lynxtronAutoLinkPackageRoot ??= __lynxtronAutoLinkResolvePackageRoot(
-      __lynxtronAutoLinkRecord.packageName,
-    );
-    __lynxtronAutoLinkLoadNodeApiAddon(
-      __path.join(__lynxtronAutoLinkPackageRoot, __lynxtronAutoLinkLib),
-      false,
-    );
-  }
-}
-`;
-}
-
 export function writeLynxtronAutoLinkModule(
-  resolution: LynxtronAutoLinkResolution,
   filePath: string,
-  options: LynxtronAutoLinkCodegenOptions = {}
+  stagedLibraries: LynxtronAutoLinkStagedLibrary[]
 ): string {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, generateLynxtronAutoLinkCode(resolution, options));
+  fs.writeFileSync(
+    filePath,
+    generateLynxtronAutoLinkStagedCode(stagedLibraries)
+  );
   return filePath;
 }
 
@@ -440,11 +274,7 @@ function generateLynxtronAutoLinkStagedCode(
 
   const records = stagedLibraries.map(
     (library) =>
-      `  { copyMode: ${JSON.stringify(
-        library.copyMode
-      )}, path: ${JSON.stringify(
-        normalizeFilterPath(library.requirePath)
-      )}, packageRoot: ${JSON.stringify(
+      `  { packageRoot: ${JSON.stringify(
         normalizeFilterPath(library.stagedPath)
       )}, packageName: ${JSON.stringify(
         library.name
@@ -458,9 +288,13 @@ import { fileURLToPath as __fileURLToPath } from 'node:url';
 
 const __lynxtronAutoLinkRequire = typeof __non_webpack_require__ === 'function'
   ? __non_webpack_require__
-  : __createRequire(import.meta.url);
+  : __createRequire(
+      typeof __filename === 'string' ? __filename : import.meta.url,
+    );
 const __lynxtronAutoLinkSourceDir = __path.dirname(
-  __fileURLToPath(import.meta.url),
+  typeof __filename === 'string'
+    ? __filename
+    : __fileURLToPath(import.meta.url),
 );
 const __lynxtronAutoLinkNodeApiAddons = new Set();
 const __lynxtronAutoLinkLibraries = [
@@ -469,20 +303,16 @@ ${records.join('\n')}
 
 function __lynxtronAutoLinkLoadNodeApiAddon(library) {
   const loadPath = __lynxtronAutoLinkResolveExistingLoadPath(
-    library.copyMode === 'package' ? library.packageRoot : library.path,
+    library.packageRoot,
   );
 
   if (__lynxtronAutoLinkNodeApiAddons.has(loadPath)) {
     return;
   }
 
-  if (library.copyMode === 'package') {
-    __lynxtronAutoLinkRegisterNodeModulesRoot(loadPath, library.packageName);
-    const packageRequire = __createRequire(__path.join(loadPath, 'package.json'));
-    packageRequire(library.specifier);
-  } else {
-    __lynxtronAutoLinkRequire(loadPath);
-  }
+  __lynxtronAutoLinkRegisterNodeModulesRoot(loadPath, library.packageName);
+  const packageRequire = __createRequire(__path.join(loadPath, 'package.json'));
+  packageRequire(library.specifier);
 
   __lynxtronAutoLinkNodeApiAddons.add(loadPath);
 }
@@ -665,32 +495,11 @@ function getNodeApiManifestEntry(
     return undefined;
   }
 
-  const platformRecords = platforms as Record<string, unknown>;
-
-  const nodeApiEntry = matchNodeApiManifestEntry(
-    platformRecords['lynxtron'],
+  return matchNodeApiManifestEntry(
+    (platforms as Record<string, unknown>)['lynxtron'],
     platform,
     arch
   );
-
-  if (nodeApiEntry !== undefined) {
-    return nodeApiEntry;
-  }
-
-  for (const platformKey of getManifestKeys(platform, PLATFORM_ALIASES)) {
-    const matchedEntry = matchBinaryManifestEntry(
-      platformKey,
-      platformRecords[platformKey],
-      platform,
-      arch
-    );
-
-    if (matchedEntry !== undefined) {
-      return matchedEntry;
-    }
-  }
-
-  return undefined;
 }
 
 function matchNodeApiManifestEntry(
@@ -703,120 +512,195 @@ function matchNodeApiManifestEntry(
   }
 
   const nodeApiEntry = platformEntry as LynxNodeApiManifestEntry;
-  const paths = normalizeLibraryPaths(nodeApiEntry.path);
-
-  if (paths.length > 0) {
-    return {
-      platformKey: 'lynxtron',
-      archKey: runtimeArch,
-      libs: paths,
-      stageMode: 'package',
-    };
-  }
-
-  return matchBinaryManifestEntry(
-    'lynxtron',
-    platformEntry,
+  const target = matchRuntimeTarget(
+    nodeApiEntry.targets,
     runtimePlatform,
     runtimeArch
   );
-}
-
-function matchBinaryManifestEntry(
-  platformKey: string,
-  platformEntry: unknown,
-  runtimePlatform: string,
-  runtimeArch: string
-): MatchedManifestEntry | undefined {
-  if (platformEntry === null || typeof platformEntry !== 'object') {
+  if (target === undefined) {
     return undefined;
   }
 
-  const desktopEntry = platformEntry as LynxDesktopManifestEntry;
+  if (
+    'binary' in target.entry ||
+    'binaries' in target.entry ||
+    'resources' in target.entry
+  ) {
+    throw new Error(
+      'Lynxtron AutoLink does not support binary, binaries, or resources in targets; use files.'
+    );
+  }
 
-  for (const binaryEntry of normalizeBinaryEntries(desktopEntry.binary)) {
-    const os = readOptionalString(binaryEntry.os);
-    const binaryArch =
-      readOptionalString(binaryEntry.arch) ??
-      readOptionalString(binaryEntry.arc);
-    const binaryPaths = normalizeLibraryPaths(binaryEntry.path);
+  const frameworks = normalizeLibraryPaths(target.entry.frameworks);
+  if (frameworks.length > 0) {
+    if (runtimePlatform !== 'darwin') {
+      throw new Error(
+        'Lynxtron AutoLink only supports frameworks for darwin targets.'
+      );
+    }
+    if (frameworks.some((framework) => !framework.endsWith('.framework'))) {
+      throw new Error(
+        'Lynxtron AutoLink requires every frameworks path to end in .framework.'
+      );
+    }
+  }
 
+  const appBundles = normalizeLibraryPaths(target.entry.appBundles);
+  if (appBundles.length > 0) {
+    if (runtimePlatform !== 'darwin') {
+      throw new Error(
+        'Lynxtron AutoLink only supports appBundles for darwin targets.'
+      );
+    }
+    if (appBundles.some((appBundle) => !appBundle.endsWith('.app'))) {
+      throw new Error(
+        'Lynxtron AutoLink requires every appBundles path to end in .app.'
+      );
+    }
+  }
+
+  return {
+    platformKey: 'lynxtron',
+    archKey: target.archKey,
+    files: normalizeLibraryPaths(target.entry.files),
+    frameworks,
+    appBundles,
+  };
+}
+
+function matchRuntimeTarget(
+  targets: unknown,
+  runtimePlatform: string,
+  runtimeArch: string
+): { archKey: string; entry: LynxtronRuntimeTarget } | undefined {
+  const matches: Array<{
+    archKey: string;
+    entry: LynxtronRuntimeTarget;
+  }> = [];
+
+  for (const target of normalizeRuntimeTargets(targets)) {
+    const { os, arch: targetArch } = target;
     if (
-      os === undefined ||
-      binaryArch === undefined ||
-      binaryPaths.length === 0 ||
-      !matchesManifestKey(runtimePlatform, os, PLATFORM_ALIASES) ||
-      !matchesManifestKey(runtimeArch, binaryArch, ARCH_ALIASES)
+      !MANIFEST_PLATFORMS.has(os) ||
+      !MANIFEST_ARCHITECTURES.has(targetArch)
     ) {
+      throw new Error(
+        `Lynxtron AutoLink requires standard os/arch names, got ${os}/${targetArch}.`
+      );
+    }
+    // Validate every declaration, including targets not selected on this host.
+    for (const field of ['files', 'frameworks', 'appBundles'] as const) {
+      normalizeLibraryPaths(target[field]);
+    }
+    if (runtimePlatform !== os || runtimeArch !== targetArch) {
       continue;
     }
 
-    return {
-      platformKey,
-      archKey: binaryArch,
-      libs: binaryPaths,
-      stageMode: 'file',
-    };
+    matches.push({
+      archKey: targetArch,
+      entry: target,
+    });
   }
 
-  return undefined;
+  if (matches.length > 1) {
+    throw new Error(
+      `Lynxtron AutoLink found duplicate targets for ${runtimePlatform}/${runtimeArch}.`
+    );
+  }
+
+  return matches[0];
 }
 
-function normalizeBinaryEntries(value: unknown): LynxNodeApiBinaryEntry[] {
-  const values = Array.isArray(value) ? value : [value];
-  const entries: LynxNodeApiBinaryEntry[] = [];
+function normalizeRuntimeTargets(value: unknown): LynxtronRuntimeTarget[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
 
-  for (const item of values) {
+  const entries: LynxtronRuntimeTarget[] = [];
+
+  for (const item of value) {
     if (item !== null && typeof item === 'object') {
-      entries.push(item as LynxNodeApiBinaryEntry);
+      entries.push(item as LynxtronRuntimeTarget);
     }
   }
 
   return entries;
 }
 
-function getManifestKeys(
-  value: string,
-  aliases: Record<string, string[]>
-): string[] {
-  return Array.from(new Set(aliases[value] ?? [value]));
-}
-
-function matchesManifestKey(
-  runtimeValue: string,
-  manifestValue: string,
-  aliases: Record<string, string[]>
-): boolean {
-  return getManifestKeys(runtimeValue, aliases).includes(manifestValue);
-}
-
 function normalizeLibraryPaths(value: unknown): string[] {
-  const values = Array.isArray(value) ? value : [value];
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error(
+      'Lynxtron AutoLink artifact paths must be non-empty arrays.'
+    );
+  }
+  const values = value;
   const paths: string[] = [];
 
   for (const item of values) {
     const libraryPath = normalizeRelativePath(item);
 
-    if (libraryPath !== undefined) {
-      paths.push(libraryPath);
+    if (
+      !libraryPath ||
+      libraryPath.includes('${') ||
+      /[*?\[\]{}]/.test(libraryPath)
+    ) {
+      throw new Error(
+        `Lynxtron AutoLink requires fixed package-relative artifact paths, got ${String(
+          item
+        )}.`
+      );
     }
+    paths.push(libraryPath);
   }
 
   return paths;
 }
 
-function expandManifestVariables(
-  value: string,
-  platform: string,
-  arch: string,
-  manifestPlatform: string,
-  manifestArch: string
-): string {
-  return value
-    .replaceAll('${platform}', platform)
-    .replaceAll('${arch}', arch)
-    .replaceAll('${manifestPlatform}', manifestPlatform)
-    .replaceAll('${manifestArch}', manifestArch);
+function validateArtifactPaths({
+  dependencyName,
+  kind,
+  paths,
+  absolutePaths,
+  warnings,
+}: {
+  dependencyName: string;
+  kind: string;
+  paths: string[];
+  absolutePaths: string[];
+  warnings: string[];
+}): void {
+  for (const [index, absolutePath] of absolutePaths.entries()) {
+    if (hasGlob(paths[index])) {
+      warnings.push(
+        `Lynxtron AutoLink package "${dependencyName}" declares unsupported ${kind} glob ${paths[index]}.`
+      );
+      continue;
+    }
+
+    if (!fs.existsSync(absolutePath)) {
+      warnings.push(
+        `Lynxtron AutoLink package "${dependencyName}" declares ${kind} assets ${paths[index]}, but the path does not exist.`
+      );
+    }
+  }
+}
+
+function getAutoLinkPackageFiles(library: LynxtronAutoLinkLibrary): string[] {
+  return Array.from(
+    new Set(
+      [
+        'package.json',
+        'lynx.lib.json',
+        library.entry,
+        ...library.files,
+        ...library.frameworks,
+        ...library.appBundles,
+      ]
+        .filter((entry) => entry.length > 0 && !hasGlob(entry))
+        .map(normalizeFilterPath)
+    )
+  );
 }
 
 function packageNameToNodeModulesPath(packageName: string): string {
@@ -832,11 +716,16 @@ function normalizeRelativePath(value: unknown): string | undefined {
     return undefined;
   }
 
-  return value.replaceAll('\\', '/').replace(/^\.\//, '');
-}
+  const normalizedPath = value.replaceAll('\\', '/').replace(/^\.\//, '');
+  if (
+    path.posix.isAbsolute(normalizedPath) ||
+    /^[A-Za-z]:\//.test(normalizedPath) ||
+    normalizedPath.split('/').includes('..')
+  ) {
+    return undefined;
+  }
 
-function readOptionalString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.length > 0 ? value : undefined;
+  return normalizedPath;
 }
 
 function normalizeFilterPath(value: string): string {

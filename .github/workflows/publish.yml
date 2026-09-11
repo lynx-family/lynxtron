@@ -1,10 +1,25 @@
 name: publish
 
 on:
+  workflow_call:
+    inputs:
+      source_ref:
+        description: 'branch, tag, or commit to publish'
+        required: true
+        type: string
+      tag:
+        description: 'release tag'
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
+      source_ref:
+        description: 'branch, tag, or commit to publish (e.g. feature/my-change)'
+        required: true
+        default: main
+        type: string
       tag:
-        description: 'release tag (e.g. v1.2.3). Release and DevTool runtimes are published together.'
+        description: 'release tag (e.g. v1.2.3-alpha.0). Release and DevTool runtimes are published together.'
         required: true
         type: string
 
@@ -19,28 +34,61 @@ jobs:
       run:
         working-directory: ./
     env:
-      INPUT_TAG: ${{ github.event.inputs.tag }}
+      INPUT_TAG: ${{ inputs.tag }}
+      TRIGGER_EVENT: ${{ github.event_name }}
     outputs:
+      source_sha: ${{ steps.set-version.outputs.source_sha }}
       version: ${{ steps.set-version.outputs.version }}
       tag: ${{ steps.set-version.outputs.tag }}
+      prerelease: ${{ steps.set-version.outputs.prerelease }}
     steps:
+      - name: Resolve source revision
+        uses: actions/checkout@v4.2.2
+        with:
+          path: source
+          ref: ${{ inputs.source_ref }}
+          fetch-depth: 1
       - name: Validate and set version
         id: set-version
         run: |
+          set -eu
           if [ -z "$INPUT_TAG" ]; then
             echo "tag input is required."
             exit 1
           fi
           tag="v${INPUT_TAG#v}"
           version="${tag#v}"
+          if ! printf '%s\n' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$'; then
+            echo "tag must contain a valid semantic version; got '$INPUT_TAG'"
+            exit 1
+          fi
           case "$version" in
             *-dev|*-dev.*)
               echo "tag must not include a '-dev' pre-release label; use a regular version because Release and DevTool runtimes are published together"
               exit 1
               ;;
           esac
+          case "$version" in
+            *-*) prerelease=true ;;
+            *) prerelease=false ;;
+          esac
+          if [ "$TRIGGER_EVENT" = "workflow_dispatch" ]; then
+            case "$version" in
+              *-alpha|*-alpha.*) ;;
+              *)
+                echo "manually dispatched branch releases must use an alpha version (e.g. v1.2.3-alpha.0)"
+                exit 1
+                ;;
+            esac
+          elif [ "$prerelease" = "true" ]; then
+            echo "Changesets releases from main must use a stable version; got '$version'"
+            exit 1
+          fi
+          source_sha=$(git -C source rev-parse HEAD)
+          echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
 
   build-macos:
     needs: get-version
@@ -55,7 +103,7 @@ jobs:
         uses: actions/checkout@v4.2.2
         with:
           path: lynxtron
-          ref: ${{ github.ref_name }}
+          ref: ${{ needs.get-version.outputs.source_sha }}
       - name: Build macOS Lynxtron
         uses: ./lynxtron/.github/actions/macos-lynxtron-build
         with:
@@ -136,7 +184,7 @@ jobs:
         uses: actions/checkout@v4.2.2
         with:
           path: lynxtron
-          ref: ${{ github.ref_name }}
+          ref: ${{ needs.get-version.outputs.source_sha }}
       - name: Build Linux Lynxtron
         uses: ./lynxtron/.github/actions/linux-lynxtron-build
         with:
@@ -222,12 +270,16 @@ jobs:
         uses: actions/checkout@v4.2.2
         with:
           path: lynxtron
-          ref: ${{ github.ref_name }}
+          ref: ${{ needs.get-version.outputs.source_sha }}
       - name: Build Windows Lynxtron
         uses: ./lynxtron/.github/actions/windows-lynxtron-build
         with:
           build-arch: ${{ matrix.arch }}
           enable-inspector: 'false'
+      - name: Build Windows CEF webview
+        shell: PowerShell
+        run: |
+          & "${{ github.workspace }}\lynxtron\lynxtron_tools\build_cef_webview.ps1" -Arch "${{ matrix.arch }}"
       - name: Package Windows binary
         shell: PowerShell
         run: |
@@ -299,6 +351,21 @@ jobs:
         with:
           name: lynxtron-win32-${{ matrix.arch }}-symbols
           path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-win32-${{ matrix.arch }}-symbols.zip
+      - name: Package Windows CEF webview
+        shell: PowerShell
+        run: |
+          $VERSION = "${{ needs.get-version.outputs.version }}"
+          $workspace = "${{ github.workspace }}\lynxtron"
+          $rootName = "cef_webview-v${VERSION}-win32-${{ matrix.arch }}"
+          $stageDir = "$workspace\publish\$rootName"
+          New-Item -ItemType Directory -Force -Path $stageDir | Out-Null
+          Copy-Item -Recurse -Force "$workspace\src\packages\cef-webview\dist\win32\${{ matrix.arch }}\*" $stageDir
+          Compress-Archive -Path $stageDir -DestinationPath "$workspace\publish\$rootName.zip" -Force
+      - name: Upload Windows CEF webview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cef-webview-win32-${{ matrix.arch }}
+          path: lynxtron/publish/cef_webview-v${{ needs.get-version.outputs.version }}-win32-${{ matrix.arch }}.zip
 
   build-macos-devtool:
     needs: get-version
@@ -313,7 +380,7 @@ jobs:
         uses: actions/checkout@v4.2.2
         with:
           path: lynxtron
-          ref: ${{ github.ref_name }}
+          ref: ${{ needs.get-version.outputs.source_sha }}
       - name: Build macOS Lynxtron (DevTool)
         uses: ./lynxtron/.github/actions/macos-lynxtron-build
         with:
@@ -374,7 +441,7 @@ jobs:
         uses: actions/checkout@v4.2.2
         with:
           path: lynxtron
-          ref: ${{ github.ref_name }}
+          ref: ${{ needs.get-version.outputs.source_sha }}
       - name: Build Linux Lynxtron (DevTool)
         uses: ./lynxtron/.github/actions/linux-lynxtron-build
         with:
@@ -461,7 +528,7 @@ jobs:
         uses: actions/checkout@v4.2.2
         with:
           path: lynxtron
-          ref: ${{ github.ref_name }}
+          ref: ${{ needs.get-version.outputs.source_sha }}
       - name: Build Windows Lynxtron (DevTool)
         uses: ./lynxtron/.github/actions/windows-lynxtron-build
         with:
@@ -539,81 +606,14 @@ jobs:
         uses: actions/checkout@v4.2.2
         with:
           path: lynxtron
-          ref: ${{ github.ref_name }}
-      - name: Install Common Dependencies
-        uses: ./lynxtron/.github/actions/common-deps
-        with:
-          run-habitat-sync: 'false'
-      - name: Prepare environment
-        shell: bash
-        env:
-          HABITAT_CONCURRENCY: 2
-        run: |
-          set -euxo pipefail
-          cd ${{ github.workspace }}/lynxtron
-          git config --global http.version HTTP/1.1
-          git config --global user.name "Lynxtron Scripts"
-          git config --global user.email "scripts@lynxtron.com"
-          source lynxtron_tools/envsetup.sh
-          python3 lynxtron_tools/prepare_build_env.py
-          cd ${{ github.workspace }}/lynxtron/lynx/third_party/weak-node-api/
-          python3 setup_deps.py
-          # Sync CEF binary distribution required by cef-webview CMakeLists.
-          cd ${{ github.workspace }}/lynxtron/src
-          for attempt in 1 2 3; do
-            if "${{ github.workspace }}/lynxtron/lynxtron_tools/hab" sync . -f --no-history --target extension --target-only; then
-              break
-            fi
-            if [ "$attempt" -eq 3 ]; then
-              echo "sync CEF extension dependencies failed after 3 attempts"
-              exit 1
-            fi
-            delay=$((10 * (2 ** (attempt - 1))))
-            echo "sync CEF extension dependencies failed (attempt $attempt/3); retrying in $delay seconds..."
-            sleep "$delay"
-          done
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24.14.1
-      - name: Install CMake
-        shell: bash
-        run: |
-          brew install cmake
-          cmake --version
+          ref: ${{ needs.get-version.outputs.source_sha }}
       - name: Build CEF webview
         shell: bash
         run: |
-          set -e
-          set -x
-          VERSION=${{ needs.get-version.outputs.version }}
-          PLATFORM="darwin"
-          ARCH="${{ matrix.arch }}"
-          PACKAGE_DIR=${{ github.workspace }}/lynxtron/src/packages/cef-webview
-          cd "$PACKAGE_DIR"
-          # Install only the build deps. The package's @lynx-js/lynxtron
-          # devDependency is not required for macOS native builds and is
-          # skipped to avoid resolving an unreleased version on the registry.
-          npm install --no-save --ignore-scripts \
-            cmake-js@^7.4.0 \
-            node-addon-api@^7.0.0
-          if [ "$ARCH" = "arm64" ]; then
-            export CMAKE_OSX_ARCHITECTURES=arm64
-            npx cmake-js build
-          else
-            export CMAKE_OSX_ARCHITECTURES=x86_64
-            arch -x86_64 npx cmake-js build
-          fi
-          ROOT_NAME="cef_webview-v${VERSION}-${PLATFORM}-${ARCH}"
-          TMP_DIR="$PACKAGE_DIR/_pack_tmp_${ARCH}"
-          rm -rf "$TMP_DIR"
-          mkdir -p "$TMP_DIR/$ROOT_NAME"
-          cp ./build/Release/cef_extension.node "$TMP_DIR/$ROOT_NAME/"
-          mkdir -p "$TMP_DIR/$ROOT_NAME/frameworks"
-          cp -R ./build/frameworks/Contents/Frameworks/* "$TMP_DIR/$ROOT_NAME/frameworks/"
-          mkdir -p ${{ github.workspace }}/lynxtron/publish
-          cd "$TMP_DIR"
-          zip -ry "${{ github.workspace }}/lynxtron/publish/${ROOT_NAME}.zip" "$ROOT_NAME"
-          ls -lh "${{ github.workspace }}/lynxtron/publish/${ROOT_NAME}.zip"
+          cd ${{ github.workspace }}/lynxtron
+          git config --global user.name "Lynxtron Scripts"
+          git config --global user.email "scripts@lynxtron.com"
+          python3 lynxtron_tools/build_cef_webview.py --arch "${{ matrix.arch }}" --version "${{ needs.get-version.outputs.version }}"
       - name: Upload CEF webview artifact
         uses: actions/upload-artifact@v4
         with:
@@ -650,7 +650,9 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ needs.get-version.outputs.tag }}
+          commit: ${{ needs.get-version.outputs.source_sha }}
           name: Release ${{ needs.get-version.outputs.tag }}
+          prerelease: ${{ needs.get-version.outputs.prerelease == 'true' }}
           generateReleaseNotes: true
           allowUpdates: true
           artifactErrorsFailBuild: true
@@ -670,7 +672,7 @@ jobs:
         uses: actions/checkout@v4.2.2
         with:
           path: lynxtron
-          ref: ${{ github.ref_name }}
+          ref: ${{ needs.get-version.outputs.source_sha }}
       - name: Python Setup
         uses: actions/setup-python@v5
         with:

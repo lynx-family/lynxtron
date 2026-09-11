@@ -1,0 +1,21 @@
+{
+  "name": "lynxtron-release-workspace",
+  "private": true,
+  "scripts": {
+    "changeset": "node src/node_modules/@changesets/cli/bin.js",
+    "version-packages": "node src/node_modules/@changesets/cli/bin.js version",
+    "release": "node src/node_modules/@changesets/cli/bin.js publish"
+  },
+  "workspaces": [
+    "src/packages/default_app/app",
+    "src/packages/cef-webview",
+    "src/packages/lynxtron",
+    "src/packages/lynxtron-builder",
+    "src/packages/lynxtron-shell-demo",
+    "src/packages/lynxtron-dev-plugins",
+    "src/packages/lynxtron-rebuild",
+    "src/packages/create-lynxtron",
+    "src/spec/case/lynx-card",
+    "src/packages/lynx-library-headers"
+  ]
+}

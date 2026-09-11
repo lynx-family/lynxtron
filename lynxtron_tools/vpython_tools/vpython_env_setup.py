@@ -77,7 +77,7 @@ def main():
   python_bin_path = os.path.join(args.root_dir, ".venv", "bin") if system != "Windows" else os.path.join(args.root_dir, ".venv", "Scripts")
   if create_venv(python_bin_path, args.root_dir):
       return install_requirements(python_bin_path, args.python_package_index, args.root_dir, args.pip_install_args)
-  return 0
+  return 1
 
 if __name__ == "__main__":
-  main()
+  sys.exit(main())

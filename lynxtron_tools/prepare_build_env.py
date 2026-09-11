@@ -126,7 +126,15 @@ def main():
             os.chdir(original_skity_cwd)
 
     print(f"{COLORED_YELLOW_MSG}install lynxtron npm dependencies............{COLORED_PRINT_END}")
-    return_code = os.system(f'node tools/yarn.js install --immutable')
+    previous_skip_download = os.environ.get("LYNXTRON_SKIP_DOWNLOAD")
+    os.environ["LYNXTRON_SKIP_DOWNLOAD"] = "1"
+    try:
+        return_code = os.system('node tools/yarn.js install --immutable')
+    finally:
+        if previous_skip_download is None:
+            os.environ.pop("LYNXTRON_SKIP_DOWNLOAD", None)
+        else:
+            os.environ["LYNXTRON_SKIP_DOWNLOAD"] = previous_skip_download
     if return_code != 0:
         print(f"{COLORED_YELLOW_MSG}install lynxtron npm dependencies failed, exit{COLORED_PRINT_END}")
         return return_code

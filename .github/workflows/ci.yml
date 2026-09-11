@@ -48,6 +48,11 @@ jobs:
       - name: Run commit-message check
         run: |
           cd ${{ github.workspace }}/lynxtron
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          if echo "$COMMIT_MSG" | grep -q "version packages"; then
+            echo "Skipping commit-message check for version packages commit"
+            exit 0
+          fi
           source lynxtron_tools/envsetup.sh
           python3 src/tools_shared/git_lynx.py check --checkers commit-message
       - name: Run coding-style check
@@ -109,3 +114,7 @@ jobs:
         uses: ./lynxtron/.github/actions/windows-lynxtron-build
         with:
           build-arch: ${{ matrix.arch }}
+      - name: Build Windows CEF webview
+        shell: PowerShell
+        run: |
+          & "${{ github.workspace }}\lynxtron\lynxtron_tools\build_cef_webview.ps1" -Arch "${{ matrix.arch }}"

@@ -107,7 +107,15 @@ const webConfig = defineConfig({
       },
       {
         test: /\.css$/,
-        type: 'css',
+        oneOf: [
+          {
+            resourceQuery: /inline/,
+            type: 'asset/source',
+          },
+          {
+            type: 'css',
+          },
+        ],
       },
       {
         test: /\.(png|svg|jpg)$/,

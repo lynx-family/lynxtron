@@ -14,6 +14,16 @@ function Lynxtron-Env-Setup {
     $env:PATH += Join-Path $buildtoolsDir 'gn;'
     $env:PATH += Join-Path $buildtoolsDir 'ninja;'
     $env:PATH += Join-Path $buildtoolsDir 'sccache;'
+
+    # Habitat syncs Chromium's pinned resource compiler into the repository.
+    # Prefer it over a runner- or machine-provided Windows SDK copy so GN's
+    # bare `rc.exe` invocation is deterministic.
+    $resourceCompiler = Join-Path $lynxtron_dir_path 'build\toolchain\win\rc\win\rc.exe'
+    if (Test-Path -LiteralPath $resourceCompiler -PathType Leaf) {
+        $resourceCompilerDir = Split-Path -Parent $resourceCompiler
+        $env:PATH = "$resourceCompilerDir;$env:PATH"
+        Write-Host "resourceCompilerDir: " $resourceCompilerDir
+    }
 }
 
 function Python-Env-Setup {

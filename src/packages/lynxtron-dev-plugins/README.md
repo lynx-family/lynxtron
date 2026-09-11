@@ -91,8 +91,19 @@ Rsbuild. It includes Lynxtron AutoLink by default, so dependencies with
 `lynx.lib.json` and a `lynxtron` platform record are staged and loaded
 automatically.
 
-For `lynxtron`, `lynx.lib.json` describes the native asset root, such as
-`dist`, while the package's `./lynxtron` export provides the JS entry.
+For `lynxtron`, the package's `./lynxtron` export provides the JS registration
+entry. Its `lynx.lib.json` uses a `targets` array. Every target declares `os`,
+`arch`, and at least one string array named `files`, `frameworks`, or
+`appBundles`. AutoLink selects one matching target and stages only its declared
+artifacts together with the package metadata and `./lynxtron` entry. The opaque
+top-level `path` and artifact fields outside a target are not supported by this
+prerelease schema.
+
+Library producers must publish literal package-relative artifact paths in every
+target; variables and globs are not supported. Use standard `os` values
+(`darwin`, `win32`, `linux`) and `arch` values (`arm64`, `x64`, `ia32`), not
+aliases such as `macos` or `x86_64`. AutoLink selects the build target without
+expanding paths or rewriting the staged `lynx.lib.json`.
 
 ```ts
 import { pluginLynxtron } from '@lynx-js/lynxtron-dev-plugins/rspack';

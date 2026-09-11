@@ -1,0 +1,29 @@
+From dc20f151aa13b2b01c03fd3bbf7312e9e74c5d53 Mon Sep 17 00:00:00 2001
+From: zsy-jason <186247581+zsy-jason@users.noreply.github.com>
+Date: Mon, 7 Sep 2026 15:49:17 +0800
+Subject: [PATCH] [BugFix] Limit paints_into_platform_view_slice to Windows
+ Skity
+
+Set paints_into_platform_view_slice before ContainerLayer::Preroll when
+ENABLE_SKITY is defined.
+---
+ clay/flow/layers/external_view_layer.cc | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/clay/flow/layers/external_view_layer.cc b/clay/flow/layers/external_view_layer.cc
+index 0da525e0..ef1d9e1c 100644
+--- a/clay/flow/layers/external_view_layer.cc
++++ b/clay/flow/layers/external_view_layer.cc
+@@ -21,6 +21,9 @@ void ExternalViewLayer::Preroll(PrerollContext* context) {
+                        "does not support embedding";
+     return;
+   }
++#ifdef ENABLE_SKITY
++  context->paints_into_platform_view_slice = true;
++#endif
+   ContainerLayer::Preroll(context);
+   context->has_platform_view = true;
+   context->paints_into_platform_view_slice = true;
+-- 
+2.50.1 (Apple Git-155)
+

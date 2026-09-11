@@ -57,6 +57,25 @@ runs:
         cd ${{ github.workspace }}/lynxtron
         .\lynxtron_tools\envsetup.ps1
         $env:PATH = "$pwd\buildtools\gn;$pwd\buildtools\ninja;$pwd\buildtools\sccache;$env:PATH"
+
+        # envsetup puts Habitat's pinned resource compiler first in PATH. Validate
+        # that setup before the expensive build instead of failing late in Ninja.
+        $resourceCompiler = Join-Path $pwd 'build\toolchain\win\rc\win\rc.exe'
+        if (-not (Test-Path -LiteralPath $resourceCompiler -PathType Leaf)) {
+          throw "Hermetic Windows resource compiler was not downloaded: $resourceCompiler"
+        }
+        $expectedResourceCompiler = [System.IO.Path]::GetFullPath($resourceCompiler)
+        $resolvedResourceCompiler = [System.IO.Path]::GetFullPath(
+          (Get-Command rc.exe -CommandType Application -ErrorAction Stop).Source
+        )
+        if (-not $resolvedResourceCompiler.Equals(
+          $expectedResourceCompiler,
+          [System.StringComparison]::OrdinalIgnoreCase
+        )) {
+          throw "Expected rc.exe at $expectedResourceCompiler, resolved $resolvedResourceCompiler"
+        }
+        Write-Host "Using Windows resource compiler: $resolvedResourceCompiler"
+
         $gnExtraArgs = @()
         if ('${{ inputs.enable-inspector }}' -eq 'true') {
           $gnExtraArgs += '--enable-inspector'

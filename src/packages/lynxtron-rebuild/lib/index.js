@@ -76,18 +76,49 @@ async function downloadHeaders(version, distDir) {
   return headersPath;
 }
 
+const VALID_RUNTIME_VARIANTS = ['release', 'devtool'];
+
+function resolveRuntimeVariant() {
+  const envVariant = process.env.LYNXTRON_RUNTIME_VARIANT;
+  if (envVariant && VALID_RUNTIME_VARIANTS.includes(envVariant)) {
+    return envVariant;
+  }
+  return 'devtool';
+}
+
 // The lynxtron node-headers tarball does not ship a Windows `node.lib` import
 // library. node-gyp's msvs template links native addons against
 // `<nodedir>/<Configuration>/node.lib`, so on Windows we seed each expected
 // configuration directory with a copy of `lynxtron.dll.lib` from
 // `@lynx-js/lynxtron`, renamed to `node.lib`.
+//
+// The import library lives under `dist/<variant>/lynxtron.dll.lib` where
+// <variant> is `devtool` or `release`. The variant is resolved from the
+// `LYNXTRON_RUNTIME_VARIANT` environment variable (default: `devtool`).
+// We also try the other variant and the legacy flat `dist/` path as fallbacks.
 function ensureWindowsNodeLib(headersDir, lynxtronPkgPath) {
   if (process.platform !== 'win32') return;
 
   const lynxtronDist = path.join(path.dirname(lynxtronPkgPath), 'dist');
-  const src = path.join(lynxtronDist, 'lynxtron.dll.lib');
-  if (!fs.existsSync(src)) {
-    console.warn(`[lynxtron-rebuild] lynxtron.dll.lib not found at ${src}; skipping node.lib seeding`);
+  const variant = resolveRuntimeVariant();
+  const otherVariant = VALID_RUNTIME_VARIANTS.find(v => v !== variant);
+
+  const candidates = [
+    path.join(lynxtronDist, variant, 'lynxtron.dll.lib'),
+    path.join(lynxtronDist, otherVariant, 'lynxtron.dll.lib'),
+    path.join(lynxtronDist, 'lynxtron.dll.lib'),
+  ];
+
+  let src;
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      src = candidate;
+      break;
+    }
+  }
+
+  if (!src) {
+    console.warn(`[lynxtron-rebuild] lynxtron.dll.lib not found under ${lynxtronDist}; skipping node.lib seeding`);
     return;
   }
 

@@ -7,7 +7,7 @@ import { Readable } from 'stream';
 
 // UtilityProcess API
 
-export class UtilityProcess extends EventEmitter {
+export interface UtilityProcess extends EventEmitter {
   /**
    * The `PID` of the process.
    */
@@ -31,16 +31,16 @@ export class UtilityProcess extends EventEmitter {
   postMessage(message: any, transfer?: any[]): void;
 }
 
-export namespace utilityProcess {
+export const utilityProcess: {
   /**
    * Spawns a new process that runs the specified `modulePath`.
    */
-  function fork(
+  fork(
     modulePath: string,
     args?: string[],
     options?: ForkOptions
   ): UtilityProcess;
-}
+};
 
 export interface ForkOptions {
   /**

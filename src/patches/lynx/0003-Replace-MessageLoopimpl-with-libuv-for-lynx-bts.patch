@@ -8,22 +8,22 @@ On PC, run both NodeJS and Lynx BTS message loops within the same libuv event lo
 
 issue: m-6796469046
 ---
- .../fml/platform/node/message_loop_node.h     | 44 +++++++++
+ .../fml/platform/node/message_loop_node.h     | 50 ++++++++++
  base/src/BUILD.gn                             |  5 +
- .../fml/platform/node/message_loop_node.cc    | 92 +++++++++++++++++++
+ .../fml/platform/node/message_loop_node.cc    | 109 +++++++++++++++++++++
  core/base/BUILD.gn                            |  5 +
  .../base/node/js_thread_config_getter_node.cc | 33 +++++++
- 5 files changed, 179 insertions(+)
+ 5 files changed, 202 insertions(+)
  create mode 100644 base/include/fml/platform/node/message_loop_node.h
  create mode 100644 base/src/fml/platform/node/message_loop_node.cc
  create mode 100644 core/base/node/js_thread_config_getter_node.cc
 
 diff --git a/base/include/fml/platform/node/message_loop_node.h b/base/include/fml/platform/node/message_loop_node.h
 new file mode 100644
-index 00000000..8e39412b
+index 00000000..0a7a6e07
 --- /dev/null
 +++ b/base/include/fml/platform/node/message_loop_node.h
-@@ -0,0 +1,44 @@
+@@ -0,0 +1,50 @@
 +// Copyright 2023 The Lynx Authors. All rights reserved.
 +// Licensed under the Apache License Version 2.0 that can be found in the
 +// LICENSE file in the root directory of this source tree.
@@ -33,6 +33,8 @@ index 00000000..8e39412b
 +
 +#include <fcntl.h>
 +#include <uv.h>
++
++#include <mutex>
 +
 +#include "base/include/fml/macros.h"
 +#include "base/include/fml/message_loop_impl.h"
@@ -58,9 +60,13 @@ index 00000000..8e39412b
 +  uv_timer_t timer_{};
 +  uv_async_t async_{};
 +
++  std::mutex wake_up_mutex_;
++  fml::TimePoint wake_up_time_;
++
 +  bool running_{false};
 +  bool event_fired_{false};
 +
++  void OnWakeUp();
 +  void OnEventFired();
 +};
 +
@@ -86,10 +92,10 @@ index 0d6ef021..d86d54d0 100644
    libs = []
 diff --git a/base/src/fml/platform/node/message_loop_node.cc b/base/src/fml/platform/node/message_loop_node.cc
 new file mode 100644
-index 00000000..abf267c7
+index 00000000..d166f648
 --- /dev/null
 +++ b/base/src/fml/platform/node/message_loop_node.cc
-@@ -0,0 +1,92 @@
+@@ -0,0 +1,109 @@
 +// Copyright 2025 The Lynx Authors. All rights reserved.
 +// Licensed under the Apache License Version 2.0 that can be found in the
 +// LICENSE file in the root directory of this source tree.
@@ -110,7 +116,7 @@ index 00000000..abf267c7
 +  [[maybe_unused]] int async_init =
 +      uv_async_init(&uv_loop_, &async_, [](uv_async_t* h) {
 +        auto* self = static_cast<MessageLoopNode*>(h->data);
-+        self->OnEventFired();
++        self->OnWakeUp();
 +      });
 +  async_.data = this;
 +
@@ -162,9 +168,26 @@ index 00000000..abf267c7
 +}
 +
 +void MessageLoopNode::WakeUp(fml::TimePoint time_point) {
++  {
++    std::lock_guard<std::mutex> lock(wake_up_mutex_);
++    wake_up_time_ = time_point;
++  }
++  [[maybe_unused]] int send_res = uv_async_send(&async_);
++  LYNX_BASE_CHECK(send_res == 0);
++}
++
++void MessageLoopNode::OnWakeUp() {
++  fml::TimePoint time_point;
++  {
++    std::lock_guard<std::mutex> lock(wake_up_mutex_);
++    time_point = wake_up_time_;
++  }
++
 +  auto now = fml::TimePoint::Now();
 +  if (now >= time_point) {
-+    uv_async_send(&async_);
++    [[maybe_unused]] int stop_res = uv_timer_stop(&timer_);
++    LYNX_BASE_CHECK(stop_res == 0);
++    OnEventFired();
 +    return;
 +  }
 +

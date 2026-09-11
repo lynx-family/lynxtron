@@ -12,4 +12,10 @@ declare_args() {
   lynxtron_app_resources_deps = [ "//src/shell/lynx:lynx_resources" ]
   lynxtron_lib_browser_module_list_path = []
   lynxtron_extension_extra_deps = []
+  lynxtron_testbench_extra_deps = [
+    "//lynx/core/services/replay",
+    "//lynx/platform/embedder/lynx_recorder",
+    "//lynx/third_party/rapidjson",
+  ]
+  lynxtron_testbench_linux_extra_deps = []
 }

@@ -4,7 +4,7 @@
 
 // apis
 export * from './api/app';
-export * from './api/context-bridge';
+export type { ContextBridge } from './api/context-bridge';
 export * from './api/native-image';
 export * from './api/notification';
 export * from './api/command-line';

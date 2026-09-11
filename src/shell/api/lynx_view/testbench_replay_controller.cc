@@ -4,8 +4,6 @@
 
 #include "shell/api/lynx_view/testbench_replay_controller.h"
 
-#include <dispatch/dispatch.h>
-
 #include <cctype>
 #include <memory>
 #include <string>
@@ -18,13 +16,14 @@
 #include "platform/embedder/public/lynx_template_data.h"
 #include "platform/embedder/public/lynx_view.h"
 #include "shell/api/lynx_view/testbench_record_fetcher.h"
+#include "shell/common/global_thread.h"
 
 namespace lynxtron {
 
 namespace {
 
 constexpr char kDefaultGlobalProps[] =
-    R"({"theme":"light","platform":"macos"})";
+    R"({"theme":"light","platform":"desktop"})";
 
 bool StartsWith(std::string_view value, std::string_view prefix) {
   return value.size() >= prefix.size() &&
@@ -58,15 +57,16 @@ bool LooksLikeBase64ZlibRecord(std::string_view data) {
   return has_payload;
 }
 
+void RunReplayTask(std::unique_ptr<std::function<void()>> task) {
+  (*task)();
+}
+
 void ScheduleReplayTask(std::function<void()> task, int64_t delay_millis) {
-  auto* context = new std::function<void()>(std::move(task));
-  dispatch_after_f(
-      dispatch_time(DISPATCH_TIME_NOW, delay_millis * NSEC_PER_MSEC),
-      dispatch_get_main_queue(), context, [](void* raw_context) {
-        std::unique_ptr<std::function<void()>> replay_task(
-            static_cast<std::function<void()>*>(raw_context));
-        (*replay_task)();
-      });
+  GlobalThread::GetUIThreadTaskRunner()->PostDelayedTask(
+      FROM_HERE,
+      base::BindOnce(&RunReplayTask,
+                     std::make_unique<std::function<void()>>(std::move(task))),
+      base::Milliseconds(delay_millis));
 }
 
 }  // namespace

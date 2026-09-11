@@ -1,11 +1,20 @@
 import os
 import platform
 
-machine = platform.machine().lower()
+machine = os.environ.get('npm_config_arch', platform.machine()).lower()
+machine = "x86_64" if machine == "x64" else machine
 machine = "x86_64" if machine == "amd64" else machine
 system = platform.system().lower()
 
 deps = {
+    # CMake runs on the host; the macOS distribution contains both CPU slices.
+    '../buildtools/cmake': {
+        'type': 'http',
+        'url': 'https://github.com/Kitware/CMake/releases/download/v3.31.6/cmake-3.31.6-macos-universal.tar.gz',
+        'sha256': '330b9514f5112e5ed4fb08b8b05803b776fd9b539a6ae12927d14dcc0ee2ba8d',
+        'ignore_in_git': True,
+        'condition': system == 'darwin',
+    },
     '../third_party/cef_binary': {
         "type": "http",
         "url": {

@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import zipLib from 'zip-lib';
 import { downloadBinary } from '../utils/download.js';
 import { BASE_URL, VERSION, ARCH, PLATFORM} from '../utils/env-config.js';
+import { ensureDarwinFrameworkLinks } from './framework-links.js';
 
 const { extract: extractZip } = zipLib;
 const __filename = fileURLToPath(import.meta.url);
@@ -15,8 +16,20 @@ const hasDownloadCefWebview = () => {
   return fs.existsSync(CEF_WEBVIEW_PATH);
 }
 
+const repairFrameworkLinks = () => {
+  if (PLATFORM !== 'darwin' || !hasDownloadCefWebview()) {
+    return;
+  }
+
+  const created = ensureDarwinFrameworkLinks(CEF_WEBVIEW_PATH);
+  if (created > 0) {
+    console.log(`restored ${created} CEF Framework links`);
+  }
+}
+
 // if cef-webview is already installed, exit.
 if (hasDownloadCefWebview() && !process.env.npm_config_force_download) {
+  repairFrameworkLinks();
   console.log("cef-webview is already installed");
   process.exit(0);
 }
@@ -74,6 +87,7 @@ try {
     fs.renameSync(srcPath, destPath);
   }
   fs.rmSync(TMP_DIR, { recursive: true, force: true });
+  repairFrameworkLinks();
   console.log('Unzip completed');
 
   // Delete original zip file after unzip to release space

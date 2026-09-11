@@ -308,7 +308,10 @@ export interface BaseWindowConstructorOptions {
   y?: number;
 }
 
-export declare class BaseWindow extends EventEmitter {
+// Runtime inherits EventEmitter instance methods, but not its static members.
+export interface BaseWindow extends EventEmitter {}
+
+export declare class BaseWindow {
   /**
    * Emitted when an App Command is invoked. These are typically related to keyboard
    * media keys or browser commands, as well as the "Back" button built into some

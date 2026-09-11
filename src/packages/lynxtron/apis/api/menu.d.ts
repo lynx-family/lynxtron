@@ -72,7 +72,10 @@ export declare class MenuItem {
   overrideReadOnlyProperty(name: string, defaultValue?: any): void;
 }
 
-export declare class Menu extends EventEmitter {
+// Runtime inherits EventEmitter instance methods, but not its static members.
+export interface Menu extends EventEmitter {}
+
+export declare class Menu {
   constructor();
   static getApplicationMenu(): Menu | null;
   static setApplicationMenu(menu: Menu | null): void;

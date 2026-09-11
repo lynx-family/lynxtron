@@ -23,13 +23,14 @@
     "wrapper-webpack-plugin": "^2.2.0"
   },
   "scripts": {
-    "changeset": "changeset",
-    "version-packages": "changeset version",
-    "release": "changeset publish",
+    "changeset": "cd .. && npm run changeset --",
+    "version-packages": "cd .. && npm run version-packages --",
+    "release": "cd .. && npm run release --",
     "generate-version-json": "node script/generate-version-json.js",
     "pre-flight": "pre-flight",
     "tsc": "tsc",
     "webpack": "webpack",
+    "start:browser-demo": "node tools/yarn.js workspace @lynx-js/cef-webview build && node tools/yarn.js workspace @lynx-js/lynxtron-dev-plugins build && node tools/yarn.js workspace lynxtron-browser-demo start",
     "test": "node ./script/spec-runner.js",
     "test:build:lynx": "npm --prefix spec/case/lynx-card run build --"
   },
@@ -40,10 +41,13 @@
   ],
   "workspaces": [
     "packages/default_app/app",
+    "packages/cef-webview",
+    "packages/browser-demo",
     "packages/lynxtron",
     "packages/lynxtron-builder",
     "packages/lynxtron-shell-demo",
     "packages/lynxtron-dev-plugins",
+    "packages/lynxtron-rebuild",
     "packages/create-lynxtron",
     "spec/case/lynx-card",
     "packages/lynx-library-headers"

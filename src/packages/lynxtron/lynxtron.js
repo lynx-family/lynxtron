@@ -17,7 +17,9 @@ function resolveRegisterGlobalEnvModule() {
 }
 
 export const app = lynxtron.app;
+export const BaseWindow = lynxtron.BaseWindow;
 export const LynxWindow = lynxtron.LynxWindow;
+export const LynxTemplateBundle = lynxtron.LynxTemplateBundle;
 export const Menu = lynxtron.Menu;
 export const MenuItem = lynxtron.MenuItem;
 export const clipboard = lynxtron.clipboard;
@@ -34,5 +36,6 @@ export const LynxTemplateData = lynxtron.LynxTemplateData;
 export const LynxUpdateMeta = lynxtron.LynxUpdateMeta;
 export const powerMonitor = lynxtron.powerMonitor;
 export const lynxBridge = lynxtron.lynxBridge;
+export const utilityProcess = lynxtron.utilityProcess;
 
 export const lynx = Object.freeze({});

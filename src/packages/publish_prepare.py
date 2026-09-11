@@ -83,6 +83,12 @@ PREPARE_CONFIG = {
     "cef-webview": {
         "package_dir": "./cef-webview",
         "base_url_rewrite": True,
+        "replaces": {
+            "@lynx-js/lynxtron": {
+                "name": "@lynx-js/lynxtron",
+                "version": "",
+            },
+        },
     },
     "lynx-library-headers": {
         "package_dir": "./lynx-library-headers",

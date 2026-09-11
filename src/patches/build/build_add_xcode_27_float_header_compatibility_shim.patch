@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Shouqun Liu <liushouqun@gmail.com>
+Date: Wed, 9 Sep 2026 01:51:00 -0700
+Subject: [PATCH] [BugFix][macOS] Add Xcode 27 float header compatibility shim
+
+Xcode 27's math.h requests INFINITY and NAN from float.h through the
+__need_infinity_nan protocol. The Clang resource headers bundled by
+Lynxtron predate that protocol, so the macros remain undefined when the
+Xcode 27 SDK is used with Lynxtron's custom libc++. This breaks both
+libc++ compilation and consumers of Metal framework headers.
+
+Add Lynxtron's compatibility include directory before the custom libc++
+headers for C++ and Objective-C++ builds. Its float.h wrapper handles only
+the Xcode 27 protocol request and forwards every normal inclusion to the
+original header with include_next. This leaves the vendored libc++ source
+and non-macOS builds unchanged.
+
+TEST: ninja -C out/Release lynxtron_app
+TEST: Xcode 27 CI-equivalent Release builds for arm64 and x64
+TEST: macOS 26.5 SDK Release build (8454/8454)
+TEST: macOS 26.5 SDK libc++ and Metal regression targets
+
+diff --git a/config/mac/BUILD.gn b/config/mac/BUILD.gn
+index 11e19f2872625b07ae7a16d93b2d83c1c1ca090c..e12ee77c322e1befed086c801d298466b69d2285 100644
+--- a/config/mac/BUILD.gn
++++ b/config/mac/BUILD.gn
+@@ -55,4 +55,10 @@ config("compiler") {
+   asmflags = common_mac_flags
+   cflags = common_mac_flags
+-
++  if (use_custom_libcxx) {
++    xcode_27_float_compat_include =
++        rebase_path("//src/build/mac/xcode_27_float_compat", root_build_dir)
++    cflags_cc = [ "-isystem$xcode_27_float_compat_include" ]
++    cflags_objcc = cflags_cc
++  }
++
+   ldflags = common_mac_flags

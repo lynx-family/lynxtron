@@ -28,7 +28,8 @@ if (is_mac) {
 
 lynxtron_project_name = "lynxtron"
 lynxtron_product_name = "Lynxtron"
-enable_lynxtron_mac_testbench_replay = is_mac && enable_testbench_replay
+enable_lynxtron_testbench_replay =
+    (is_mac || is_linux) && enable_testbench_replay
 
 # TODO(Guo Xi): We need to consider how to generate version numbers, referring to Chrome's approach (as seen in chrome/VERSION)
 lynxtron_version = "1.0.0"
@@ -67,14 +68,14 @@ config("lynxtron_lib_config") {
   }
   defines += [
     "ENABLE_HEADLESS=${is_headless}",
-    "ENABLE_TESTBENCH_REPLAY=${enable_lynxtron_mac_testbench_replay}",
+    "ENABLE_TESTBENCH_REPLAY=${enable_lynxtron_testbench_replay}",
   ]
   if (is_mac && is_mas_build) {
     defines += [ "MAS_BUILD" ]
   }
 }
 
-if (enable_lynxtron_mac_testbench_replay) {
+if (enable_lynxtron_testbench_replay) {
   source_set("lynxtron_testbench_replay") {
     configs += [
       ":lynxtron_lib_config",
@@ -90,21 +91,24 @@ if (enable_lynxtron_mac_testbench_replay) {
       "USE_WEAK_SUFFIX_NAPI=1",
     ]
     sources = [
-      "//lynx/lynx/platform/embedder/lynx_recorder/test_bench_action_manager.cc",
-      "//lynx/lynx/platform/embedder/lynx_recorder/test_bench_action_manager.h",
-      "//lynx/lynx/platform/embedder/lynx_recorder/test_bench_replay_data_module.cc",
-      "//lynx/lynx/platform/embedder/lynx_recorder/test_bench_replay_data_module.h",
       "shell/api/lynx_view/testbench_record_fetcher.h",
-      "shell/api/lynx_view/testbench_record_fetcher_mac.mm",
       "shell/api/lynx_view/testbench_replay_controller.cc",
       "shell/api/lynx_view/testbench_replay_controller.h",
     ]
-    frameworks = [ "Foundation.framework" ]
+    if (is_mac) {
+      sources += [ "shell/api/lynx_view/testbench_record_fetcher_mac.mm" ]
+      frameworks = [ "Foundation.framework" ]
+    } else if (is_linux) {
+      sources += [ "shell/api/lynx_view/testbench_record_fetcher_linux.cc" ]
+    }
     deps = [
       "//base",
-      "//lynx/lynx/third_party/rapidjson",
       "//third_party/zlib",
     ]
+    deps += lynxtron_testbench_extra_deps
+    if (is_linux) {
+      deps += lynxtron_testbench_linux_extra_deps
+    }
   }
 }
 
@@ -846,7 +850,7 @@ source_set("lynxtron_lib") {
     "//third_party/skia",
   ]
 
-  if (enable_lynxtron_mac_testbench_replay) {
+  if (enable_lynxtron_testbench_replay) {
     deps += [ ":lynxtron_testbench_replay" ]
   }
 }

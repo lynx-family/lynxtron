@@ -29,7 +29,10 @@ const restartLynxtron = debounce((options) => {
     } catch {}
 
     const { entry, args = [], env = {}, command = 'lynxtron' } = options;
-    const spawnArgs = [...args, entry];
+    // The Lynxtron runtime treats argv[1] as the application directory.
+    // Keep it first so runtime flags cannot be mistaken for the app path by
+    // the runtime or generated AutoLink loaders.
+    const spawnArgs = [entry, ...args];
 
     lynxtronProcess = spawn(command, spawnArgs, {
       stdio: 'inherit',
