@@ -18,7 +18,6 @@
 #undef debug_string    // This is defined in macOS SDK in AssertMacros.h.
 #undef require_string  // This is defined in macOS SDK in AssertMacros.h.
 
-// TODO(Guo Xi) : what is this define for?
 // clang-format off
 #include "src/push_and_undef_node_defines.h"
 #include "env-inl.h"
