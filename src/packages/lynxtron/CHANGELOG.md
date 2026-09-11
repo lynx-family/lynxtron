@@ -1,5 +1,14 @@
 # @lynx-js/lynxtron
 
+## 0.0.22
+
+### Patch Changes
+
+- e00824d: Build Windows CEF against the source-built Lynxtron import library and stage the
+  addon, subprocess, and runtime resources through the package build command.
+  Restore macOS Framework links omitted by npm packaging and adopt the upstream
+  CEF fixes. Source builds can skip downloading an unpublished Lynxtron runtime.
+
 ## 0.0.21
 
 ### Patch Changes

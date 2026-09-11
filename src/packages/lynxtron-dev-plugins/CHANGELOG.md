@@ -1,5 +1,13 @@
 # @lynx-js/lynxtron-dev-plugins
 
+## 0.0.22
+
+### Patch Changes
+
+- e00824d: Register and load the CEF webview through AutoLink. Select literal target-specific
+  runtime artifacts from lynx.lib.json, stage them after emit, and resolve generated
+  loaders from the application output without copying entire dependency packages.
+
 ## 0.0.21
 
 ### Patch Changes

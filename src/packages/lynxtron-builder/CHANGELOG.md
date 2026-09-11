@@ -1,5 +1,15 @@
 # @lynx-js/lynxtron-builder
 
+## 0.0.22
+
+### Patch Changes
+
+- e00824d: Package staged AutoLink native libraries without application-specific native
+  layout configuration. Place declared macOS Frameworks and helper app bundles
+  in Contents/Frameworks and keep native runtime files outside ASAR. Remove the
+  template's duplicate application copy and load its Lynx bundle relative to the
+  packaged main entry.
+
 ## 0.0.21
 
 ### Patch Changes
