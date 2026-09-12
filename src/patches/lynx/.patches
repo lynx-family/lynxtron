@@ -6,3 +6,4 @@
 0006-BugFix-macOS-Align-TestBench-bridge-replay-with-Lynx.patch
 0007-BugFix-Limit-paints_into_platform_view_slice-to-Wind.patch
 0008-BugFix-Copy-fetch-response-body-into-V8-sandbox.patch
+0010-Adapt-Lynxtron-runtime-for-HarmonyOS.patch

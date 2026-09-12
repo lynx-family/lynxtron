@@ -1,0 +1,171 @@
+From 4ab1e9268f668771a7c6d543d997939e9eede853 Mon Sep 17 00:00:00 2001
+From: "wenhua.liu" <11439036+MichaelWHL@users.noreply.github.com>
+Date: Sat, 12 Sep 2026 22:59:58 +0800
+Subject: [PATCH] [Feature][HarmonyOS] Adapt the Lynxtron runtime integration
+
+Keep Lynxtron-specific Harmony behavior in the downstream adapter: use Node bundled libuv, run background JavaScript on Node V8, obtain the UV loop from MessageLoopHarmony, and load embedded JavaScript through the desktop resource path.
+---
+ base/src/BUILD.gn                             | 10 ++++++
+ .../js_thread_config_getter_harmony.cc        | 14 ++++++---
+ .../js/jsi/v8/v8_isolate_wrapper_node_impl.cc | 16 ++++++++++
+ core/runtime/js/runtime_manager.cc            | 31 ++++++++++---------
+ platform/embedder/resource/BUILD.gn           |  2 +-
+ 5 files changed, 54 insertions(+), 19 deletions(-)
+
+diff --git a/base/src/BUILD.gn b/base/src/BUILD.gn
+index 3ba985d1c..8e4a1bab3 100644
+--- a/base/src/BUILD.gn
++++ b/base/src/BUILD.gn
+@@ -308,6 +308,16 @@ lynx_base_source_set("base_core") {
+   if (is_apple || is_win || is_linux) {
+     include_dirs = [ "//third_party/node/deps/uv/include" ]
+     sources += [ "fml/platform/node/message_loop_node.cc" ]
++  } else if (is_harmony) {
++    # message_loop_harmony.cc uses libuv (uv_loop_t / uv_async_send / uv_run).
++    # It MUST compile against Node's bundled uv.h -- the same libuv (1.51) that
++    # gets linked into liblynxtron.so -- NOT the OHOS system libuv shipped in
++    # the NDK sysroot (usr/include/uv.h, 1.44). Their uv_loop_t layouts differ,
++    # so mixing the system header with the bundled library makes
++    # uv_async_send(&looper_->wq_async) write at the wrong offset, corrupting
++    # the loop and crashing in uv__io_poll (SIGSEGV) on the Lynx_JS thread.
++    # This -I is searched before the sysroot for <uv.h>, so Node's header wins.
++    include_dirs = [ "//third_party/node/deps/uv/include" ]
+   }
+ 
+   deps = [ ":datauri_utils" ]
+diff --git a/core/base/harmony/threading/js_thread_config_getter_harmony.cc b/core/base/harmony/threading/js_thread_config_getter_harmony.cc
+index 9ac292d7c..f444d3e89 100644
+--- a/core/base/harmony/threading/js_thread_config_getter_harmony.cc
++++ b/core/base/harmony/threading/js_thread_config_getter_harmony.cc
+@@ -57,10 +57,16 @@ void SetupArkTSRuntime() {
+   DCHECK(status == napi_ok);
+   LOGI("Create arkts runtime with result " << status);
+ 
+-  uv_loop_t* loop;
+-  napi_get_uv_event_loop(js_thread_env, &loop);
+-
+-  fml::MessageLoop::EnsureInitializedForCurrentThread(loop);
++  // Lynxtron runs Lynx's JS thread on Node's V8 and Node's libuv, not on the
++  // OHOS ArkTS runtime.  The ArkTS runtime's uv loop belongs to the OHOS
++  // *system* libuv (1.44), while liblynxtron.so links Node's bundled libuv
++  // (1.51) whose uv_run drives MessageLoopHarmony.  The two disagree about
++  // uv_loop_t's layout -- 1.51 reads internal_fields where 1.44 keeps
++  // something else -- so driving the ArkTS loop from Node's uv_run reads a
++  // zeroed io_uring control block and SIGSEGVs in uv__io_poll.  Passing
++  // nullptr makes MessageLoopHarmony create its own Node-libuv loop, keeping
++  // the loop and the uv_run that drives it on the same libuv.
++  fml::MessageLoop::EnsureInitializedForCurrentThread(nullptr);
+ 
+   harmony::InitializationNapiEnvForCurrentThread(js_thread_env);
+ 
+diff --git a/core/runtime/js/jsi/v8/v8_isolate_wrapper_node_impl.cc b/core/runtime/js/jsi/v8/v8_isolate_wrapper_node_impl.cc
+index b167944f8..b144b5731 100644
+--- a/core/runtime/js/jsi/v8/v8_isolate_wrapper_node_impl.cc
++++ b/core/runtime/js/jsi/v8/v8_isolate_wrapper_node_impl.cc
+@@ -8,7 +8,11 @@
+ #include <string>
+ 
+ #include "base/include/fml/message_loop.h"
++#if defined(OS_HARMONY)
++#include "base/include/fml/platform/harmony/message_loop_harmony.h"
++#else
+ #include "base/include/fml/platform/node/message_loop_node.h"
++#endif
+ #include "base/include/fml/task_runner.h"
+ #include "base/include/log/logging.h"
+ #include "core/renderer/utils/lynx_env.h"
+@@ -64,9 +68,21 @@ v8::Isolate* V8PlatformHelper::CreateIsolate() {
+ }
+ 
+ void V8PlatformHelper::InitUVLoop() {
++#if defined(OS_HARMONY)
++  // HarmonyOS keeps MessageLoopHarmony as this thread's loop implementation --
++  // message_loop_node.cc is only built for the desktop platforms -- and the two
++  // are not layout compatible: MessageLoopNode embeds a uv_loop_t and hands out
++  // its address, while MessageLoopHarmony holds a uv_loop_t* and hands out the
++  // pointer itself.  Reading one as the other yields a wild loop and crashes in
++  // uv_async_init under node::NewIsolate.
++  auto* messageloop = reinterpret_cast<fml::MessageLoopHarmony*>(
++      fml::MessageLoop::GetCurrent().GetLoopImpl().get());
++  uv_loop_ = reinterpret_cast<uv_loop_t*>(messageloop->GetPlatformLoop());
++#else
+   auto* messageloop = reinterpret_cast<fml::MessageLoopNode*>(
+       fml::MessageLoop::GetCurrent().GetLoopImpl().get());
+   uv_loop_ = messageloop->GetUVLoop();
++#endif
+ }
+ 
+ }  // namespace
+diff --git a/core/runtime/js/runtime_manager.cc b/core/runtime/js/runtime_manager.cc
+index 633dff6bf..01522a725 100644
+--- a/core/runtime/js/runtime_manager.cc
++++ b/core/runtime/js/runtime_manager.cc
+@@ -54,14 +54,18 @@ extern void RegisterJSVMRuntimeProxyFactory(
+ #include "core/runtime/profile/v8/v8_runtime_profiler.h"
+ #endif
+ 
+-#if defined(OS_WIN) || defined(OS_OSX) || defined(OS_LINUX)
++// OS_HARMONY is included here because Lynxtron runs Lynx's background JS on
++// Node's V8, so harmony uses the V8 runtime proxy factory rather than the OHOS
++// JSVM/ArkTS one.
++#if defined(OS_WIN) || defined(OS_OSX) || defined(OS_LINUX) || \
++    defined(OS_HARMONY)
+ #if ENABLE_NAPI_BINDING
+ #include "core/runtime/common/napi/napi_runtime_proxy_v8.h"
+ 
+ extern void RegisterV8RuntimeProxyFactory(
+     lynx::runtime::js::NapiRuntimeProxyV8Factory*);
+ #endif  // ENABLE_NAPI_BINDING
+-#endif  // OS_WIN || OS_OSX || OS_LINUX
++#endif  // OS_WIN || OS_OSX || OS_LINUX || OS_HARMONY
+ 
+ namespace lynx {
+ namespace runtime {
+@@ -593,20 +597,19 @@ std::unique_ptr<runtime::js::Runtime> RuntimeManager::MakeRuntime(
+ #endif  // OS_WIN || OS_LINUX
+ 
+ #if OS_HARMONY
+-#if JS_ENGINE_TYPE != 3
+-  if ((!force_use_lightweight_js_engine ||
+-       tasm::LynxEnv::GetInstance().EnableJSVMRuntime()) &&
+-      runtime::js::IsJSVMRuntimeAvailable()) {
+-#endif  // JS_ENGINE_TYPE != 3
++  // Lynxtron runs Lynx's background JS on Node's V8, unified with the Node
++  // runtime, rather than on the OHOS JSVM/ArkTS engine.  Register the V8 proxy
++  // factory -- its Attach() calls the real napi_attach_v8, which wires the
++  // primjs napi env's method table to V8.  The JSVM path attached through a
++  // no-op stub instead, leaving those napi methods null and crashing later in
++  // Napi::Env::GetInstanceData.
+ #if ENABLE_NAPI_BINDING
+-    static runtime::js::NapiRuntimeProxyJSVMFactoryImpl factory;
+-    RegisterJSVMRuntimeProxyFactory(&factory);
++  static runtime::js::NapiRuntimeProxyV8FactoryImpl factory;
++  LOGI("Setting napi proxy factory (harmony V8): " << &factory);
++  RegisterV8RuntimeProxyFactory(&factory);
+ #endif  // ENABLE_NAPI_BINDING
+-    LOGI("make jsvm runtime");
+-    return runtime::js::makeJSVMRuntime();
+-#if JS_ENGINE_TYPE != 3
+-  }
+-#endif  // JS_ENGINE_TYPE != 3
++  LOGI("make v8 runtime (harmony)");
++  return runtime::js::makeV8Runtime();
+ #endif  // OS_HARMONY
+ 
+ // Fit compile on other unknown platforms such as Linux.
+diff --git a/platform/embedder/resource/BUILD.gn b/platform/embedder/resource/BUILD.gn
+index 53ddd3bfd..455dff409 100644
+--- a/platform/embedder/resource/BUILD.gn
++++ b/platform/embedder/resource/BUILD.gn
+@@ -12,7 +12,7 @@ lynx_core_source_set("resource") {
+     "lynx_resource_loader_embedder.cc",
+     "lynx_resource_loader_embedder.h",
+   ]
+-  if (is_win || is_linux) {
++  if (is_win || is_linux || is_harmony) {
+     sources += [ "js_source_loader_desktop.cc" ]
+   } else if (is_mac) {
+     sources += [ "js_source_loader_desktop.mm" ]
+-- 
+2.34.1
+
