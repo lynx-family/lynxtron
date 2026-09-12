@@ -33,6 +33,9 @@
 #if ENABLE_HEADLESS
 #include "shell/app/native_window_windowless.h"
 #endif
+#if BUILDFLAG(IS_HARMONY)
+#include "shell/app/native_window_harmony.h"
+#endif
 #include "shell/app/window_list.h"
 #include "shell/common/asar/archive.h"
 #include "shell/common/asar/asar_util.h"
@@ -563,6 +566,17 @@ void LynxWindow::EnsureLynxView(const std::string* testbench_url) {
     builder.SetTestbenchReplayUrl(*testbench_url);
   }
 #endif
+#if BUILDFLAG(IS_HARMONY)
+  // HarmonyOS has no desktop windowing to parent a LynxView into: content is
+  // drawn into the window's XComponent surface through the GLDirect windowless
+  // renderer.  Without a renderer here the embedder falls back to its mock UI
+  // renderer, whose null UIDelegate crashes LynxTemplateRenderer::Reset().
+  if (auto renderer = GetHarmonyWindowlessRendererFor(window_.get())) {
+    builder.SetWindowlessRenderer(std::move(renderer));
+  } else {
+    builder.SetParent(window_->GetNativeWindowHandle());
+  }
+#else
   if (window_->IsWindowless()) {
 #if ENABLE_HEADLESS
     builder.SetWindowlessRenderer(CreateWindowlessRenderer());
@@ -570,6 +584,7 @@ void LynxWindow::EnsureLynxView(const std::string* testbench_url) {
   } else {
     builder.SetParent(window_->GetNativeWindowHandle());
   }
+#endif  // BUILDFLAG(IS_HARMONY)
 
   if (lynx_view_state_observer_) {
     lynx_view_state_observer_->OnPreLynxViewCreate(&builder);

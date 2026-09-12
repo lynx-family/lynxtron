@@ -4,3 +4,4 @@ refactor_restore_base_adaptcallbackforrepeating.patch
 use-lynx-perfetto-dependency.patch
 adapt-modp-with-lynx-prefix.patch
 remove-private-symbol.patch
+harmony-support.patch

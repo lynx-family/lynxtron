@@ -246,7 +246,7 @@ deps = {
         'url': 'https://chromium.googlesource.com/linux-syscall-support.git',
         'commit': '9719c1e1e676814c456b55f5f070eabad6709d31',
         "ignore_in_git": True,
-        "condition": system in ['linux'],
+        "condition": system in ['linux', 'darwin'],
     },
     '../symlink_googletest': {
         'type': 'action',

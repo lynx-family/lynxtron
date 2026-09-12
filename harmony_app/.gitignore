@@ -1,0 +1,31 @@
+# hvigor / hvigorw build artifacts and caches
+.hvigor/
+oh_modules/
+**/oh_modules/
+**/build/
+**/.cxx/
+**/local.properties
+**/.preview/
+*.tsbuildinfo
+
+# Native libraries and runtime resources staged by build_hap.sh
+entry/libs/
+entry/src/main/resources/resfile/
+
+# Workspace / IDE state
+.deveco/
+.idea/
+.vscode/
+
+# Local signing material
+signing.local.env
+signing.local.env.*
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.cer
+*.crt
+*.pem
+*.p7b
+*.key

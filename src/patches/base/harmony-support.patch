@@ -1,0 +1,743 @@
+From 0947dbbd661f203e706b99ed68c03c98e392cb91 Mon Sep 17 00:00:00 2001
+From: Lynxtron Scripts <scripts@lynxtron>
+Date: Mon, 7 Sep 2026 19:23:25 +0800
+Subject: [PATCH] Add HarmonyOS support to base
+
+Recognise the OHOS target throughout //base so chromium's base can build
+and run inside a HarmonyOS HAP:
+
+  - build gn files: compile the harmony sources and drop the host-only
+    pieces that the OHOS NDK sysroot cannot provide.
+  - partition_alloc: add the aarch64/OHOS configuration and route the
+    allocator shim's C++ symbol overrides through musl rather than glibc.
+  - logging / set_process_title / cancelable_event / json_reader: use the
+    POSIX paths that musl actually implements.
+---
+ BUILD.gn                                      |  62 +++--
+ .../src/partition_alloc/BUILD.gn              |   2 +-
+ .../src/partition_alloc/aarch64_support.h     |   2 +-
+ .../src/partition_alloc/build_config.h        |  15 +-
+ ...him_default_dispatch_to_partition_alloc.cc |   9 +-
+ .../shim/allocator_shim_internals.h           |   5 +-
+ .../allocator_shim_override_cpp_symbols.h     |   3 +
+ json/json_reader.cc                           | 239 ++++++++++++++++++
+ logging.cc                                    |   4 +
+ process/set_process_title.cc                  |   5 +-
+ synchronization/cancelable_event.h            |   6 +-
+ test/BUILD.gn                                 |  20 +-
+ 12 files changed, 337 insertions(+), 35 deletions(-)
+
+diff --git a/BUILD.gn b/BUILD.gn
+index 31a263b..2037750 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -159,7 +159,7 @@ buildflag_header("ios_cronet_buildflags") {
+   flags = [ "CRONET_BUILD=$is_cronet_build" ]
+ }
+ 
+-use_epoll = is_linux || is_chromeos || is_android
++use_epoll = is_linux || is_chromeos || is_android || is_harmony
+ 
+ # Base and everything it depends on should be a static library rather than
+ # a source set. Base is more of a "library" in the classic sense in that many
+@@ -970,7 +970,7 @@ component("base") {
+     ]
+   }
+ 
+-  if (is_posix) {
++  if (is_posix || is_harmony) {
+     sources += [
+       "debug/debugger_posix.cc",
+       "file_descriptor_posix.cc",
+@@ -999,7 +999,7 @@ component("base") {
+     ]
+   }
+ 
+-  if (is_linux || is_chromeos) {
++  if (is_linux || is_chromeos || is_harmony) {
+     sources += [
+       "debug/proc_maps_linux.cc",
+       "debug/proc_maps_linux.h",
+@@ -1020,6 +1020,14 @@ component("base") {
+     ]
+   }
+ 
++  if (is_harmony) {
++    # Lynxtron's POSIX path provider uses the XDG cache/data helpers.
++    sources += [
++      "nix/xdg_util.cc",
++      "nix/xdg_util.h",
++    ]
++  }
++
+   if (is_chromeos) {
+     sources += [
+       "process/process_priority_delegate.h",
+@@ -1066,10 +1074,12 @@ component("base") {
+   # Used by metrics/crc32
+   deps += [ "//third_party/zlib" ]
+ 
+-  deps += [
+-    ":rust_logger",
+-    "//third_party/rust/serde_json_lenient/v0_2/wrapper",
+-  ]
++  if (enable_rust) {
++    deps += [
++      ":rust_logger",
++      "//third_party/rust/serde_json_lenient/v0_2/wrapper",
++    ]
++  }
+ 
+   # `raw_ptr` cannot be made a component due to CRT symbol issues.
+   # Its gateway to being a component is through `//base`, so we have
+@@ -1110,8 +1120,10 @@ component("base") {
+   ]
+ 
+   # Base provides conversions between CXX types and base types (e.g.
+-  # std::string_view).
+-  public_deps += [ "//build/rust:cxx_cppdeps" ]
++  # std::string_view) when Rust bindings are enabled.
++  if (enable_rust) {
++    public_deps += [ "//build/rust:cxx_cppdeps" ]
++  }
+ 
+   # Needed for <atomic> if using newer C++ library than sysroot, except if
+   # building inside the cros_sdk environment - use host_toolchain as a
+@@ -1574,8 +1586,6 @@ component("base") {
+     "files/scoped_temp_file.h",
+     "json/json_file_value_serializer.cc",
+     "json/json_file_value_serializer.h",
+-    "logging/rust_log_integration.cc",
+-    "logging/rust_log_integration.h",
+     "memory/discardable_memory.cc",
+     "memory/discardable_memory.h",
+     "memory/discardable_memory_allocator.cc",
+@@ -1598,6 +1608,13 @@ component("base") {
+     "task/thread_pool/initialization_util.h",
+   ]
+ 
++  if (enable_rust) {
++    sources += [
++      "logging/rust_log_integration.cc",
++      "logging/rust_log_integration.h",
++    ]
++  }
++
+   if (is_win) {
+     sources += [
+       "base_paths_win.cc",
+@@ -1715,7 +1732,7 @@ component("base") {
+     }
+   }
+ 
+-  if (is_linux || is_chromeos) {
++  if (is_linux || is_chromeos || is_harmony) {
+     sources += [
+       "base_paths_posix.cc",
+       "debug/elf_reader.cc",
+@@ -2283,7 +2300,7 @@ component("base") {
+   }
+ 
+   # Linux.
+-  if (is_linux || is_chromeos) {
++  if (is_linux || is_chromeos || is_harmony) {
+     # TODO(brettw) this will need to be parameterized at some point.
+     linux_configs = []
+     if (use_glib) {
+@@ -2297,7 +2314,7 @@ component("base") {
+       "process/set_process_title_linux.h",
+       "system/sys_info_linux.cc",
+     ]
+-    if (!is_cronet_build) {
++    if (!is_cronet_build && !is_harmony) {
+       # These dependencies are not required on Android.
+       sources += [
+         "nix/mime_util_xdg.cc",
+@@ -2307,6 +2324,13 @@ component("base") {
+         "nix/xdg_util.cc",
+         "nix/xdg_util.h",
+       ]
++      defines += [ "USE_SYMBOLIZE" ]
++      deps += [
++        ":dwarf_helpers",
++        "//base/third_party/symbolize",
++      ]
++    }
++    if (!is_cronet_build && is_harmony) {
+       defines += [ "USE_SYMBOLIZE" ]
+       deps += [
+         ":dwarf_helpers",
+@@ -2533,6 +2557,7 @@ if (is_android) {
+   }
+ }
+ 
++if (enable_rust) {
+ rust_bindgen("logging_log_severity_bindgen") {
+   # TODO(danakj): Maybe combine all base bindgen targets, or all base/logging
+   # ones even) into a single GN target? But the GN rule needs to handle multiple
+@@ -2589,8 +2614,9 @@ rust_static_library("rust_logger") {
+ 
+   cxx_bindings = [ "logging/rust_logger.rs" ]
+ }
++}
+ 
+-if (is_linux || is_chromeos) {
++if (is_linux || is_chromeos || is_harmony) {
+   # Split out as a separate target for two reasons:
+   # - the line number reader is 2x slower in debug builds if not optimized,
+   #   leading to a worse dev experience and test timeouts.
+@@ -3787,7 +3813,9 @@ test("base_unittests") {
+     deps += [ "allocator/partition_allocator/src/partition_alloc:unittests" ]
+   }
+ 
+-  deps += [ "//build/rust:cxx_cppdeps" ]
++  if (enable_rust) {
++    deps += [ "//build/rust:cxx_cppdeps" ]
++  }
+ 
+   data_deps = [
+     "//base/test:immediate_crash_test_helper",
+@@ -4690,7 +4718,7 @@ if (is_android) {
+       ":wrapped_class_loader_java",
+     ]
+ 
+-    if (!is_cronet_build) {
++    if (!is_cronet_build && !is_harmony) {
+       proguard_configs += [
+         "android/proguard/chromium_apk.flags",
+         "android/proguard/remove_logging.flags",
+diff --git a/allocator/partition_allocator/src/partition_alloc/BUILD.gn b/allocator/partition_allocator/src/partition_alloc/BUILD.gn
+index df7b1d0..40f8d20 100644
+--- a/allocator/partition_allocator/src/partition_alloc/BUILD.gn
++++ b/allocator/partition_allocator/src/partition_alloc/BUILD.gn
+@@ -871,7 +871,7 @@ if (is_clang_or_gcc) {
+       shim_sources += [ "shim/allocator_shim_default_dispatch_to_partition_alloc_with_advanced_checks.cc" ]
+       shim_headers += [ "shim/allocator_shim_default_dispatch_to_partition_alloc_with_advanced_checks.h" ]
+     }
+-    if (is_android) {
++    if (is_android || is_harmony) {
+       shim_headers += [
+         "shim/allocator_shim_override_cpp_symbols.h",
+         "shim/allocator_shim_override_linker_wrapped_symbols.h",
+diff --git a/allocator/partition_allocator/src/partition_alloc/aarch64_support.h b/allocator/partition_allocator/src/partition_alloc/aarch64_support.h
+index ffd93db..e3837a3 100644
+--- a/allocator/partition_allocator/src/partition_alloc/aarch64_support.h
++++ b/allocator/partition_allocator/src/partition_alloc/aarch64_support.h
+@@ -15,7 +15,7 @@
+ #include "partition_alloc/build_config.h"
+ #include "partition_alloc/buildflags.h"
+ 
+-#if PA_BUILDFLAG(IS_ANDROID) || PA_BUILDFLAG(IS_LINUX)
++#if (PA_BUILDFLAG(IS_ANDROID) || PA_BUILDFLAG(IS_LINUX)) && !defined(__OHOS__)
+ #define HAS_HW_CAPS
+ #endif
+ 
+diff --git a/allocator/partition_allocator/src/partition_alloc/build_config.h b/allocator/partition_allocator/src/partition_alloc/build_config.h
+index ff0580e..34d1b7d 100644
+--- a/allocator/partition_allocator/src/partition_alloc/build_config.h
++++ b/allocator/partition_allocator/src/partition_alloc/build_config.h
+@@ -84,6 +84,12 @@
+ // The IS_CHROMEOS PA_BUILDFLAG macro is defined in buildflags.h.
+ #define PA_IS_LINUX
+ #endif  // !PA_BUILDFLAG(IS_CHROMEOS)
++#if defined(__OHOS__)
++// OHOS is Linux-based and advertises __linux__. Keep a dedicated flag so
++// PartitionAlloc can gate Harmony-specific behavior without losing Linux code
++// paths.
++#define PA_IS_OHOS
++#endif
+ // Include a system header to pull in features.h for glibc/uclibc macros.
+ #include <assert.h>
+ #if defined(__GLIBC__) && !defined(__UCLIBC__)
+@@ -124,7 +130,7 @@
+ #if defined(PA_IS_AIX) || defined(PA_IS_ASMJS) || defined(PA_IS_FREEBSD) ||  \
+     defined(PA_IS_IOS) || defined(PA_IS_LINUX) || defined(PA_IS_CHROMEOS) || \
+     defined(PA_IS_MAC) || defined(PA_IS_NETBSD) || defined(PA_IS_OPENBSD) || \
+-    defined(PA_IS_QNX) || defined(PA_IS_SOLARIS) ||                          \
++    defined(PA_IS_QNX) || defined(PA_IS_SOLARIS) || defined(PA_IS_OHOS) ||   \
+     PA_BUILDFLAG(IS_ANDROID) || PA_BUILDFLAG(IS_CHROMEOS)
+ #define PA_IS_POSIX
+ #endif
+@@ -437,6 +443,13 @@
+ #endif
+ #undef PA_IS_IOS
+ 
++#if defined(PA_IS_OHOS)
++#define PA_BUILDFLAG_INTERNAL_IS_OHOS() (1)
++#else
++#define PA_BUILDFLAG_INTERNAL_IS_OHOS() (0)
++#endif
++#undef PA_IS_OHOS
++
+ #if defined(PA_IS_LINUX)
+ #define PA_BUILDFLAG_INTERNAL_IS_LINUX() (1)
+ #else
+diff --git a/allocator/partition_allocator/src/partition_alloc/shim/allocator_shim_default_dispatch_to_partition_alloc.cc b/allocator/partition_allocator/src/partition_alloc/shim/allocator_shim_default_dispatch_to_partition_alloc.cc
+index 7917845..59efb22 100644
+--- a/allocator/partition_allocator/src/partition_alloc/shim/allocator_shim_default_dispatch_to_partition_alloc.cc
++++ b/allocator/partition_allocator/src/partition_alloc/shim/allocator_shim_default_dispatch_to_partition_alloc.cc
+@@ -742,7 +742,8 @@ const AllocatorDispatch AllocatorDispatch::default_dispatch =
+ 
+ extern "C" {
+ 
+-#if !PA_BUILDFLAG(IS_APPLE) && !PA_BUILDFLAG(IS_ANDROID)
++#if !PA_BUILDFLAG(IS_APPLE) && !PA_BUILDFLAG(IS_ANDROID) && \
++    !PA_BUILDFLAG(IS_OHOS)
+ 
+ SHIM_ALWAYS_EXPORT void malloc_stats(void) __THROW {}
+ 
+@@ -750,9 +751,11 @@ SHIM_ALWAYS_EXPORT int mallopt(int cmd, int value) __THROW {
+   return 0;
+ }
+ 
+-#endif  // !PA_BUILDFLAG(IS_APPLE) && !PA_BUILDFLAG(IS_ANDROID)
++#endif  // !PA_BUILDFLAG(IS_APPLE) && !PA_BUILDFLAG(IS_ANDROID) && \
++        // !PA_BUILDFLAG(IS_OHOS)
+ 
+-#if PA_BUILDFLAG(IS_LINUX) || PA_BUILDFLAG(IS_CHROMEOS)
++#if (PA_BUILDFLAG(IS_LINUX) || PA_BUILDFLAG(IS_CHROMEOS)) && \
++    !PA_BUILDFLAG(IS_OHOS)
+ SHIM_ALWAYS_EXPORT struct mallinfo mallinfo(void) __THROW {
+   partition_alloc::SimplePartitionStatsDumper allocator_dumper;
+   Allocator()->DumpStats("malloc", true, &allocator_dumper);
+diff --git a/allocator/partition_allocator/src/partition_alloc/shim/allocator_shim_internals.h b/allocator/partition_allocator/src/partition_alloc/shim/allocator_shim_internals.h
+index afa8151..d7811ff 100644
+--- a/allocator/partition_allocator/src/partition_alloc/shim/allocator_shim_internals.h
++++ b/allocator/partition_allocator/src/partition_alloc/shim/allocator_shim_internals.h
+@@ -14,7 +14,10 @@
+ #endif
+ 
+ #ifndef __THROW   // Not a glibc system
+-#ifdef _NOEXCEPT  // LLVM libc++ uses noexcept instead
++#if defined(__OHOS__)
++// OpenHarmony's libc declarations do not use noexcept.
++#define __THROW
++#elif defined(_NOEXCEPT)  // LLVM libc++ uses noexcept instead
+ #define __THROW _NOEXCEPT
+ #else
+ #define __THROW
+diff --git a/allocator/partition_allocator/src/partition_alloc/shim/allocator_shim_override_cpp_symbols.h b/allocator/partition_allocator/src/partition_alloc/shim/allocator_shim_override_cpp_symbols.h
+index fd9bf4c..706be1c 100644
+--- a/allocator/partition_allocator/src/partition_alloc/shim/allocator_shim_override_cpp_symbols.h
++++ b/allocator/partition_allocator/src/partition_alloc/shim/allocator_shim_override_cpp_symbols.h
+@@ -39,6 +39,7 @@
+ #define SHIM_CPP_SYMBOLS_EXPORT PA_NOINLINE
+ #endif
+ 
++#if !PA_BUILDFLAG(IS_OHOS)
+ SHIM_CPP_SYMBOLS_EXPORT void* operator new(size_t size) {
+ #if PA_BUILDFLAG(FORWARD_THROUGH_MALLOC)
+   return malloc(size);
+@@ -237,6 +238,8 @@ SHIM_CPP_SYMBOLS_EXPORT void operator delete[](void* p,
+ #endif
+ }
+ 
++#endif  // !PA_BUILDFLAG(IS_OHOS)
++
+ #endif  // PA_BUILDFLAG(USE_ALLOCATOR_SHIM)
+ 
+ #endif  // PARTITION_ALLOC_SHIM_ALLOCATOR_SHIM_OVERRIDE_CPP_SYMBOLS_H_
+diff --git a/json/json_reader.cc b/json/json_reader.cc
+index 664b729..d351650 100644
+--- a/json/json_reader.cc
++++ b/json/json_reader.cc
+@@ -4,6 +4,8 @@
+ 
+ #include "base/json/json_reader.h"
+ 
++#include <cstring>
++#include <limits>
+ #include <string_view>
+ #include <utility>
+ 
+@@ -12,9 +14,17 @@
+ #include "base/strings/strcat.h"
+ #include "base/strings/string_number_conversions.h"
+ #include "build/build_config.h"
++
++#if !BUILDFLAG(IS_HARMONY)
+ #include "base/strings/string_view_rust.h"
+ #include "third_party/rust/serde_json_lenient/v0_2/wrapper/functions.h"
+ #include "third_party/rust/serde_json_lenient/v0_2/wrapper/lib.rs.h"
++#endif
++
++// HarmonyOS bring-up: skip rust serde_json_lenient (rust toolchain not yet
++// wired into harmony build); fall back to base::internal::JSONParser, same
++// strategy as chromium uses for NaCl.
++#if !BUILDFLAG(IS_HARMONY)
+ 
+ namespace {
+ const char kSecurityJsonParsingTime[] = "Security.JSONParser.ParsingTime";
+@@ -122,6 +132,220 @@ base::JSONReader::Result DecodeJSONInRust(std::string_view json,
+ }  // namespace
+ }  // namespace serde_json_lenient
+ 
++#endif  // !BUILDFLAG(IS_HARMONY)
++
++#if BUILDFLAG(IS_HARMONY)
++namespace {
++
++// Minimal recursive-descent JSON parser for HarmonyOS bring-up.
++// chromium's C++ JSONParser was removed upstream (replaced by rust
++// serde_json_lenient), and rust is not wired into the harmony toolchain.
++// Supports: object / array / string (incl. \uXXXX) / number / bool / null.
++class MiniJsonParser {
++ public:
++  MiniJsonParser(std::string_view input, size_t max_depth)
++      : p_(input.data()), end_(input.data() + input.size()),
++        max_depth_(max_depth) {}
++
++  std::optional<base::Value> Parse() {
++    SkipWs();
++    auto v = ParseValue(0);
++    if (!v) return std::nullopt;
++    SkipWs();
++    if (p_ != end_) return std::nullopt;  // trailing garbage
++    return v;
++  }
++
++ private:
++  void SkipWs() {
++    while (p_ != end_ && (*p_ == ' ' || *p_ == '\t' || *p_ == '\n' ||
++                          *p_ == '\r')) {
++      ++p_;
++    }
++  }
++
++  bool Consume(char c) {
++    if (p_ != end_ && *p_ == c) {
++      ++p_;
++      return true;
++    }
++    return false;
++  }
++
++  std::optional<base::Value> ParseValue(size_t depth) {
++    if (depth > max_depth_) return std::nullopt;
++    SkipWs();
++    if (p_ == end_) return std::nullopt;
++    switch (*p_) {
++      case '{':
++        return ParseObject(depth);
++      case '[':
++        return ParseArray(depth);
++      case '"': {
++        auto s = ParseString();
++        if (!s) return std::nullopt;
++        return base::Value(std::move(*s));
++      }
++      case 't':
++        if (end_ - p_ >= 4 && strncmp(p_, "true", 4) == 0) {
++          p_ += 4;
++          return base::Value(true);
++        }
++        return std::nullopt;
++      case 'f':
++        if (end_ - p_ >= 5 && strncmp(p_, "false", 5) == 0) {
++          p_ += 5;
++          return base::Value(false);
++        }
++        return std::nullopt;
++      case 'n':
++        if (end_ - p_ >= 4 && strncmp(p_, "null", 4) == 0) {
++          p_ += 4;
++          return base::Value();
++        }
++        return std::nullopt;
++      default:
++        return ParseNumber();
++    }
++  }
++
++  std::optional<base::Value> ParseObject(size_t depth) {
++    if (!Consume('{')) return std::nullopt;
++    base::Value::Dict dict;
++    SkipWs();
++    if (Consume('}')) return base::Value(std::move(dict));
++    while (true) {
++      SkipWs();
++      auto key = ParseString();
++      if (!key) return std::nullopt;
++      SkipWs();
++      if (!Consume(':')) return std::nullopt;
++      auto val = ParseValue(depth + 1);
++      if (!val) return std::nullopt;
++      dict.Set(*key, std::move(*val));
++      SkipWs();
++      if (Consume(',')) continue;
++      if (Consume('}')) return base::Value(std::move(dict));
++      return std::nullopt;
++    }
++  }
++
++  std::optional<base::Value> ParseArray(size_t depth) {
++    if (!Consume('[')) return std::nullopt;
++    base::Value::List list;
++    SkipWs();
++    if (Consume(']')) return base::Value(std::move(list));
++    while (true) {
++      auto val = ParseValue(depth + 1);
++      if (!val) return std::nullopt;
++      list.Append(std::move(*val));
++      SkipWs();
++      if (Consume(',')) continue;
++      if (Consume(']')) return base::Value(std::move(list));
++      return std::nullopt;
++    }
++  }
++
++  std::optional<std::string> ParseString() {
++    if (!Consume('"')) return std::nullopt;
++    std::string out;
++    while (p_ != end_) {
++      unsigned char c = static_cast<unsigned char>(*p_);
++      if (c == '"') {
++        ++p_;
++        return out;
++      }
++      if (c == '\\') {
++        ++p_;
++        if (p_ == end_) return std::nullopt;
++        switch (*p_) {
++          case '"': out += '"'; break;
++          case '\\': out += '\\'; break;
++          case '/': out += '/'; break;
++          case 'b': out += '\b'; break;
++          case 'f': out += '\f'; break;
++          case 'n': out += '\n'; break;
++          case 'r': out += '\r'; break;
++          case 't': out += '\t'; break;
++          case 'u': {
++            if (end_ - p_ < 5) return std::nullopt;
++            unsigned cp = 0;
++            for (int i = 1; i <= 4; i++) {
++              char h = p_[i];
++              cp <<= 4;
++              if (h >= '0' && h <= '9') cp |= h - '0';
++              else if (h >= 'a' && h <= 'f') cp |= h - 'a' + 10;
++              else if (h >= 'A' && h <= 'F') cp |= h - 'A' + 10;
++              else return std::nullopt;
++            }
++            p_ += 4;
++            // UTF-8 encode (surrogate pairs unhandled — asar headers are
++            // plain ASCII; lone surrogates encoded as-is).
++            if (cp < 0x80) {
++              out += static_cast<char>(cp);
++            } else if (cp < 0x800) {
++              out += static_cast<char>(0xC0 | (cp >> 6));
++              out += static_cast<char>(0x80 | (cp & 0x3F));
++            } else {
++              out += static_cast<char>(0xE0 | (cp >> 12));
++              out += static_cast<char>(0x80 | ((cp >> 6) & 0x3F));
++              out += static_cast<char>(0x80 | (cp & 0x3F));
++            }
++            break;
++          }
++          default:
++            return std::nullopt;
++        }
++        ++p_;
++      } else {
++        out += static_cast<char>(c);
++        ++p_;
++      }
++    }
++    return std::nullopt;  // unterminated
++  }
++
++  std::optional<base::Value> ParseNumber() {
++    const char* start = p_;
++    if (p_ != end_ && *p_ == '-') ++p_;
++    while (p_ != end_ && *p_ >= '0' && *p_ <= '9') ++p_;
++    bool is_double = false;
++    if (p_ != end_ && *p_ == '.') {
++      is_double = true;
++      ++p_;
++      while (p_ != end_ && *p_ >= '0' && *p_ <= '9') ++p_;
++    }
++    if (p_ != end_ && (*p_ == 'e' || *p_ == 'E')) {
++      is_double = true;
++      ++p_;
++      if (p_ != end_ && (*p_ == '+' || *p_ == '-')) ++p_;
++      while (p_ != end_ && *p_ >= '0' && *p_ <= '9') ++p_;
++    }
++    if (p_ == start) return std::nullopt;
++    std::string num(start, p_ - start);
++    if (!is_double) {
++      int64_t i64;
++      if (base::StringToInt64(num, &i64)) {
++        if (i64 >= std::numeric_limits<int>::min() &&
++            i64 <= std::numeric_limits<int>::max()) {
++          return base::Value(static_cast<int>(i64));
++        }
++        return base::Value(static_cast<double>(i64));
++      }
++    }
++    double d;
++    if (base::StringToDouble(num, &d)) return base::Value(d);
++    return std::nullopt;
++  }
++
++  const char* p_;
++  const char* end_;
++  const size_t max_depth_;
++};
++
++}  // namespace
++#endif  // BUILDFLAG(IS_HARMONY)
++
+ namespace base {
+ 
+ std::string JSONReader::Error::ToString() const {
+@@ -133,6 +357,12 @@ std::string JSONReader::Error::ToString() const {
+ std::optional<Value> JSONReader::Read(std::string_view json,
+                                       int options,
+                                       size_t max_depth) {
++#if BUILDFLAG(IS_HARMONY)
++  // rust serde_json_lenient is not wired into the harmony toolchain
++  // (enable_rust=false) and upstream removed the C++ JSONParser. Use the
++  // MiniJsonParser above (strict JSON, enough for asar headers/configs).
++  return MiniJsonParser(json, max_depth).Parse();
++#else   // BUILDFLAG(IS_HARMONY)
+   SCOPED_UMA_HISTOGRAM_TIMER_MICROS(kSecurityJsonParsingTime);
+ 
+   JSONReader::Result result =
+@@ -141,6 +371,7 @@ std::optional<Value> JSONReader::Read(std::string_view json,
+     return std::nullopt;
+   }
+   return std::move(*result);
++#endif
+ }
+ 
+ // static
+@@ -169,9 +400,17 @@ std::optional<Value::List> JSONReader::ReadList(std::string_view json,
+ JSONReader::Result JSONReader::ReadAndReturnValueWithError(
+     std::string_view json,
+     int options) {
++#if BUILDFLAG(IS_HARMONY)
++  Error error;
++  error.message = "JSON parser not available on HarmonyOS bring-up";
++  error.line = 0;
++  error.column = 0;
++  return base::unexpected(std::move(error));
++#else   // BUILDFLAG(IS_HARMONY)
+   SCOPED_UMA_HISTOGRAM_TIMER_MICROS(kSecurityJsonParsingTime);
+   return serde_json_lenient::DecodeJSONInRust(json, options,
+                                               internal::kAbsoluteMaxDepth);
++#endif
+ }
+ 
+ }  // namespace base
+diff --git a/logging.cc b/logging.cc
+index dd46ccc..4ca7393 100644
+--- a/logging.cc
++++ b/logging.cc
+@@ -33,7 +33,9 @@
+ #include "base/debug/task_trace.h"
+ #include "base/functional/callback.h"
+ #include "base/immediate_crash.h"
++#if !BUILDFLAG(IS_HARMONY)
+ #include "base/logging/rust_logger.rs.h"
++#endif
+ #include "base/no_destructor.h"
+ #include "base/path_service.h"
+ #include "base/pending_task.h"
+@@ -505,8 +507,10 @@ bool BaseInitLoggingImpl(const LoggingSettings& settings) {
+   }
+ #endif
+ 
++#if !BUILDFLAG(IS_HARMONY)
+   // Connects Rust logging with the //base logging functionality.
+   internal::init_rust_log_crate();
++#endif
+ 
+   // Ignore file options unless logging to file is set.
+   if ((g_logging_destination & LOG_TO_FILE) == 0) {
+diff --git a/process/set_process_title.cc b/process/set_process_title.cc
+index aacd4a8..a1f32b6 100644
+--- a/process/set_process_title.cc
++++ b/process/set_process_title.cc
+@@ -43,8 +43,11 @@
+ namespace base {
+ 
+ // TODO(jrg): Find out if setproctitle or equivalent is available on Android.
++// HarmonyOS musl libc doesn't expose program_invocation_short_name; treat as
++// stub-only platform like Android/Fuchsia.
+ #if BUILDFLAG(IS_POSIX) && !BUILDFLAG(IS_APPLE) && !BUILDFLAG(IS_SOLARIS) && \
+-    !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_FUCHSIA)
++    !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_FUCHSIA) && \
++    !BUILDFLAG(IS_HARMONY)
+ 
+ void SetProcessTitleFromCommandLine(const char** main_argv) {
+   // Build a single string which consists of all the arguments separated
+diff --git a/synchronization/cancelable_event.h b/synchronization/cancelable_event.h
+index aab14da..65f11bb 100644
+--- a/synchronization/cancelable_event.h
++++ b/synchronization/cancelable_event.h
+@@ -11,7 +11,8 @@
+ 
+ #if BUILDFLAG(IS_WIN)
+ #include <windows.h>
+-#elif BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_CHROMEOS)
++#elif (BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_ANDROID) || \
++       BUILDFLAG(IS_CHROMEOS)) && !BUILDFLAG(IS_HARMONY)
+ #include <semaphore.h>
+ #else
+ #include "base/synchronization/waitable_event.h"
+@@ -49,7 +50,8 @@ class BASE_EXPORT CancelableEvent {
+ 
+ #if BUILDFLAG(IS_WIN)
+   using NativeHandle = HANDLE;
+-#elif BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_ANDROID)
++#elif (BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS) || \
++       BUILDFLAG(IS_ANDROID)) && !BUILDFLAG(IS_HARMONY)
+   using NativeHandle = sem_t;
+ #else
+   using NativeHandle = WaitableEvent;
+diff --git a/test/BUILD.gn b/test/BUILD.gn
+index 9932446..45571ed 100644
+--- a/test/BUILD.gn
++++ b/test/BUILD.gn
+@@ -35,15 +35,17 @@ static_library("test_config") {
+   ]
+ }
+ 
+-rust_static_library("test_rust_logger_consumer") {
+-  allow_unsafe = true  # Unsafe needed for FFI
+-  testonly = true
+-  deps = [ "//third_party/rust/log/v0_4:lib" ]
+-  sources = [ "logging/test_rust_logger_consumer.rs" ]
++if (enable_rust) {
++  rust_static_library("test_rust_logger_consumer") {
++    allow_unsafe = true  # Unsafe needed for FFI
++    testonly = true
++    deps = [ "//third_party/rust/log/v0_4:lib" ]
++    sources = [ "logging/test_rust_logger_consumer.rs" ]
+ 
+-  crate_root = "logging/test_rust_logger_consumer.rs"
++    crate_root = "logging/test_rust_logger_consumer.rs"
+ 
+-  cxx_bindings = [ "logging/test_rust_logger_consumer.rs" ]
++    cxx_bindings = [ "logging/test_rust_logger_consumer.rs" ]
++  }
+ }
+ 
+ static_library("test_support") {
+@@ -195,7 +197,6 @@ static_library("test_support") {
+ 
+   public_deps = [
+     ":test_config",
+-    ":test_rust_logger_consumer",
+     "//base",
+     "//base:base_static",
+     "//base:i18n",
+@@ -203,6 +204,9 @@ static_library("test_support") {
+     "//testing/gmock",
+     "//testing/gtest",
+   ]
++  if (enable_rust) {
++    public_deps += [ ":test_rust_logger_consumer" ]
++  }
+ 
+   deps = [
+     ":proto_test_support",

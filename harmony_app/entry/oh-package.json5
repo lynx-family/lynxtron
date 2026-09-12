@@ -1,0 +1,9 @@
+{
+  "name": "entry",
+  "version": "1.0.0",
+  "description": "Lynxtron entry HAP module",
+  "main": "",
+  "author": "wenhua.liu",
+  "license": "Apache-2.0",
+  "dependencies": {}
+}

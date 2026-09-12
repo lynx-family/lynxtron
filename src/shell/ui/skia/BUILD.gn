@@ -25,7 +25,7 @@ component("skia_ext") {
     "ext/image_operations.cc",
     "ext/skcolorspace_primaries.cc",
   ]
-  if (!is_linux) {
+  if (!is_linux && !is_harmony) {
     sources += [ "ext/SkMemory_new_handler.cpp" ]
   }
 

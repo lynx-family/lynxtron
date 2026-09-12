@@ -1,0 +1,42 @@
+From 038f5e221ae58ca8a5111ff263722a0f70f79316 Mon Sep 17 00:00:00 2001
+From: Lynxtron Scripts <scripts@lynxtron>
+Date: Mon, 7 Sep 2026 19:23:37 +0800
+Subject: [PATCH] Build perfetto for HarmonyOS
+
+Add the OHOS target to the proto_library generator and provide the
+vm_sockets definitions the NDK sysroot does not ship.
+---
+ gn/proto_library.gni  | 6 ++++++
+ src/base/vm_sockets.h | 2 +-
+ 2 files changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/gn/proto_library.gni b/gn/proto_library.gni
+index 14da599b..20097646 100644
+--- a/gn/proto_library.gni
++++ b/gn/proto_library.gni
+@@ -333,6 +333,12 @@ template("perfetto_proto_library") {
+     }
+   }
+ 
++  # Chrome's proto_library integration consumes this forwarding target to
++  # propagate the generated proto inputs through a source-set dependency.
++  group("${source_set_target_name}_input_group") {
++    public_deps = [ ":${source_set_target_name}" ]
++  }
++
+   # Generate the descriptor if the option is set.
+   if (defined(invoker.generate_descriptor)) {
+     target_name_ = string_replace(target_name, expansion_token, "descriptor")
+diff --git a/src/base/vm_sockets.h b/src/base/vm_sockets.h
+index ad59b5d9..d7349ee9 100644
+--- a/src/base/vm_sockets.h
++++ b/src/base/vm_sockets.h
+@@ -27,7 +27,7 @@
+ #if PERFETTO_BUILDFLAG(PERFETTO_OS_QNX)
+ // Requires the QNX Advanced Virtualization Framework
+ #include <vm_sockets.h>
+-#elif defined(AF_VSOCK)
++#elif defined(AF_VSOCK) && !defined(__OHOS__)
+ // Use system vm_socket.h if available.
+ #include <linux/vm_sockets.h>
+ #else  // defined(AF_SOCK)

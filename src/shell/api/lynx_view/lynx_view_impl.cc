@@ -321,6 +321,22 @@ void LynxViewImpl::SetFrame(float x, float y, float width, float height) {
   lynx_view_->SetFrame(x, y, width, height);
 }
 
+int LynxViewImpl::GetNodeForLocation(int x, int y) {
+  return lynx_view_->GetNodeForLocation(x, y);
+}
+
+void LynxViewImpl::SendTouchEvent(const std::string& name,
+                                  int32_t id,
+                                  float x,
+                                  float y,
+                                  float client_x,
+                                  float client_y,
+                                  float page_x,
+                                  float page_y) {
+  lynx_view_->SendTouchEvent(name, id, x, y, client_x, client_y, page_x,
+                             page_y);
+}
+
 void* LynxViewImpl::GetNativeWindow() {
   return lynx_view_->GetNativeWindow();
 }

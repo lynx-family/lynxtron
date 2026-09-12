@@ -111,6 +111,14 @@ v8::Isolate* JavascriptEnvironment::Initialize(uv_loop_t* event_loop,
   auto* cmd = base::CommandLine::ForCurrentProcess();
   // --js-flags.
   std::string js_flags = "--no-freeze-flags-after-init ";
+#if BUILDFLAG(IS_HARMONY)
+  // The HarmonyOS kernel enforces W^X and rejects mprotect(RWX) with EINVAL
+  // for processes without an XPM/JIT allowlist entry.  V8 pre-commits its
+  // whole CodeRange as RWX unless it is jitless, so with a JIT the isolate
+  // never gets past "Failed to reserve virtual memory for CodeRange" and
+  // aborts the process.  Run the Ignition interpreter instead.
+  js_flags.append("--jitless ");
+#endif
   js_flags.append(
       cmd->GetSwitchValueASCII(lynxtron::switches::kJavaScriptFlags));
   v8::V8::SetFlagsFromString(js_flags.c_str(), js_flags.size());
@@ -122,7 +130,16 @@ v8::Isolate* JavascriptEnvironment::Initialize(uv_loop_t* event_loop,
   node::tracing::TraceEventHelper::SetAgent(tracing_agent);
   platform_ = node::MultiIsolatePlatform::Create(
       base::RecommendedMaxNumberOfThreadsInThreadGroup(3, 8, 0.1, 0),
-      tracing_controller, gin::V8Platform::GetCurrentPageAllocator());
+      tracing_controller,
+#if BUILDFLAG(IS_HARMONY)
+      // gin's PartitionAlloc-backed page allocator cannot satisfy V8's
+      // CodeRange reservation inside the HAP sandbox; let V8 fall back to
+      // its own mmap-based allocator.
+      nullptr
+#else
+      gin::V8Platform::GetCurrentPageAllocator()
+#endif
+  );
 
   v8::V8::InitializePlatform(platform_.get());
   gin::IsolateHolder::Initialize(

@@ -10,8 +10,10 @@ system = platform.system().lower()
 deps = {
     '../lynx': {
         'type': 'solution',
-        'url': 'https://github.com/lynx-family/lynx.git',
-        'commit': '00a051d9d6055624a0e77a10edbc2d9bd8696a23',
+        # Temporarily track the companion Lynx PR. Switch this back to the
+        # upstream repository once that PR has landed.
+        'url': 'https://github.com/MichaelWHL/lynx.git',
+        'commit': 'b845d3ec287dbcd7722197c6441b978816996429',
         "deps_file": "dependencies/DEPS.lynxtron",
         "ignore_in_git": True,
     },
