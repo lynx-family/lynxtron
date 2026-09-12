@@ -27,6 +27,7 @@
 #include "base/win/win_util.h"
 #include "base/win/windows_types.h"
 #include "base/win/windows_version.h"
+#include "shell/app/resources/win/resource.h"
 #include "shell/common/win_util.h"
 #include "shell/ui/base/win/shell.h"
 #include "shell/ui/display/win/screen_win.h"
@@ -617,6 +618,18 @@ void HWNDMessageHandler::SizeConstraintsChanged() {
   }
   SetWindowLong(hwnd(), GWL_STYLE, new_style);
   SendFrameChanged();
+}
+
+HICON HWNDMessageHandler::GetDefaultWindowIcon() const {
+  // Use the current executable's icon, including replacements by the app
+  // packager. LoadIcon returns a shared handle that outlives the window class
+  // and must not be destroyed. WM_SETICON can override it for each window.
+  return ::LoadIconW(::GetModuleHandleW(nullptr),
+                     MAKEINTRESOURCEW(IDR_MAINFRAME));
+}
+
+HICON HWNDMessageHandler::GetSmallWindowIcon() const {
+  return GetDefaultWindowIcon();
 }
 
 LRESULT HWNDMessageHandler::OnWndProc(UINT message,
