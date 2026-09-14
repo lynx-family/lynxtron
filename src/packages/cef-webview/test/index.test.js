@@ -61,7 +61,7 @@ for (const [platform, arch] of [
     });
     assert.throws(() => entry.initialize(), {
       message:
-        /CEF initialization failed.*multiple host processes.*Close other applications.*other reasons.*native logs/,
+        /CEF initialization failed.*same.*application profile.*distinct application.*identity.*other reasons.*native logs/,
     });
   });
 

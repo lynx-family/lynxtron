@@ -35,12 +35,36 @@ cefWebview.initialize();
 ```
 
 `initialize()` throws if native CEF initialization returns `false`. Do not
-continue creating WebViews after this error. The current implementation shares
-the default CEF storage directory across host applications, so only one host
-process can initialize the CEF browser at a time. That process can create multiple
-WebViews; CEF helper subprocesses are not additional browser host processes.
-Close other applications running WebView and retry. This is not the only possible
-cause of initialization failure; check the native logs for the actual cause.
+continue creating WebViews after this error; check the native logs for the
+profile path and actual cause.
+
+CEF now isolates its root storage by application identity:
+
+- Windows: `%LOCALAPPDATA%/<AppUserModelID>/CEF/User Data`. Set a stable,
+  application-specific identity before calling `initialize()`:
+
+  ```ts
+  import { app } from 'lynxtron';
+  import cefWebview from '@lynx-js/cef-webview/lynxtron';
+
+  app.setAppUserModelId('com.example.my-app');
+  cefWebview.initialize();
+  ```
+
+- macOS: `~/Library/Application Support/<host bundle ID>/CEF/User Data`.
+  The host application's bundle identifier supplies the identity.
+
+Without an explicit Windows identity, CEF falls back to `cef.<executable filename>`.
+On macOS, a missing host bundle identifier falls back to the located Helper's
+bundle identifier. These compatibility fallbacks do not guarantee isolation
+between apps sharing an executable name or Helper identity; native logs explain
+that limitation. Use distinct application identities for concurrent apps.
+
+Different identities can initialize CEF concurrently. Two hosts using the same
+profile still conflict; close the other instance or give the applications
+distinct identities. A single host can create multiple WebViews, and CEF helper
+subprocesses are not additional browser hosts. This does not change explicit
+`cache_path` behavior or provide application-level single-instance handling.
 
 Once initialized, you can use the `<webview>` element in your ReactLynx components:
 
@@ -100,6 +124,7 @@ Apple Silicon or add `--version <version>` to produce a release zip in
 ## Dependencies
 
 - **Runtime Dependencies:**
+
   - js-yaml
   - plist
 

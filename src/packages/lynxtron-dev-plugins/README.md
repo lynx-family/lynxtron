@@ -33,6 +33,15 @@ the Electron Main target, ESM `__dirname`/`__filename` support, AutoLink,
 production minification, and Lynxtron process restart after development
 compilations.
 
+Host imports from `dependencies` and `optionalDependencies` (including package
+subpaths) stay external, so native npm packages keep their package-relative
+addon and asset paths. Declare runtime packages there, not in `devDependencies`;
+the app packager includes production dependencies. Existing explicit externals
+are preserved. This does not replace rebuilding ABI-dependent native addons.
+
+Closing the development compiler or terminating its process stops the runtime
+process group started by the plugin and cancels pending restarts.
+
 ```ts
 import { defineConfig } from '@rsbuild/core';
 import { pluginLynxtron } from '@lynx-js/lynxtron-dev-plugins/rsbuild';
@@ -149,7 +158,6 @@ Behavior reference:
 Use these to block until readiness:
 
 - `dev-ready`
-
   - Generic waiter for a marker file.
   - Flags:
     - `-f, --file <path>`: file to watch (default `./output/bundle/dev-ready.json`)
@@ -157,7 +165,6 @@ Use these to block until readiness:
   - On success, prints `dev-ready` and exits with `0`.
 
 - `dev-ready-speedy`
-
   - Waits for RSBuild/RSpeedy marker at `./output/bundle/dev-ready.json`.
   - Requires JSON to contain `{ ready: true, source: "rspeedy" }`.
   - On success, prints `dev-ready-speedy`.

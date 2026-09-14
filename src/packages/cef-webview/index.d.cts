@@ -3,15 +3,17 @@ declare namespace cefWebview {
   /**
    * Initializes CEF before creating WebViews.
    *
-   * The current implementation shares the default CEF storage directory across
-   * host applications. Only one host process can initialize the CEF browser at
-   * a time. That process can create multiple WebViews; CEF helper subprocesses
-   * are not additional browser host processes.
+   * Root storage is isolated by the macOS host bundle ID or the Windows
+   * AppUserModelID. On Windows, call app.setAppUserModelId() with a stable,
+   * unique identity before initialization. Compatibility fallbacks (the
+   * macOS Helper bundle ID or Windows executable name) may be shared by apps.
+   * Different identities can run concurrently; hosts sharing a profile cannot.
+   * A host can create multiple WebViews.
    *
    * @returns `true` when native initialization succeeds.
    * @throws If native initialization fails. Do not continue creating WebViews.
-   * Close other applications running WebView and retry. Initialization can also
-   * fail for other reasons; check the native logs for the actual cause.
+   * Check the native logs for the profile path and actual cause. If another
+   * host uses the same profile, close it or choose a distinct app identity.
    */
   function initialize(): boolean;
 }

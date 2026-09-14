@@ -6,8 +6,6 @@ import { execSync } from 'child_process';
 import spawn from 'cross-spawn';
 import { applyLynxtronAutoLink } from './autolink-rspack.js';
 
-let lynxtronProcess: ReturnType<typeof spawn> | null = null;
-let queue = Promise.resolve<ReturnType<typeof spawn> | null>(null);
 const isWin = process.platform === 'win32';
 
 export interface PluginLynxtronRspackOptions {
@@ -19,61 +17,82 @@ export interface PluginLynxtronRspackOptions {
   command?: string;
 }
 
-function debounce(func: (...args: any[]) => void, wait: number) {
-  let timeout: NodeJS.Timeout;
-  return function (this: any, ...args: any[]) {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(this, args), wait);
-  };
-}
-
-const restartLynxtron = debounce(
-  (options: {
-    entry: string;
-    args?: string[];
-    env?: Record<string, string>;
-    command?: string;
-  }) => {
-    queue = queue.then(() => {
-      try {
-        if (lynxtronProcess && lynxtronProcess.pid) {
-          const pid = lynxtronProcess.pid;
-          if (isWin) {
-            execSync(`taskkill /pid ${pid} /f /t`);
-          } else {
-            try {
-              process.kill(-pid, 'SIGKILL');
-            } catch {}
-          }
-        }
-      } catch {}
-
-      const { entry, args = [], env = {}, command = 'lynxtron' } = options;
-      // The Lynxtron runtime treats argv[1] as the application directory.
-      // Keep it first so runtime flags cannot be mistaken for the app path by
-      // the runtime or generated AutoLink loaders.
-      const spawnArgs = [entry, ...args];
-
-      lynxtronProcess = spawn(command, spawnArgs, {
-        stdio: 'inherit',
-        env: {
-          ...process.env,
-          ...env,
-        },
-        detached: true,
-      });
-
-      return lynxtronProcess;
-    });
-  },
-  300
-);
-
 export function pluginLynxtron(options: PluginLynxtronRspackOptions = {}): any {
-  const { isDev, entry, args = [], autolink = true, env, command } = options;
+  const {
+    isDev,
+    entry,
+    args = [],
+    autolink = true,
+    env,
+    command = 'lynxtron',
+  } = options;
   return {
     name: 'lynxtron-plugin',
     apply(compiler: any) {
+      let lynxtronProcess: ReturnType<typeof spawn> | null = null;
+      let timeout: NodeJS.Timeout;
+      let closed = false;
+      const stop = () => {
+        clearTimeout(timeout);
+        try {
+          if (lynxtronProcess && lynxtronProcess.pid) {
+            const pid = lynxtronProcess.pid;
+            if (isWin) {
+              execSync(`taskkill /pid ${pid} /f /t`);
+            } else {
+              try {
+                process.kill(-pid, 'SIGKILL');
+              } catch {}
+            }
+          }
+        } catch {}
+        lynxtronProcess = null;
+      };
+      const close = () => {
+        closed = true;
+        stop();
+        process.removeListener('exit', close);
+        process.removeListener('SIGINT', onSignal);
+        process.removeListener('SIGTERM', onSignal);
+      };
+      const onSignal = (signal: NodeJS.Signals) => {
+        close();
+        // Let the build tool's own signal handlers finish their cleanup. If it
+        // has none, restore the signal's default termination behavior.
+        if (process.listenerCount(signal) === 0)
+          process.kill(process.pid, signal);
+      };
+      if (isDev && entry) {
+        process.once('exit', close);
+        process.once('SIGINT', onSignal);
+        process.once('SIGTERM', onSignal);
+        compiler.hooks.watchClose?.tap('LynxtronStop', close);
+        compiler.hooks.shutdown?.tap('LynxtronStop', close);
+      }
+      const restart = () => {
+        if (closed) return;
+        stop();
+        timeout = setTimeout(() => {
+          if (closed) return;
+          // The Lynxtron runtime treats argv[1] as the application directory.
+          // Keep it first so runtime flags cannot be mistaken for the app path by
+          // the runtime or generated AutoLink loaders.
+          const spawnArgs = [entry, ...args];
+
+          const child = (lynxtronProcess = spawn(command, spawnArgs, {
+            stdio: 'inherit',
+            env: {
+              ...process.env,
+              ...env,
+            },
+            detached: true,
+          }));
+          child.once('exit', () => {
+            if (lynxtronProcess === child) lynxtronProcess = null;
+          });
+          child.once('error', (error) => process.emitWarning(error));
+        }, 300);
+      };
       if (autolink) {
         applyLynxtronAutoLink(compiler);
       }
@@ -88,13 +107,7 @@ export function pluginLynxtron(options: PluginLynxtronRspackOptions = {}): any {
         if (!isDev || !entry) {
           return;
         }
-        const extraArgs = [...args];
-        restartLynxtron({
-          entry,
-          args: extraArgs,
-          env,
-          command,
-        });
+        restart();
       });
     },
   };

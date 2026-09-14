@@ -39,16 +39,12 @@ if (!nativeBinding) {
 }
 
 function initialize(options = {}) {
-  // The current implementation shares the default CEF storage directory across
-  // host applications. Only one host process can initialize the CEF browser at
-  // a time; that process can create multiple WebViews. CEF helper subprocesses
-  // are not additional browser host processes.
   const result = nativeBinding.initialize(options);
   if (result === false) {
     throw new Error(
-      'CEF initialization failed. The current version does not support ' +
-        'multiple host processes using WebView at the same time. ' +
-        'Close other applications running WebView and try again. ' +
+      'CEF initialization failed. Another host may be using the same ' +
+        'application profile. Close that instance or use a distinct application ' +
+        'identity before initializing CEF. ' +
         'Initialization can also fail for other reasons; check the native logs.'
     );
   }
