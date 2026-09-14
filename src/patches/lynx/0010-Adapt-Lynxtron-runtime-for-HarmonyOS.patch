@@ -1,4 +1,4 @@
-From 4ab1e9268f668771a7c6d543d997939e9eede853 Mon Sep 17 00:00:00 2001
+From e094cb8492c6dab3c9f6f788bc4d8f42d71413f9 Mon Sep 17 00:00:00 2001
 From: "wenhua.liu" <11439036+MichaelWHL@users.noreply.github.com>
 Date: Sat, 12 Sep 2026 22:59:58 +0800
 Subject: [PATCH] [Feature][HarmonyOS] Adapt the Lynxtron runtime integration
@@ -10,7 +10,8 @@ Keep Lynxtron-specific Harmony behavior in the downstream adapter: use Node bund
  .../js/jsi/v8/v8_isolate_wrapper_node_impl.cc | 16 ++++++++++
  core/runtime/js/runtime_manager.cc            | 31 ++++++++++---------
  platform/embedder/resource/BUILD.gn           |  2 +-
- 5 files changed, 54 insertions(+), 19 deletions(-)
+ third_party/double-conversion/BUILD.gn        | 11 ++++++++++-
+ 6 files changed, 64 insertions(+), 20 deletions(-)
 
 diff --git a/base/src/BUILD.gn b/base/src/BUILD.gn
 index 3ba985d1c..8e4a1bab3 100644
@@ -166,6 +167,30 @@ index 53ddd3bfd..455dff409 100644
      sources += [ "js_source_loader_desktop.cc" ]
    } else if (is_mac) {
      sources += [ "js_source_loader_desktop.mm" ]
+diff --git a/third_party/double-conversion/BUILD.gn b/third_party/double-conversion/BUILD.gn
+index 54d83242c..c7afdc3fd 100644
+--- a/third_party/double-conversion/BUILD.gn
++++ b/third_party/double-conversion/BUILD.gn
+@@ -5,3 +5,5 @@
++import("//lynx/config.gni")
++
+ source_set("source") {
+   visibility = [ ":*" ]
+   sources = [
+@@ -39,6 +41,13 @@ source_set("double_conversion") {
+   if (is_posix) {
+     cflags += [ "-fvisibility=hidden" ]
+   }
+-  deps = [ ":source" ]
++  if (is_harmony && desktop_enable_embedder_layer) {
++    # Lynxtron already links Chromium base's double-conversion implementation.
++    # Linking Lynx's bundled copy into the same shared object produces duplicate
++    # C++ symbols, so reuse the implementation owned by the embedder.
++    deps = [ "//base/third_party/double_conversion" ]
++  } else {
++    deps = [ ":source" ]
++  }
+   public_deps = [ ":headers" ]
+ }
 -- 
 2.34.1
-
