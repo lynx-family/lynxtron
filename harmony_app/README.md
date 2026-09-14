@@ -84,6 +84,39 @@ find /path/to/ohos/sdk-root/HarmonyOS-NEXT-DB1/openharmony/native/llvm/lib/clang
 For example, a host Clang 19 installation can legitimately be paired with an
 SDK whose target runtime is stored under `lib/clang/15.0.4`.
 
+### Verified macOS arm64 host LLVM
+
+The macOS arm64 build has been verified with the official LLVM 19.1.7 binary
+release. It is a standalone host toolchain, not the Clang 15 compiler bundled
+with the HarmonyOS/DevEco SDK.
+
+- Release: <https://github.com/llvm/llvm-project/releases/tag/llvmorg-19.1.7>
+- Archive: <https://github.com/llvm/llvm-project/releases/download/llvmorg-19.1.7/LLVM-19.1.7-macOS-ARM64.tar.xz>
+- Verified installation: `/Users/haitai/src/toolchains-ohos/LLVM-19.1.7-macOS-ARM64`
+
+One way to reproduce that installation is:
+
+```sh
+mkdir -p /Users/haitai/src/toolchains-ohos
+cd /Users/haitai/src/toolchains-ohos
+curl -fL -O \
+  https://github.com/llvm/llvm-project/releases/download/llvmorg-19.1.7/LLVM-19.1.7-macOS-ARM64.tar.xz
+tar -xJf LLVM-19.1.7-macOS-ARM64.tar.xz
+
+/Users/haitai/src/toolchains-ohos/LLVM-19.1.7-macOS-ARM64/bin/clang++ \
+  --version
+```
+
+Use it for the native build with:
+
+```sh
+export LYNXTRON_OHOS_HOST_LLVM=\
+/Users/haitai/src/toolchains-ohos/LLVM-19.1.7-macOS-ARM64
+```
+
+The path is only an example from the verified Mac. Other developers may
+install the archive elsewhere and set `LYNXTRON_OHOS_HOST_LLVM` accordingly.
+
 ## Prepare the checkout
 
 Clone or update the intended branch, then synchronize every pinned dependency
