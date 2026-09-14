@@ -1245,6 +1245,9 @@ if (is_harmony) {
     deps = [ ":lynxtron_lib" ]
     libs = [
       "hilog_ndk.z",
+      # jsvm_dyn_load.h uses OH_GetOSFullName/OH_GetSdkApiVersion when
+      # deciding whether the platform JSVM runtime is available.
+      "deviceinfo_ndk.z",
       "EGL",
       "GLESv3",
       "native_vsync",
