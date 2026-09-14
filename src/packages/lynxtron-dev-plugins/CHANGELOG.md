@@ -1,5 +1,11 @@
 # @lynx-js/lynxtron-dev-plugins
 
+## 0.0.23
+
+### Patch Changes
+
+- 2a68cb1: Preserve production dependency boundaries in host builds so native npm packages can load their addons. Stop development runtime processes and cancel pending restarts when the compiler or development process closes.
+
 ## 0.0.22
 
 ### Patch Changes

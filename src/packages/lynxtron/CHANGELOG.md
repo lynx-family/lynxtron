@@ -1,5 +1,11 @@
 # @lynx-js/lynxtron
 
+## 0.0.23
+
+### Patch Changes
+
+- 2a68cb1: Update Lynx to include CEF application profile isolation on Windows and macOS and the macOS WebView message bridge fix. Windows uses the host AppUserModelID, with an executable-name fallback. Document identity setup and report profile conflicts without incorrectly rejecting concurrent applications with distinct identities.
+
 ## 0.0.22
 
 ### Patch Changes
