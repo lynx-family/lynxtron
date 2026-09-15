@@ -1,5 +1,11 @@
 # create-lynxtron
 
+## 0.0.24
+
+### Patch Changes
+
+- e32ed9b: Document restarting the app when the first DevTool CLI connection has no sessions in the generated agent guide.
+
 ## 0.0.23
 
 ## 0.0.22

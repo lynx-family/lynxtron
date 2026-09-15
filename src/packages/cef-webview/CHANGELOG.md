@@ -1,5 +1,11 @@
 # @lynx-js/cef-webview
 
+## 0.0.24
+
+### Patch Changes
+
+- a94bd99: Upgrade Lynx to restore continuous Windows CEF off-screen rendering and size web content correctly on high-DPI displays.
+
 ## 0.0.23
 
 ### Patch Changes
