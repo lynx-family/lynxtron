@@ -1,0 +1,13 @@
+{
+  "modelVersion": "5.0.0",
+  "dependencies": {
+  },
+  "execution": {
+    // Mirror chromium132 defaults: daemon / incremental / parallel
+    // are auto-enabled by hvigor when not overridden here.
+  },
+  "logging": {
+  },
+  "debugging": {
+  }
+}

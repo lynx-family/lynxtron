@@ -17,7 +17,7 @@
 #include "shell/common/gin_helper/handle.h"
 #include "shell/common/node_includes.h"
 
-#if !BUILDFLAG(IS_MAC) && !BUILDFLAG(IS_WIN)
+#if !BUILDFLAG(IS_MAC) && !BUILDFLAG(IS_WIN) && !BUILDFLAG(IS_HARMONY)
 namespace lynxtron::api::clipboard {
 
 std::vector<std::string> AvailableFormats() {

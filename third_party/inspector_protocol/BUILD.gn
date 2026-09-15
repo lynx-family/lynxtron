@@ -29,7 +29,7 @@ component("crdtp") {
   ]
 
   defines = [ "CRDTP_IMPLEMENTATION" ]
-  if (is_linux) {
+  if (is_linux || is_harmony) {
     defines += [ "CRDTP_USE_NODE_STRING_TRAITS" ]
   }
 

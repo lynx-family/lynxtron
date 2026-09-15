@@ -37,6 +37,9 @@ Lynxtron is an open-source framework inspired by Electron’s vision of uniting 
 ## Documentation
 You shall find documentation for Lynxtron on [lynxjs.org/lynxtron](http://lynxjs.org/lynxtron).
 
+For the experimental HarmonyOS target, see the
+[HarmonyOS build, packaging, signing and device guide](harmony_app/README.md).
+
 ## How to Use Lynxtron
 ### Requirements
 We recommend using macOS and Windows as the development operating system. If you need assistance, please file an issue, and we will be more than happy to help you address it.

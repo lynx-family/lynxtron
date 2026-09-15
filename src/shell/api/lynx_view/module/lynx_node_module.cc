@@ -7,8 +7,14 @@
 #include <memory>
 #include <utility>
 
+#include "build/build_config.h"
+
 #include "base/include/fml/message_loop.h"
+#if BUILDFLAG(IS_HARMONY)
+#include "base/include/fml/platform/harmony/message_loop_harmony.h"
+#else
 #include "base/include/fml/platform/node/message_loop_node.h"
+#endif
 #include "node.h"
 
 // base_export.h might be included by lynx/lynx/base headers and redefine
@@ -39,9 +45,19 @@ const uint64_t kInitNodeEnvflags =
     node::EnvironmentFlags::kNoGlobalSearchPaths;
 
 uv_loop_t* GetUVLoopFromCurrent() {
+#if BUILDFLAG(IS_HARMONY)
+  // HarmonyOS keeps lynx's own MessageLoopHarmony as the loop implementation
+  // for this thread -- message_loop_node.cc is only built for the desktop
+  // platforms -- so the uv loop has to be read back through it. It is a real
+  // uv_loop_t from Node's libuv, created by MessageLoopHarmony itself.
+  auto* message_loop = reinterpret_cast<lynx::fml::MessageLoopHarmony*>(
+      lynx::fml::MessageLoop::GetCurrent().GetLoopImpl().get());
+  return reinterpret_cast<uv_loop_t*>(message_loop->GetPlatformLoop());
+#else
   auto* message_loop = reinterpret_cast<lynx::fml::MessageLoopNode*>(
       lynx::fml::MessageLoop::GetCurrent().GetLoopImpl().get());
   return message_loop->GetUVLoop();
+#endif
 }
 
 v8::Local<v8::Value> RunFunctionInNodeContext(v8::Isolate* v8_isolate,
