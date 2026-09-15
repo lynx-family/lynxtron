@@ -147,6 +147,8 @@ class HWNDMessageHandler : public gfx::WindowImpl {
   enum class DwmFrameState { kOff, kOn };
 
   // Overridden from WindowImpl:
+  HICON GetDefaultWindowIcon() const override;
+  HICON GetSmallWindowIcon() const override;
   LRESULT OnWndProc(UINT message, WPARAM w_param, LPARAM l_param) override;
 
   // Returns a bitmask of auto-hide taskbar edges for |monitor|.
