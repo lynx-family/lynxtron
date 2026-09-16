@@ -2458,6 +2458,29 @@ describe('LynxWindow module', () => {
           expectBoundsEqual(w.getSize(), [width + 1, height - 1]);
           expectBoundsEqual(w.getPosition(), position);
         });
+
+        it('does not emit resize when a windowless size is unchanged', async () => {
+          const windowless = new LynxWindow({
+            show: false,
+            windowless: true,
+            width: 320,
+            height: 240,
+          });
+
+          try {
+            let resizeEmitted = false;
+            windowless.once('resize', () => {
+              resizeEmitted = true;
+            });
+
+            windowless.setSize(320, 240);
+            await setTimeout(100);
+
+            expect(resizeEmitted).to.equal(false);
+          } finally {
+            await closeWindow(windowless, { assertNotWindows: false });
+          }
+        });
       });
 
       describe('LynxWindow.setPosition(x, y[, animate])', () => {

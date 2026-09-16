@@ -112,6 +112,10 @@ bool NativeWindowWindowless::IsFullscreen() const {
 }
 
 void NativeWindowWindowless::SetBounds(const gfx::Rect& bounds, bool animate) {
+  if (bounds_ == bounds) {
+    return;
+  }
+
   bounds_ = bounds;
   NotifyWindowResize();
   NotifyWindowResized();
