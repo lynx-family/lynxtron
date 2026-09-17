@@ -1,0 +1,60 @@
+From 2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c Mon Sep 17 00:00:00 2001
+From: lynxtron <lynxtron@lynxjs.com>
+Date: Mon, 22 Sep 2026 00:00:00 +0800
+Subject: [PATCH] Fix desktop_image build failure with pinned skity codec API
+
+The open-source build pins skity at a revision whose skity::Codec only
+exposes Decode() and has no DecodeOptions struct / Decode(DecodeOptions)
+overload. desktop_image.cc used the newer decode-time scaling API, which
+fails to compile:
+
+  error: no member named 'DecodeOptions' in namespace 'skity'
+
+Decode at the intrinsic size instead. ScalePixmap() in ToBitmap() already
+resizes the decoded pixmap to the requested render size, so the visible
+output is unchanged; only the decode-time downscaling optimization is
+dropped.
+---
+ clay/shell/platform/common/desktop/codec/desktop_image.cc | 22 ++++++++--------
+ 1 file changed, 10 insertions(+), 12 deletions(-)
+
+diff --git a/clay/shell/platform/common/desktop/codec/desktop_image.cc b/clay/shell/platform/common/desktop/codec/desktop_image.cc
+index b917833d11..520f6df085 100644
+--- a/clay/shell/platform/common/desktop/codec/desktop_image.cc
++++ b/clay/shell/platform/common/desktop/codec/desktop_image.cc
+@@ -158,13 +158,12 @@ DesktopImage::DesktopImage(std::shared_ptr<skity::Codec> codec,
+   decoder_ = codec_->DecodeMultiFrame();
+   is_animated_ = decoder_ && decoder_->GetFrameCount() > 1;
+ 
+-  if (!is_animated_ && !decode_size.IsZero()) {
+-    current_pixmap_ = codec_->Decode(
+-        skity::DecodeOptions{decode_size.width(), decode_size.height()});
+-  }
+-  if (!current_pixmap_) {
+-    current_pixmap_ = codec_->Decode();
+-  }
++  // NOTE: skity's Codec::Decode(DecodeOptions) (decode-time downscaling) is not
++  // available in the skity revision pinned for the open-source build, so decode
++  // at the intrinsic size here. ScalePixmap() in ToBitmap() still scales the
++  // pixmap to the requested render size, so the visible result is unchanged.
++  (void)decode_size;
++  current_pixmap_ = codec_->Decode();
+   if (!current_pixmap_ || !current_pixmap_->Addr() ||
+       current_pixmap_->Width() <= 0 || current_pixmap_->Height() <= 0 ||
+       current_pixmap_->RowBytes() <= 0) {
+@@ -196,10 +195,9 @@ std::shared_ptr<skity::Pixmap> DesktopImage::ToBitmap(
+     const ImageInfo& render_info) {
+   auto pixmap = std::move(current_pixmap_);
+   if (!pixmap && codec_ && width_ > 0 && height_ > 0) {
+-    pixmap = codec_->Decode(skity::DecodeOptions{width_, height_});
+-    if (!pixmap) {
+-      pixmap = codec_->Decode();
+-    }
++    // See the note in the constructor: decode at intrinsic size; ScalePixmap()
++    // below resizes to the requested render size.
++    pixmap = codec_->Decode();
+   }
+   return ScalePixmap(std::move(pixmap), render_info);
+ }
+-- 
+2.30.0
