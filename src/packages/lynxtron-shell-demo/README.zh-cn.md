@@ -22,7 +22,7 @@
 
 - Node.js 22（>= 22.18.0）、Node.js 24 或 Node.js 26
 - TypeScript
-- [LynxDevTool](https://github.com/lynx-family/lynx-devtool/releases/) >= 0.1.1
+- 可选：[LynxDevTool](https://github.com/lynx-family/lynx-devtool/releases/) >= 0.1.1，用于图形界面调试。
 
 ## 使用指南
 

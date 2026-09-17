@@ -69,14 +69,15 @@ Use `NativeModules` to access capabilities exported by the desktop host.
 /* NO_WEB_SUPPORT_START */
 // Call a desktop host capability
 /* NO_WEB_SUPPORT_END */
-NativeModules.bridge.request({ method: 'showDialog', params: { message: 'Hi' } });
+NativeModules.bridge.call('showDialog', { message: 'Hi' }, () => {});
 
 // Background logic (runs in the same JS thread as Lynx logic)
 // Use exposed to access capabilities exported by host preload scripts
-NativeModules.nodejs.exposed.echo('Hello', (res) => {
-  console.log(res); // Hello
-});
+const result = NativeModules.nodejs.exposed.echo('Hello');
+console.log(result);
 ```
+
+JavaScript objects, including functions, are passed as-is without serialization.
 
 ## Commands
 
@@ -116,9 +117,10 @@ UI code in `src/app` runs in the Lynx engine, which is **not a browser**.
 - **No DOM/BOM APIs**: `window`, `document`, `location`, `localStorage` are NOT available.
   - Use `NativeModules.bridge` for host interactions.
   - Use `NativeModules.nodejs` for background logic and data persistence.
-- **Main vs Background**: 
-  - `src/app` runs in the Lynx Background thread (Main Thread in Lynx terminology).
-  - It has direct access to `NativeModules.nodejs`.
+- **Main vs Background**:
+  - ReactLynx uses a dual-thread rendering model.
+  - On the background thread, `NativeModules.nodejs` provides direct access to the APIs and JavaScript objects exposed by the Node.js preload, without serialization.
+  - Use these APIs in background-thread event handlers or effects, not in component render code or Main Thread Scripts.
 
 ### UI Example
 
