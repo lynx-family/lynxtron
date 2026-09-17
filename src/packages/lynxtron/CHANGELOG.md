@@ -1,5 +1,12 @@
 # @lynx-js/lynxtron
 
+## 0.0.25
+
+### Patch Changes
+
+- c3b4877: Upgrade Lynx to give macOS surfaces unique texture lifetime IDs, preventing stale partial-repaint damage from leaving unpainted margins when Metal texture addresses are reused.
+- 3c0dbe2: Start asynchronous Windows graphics prewarming before ICU and Node/V8 initialization to overlap D3D11 device preparation with application startup.
+
 ## 0.0.24
 
 ## 0.0.23
