@@ -1,5 +1,11 @@
 # @lynx-js/lynxtron
 
+## 0.0.26
+
+### Patch Changes
+
+- 787aff7: Let Windows choose the GPU in public runtime and CEF helper releases by default. Add a publish workflow option to request high-performance graphics while preserving the existing preference in source builds.
+
 ## 0.0.25
 
 ### Patch Changes
