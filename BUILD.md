@@ -24,7 +24,7 @@ git config --global core.eol lf
 ### macOS
 
 ```
-git clone git@github.com:lynx-family/lynxtron.git 
+git clone git@github.com:lynx-family/lynxtron.git
 cd lynxtron
 source lynxtron_tools/envsetup.sh
 python3 lynxtron_tools/prepare_build_env.py
@@ -60,6 +60,20 @@ python lynxtron_tools/gn/gn.py --enable-trace --is-debug --windows-cpu ['x64', '
 ninja -C out/Debug lynxtron_app
 ```
 
+# Windows GPU preference
+
+Source builds retain the high-performance GPU hint by default. To leave GPU
+selection to Windows, build with
+`--gn-args 'lynxtron_prefer_discrete_gpu=false use_discrete_gpu=false'`.
+For a matching CEF helper build, set `LYNXTRON_PREFER_DISCRETE_GPU=false` in the
+build environment; it defaults to `true` for source builds.
+
+The GitHub `publish` workflow exposes `prefer_discrete_gpu` (default `false`)
+for both manual and reusable calls. It applies to Release, DevTools, and the
+Windows CEF helper. Enabling it exports the NVIDIA/AMD high-performance hints;
+disabling it omits them. Windows per-application graphics settings can still
+select a GPU. This option does not force integrated graphics or affect macOS.
+
 # Formatting
 
 Format code before committing:
@@ -87,4 +101,3 @@ To run specific checks (currently supported: `coding-style`, `cpplint`):
 ```
 git lynx check --checkers xxx,yyy
 ```
-

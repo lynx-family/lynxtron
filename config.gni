@@ -5,6 +5,9 @@
 import("//lynx/config.gni")
 
 declare_args() {
+  # Preserve the internal Windows GPU preference; public workflows override it.
+  lynxtron_prefer_discrete_gpu = true
+
   enable_enlarge_stack = false
 
   is_mas_build = false

@@ -115,6 +115,8 @@ jobs:
         with:
           build-arch: ${{ matrix.arch }}
       - name: Build Windows CEF webview
+        env:
+          LYNXTRON_PREFER_DISCRETE_GPU: 'false'
         shell: PowerShell
         run: |
           & "${{ github.workspace }}\lynxtron\lynxtron_tools\build_cef_webview.ps1" -Arch "${{ matrix.arch }}"

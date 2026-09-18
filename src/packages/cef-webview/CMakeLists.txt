@@ -129,7 +129,11 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
   # Add libcef logical target
   ADD_LOGICAL_TARGET("libcef_lib" "${CEF_LIB_DEBUG}" "${CEF_LIB_RELEASE}")
 
+  option(LYNXTRON_PREFER_DISCRETE_GPU "Prefer high-performance Windows graphics" ON)
   add_executable(cef_subprocess WIN32 bindings/cef_subprocess_win.cc)
+  if(LYNXTRON_PREFER_DISCRETE_GPU)
+    target_sources(cef_subprocess PRIVATE ../../shell/app/gpu_preference_win.cc)
+  endif()
   target_include_directories(cef_subprocess PRIVATE ${CEF_ROOT})
   target_link_libraries(
     cef_subprocess PRIVATE cef_webview libcef_dll_wrapper libcef_lib

@@ -148,3 +148,68 @@ endif()
   assert.notEqual(missing.status, 0);
   assert.match(missing.stderr, /LYNXTRON_IMPORT_LIB does not exist/);
 });
+
+for (const [preference, expected] of [
+  [undefined, 'ON'],
+  ['true', 'ON'],
+  ['false', 'OFF'],
+]) {
+  test(`Windows GPU preference ${preference} is passed explicitly to CMake`, () => {
+    let invocation;
+    vm.runInNewContext(source, {
+      require: { resolve: () => '/cmake-js/bin/cmake-js' },
+      process: {
+        platform: 'win32',
+        arch: 'x64',
+        execPath: '/host/node',
+        env:
+          preference === undefined
+            ? {}
+            : { LYNXTRON_PREFER_DISCRETE_GPU: preference },
+        exit: () => {},
+      },
+      spawnSync: (...args) => {
+        invocation = args;
+        return { status: 0 };
+      },
+    });
+    assert.ok(
+      invocation[1].includes(`--CDLYNXTRON_PREFER_DISCRETE_GPU=${expected}`)
+    );
+  });
+}
+
+test('macOS ignores the Windows GPU preference', () => {
+  let invocation;
+  vm.runInNewContext(source, {
+    require: { resolve: () => '/cmake-js/bin/cmake-js' },
+    process: {
+      platform: 'darwin',
+      arch: 'arm64',
+      execPath: '/host/node',
+      env: { LYNXTRON_PREFER_DISCRETE_GPU: 'false' },
+      exit: () => {},
+    },
+    spawnSync: (...args) => {
+      invocation = args;
+      return { status: 0 };
+    },
+  });
+  assert.ok(!invocation[1].some((arg) => arg.includes('PREFER_DISCRETE_GPU')));
+});
+
+test('invalid Windows GPU preference fails before invoking CMake', () => {
+  assert.throws(
+    () =>
+      vm.runInNewContext(source, {
+        require: { resolve: () => '/cmake-js/bin/cmake-js' },
+        process: {
+          platform: 'win32',
+          arch: 'x64',
+          env: { LYNXTRON_PREFER_DISCRETE_GPU: 'invalid' },
+        },
+        spawnSync: () => assert.fail('must not invoke CMake'),
+      }),
+    /must be true or false/
+  );
+});

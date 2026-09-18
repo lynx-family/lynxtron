@@ -6,11 +6,6 @@
 
 #include "include/cef_app.h"
 
-extern "C" {
-__declspec(dllexport) unsigned long NvOptimusEnablement = 1;
-__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
-}
-
 extern "C" int cef_webview_execute_process(HINSTANCE instance);
 
 int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t*, int) {

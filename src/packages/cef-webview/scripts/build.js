@@ -12,6 +12,16 @@ const args = [
   arch,
 ];
 
+if (process.platform === 'win32') {
+  const preference = process.env.LYNXTRON_PREFER_DISCRETE_GPU ?? 'true';
+  if (!['true', 'false'].includes(preference)) {
+    throw new Error('LYNXTRON_PREFER_DISCRETE_GPU must be true or false');
+  }
+  args.push(
+    `--CDLYNXTRON_PREFER_DISCRETE_GPU=${preference === 'true' ? 'ON' : 'OFF'}`
+  );
+}
+
 // Source builds provide the import library from this build, not a previously
 // downloaded npm runtime. CMake variables are not inherited from the environment.
 const importLibrary = process.env.LYNXTRON_IMPORT_LIB;

@@ -6,6 +6,10 @@ inputs:
   build-arch:
     description: The architecture of lynxtron we are building. It could be x64,x86
     required: true
+  prefer-discrete-gpu:
+    description: Prefer high-performance graphics instead of system selection.
+    required: false
+    default: 'false'
   enable-inspector:
     description: Whether to enable the inspector (true/false).
     required: false
@@ -34,6 +38,8 @@ runs:
         lynxtron_tools/envsetup.ps1
         python lynxtron_tools/prepare_build_env.py
     - name: Build Lynxtron
+      env:
+        PREFER_DISCRETE_GPU: ${{ inputs.prefer-discrete-gpu }}
       shell: pwsh
       run: |-
         $cmakeVersion = "3.30.5"
@@ -76,7 +82,10 @@ runs:
         }
         Write-Host "Using Windows resource compiler: $resolvedResourceCompiler"
 
-        $gnExtraArgs = @()
+        if ($env:PREFER_DISCRETE_GPU -cnotin @('true', 'false')) {
+          throw 'prefer-discrete-gpu must be true or false'
+        }
+        $gnExtraArgs = @('--gn-args', "lynxtron_prefer_discrete_gpu=$env:PREFER_DISCRETE_GPU use_discrete_gpu=false")
         if ('${{ inputs.enable-inspector }}' -eq 'true') {
           $gnExtraArgs += '--enable-inspector'
         }

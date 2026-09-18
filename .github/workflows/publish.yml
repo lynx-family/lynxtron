@@ -3,6 +3,11 @@ name: publish
 on:
   workflow_call:
     inputs:
+      prefer_discrete_gpu:
+        description: 'Prefer high-performance Windows graphics instead of system selection'
+        required: false
+        type: boolean
+        default: false
       source_ref:
         description: 'branch, tag, or commit to publish'
         required: true
@@ -13,6 +18,11 @@ on:
         type: string
   workflow_dispatch:
     inputs:
+      prefer_discrete_gpu:
+        description: 'Prefer high-performance Windows graphics instead of system selection'
+        required: false
+        type: boolean
+        default: false
       source_ref:
         description: 'branch, tag, or commit to publish (e.g. feature/my-change)'
         required: true
@@ -274,9 +284,12 @@ jobs:
       - name: Build Windows Lynxtron
         uses: ./lynxtron/.github/actions/windows-lynxtron-build
         with:
+          prefer-discrete-gpu: ${{ inputs.prefer_discrete_gpu && 'true' || 'false' }}
           build-arch: ${{ matrix.arch }}
           enable-inspector: 'false'
       - name: Build Windows CEF webview
+        env:
+          LYNXTRON_PREFER_DISCRETE_GPU: ${{ inputs.prefer_discrete_gpu && 'true' || 'false' }}
         shell: PowerShell
         run: |
           & "${{ github.workspace }}\lynxtron\lynxtron_tools\build_cef_webview.ps1" -Arch "${{ matrix.arch }}"
@@ -532,6 +545,7 @@ jobs:
       - name: Build Windows Lynxtron (DevTool)
         uses: ./lynxtron/.github/actions/windows-lynxtron-build
         with:
+          prefer-discrete-gpu: ${{ inputs.prefer_discrete_gpu && 'true' || 'false' }}
           build-arch: ${{ matrix.arch }}
           enable-inspector: 'true'
       - name: Package Windows binary (DevTool)
