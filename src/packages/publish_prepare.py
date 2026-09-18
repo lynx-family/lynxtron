@@ -64,10 +64,6 @@ PREPARE_CONFIG = {
         "package_name": "@lynx-js/create-lynxtron",
         "build_script": ["npm", "run", "build"],
     },
-    "create-browser-demo": {
-        "package_dir": "./create-browser-demo",
-        "build_script": ["npm", "run", "build"],
-    },
     "lynxtron-builder": {
         "package_dir": "./lynxtron-builder",
         "mirror_rewrite": True,
