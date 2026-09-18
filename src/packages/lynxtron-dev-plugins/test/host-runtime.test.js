@@ -12,6 +12,67 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { pluginLynxtron } from '../dist/rsbuild.js';
 import { createRsbuild } from '@rsbuild/core';
 
+for (const field of ['dependencies', 'optionalDependencies']) {
+  for (const module of [true, false]) {
+    test(`AutoLink import shares the staged instance (${field}, ESM=${module})`, async () => {
+      const root = await fs.mkdtemp(path.join(os.tmpdir(), 'lynxtron-autolink-external-'));
+      const name = '@fixture/native';
+      const pkg = path.join(root, 'node_modules', name);
+      try {
+        await fs.mkdir(pkg, { recursive: true });
+        await fs.writeFile(path.join(root, 'package.json'), JSON.stringify({
+          type: module ? 'module' : 'commonjs', [field]: { [name]: '*' },
+        }));
+        await fs.writeFile(path.join(pkg, 'package.json'), JSON.stringify({
+          name, exports: { '.': './index.cjs', './lynxtron': './index.cjs' }, files: ['index.cjs', 'lynx.lib.json'],
+        }));
+        await fs.writeFile(path.join(pkg, 'lynx.lib.json'), JSON.stringify({
+          platforms: { lynxtron: { targets: [{ os: process.platform, arch: process.arch, files: ['index.cjs'] }] } },
+        }));
+        await fs.writeFile(path.join(pkg, 'index.cjs'), `
+          globalThis.loadedCopies = (globalThis.loadedCopies || 0) + 1;
+          module.exports = { initialize() { return { count: globalThis.loadedCopies, path: __filename }; } };
+        `);
+        await fs.writeFile(path.join(root, 'main.js'), `
+          import native from '${name}/lynxtron';
+          console.log(JSON.stringify(native.initialize()));
+        `);
+        for (const autolink of [true, false]) {
+          let modify;
+          pluginLynxtron({ autolink }).setup({
+            context: { rootPath: root },
+            modifyRspackConfig({ handler }) { modify = handler; },
+          });
+          const config = { plugins: [] };
+          modify(config, {
+            environment: { config: { output: { target: 'node' } }, distPath: root },
+            isDev: false,
+          });
+          for (const request of [name, `${name}/lynxtron`, `${name}/other`]) {
+            const result = await new Promise((resolve, reject) => {
+              config.externals[0]({ request }, (error, value) =>
+                error ? reject(error) : resolve(value),
+              );
+            });
+            assert.equal(result, autolink && request === `${name}/lynxtron`
+              ? undefined : `node-commonjs ${request}`);
+          }
+        }
+        const build = await createRsbuild({ cwd: root, rsbuildConfig: {
+          source: { entry: { main: './main.js' } }, plugins: [pluginLynxtron()],
+          output: { target: 'node', module, distPath: { root: 'dist' } },
+        } });
+        await build.build();
+        const result = JSON.parse(execFileSync(process.execPath, [path.join(root, 'dist/main.js')], { encoding: 'utf8' }));
+        assert.equal(result.count, 1);
+        assert.equal(result.path, await fs.realpath(path.join(root, 'dist/.lynxtron/native/node_modules', name, 'index.cjs')));
+      } finally {
+        await fs.rm(root, { recursive: true, force: true });
+      }
+    });
+  }
+}
+
 for (const module of [true, false]) {
   test(`built host loads a package-relative asset (ESM=${module})`, async () => {
     const root = await fs.mkdtemp(

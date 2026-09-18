@@ -7,6 +7,10 @@ import { readFileSync } from 'node:fs';
 import type { RsbuildPlugin, Rspack } from '@rsbuild/core';
 import { pluginLynxtron as pluginLynxtronRspack } from './rspack.js';
 import type { PluginLynxtronRspackOptions } from './rspack.js';
+import {
+  createLynxtronAutoLinkStagedLibraries,
+  resolveLynxtronAutoLinks,
+} from './autolink.js';
 
 const DEFAULT_WATCH_IGNORED = [
   '**/node_modules/.cache/**',
@@ -59,6 +63,16 @@ export function pluginLynxtron(
             ...Object.keys(manifest.optionalDependencies ?? {}),
           ]);
           const existing = config.externals;
+          // These JS entrypoints must resolve through AutoLink's proxy. The
+          // proxy still requires the staged native addon at runtime, ensuring
+          // explicit initialization and automatic registration share one copy.
+          const autoLinkEntries = new Set(
+            options.autolink === false
+              ? []
+              : createLynxtronAutoLinkStagedLibraries(
+                  resolveLynxtronAutoLinks({ root: api.context.rootPath })
+                ).map((library) => library.requireSpecifier)
+          );
           config.externals = [
             ...(Array.isArray(existing)
               ? existing
@@ -69,7 +83,10 @@ export function pluginLynxtron(
               const packageName = request?.startsWith('@')
                 ? request.split('/').slice(0, 2).join('/')
                 : request?.split('/')[0];
-              if (dependencies.has(packageName)) {
+              if (
+                dependencies.has(packageName) &&
+                !autoLinkEntries.has(request ?? '')
+              ) {
                 callback(null, `node-commonjs ${request}`);
               } else {
                 callback();
