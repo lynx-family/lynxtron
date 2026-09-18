@@ -1,0 +1,96 @@
+From e19ee0a67e4c410b969001dedf3bea178e301220 Mon Sep 17 00:00:00 2001
+From: tangyongjie <80395553+yongjieTang@users.noreply.github.com>
+Date: Mon, 29 Jun 2026 21:42:52 +0800
+Subject: [PATCH] [BugFix] Remove private symbol on mas build
+
+---
+ BUILD.gn               | 5 +++++
+ mac/info_plist_data.mm | 6 ++++++
+ process/launch_mac.cc  | 4 ++++
+ 3 files changed, 15 insertions(+)
+
+diff --git a/BUILD.gn b/BUILD.gn
+index 31a263b..ee4162a 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -41,6 +41,7 @@ import("//build/util/process_version.gni")
+ import("//build_overrides/build.gni")
+ import("//testing/libfuzzer/fuzzer_test.gni")
+ import("//testing/test.gni")
++import("//config.gni")
+ 
+ if (is_ios) {
+   # Used to access target_environment and target_platform.
+@@ -2147,6 +2148,10 @@ component("base") {
+       "IOKit.framework",
+       "OpenDirectory.framework",
+     ]
++
++    if (is_mas_build) {
++      defines += [ "MAS_BUILD" ]
++    }
+   }
+ 
+   # iOS
+diff --git a/mac/info_plist_data.mm b/mac/info_plist_data.mm
+index 419a051..d26a15e 100644
+--- a/mac/info_plist_data.mm
++++ b/mac/info_plist_data.mm
+@@ -12,14 +12,17 @@
+ #include "base/apple/foundation_util.h"
+ #include "base/containers/span.h"
+ 
++#if !defined(MAS_BUILD)
+ extern "C" {
+ // Key used within CoreFoundation for loaded Info plists
+ extern const CFStringRef _kCFBundleNumericVersionKey;
+ }
++#endif // !defined(MAS_BUILD)
+ 
+ namespace base::mac {
+ 
+ std::vector<uint8_t> OuterBundleCachedInfoPlistData() {
++#if !defined(MAS_BUILD)
+   // NSBundle's info dictionary is used to ensure that any changes to Info.plist
+   // on disk due to pending updates do not result in a version of the data being
+   // used that doesn't match the code signature of the running app.
+@@ -43,6 +46,9 @@ std::vector<uint8_t> OuterBundleCachedInfoPlistData() {
+                      error:nullptr];
+   base::span<const uint8_t> span = apple::NSDataToSpan(data);
+   return {span.begin(), span.end()};
++#else
++  return {};
++#endif  // !defined(MAS_BUILD)
+ }
+ 
+ }  // namespace base::mac
+diff --git a/process/launch_mac.cc b/process/launch_mac.cc
+index b63d58d..b8d2b01 100644
+--- a/process/launch_mac.cc
++++ b/process/launch_mac.cc
+@@ -96,8 +96,10 @@ int pthread_chdir_np(const char* dir);
+ 
+ int pthread_fchdir_np(int fd);
+ 
++#if !defined(MAS_BUILD)
+ int responsibility_spawnattrs_setdisclaim(posix_spawnattr_t attrs,
+                                           int disclaim);
++#endif  // !defined(MAS_BUILD)
+ }  // extern "C"
+ 
+ namespace base {
+@@ -302,9 +304,11 @@ Process LaunchProcess(const std::vector<std::string>& argv,
+   }
+ 
+ #if BUILDFLAG(IS_MAC)
++#if !defined(MAS_BUILD)
+   if (options.disclaim_responsibility) {
+     DPSXCHECK(responsibility_spawnattrs_setdisclaim(attr.get(), 1));
+   }
++#endif // !defined(MAS_BUILD)
+ 
+   EnvironmentMap new_environment_map = options.environment;
+   MachPortRendezvousServerMac::AddFeatureStateToEnvironment(
+-- 
+2.49.0
+
