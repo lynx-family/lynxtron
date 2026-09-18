@@ -1,5 +1,11 @@
 # @lynx-js/lynxtron-dev-plugins
 
+## 0.0.27
+
+### Patch Changes
+
+- d11a79d: Keep AutoLink entrypoints from being externalized as ordinary production dependencies so explicit imports and automatic registration share the staged native addon. This prevents duplicate native module instances, including CEF initialization crashes, while preserving externalization for other dependencies.
+
 ## 0.0.26
 
 ## 0.0.25
