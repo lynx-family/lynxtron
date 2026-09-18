@@ -64,6 +64,14 @@ deps = {
         'commit': buildtools_version,
         'ignore_in_git': True
     },
+    'apply_buildtools_patches': {
+        'type': 'action',
+        'cwd': os.path.join(root_dir, '..'),
+        'commands': [
+            f"{python_path} src/script/apply_all_patches.py src/patches/buildtools/config.json",
+        ],
+        'require': ['../buildtools'],
+    },
     '../buildtools/gn': {
         "type": "http",
         "url": f"https://github.com/zsy-jason/buildtools/releases/download/gn-07d3c6f4/buildtools-gn-{system}-{machine}.tar.gz",

@@ -1,0 +1,10 @@
+{
+  "modelVersion": "5.0.0",
+  "name": "@lynxtron/harmony-window-adapter",
+  "version": "1.0.0",
+  "description": "Lynxtron HarmonyOS window adapter - bridges C++ window operations to ArkTS Window / UIAbilityContext APIs",
+  "main": "ets/Index.ets",
+  "author": "Lynxtron Authors",
+  "license": "Apache-2.0",
+  "dependencies": {}
+}

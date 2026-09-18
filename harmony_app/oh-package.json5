@@ -1,0 +1,11 @@
+{
+  "modelVersion": "5.0.0",
+  "name": "lynxtron_app",
+  "version": "1.0.0",
+  "description": "Lynxtron HarmonyOS HAP wrapper - loads liblynxtron.so via NAPI",
+  "main": "",
+  "author": "wenhua.liu",
+  "license": "Apache-2.0",
+  "dependencies": {},
+  "devDependencies": {}
+}

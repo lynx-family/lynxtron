@@ -1,0 +1,22 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: "wenhua.liu" <wenhua.liu@haitaichina.com>
+Date: Tue, 8 Sep 2026 18:52:46 +0800
+Subject: [BugFix][HarmonyOS] Configure libc++ for musl
+
+
+diff --git a/third_party/libc++/__config_site b/third_party/libc++/__config_site
+index 67075bd8b4d42e6e6d651cb0988d64eccb64cc23..ecb1b053d0c20be0d030035516e6fe2d59819ebb 100644
+--- a/third_party/libc++/__config_site
++++ b/third_party/libc++/__config_site
+@@ -25,7 +25,11 @@
+ #define _LIBCPP_HAS_THREADS 1
+ #define _LIBCPP_HAS_MONOTONIC_CLOCK 1
+ #define _LIBCPP_HAS_TERMINAL 1
++#if defined(__OHOS__)
++#define _LIBCPP_HAS_MUSL_LIBC 1
++#else
+ #define _LIBCPP_HAS_MUSL_LIBC 0
++#endif
+ 
+ #ifdef _WIN32
+ #define _LIBCPP_HAS_THREAD_API_PTHREAD 0

@@ -1,0 +1,115 @@
+From 3a561528b2f3d41393e335d2c07a758b6cdc3f19 Mon Sep 17 00:00:00 2001
+From: Lynxtron Scripts <scripts@lynxtron>
+Date: Mon, 7 Sep 2026 19:23:37 +0800
+Subject: [PATCH] Build node dependencies for HarmonyOS
+
+The unofficial.gni files for cares, uv, uvwasi and the inspector select
+their sources per platform; teach them the OHOS target so those
+dependencies build with the NDK clang toolchain.
+---
+ deps/cares/unofficial.gni    |  5 +++++
+ deps/uv/unofficial.gni       |  6 +++---
+ deps/uvwasi/unofficial.gni   |  7 +++++++
+ src/inspector/unofficial.gni | 11 ++++++++++-
+ 4 files changed, 25 insertions(+), 4 deletions(-)
+
+diff --git a/deps/cares/unofficial.gni b/deps/cares/unofficial.gni
+index e02d7f42..dd5af9db 100644
+--- a/deps/cares/unofficial.gni
++++ b/deps/cares/unofficial.gni
+@@ -44,6 +44,8 @@ template("cares_gn_build") {
+     ]
+     if (is_win) {
+       include_dirs += [ "config/win32" ]
++    } else if (is_harmony) {
++      include_dirs += [ "config/openharmony" ]
+     } else if (is_linux) {
+       include_dirs += [ "config/linux" ]
+     } else if (is_mac) {
+@@ -61,6 +63,9 @@ template("cares_gn_build") {
+     if (is_linux) {
+       sources += [ "config/linux/ares_config.h" ]
+     }
++    if (is_harmony) {
++      sources += [ "config/openharmony/ares_config.h" ]
++    }
+     if (is_mac) {
+       sources += gypi_values.cares_sources_mac
+     }
+diff --git a/deps/uv/unofficial.gni b/deps/uv/unofficial.gni
+index 0944d6dd..79aaaea1 100644
+--- a/deps/uv/unofficial.gni
++++ b/deps/uv/unofficial.gni
+@@ -27,7 +27,7 @@ template("uv_gn_build") {
+         "_FILE_OFFSET_BITS=64",
+       ]
+     }
+-    if (is_linux) {
++    if (is_linux || is_harmony) {
+       defines += [
+         "_POSIX_C_SOURCE=200112",
+         "_GNU_SOURCE",
+@@ -89,7 +89,7 @@ template("uv_gn_build") {
+     if (is_posix) {
+       ldflags = [ "-pthread" ]
+     }
+-    if (is_linux) {
++    if (is_linux || is_harmony) {
+       libs = [
+         "m",
+         "dl",
+@@ -105,7 +105,7 @@ template("uv_gn_build") {
+       sources += gypi_values.uv_sources_posix +
+                  [ "src/unix/proctitle.c" ]
+     }
+-    if (is_linux) {
++    if (is_linux || is_harmony) {
+       sources += gypi_values.uv_sources_linux
+     }
+     if (is_apple) {
+diff --git a/deps/uvwasi/unofficial.gni b/deps/uvwasi/unofficial.gni
+index b7f30c44..f512b12c 100644
+--- a/deps/uvwasi/unofficial.gni
++++ b/deps/uvwasi/unofficial.gni
+@@ -22,6 +22,13 @@ template("uvwasi_gn_build") {
+     include_dirs = [ "src" ]
+     deps = [ "../uv" ]
+ 
++    if (is_linux || is_harmony) {
++      defines = [
++        "_POSIX_C_SOURCE=200112",
++        "_GNU_SOURCE",
++      ]
++    }
++
+     if (is_clang || !is_win) {
+       cflags_c = [
+         "-Wno-extra-semi",
+diff --git a/src/inspector/unofficial.gni b/src/inspector/unofficial.gni
+index 4810d93e..c79584b1 100644
+--- a/src/inspector/unofficial.gni
++++ b/src/inspector/unofficial.gni
+@@ -79,7 +79,15 @@ template("inspector_gn_build") {
+     include_dirs = [ protocol_tool_path ]
+   }
+ 
+-  static_library("crdtp") {
++  # libnode already links the embedder's crdtp target. Building this copy from
++  # the same source paths would generate duplicate object outputs on HarmonyOS.
++  if (is_harmony) {
++    group("crdtp") {
++      public_configs = [ ":crdtp_config" ]
++      public_deps = [ "$node_inspector_protocol_path:crdtp" ]
++    }
++  } else {
++    static_library("crdtp") {
+     public_configs = [ ":crdtp_config" ]
+     sources = [
+       "$protocol_tool_path/crdtp/cbor.cc",
+@@ -106,5 +114,6 @@ template("inspector_gn_build") {
+       "$protocol_tool_path/crdtp/json_platform.cc",
+       "$protocol_tool_path/crdtp/json_platform.h",
+     ]
++    }
+   }
+ }

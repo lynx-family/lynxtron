@@ -22,7 +22,7 @@ def get_current_os():
   else:
     return system.lower()
 
-def get_default_gn_args(is_debug, enable_enlarge_stack, enable_inspector):
+def get_default_gn_args(is_debug, enable_enlarge_stack, enable_inspector, target_os):
   gn_args = ''
   if is_debug:
     gn_args += 'import("//src/build/args/debug.gn") '
@@ -63,21 +63,50 @@ def get_default_gn_args(is_debug, enable_enlarge_stack, enable_inspector):
   if enable_enlarge_stack:
     gn_args += 'enable_enlarge_stack=true '
 
-  if get_current_os() == 'mac':
+  if target_os == 'mac':
     gn_args += 'skia_gl_standard=""'
     gn_args += 'skia_use_metal=true '
     gn_args += 'shell_enable_metal=true '
     gn_args += 'use_clang_static_analyzer=false '
     gn_args += 'use_flutter_cxx=false '
     gn_args += 'enable_skity=true '
-  elif get_current_os() == 'win':
+  elif target_os == 'win':
     gn_args += 'is_clang=true '
     gn_args += 'enable_skity=true '
-  elif get_current_os() == 'linux':
+  elif target_os == 'linux':
     gn_args += 'enable_desktop_embeddings=false '
     gn_args += 'build_lepus_compile=false '
     gn_args += 'enable_software_rendering=true '
     gn_args += 'enable_skity=false '
+  elif target_os == 'harmony':
+    # HarmonyOS uses the NDK clang toolchain and a device-oriented Lynx
+    # runtime. Keep host-only generators and unsupported runtime features out
+    # of the target graph.
+    gn_args += 'is_clang=true '
+    # The common desktop args enable sccache, but a clean HarmonyOS build
+    # environment must also be able to build host code generators without it.
+    gn_args += 'cc_wrapper="" '
+    gn_args += 'use_musl=true '
+    gn_args += 'is_component_build=false '
+    gn_args += 'build_lepus_compile=false '
+    gn_args += 'use_custom_libcxx=false '
+    gn_args += 'use_sysroot=false '
+    gn_args += 'enable_rust=false '
+    gn_args += 'use_partition_alloc=true '
+    gn_args += 'use_partition_alloc_as_malloc=true '
+    gn_args += 'use_allocator_shim=true '
+    gn_args += 'enable_backup_ref_ptr_support=false '
+    gn_args += 'enable_pointer_compression_support=false '
+    gn_args += 'v8_enable_sandbox=false '
+    gn_args += 'v8_use_external_startup_data=true '
+    gn_args += 'v8_enable_webassembly=false '
+    gn_args += 'arm_control_flow_integrity="standard" '
+    gn_args += 'skia_enable_fontmgr_harmony=false '
+    gn_args += 'skia_enable_fontmgr_custom_directory=true '
+    gn_args += 'clang_use_chrome_plugins=false '
+    gn_args += 'v8_enable_temporal_support=false '
+    gn_args += 'skia_gl_standard="gles" '
+    gn_args += 'skia_use_gl=true '
 
   return gn_args
 
@@ -99,6 +128,9 @@ def parse_args(args):
   parser.add_argument('--mac-cpu', type=str, choices=['x64', 'arm64'], default='arm64')
   parser.add_argument('--linux-cpu', type=str, choices=['x64', 'arm64'], default='x64')
   parser.add_argument('--windows-cpu', type=str, choices=['x64', 'arm64', 'x86'], default = 'x86')
+  parser.add_argument('--target-os', choices=['mac', 'win', 'linux', 'harmony'],
+                      help='Cross-compilation target OS; defaults to the host OS.')
+  parser.add_argument('--harmony-cpu', choices=['arm64', 'arm', 'x64'], default='arm64')
   parser.add_argument('--enable-enlarge-stack', dest='enable_enlarge_stack', action='store_true', default=False)
   parser.add_argument('--enable-inspector', dest='enable_inspector', action='store_true', default=False)
 
@@ -106,25 +138,34 @@ def parse_args(args):
 
 def main(argv):
   args = parse_args(argv)
+  target_os = args.target_os or get_current_os()
   gn_args = ''
-  gn_args += get_default_gn_args(args.is_debug, args.enable_enlarge_stack, args.enable_inspector)
+  gn_args += get_default_gn_args(args.is_debug, args.enable_enlarge_stack,
+                                 args.enable_inspector, target_os)
   if args.gn_args:
     if not gn_args.endswith(' '):
       gn_args += ' '
     gn_args += args.gn_args.strip()
 
-  if get_current_os() == 'mac':
+  if target_os == 'mac':
     gn_args += f' target_cpu="{args.mac_cpu}"'
-  elif get_current_os() == 'linux':
+  elif target_os == 'linux':
     gn_args += f' target_cpu="{args.linux_cpu}"'
-  elif get_current_os() == 'win':
+  elif target_os == 'win':
     gn_args += f' target_cpu="{args.windows_cpu}"'
+  elif target_os == 'harmony':
+    gn_args += ' target_os="harmony"'
+    gn_args += f' target_cpu="{args.harmony_cpu}"'
 
   escaped_gn_args = gn_args.replace('"', '\\"')
 
-  out_path = os.path.join(ROOT_PATH, 'out', 'Release')
-  if args.is_debug:
-    out_path = os.path.join(ROOT_PATH, 'out', 'Debug')
+  if target_os == 'harmony':
+    build_type = 'Debug' if args.is_debug else 'Release'
+    out_path = os.path.join(ROOT_PATH, 'out', f'harmony_{args.harmony_cpu}_{build_type}')
+  else:
+    out_path = os.path.join(ROOT_PATH, 'out', 'Release')
+    if args.is_debug:
+      out_path = os.path.join(ROOT_PATH, 'out', 'Debug')
   return run_gn_script(gn_args, out_path)
 
 if __name__ == '__main__':
