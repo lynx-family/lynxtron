@@ -1,5 +1,12 @@
 # @lynx-js/lynx-library-headers
 
+## 0.0.28
+
+### Patch Changes
+
+- Updated dependencies [f1f140f]
+  - @lynx-js/lynxtron@0.0.28
+
 ## 0.0.27
 
 ### Patch Changes

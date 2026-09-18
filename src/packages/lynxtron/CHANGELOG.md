@@ -1,5 +1,11 @@
 # @lynx-js/lynxtron
 
+## 0.0.28
+
+### Patch Changes
+
+- f1f140f: Enter the owning V8 context before Node-API async work completion callbacks, preventing preload native async operations from aborting when multiple Node environments share an isolate.
+
 ## 0.0.27
 
 ## 0.0.26
