@@ -45,6 +45,7 @@ class LynxViewBuilder {
 #endif
 
   LynxViewBuilder& SetLynxWindow(base::WeakPtr<api::LynxWindow> lynx_window);
+  LynxViewBuilder& SetEnableJSGroup(bool enable);
   LynxViewBuilder& SetNodeIntegrationPreload(
       const std::vector<std::string>& preload);
   LynxViewBuilder& SetNativeViewCreator(const char* name,

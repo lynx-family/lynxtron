@@ -85,6 +85,15 @@ LynxViewBuilder& LynxViewBuilder::SetLynxWindow(
   return *this;
 }
 
+LynxViewBuilder& LynxViewBuilder::SetEnableJSGroup(bool enable) {
+  if (enable) {
+    auto group = std::make_shared<lynx::pub::LynxGroup>("LynxWindow");
+    group->SetEnableJSGroupThread(true);
+    impl_->builder.SetLynxGroup(std::move(group));
+  }
+  return *this;
+}
+
 LynxViewBuilder& LynxViewBuilder::SetNodeIntegrationPreload(
     const std::vector<std::string>& preload) {
   node_integration_preload_ = preload;
