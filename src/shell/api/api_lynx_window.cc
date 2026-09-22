@@ -284,6 +284,7 @@ LynxWindow::LynxWindow(gin::Arguments* args,
   InitWithArgs(args);
   // TODO(Guo Xi): support software render.
   options.Get("software_render", &software_render_);
+  options.Get("enableJSGroup", &enable_js_group_);
 
   window()->InitFromOptions(options);
 
@@ -556,6 +557,7 @@ void LynxWindow::EnsureLynxView(const std::string* testbench_url) {
   builder
       .SetScreenSize(metrics.width, metrics.height, metrics.device_pixel_ratio)
       .SetFrame(0, 0, metrics.width, metrics.height)
+      .SetEnableJSGroup(enable_js_group_)
       .SetNodeIntegrationPreload(node_integration_preload_)
       .SetLynxWindow(GetWeakPtr());
 #if ENABLE_TESTBENCH_REPLAY

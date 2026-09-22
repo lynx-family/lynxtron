@@ -261,6 +261,11 @@ export interface LynxWindowConstructorOptions {
   lynxPreference?: LynxPreference;
 
   title?: string;
+  /**
+   * Whether to run this window's JavaScript runtime on a Lynx group thread.
+   * Default is `false`.
+   */
+  enableJSGroup?: boolean;
 }
 
 export interface LynxBridgeInvokeEvent {

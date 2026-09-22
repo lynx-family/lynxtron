@@ -34,6 +34,14 @@ describe('LynxWindow module', () => {
       }).not.to.throw();
     });
 
+    it('allows enabling a Lynx JS group thread', () => {
+      const w = new LynxWindow({
+        enableJSGroup: true,
+        show: false,
+      });
+      w.destroy();
+    });
+
     ifit(process.platform === 'darwin')('supports tabbingIdentifier', () => {
       const w = new LynxWindow({
         show: false,
