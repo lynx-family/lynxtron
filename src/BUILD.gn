@@ -453,6 +453,7 @@ source_set("lynxtron_lib") {
     "//gin",
     "//third_party/libxml:xml_writer",
     "//third_party/node:libnode",
+    "//third_party/node:node_snapshot",
     "//third_party/re2",
     "//url",
     "//v8",

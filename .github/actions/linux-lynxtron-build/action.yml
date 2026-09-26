@@ -73,5 +73,12 @@ runs:
         fi
         python3 lynxtron_tools/gn/gn.py --linux-cpu ${{ inputs.build-arch }} "${GN_EXTRA_ARGS[@]}"
         ninja -C out/Release lynxtron_app
+        if [ "${{ inputs.build-arch }}" = "x64" ]; then
+          test -s out/Release/gen/third_party/node/node_snapshot.cc
+          python3 src/script/verify_node_snapshot_startup.py \
+            --runtime out/Release/lynxtron \
+            --resources out/Release/resources \
+            --arch x64
+        fi
         grep -q 'USE_PARTITION_ALLOC_AS_MALLOC() (0)' out/Release/gen/base/allocator/partition_allocator/src/partition_alloc/buildflags.h
         grep -q 'ENABLE_BACKUP_REF_PTR_SUPPORT() (0)' out/Release/gen/base/allocator/partition_allocator/src/partition_alloc/buildflags.h

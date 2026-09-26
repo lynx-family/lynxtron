@@ -91,6 +91,17 @@ runs:
         }
         python lynxtron_tools\gn\gn.py --windows-cpu ${{ inputs.build-arch }} @gnExtraArgs
         buildtools\ninja\ninja.exe -C out\Release lynxtron_app
+        if ('${{ inputs.build-arch }}' -eq 'x64') {
+          $snapshotSource = 'out\Release\gen\third_party\node\node_snapshot.cc'
+          if (-not (Test-Path -LiteralPath $snapshotSource -PathType Leaf) -or
+              (Get-Item -LiteralPath $snapshotSource).Length -eq 0) {
+            throw "Node startup snapshot was not generated: $snapshotSource"
+          }
+          python src\script\verify_node_snapshot_startup.py `
+            --runtime out\Release\lynxtron.exe `
+            --resources out\Release\resources `
+            --arch x64
+        }
         $buildflags = Get-Content out\Release\gen\base\allocator\partition_allocator\src\partition_alloc\buildflags.h -Raw
         if ($buildflags -notmatch 'USE_PARTITION_ALLOC_AS_MALLOC\(\) \(0\)') { throw 'USE_PARTITION_ALLOC_AS_MALLOC must be disabled for Lynxtron release builds' }
         if ($buildflags -notmatch 'ENABLE_BACKUP_REF_PTR_SUPPORT\(\) \(0\)') { throw 'ENABLE_BACKUP_REF_PTR_SUPPORT must be disabled when PartitionAlloc is not process-wide malloc' }

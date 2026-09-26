@@ -23,6 +23,7 @@
 #include "shell/common/gin_helper/cleaned_up_at_exit.h"
 #include "shell/common/node_includes.h"
 #include "shell/common/options_switches.h"
+#include "third_party/node/src/node_snapshot_builder.h"
 #include "third_party/node/src/node_wasm_web_api.h"
 
 #if ENABLE_TRACE_PERFETTO
@@ -40,7 +41,8 @@ namespace {
 
 std::unique_ptr<gin::IsolateHolder> CreateIsolateHolder(
     v8::Isolate* isolate,
-    size_t* max_young_generation_size) {
+    size_t* max_young_generation_size,
+    bool use_node_snapshot) {
   std::unique_ptr<v8::Isolate::CreateParams> create_params =
       gin::IsolateHolder::getDefaultIsolateParams();
   // The value is needed to adjust heap limit when capturing
@@ -48,6 +50,10 @@ std::unique_ptr<gin::IsolateHolder> CreateIsolateHolder(
   // --heapsnapshot-near-heap-limit=max_count.
   *max_young_generation_size =
       create_params->constraints.max_young_generation_size_in_bytes();
+  if (use_node_snapshot) {
+    node::SnapshotBuilder::InitializeIsolateParams(
+        node::SnapshotBuilder::GetEmbeddedSnapshotData(), create_params.get());
+  }
   // Align behavior with V8 Isolate default for Node.js.
   // This is necessary for important aspects of Node.js
   // including heap and cpu profilers to function properly.
@@ -63,13 +69,20 @@ std::unique_ptr<gin::IsolateHolder> CreateIsolateHolder(
 }  // namespace
 
 JavascriptEnvironment::JavascriptEnvironment(uv_loop_t* event_loop,
-                                             bool setup_wasm_streaming)
+                                             bool setup_wasm_streaming,
+                                             bool use_node_snapshot)
     : isolate_holder_{CreateIsolateHolder(
           Initialize(event_loop, setup_wasm_streaming),
-          &max_young_generation_size_)},
+          &max_young_generation_size_,
+          use_node_snapshot)},
       isolate_{isolate_holder_->isolate()},
       locker_{std::make_unique<v8::Locker>(isolate_)} {
   isolate_->Enter();
+
+  if (use_node_snapshot) {
+    // Node restores the main context while creating its Environment.
+    return;
+  }
 
   v8::HandleScope scope(isolate_);
   auto context = node::NewContext(isolate_);
@@ -77,6 +90,10 @@ JavascriptEnvironment::JavascriptEnvironment(uv_loop_t* event_loop,
 
   context->Enter();
 
+  InitializeRuntimeProfiler();
+}
+
+void JavascriptEnvironment::InitializeRuntimeProfiler() {
 #if ENABLE_TRACE_PERFETTO
   lynxtron::trace::RuntimeProfileHelper::GetInstance().SetV8RuntimeProfiler(
       isolate_);

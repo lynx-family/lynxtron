@@ -1,0 +1,400 @@
+From 6580c7664850f7514cd5439008d2698d17d710b6 Mon Sep 17 00:00:00 2001
+From: GuoXi <guoxi349@gmail.com>
+Date: Fri, 25 Sep 2026 20:45:59 +0800
+Subject: [PATCH] [Optimize] Enable embedded Node snapshot on macOS, Windows,
+ and Linux
+
+Generate a Node startup snapshot from the Chromium V8 blob and link it into the browser runtime on native release architectures. Share build settings between the real snapshot and stub provider; disable identical code folding for the generator and declare its generated-header dependency.
+---
+ node.gni                          |  12 +--
+ src/api/embed_helpers.cc          |  15 +++-
+ src/node_external_reference.h     |   5 ++
+ src/node_snapshot_builder.h       |   9 +++
+ src/node_snapshot_stub.cc         |  11 +++
+ src/node_snapshotable.cc          |  12 +++
+ tools/snapshot/node_mksnapshot.cc |  37 ++++++++-
+ unofficial.gni                    | 129 ++++++++++++++++++++++++++++++++------
+ 8 files changed, 200 insertions(+), 30 deletions(-)
+
+diff --git a/node.gni b/node.gni
+index b3ec33a9..0ddeb987 100644
+--- a/node.gni
++++ b/node.gni
+@@ -66,11 +66,13 @@ declare_args() {
+   # Use code cache to speed up startup. Disabled for cross compilation.
+   node_use_node_code_cache = host_os == target_os && host_cpu == target_cpu
+ 
+-  # Use snapshot to speed up startup.
+-  # TODO(zcbenz): There are few broken things for now:
+-  #   1. cross-os compilation is not supported.
+-  #   2. node_mksnapshot crashes when cross-compiling for x64 from arm64.
+-  node_use_node_snapshot = false
++  # Build the embedded Node startup snapshot on native release architectures.
++  # node_mksnapshot executes the target V8 code, so cross-architecture builds
++  # keep using the no-snapshot fallback until their toolchains are validated.
++  node_use_node_snapshot =
++      host_os == target_os && host_cpu == target_cpu &&
++      ((is_mac && target_cpu == "arm64") ||
++       ((is_win || is_linux) && target_cpu == "x64"))
+ 
+   # Build with Amaro (TypeScript utils).
+   node_use_amaro = true
+diff --git a/src/api/embed_helpers.cc b/src/api/embed_helpers.cc
+index 14d2a20c..3c168333 100644
+--- a/src/api/embed_helpers.cc
++++ b/src/api/embed_helpers.cc
+@@ -112,13 +112,18 @@ CommonEnvironmentSetup::CommonEnvironmentSetup(
+ 
+   Isolate* isolate;
+   if (flags & Flags::kIsForSnapshotting) {
++    impl_->allocator = ArrayBufferAllocator::Create();
+     const std::vector<intptr_t>& external_references =
+         SnapshotBuilder::CollectExternalReferences();
+     isolate = impl_->isolate = Isolate::Allocate();
+     // Must be done before the SnapshotCreator creation so  that the
+     // memory reducer can be initialized.
+     platform->RegisterIsolate(isolate, loop);
+-    impl_->snapshot_creator.emplace(isolate, external_references.data());
++    v8::Isolate::CreateParams params;
++    params.array_buffer_allocator_shared = impl_->allocator;
++    params.external_references = external_references.data();
++    params.snapshot_blob = SnapshotBuilder::GetBaseSnapshotForCreation();
++    impl_->snapshot_creator.emplace(isolate, params);
+     isolate->SetCaptureStackTraceForUncaughtExceptions(
+         true, 10, v8::StackTrace::StackTraceOptions::kDetailed);
+     SetIsolateMiscHandlers(isolate, {});
+@@ -220,10 +225,12 @@ CommonEnvironmentSetup::~CommonEnvironmentSetup() {
+       *static_cast<bool*>(data) = true;
+     }, &platform_finished);
+     impl_->platform->UnregisterIsolate(isolate);
+-    if (impl_->snapshot_creator.has_value())
++    if (impl_->snapshot_creator.has_value()) {
+       impl_->snapshot_creator.reset();
+-    else
+-      isolate->Dispose();
++      // The CreateParams overload initializes the supplied isolate but does
++      // not take ownership of it.
++    }
++    isolate->Dispose();
+ 
+     // Wait until the platform has cleaned up all relevant resources.
+     while (!platform_finished)
+diff --git a/src/node_external_reference.h b/src/node_external_reference.h
+index b97f306d..73a87c74 100644
+--- a/src/node_external_reference.h
++++ b/src/node_external_reference.h
+@@ -41,6 +41,11 @@ class ExternalReferenceRegistry {
+   // Registers both the underlying function pointer
+   // and the corresponding CFunctionInfo.
+   void Register(const v8::CFunction& c_func) {
++    // Since the V8 change to store the v8::CFunction directly in
++    // FunctionTemplateInfo (wrapped in a Foreign), the snapshot serializer
++    // encodes the CFunction object address itself, so it must also be a
++    // registered external reference.
++    RegisterT(&c_func);
+     RegisterT(c_func.GetAddress());
+     RegisterT(c_func.GetTypeInfo());
+   }
+diff --git a/src/node_snapshot_builder.h b/src/node_snapshot_builder.h
+index e2302946..c120ec2f 100644
+--- a/src/node_snapshot_builder.h
++++ b/src/node_snapshot_builder.h
+@@ -44,6 +44,15 @@ class NODE_EXTERN_PRIVATE SnapshotBuilder {
+ 
+   static const std::vector<intptr_t>& CollectExternalReferences();
+ 
++  // When V8 is built with external startup data (Chromium's V8),
++  // the snapshot creator cannot build the heap from scratch (that needs
++  // V8's full setup-isolate delegate, only linked by V8's own mksnapshot).
++  // Set the existing V8 startup snapshot here so the creator EXTENDS it
++  // (deserialize path) instead -- the same approach as
++  // v8_context_snapshot_generator. Must be set before CreateForSnapshotting.
++  static void SetBaseSnapshotForCreation(const v8::StartupData* blob);
++  static const v8::StartupData* GetBaseSnapshotForCreation();
++
+   static ExitCode CreateSnapshot(SnapshotData* out,
+                                  CommonEnvironmentSetup* setup);
+ 
+diff --git a/src/node_snapshot_stub.cc b/src/node_snapshot_stub.cc
+index 664f878c..bb93da20 100644
+--- a/src/node_snapshot_stub.cc
++++ b/src/node_snapshot_stub.cc
+@@ -6,6 +6,17 @@
+ 
+ namespace node {
+ 
++// The no-snapshot fallback for GetEmbeddedSnapshotData(). It lives
++// in its own ":node_snapshot_stub" source_set (not in libnode), so each target
++// links EXACTLY ONE provider of this symbol: the shipped framework and the
++// snapshot code-cache tool link ":node_snapshot" (the real embedded snapshot,
++// or this same stub when node_use_node_snapshot is off); every other libnode
++// consumer that does not -- node_mksnapshot (linking ":node_snapshot" would
++// cycle through run_node_mksnapshot), the standalone node CLI, the js2c
++// code-cache tool, node_cctest/node_embedtest -- links ":node_snapshot_stub".
++// Because no target links both providers, this can be a normal strong symbol
++// instead of a weak override; that is what makes it link on Windows, where
++// lld-link does not resolve duplicate weak symbols the way ld/ld64 do.
+ const SnapshotData* SnapshotBuilder::GetEmbeddedSnapshotData() {
+   return nullptr;
+ }
+diff --git a/src/node_snapshotable.cc b/src/node_snapshotable.cc
+index a500204c..21bb8c75 100644
+--- a/src/node_snapshotable.cc
++++ b/src/node_snapshotable.cc
+@@ -865,6 +865,18 @@ const std::vector<intptr_t>& SnapshotBuilder::CollectExternalReferences() {
+   return registry->external_references();
+ }
+ 
++namespace {
++const v8::StartupData* g_base_snapshot_for_creation = nullptr;
++}
++
++void SnapshotBuilder::SetBaseSnapshotForCreation(const v8::StartupData* blob) {
++  g_base_snapshot_for_creation = blob;
++}
++
++const v8::StartupData* SnapshotBuilder::GetBaseSnapshotForCreation() {
++  return g_base_snapshot_for_creation;
++}
++
+ void SnapshotBuilder::InitializeIsolateParams(const SnapshotData* data,
+                                               Isolate::CreateParams* params) {
+   CHECK_NULL(params->external_references);
+diff --git a/tools/snapshot/node_mksnapshot.cc b/tools/snapshot/node_mksnapshot.cc
+index e446dd16..fd822643 100644
+--- a/tools/snapshot/node_mksnapshot.cc
++++ b/tools/snapshot/node_mksnapshot.cc
+@@ -1,7 +1,8 @@
+ #include <cstdio>
++#include <cstdlib>
+ #include <iostream>
+-#include <sstream>
+ #include <string>
++#include <string_view>
+ #include <vector>
+ 
+ #include "libplatform/libplatform.h"
+@@ -61,6 +62,40 @@ int BuildSnapshot(int argc, char* argv[]) {
+     return 1;
+   }
+ 
++  // When V8 is built with external startup data (Chromium's V8),
++  // the snapshot creator cannot build the heap from scratch (that requires
++  // V8's full setup-isolate delegate, only linked by V8's own mksnapshot).
++  // Instead load the V8 startup snapshot and extend it -- exactly how
++  // v8_context_snapshot_generator builds the blink context snapshot. The
++  // build passes --lynxtron-v8-snapshot-blob=<path>; strip it from argv
++  // (so node's CLI parser doesn't see it) and load it before V8 init.
++  {
++    static std::string blob_bytes;  // must outlive the SnapshotCreator
++    static v8::StartupData base_blob{nullptr, 0};
++    std::vector<char*> filtered;
++    const std::string kFlag = "--lynxtron-v8-snapshot-blob=";
++    for (int i = 0; i < argc; ++i) {
++      if (std::string_view(argv[i]).substr(0, kFlag.size()) == kFlag) {
++        const char* path = argv[i] + kFlag.size();
++        if (const int r = node::ReadFileSync(&blob_bytes, path); r != 0) {
++          std::cerr << "Cannot read V8 snapshot blob " << path << ": "
++                    << uv_strerror(r) << "\n";
++          return 1;
++        }
++        base_blob.data = blob_bytes.data();
++        base_blob.raw_size = static_cast<int>(blob_bytes.size());
++        node::SnapshotBuilder::SetBaseSnapshotForCreation(&base_blob);
++      } else {
++        filtered.push_back(argv[i]);
++      }
++    }
++    if (static_cast<int>(filtered.size()) != argc) {
++      argc = static_cast<int>(filtered.size());
++      for (int i = 0; i < argc; ++i) argv[i] = filtered[i];
++      argv[argc] = nullptr;
++    }
++  }
++
+   std::shared_ptr<node::InitializationResult> result =
+       node::InitializeOncePerProcess(
+           std::vector<std::string>(argv, argv + argc),
+diff --git a/unofficial.gni b/unofficial.gni
+index 02406185..cd0ce82f 100644
+--- a/unofficial.gni
++++ b/unofficial.gni
+@@ -32,7 +32,12 @@ template("node_gn_build") {
+     } else {
+       defines += [ "HAVE_AMARO=0" ]
+     }
+-    if (node_use_v8_platform) {
++    # Embedded in Lynxtron, gin/Chromium owns the V8 platform (node must not
++    # init its own -> stub V8Platform). But the standalone node_mksnapshot
++    # host tool (v8_snapshot_toolchain, no gin) MUST own the platform or
++    # SnapshotBuilder gets a null platform. Force the real platform in that
++    # toolchain only; shipped libnode (default toolchain) unchanged.
++    if (node_use_v8_platform || current_toolchain == v8_snapshot_toolchain) {
+       defines += [ "NODE_USE_V8_PLATFORM=1" ]
+     } else {
+       defines += [ "NODE_USE_V8_PLATFORM=0" ]
+@@ -181,7 +186,6 @@ template("node_gn_build") {
+     ]
+ 
+     sources = [
+-      "src/node_snapshot_stub.cc",
+       "$root_gen_dir/lynxtron_natives.cc",
+       "$target_gen_dir/node_javascript.cc",
+     ] + gypi_values.node_sources
+@@ -248,20 +252,9 @@ template("node_gn_build") {
+     sources = [ "src/node_main.cc" ]
+     deps = [
+       ":libnode",
++      ":node_snapshot_stub",
+       "//build/win:default_exe_manifest",
+     ]
+-    if (node_use_node_snapshot) {
+-      sources += [ "$target_gen_dir/node_snapshot.cc" ]
+-      deps += [ ":run_node_mksnapshot" ]
+-      if (is_clang || !is_win) {
+-        cflags_cc = [
+-          "-Wno-c++11-narrowing",
+-          "-Wno-shadow",
+-        ]
+-      }
+-    } else {
+-      sources += [ "src/node_snapshot_stub.cc" ]
+-    }
+     output_name = "node"
+ 
+     if (is_apple) {
+@@ -276,18 +269,40 @@ template("node_gn_build") {
+ 
+   if (node_use_node_snapshot) {
+     if (current_toolchain == v8_snapshot_toolchain) {
++      # The snapshot records external-reference addresses. Identical code
++      # folding can merge distinct functions and invalidate those references.
++      config("node_mksnapshot_disable_icf") {
++        if (is_win) {
++          ldflags = [ "/OPT:NOICF" ]
++        } else if (is_linux && use_lld) {
++          ldflags = [ "-Wl,--icf=none" ]
++        }
++      }
++
+       executable("node_mksnapshot") {
+-        configs += [ ":node_internal_config" ]
+-        sources = [
+-          "src/node_snapshot_stub.cc",
+-          "tools/snapshot/node_mksnapshot.cc",
++        configs += [
++          ":node_internal_config",
++          ":node_mksnapshot_disable_icf",
++          "//build/config/compiler:no_chromium_code",
++          "$node_v8_path:external_startup_data",
++        ]
++        configs -= [ "//build/config/compiler:chromium_code" ]
++        sources = [ "tools/snapshot/node_mksnapshot.cc" ]
++        deps = [
++          ":libnode",
++          ":node_snapshot_stub",
++          # V8 emits Lynx trace hooks in Perfetto builds.
++          "//lynx/base/trace/native:trace",
++          "//third_party/zstd:compress",
+         ]
+-        deps = [ ":libnode" ]
+       }
+     }
+ 
+     action("run_node_mksnapshot") {
+-      deps = [ ":node_mksnapshot($v8_snapshot_toolchain)" ]
++      deps = [
++        ":node_mksnapshot($v8_snapshot_toolchain)",
++        "$node_v8_path:run_mksnapshot_default",
++      ]
+       script = "$node_v8_path/tools/run.py"
+       sources = []
+       data = []
+@@ -298,11 +313,85 @@ template("node_gn_build") {
+       outputs = [ "$target_gen_dir/node_snapshot.cc" ]
+       args = [
+         "./" + rebase_path(mksnapshot_dir + "/node_mksnapshot", root_build_dir),
++        # Match Chromium Gin's browser-process V8 flag for reusable code cache.
++        "--gc-memory-reducer-start-delay-ms=30000",
+         rebase_path("$target_gen_dir/node_snapshot.cc", root_build_dir),
++
++        # Chromium's V8 has external startup data, so node_mksnapshot must
++        # load the V8 startup snapshot and extend it rather than build the
++        # heap from scratch (node_mksnapshot.cc parses this flag before
++        # InitializeOncePerProcess).
++        "--lynxtron-v8-snapshot-blob=" +
++            rebase_path("$root_out_dir/snapshot_blob.bin", root_build_dir),
+       ]
+     }
+   }
+ 
++  # The no-snapshot fallback GetEmbeddedSnapshotData(), as its own source_set so
++  # libnode doesn't carry it. Linked by libnode consumers that do NOT link
++  # ":node_snapshot" and don't already compile the stub themselves:
++  # node_mksnapshot (linking ":node_snapshot" would cycle through
++  # run_node_mksnapshot), the standalone node CLI, and the js2c code-cache tool.
++  # (node_cctest/node_embedtest compile the stub directly in their own sources.)
++  # A strong symbol -- no target links it alongside another provider, so it is
++  # never duplicated (Windows-safe; lld-link can't fold duplicate weak symbols).
++  # Shared build settings for the generated snapshot and its stub provider.
++  snapshot_provider_configs = [
++    ":node_internal_config",
++    "$node_v8_path:v8_tracing_config",
++    "//build/config/compiler:no_exit_time_destructors",
++  ]
++  snapshot_provider_deps = [
++    "//base:debugging_buildflags",
++    "deps/ada",
++    "deps/simdjson",
++    "deps/uv",
++    "//third_party/zstd:headers",
++    "$node_v8_path",
++    "$node_v8_path:v8_libplatform",
++  ]
++
++  source_set("node_snapshot_stub") {
++    configs += snapshot_provider_configs
++    if (is_clang || !is_win) {
++      cflags_cc = [ "-Wno-exit-time-destructors" ]
++    }
++    public_configs = [ ":zstd_include_config" ]
++    deps = snapshot_provider_deps
++    sources = [ "src/node_snapshot_stub.cc" ]
++  }
++
++  # The embedded Node startup snapshot, providing the real
++  # SnapshotBuilder::GetEmbeddedSnapshotData(). Linked by the shipped Lynxtron
++  # framework and the snapshot code-cache tool. NOT linked by node_mksnapshot
++  # (that would cycle: this -> run_node_mksnapshot -> node_mksnapshot ->
++  # libnode). When node_use_node_snapshot is off it falls back to the stub, so
++  # consumers always get exactly one definition.
++  source_set("node_snapshot") {
++    configs += snapshot_provider_configs
++    if (is_clang || !is_win) {
++      cflags_cc = [ "-Wno-exit-time-destructors" ]
++    }
++    public_configs = [ ":zstd_include_config" ]
++    deps = snapshot_provider_deps
++    if (node_use_node_snapshot) {
++      sources = [ "$target_gen_dir/node_snapshot.cc" ]
++      deps += [ ":run_node_mksnapshot" ]
++      if (is_clang || !is_win) {
++        # The generated node_snapshot.cc is huge auto-generated C++.
++        cflags_cc += [
++          "-Wno-c++11-narrowing",
++          "-Wno-shadow",
++        ]
++      }
++    } else {
++      # No snapshot in this config: provide the same fallback as
++      # ":node_snapshot_stub" so consumers of ":node_snapshot" still get one
++      # definition of GetEmbeddedSnapshotData().
++      sources = [ "src/node_snapshot_stub.cc" ]
++    }
++  }
++
+   action("generate_config_gypi") {
+     deps = [ "$node_v8_path:v8_generate_features_json" ]
+     script = "tools/generate_config_gypi.py"
+-- 
+2.55.0

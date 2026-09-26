@@ -28,7 +28,8 @@ class MicrotasksRunner;
 class JavascriptEnvironment {
  public:
   explicit JavascriptEnvironment(uv_loop_t* event_loop,
-                                 bool setup_wasm_streaming = false);
+                                 bool setup_wasm_streaming = false,
+                                 bool use_node_snapshot = false);
   ~JavascriptEnvironment();
 
   // disable copy
@@ -37,6 +38,8 @@ class JavascriptEnvironment {
 
   void CreateMicrotasksRunner();
   void DestroyMicrotasksRunner();
+
+  void InitializeRuntimeProfiler();
 
   node::MultiIsolatePlatform* platform() const { return platform_.get(); }
   v8::Isolate* isolate() const { return isolate_; }

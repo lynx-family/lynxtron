@@ -27,6 +27,7 @@
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/single_thread_task_runner.h"
 #include "gin/function_template.h"
+#include "gin/public/gin_embedders.h"
 #include "shell/api/api_app.h"
 #include "shell/app/application.h"
 #include "shell/common/fuses.h"
@@ -43,6 +44,7 @@
 #include "src/lynxtron_version.h"
 #include "third_party/node/src/debug_utils.h"
 #include "third_party/node/src/module_wrap.h"
+#include "third_party/node/src/node_snapshot_builder.h"
 
 #define LYNXTRON_BROWSER_BINDINGS(V)       \
   V(lynxtron_binding_app)                  \
@@ -294,6 +296,12 @@ namespace lynxtron {
 
 namespace {
 
+// Choose a reasonable unique index that's higher than any Blink uses
+// and thus unlikely to collide with an existing index.
+constexpr int kElectronContextEmbedderDataIndex =
+    static_cast<int>(gin::kPerContextDataStartIndex) +
+    static_cast<int>(gin::kEmbedderElectron);
+
 base::FilePath GetResourcesPath() {
 #if BUILDFLAG(IS_MAC)
   return lynxtron::MainApplicationBundlePath()
@@ -306,6 +314,32 @@ base::FilePath GetResourcesPath() {
   return assets_path.Append(FILE_PATH_LITERAL("resources"));
 #endif
 }
+
+void SetUpContext(v8::Isolate* isolate,
+                  v8::Local<v8::Context> context,
+                  node::IsolateData* isolate_data,
+                  bool only_load_app_from_asar) {
+  const std::vector<std::string> search_paths = {"app.asar", "app",
+                                                 "default_app.asar"};
+  const std::vector<std::string> app_asar_search_paths = {"app.asar"};
+
+  context->Global()->SetPrivate(
+      context,
+      v8::Private::ForApi(
+          isolate,
+          gin::ConvertToV8(isolate, "appSearchPaths").As<v8::String>()),
+      gin::ConvertToV8(isolate, only_load_app_from_asar ? app_asar_search_paths
+                                                        : search_paths));
+  context->Global()->SetPrivate(
+      context,
+      v8::Private::ForApi(
+          isolate, gin::ConvertToV8(isolate, "appSearchPathsOnlyLoadASAR")
+                       .As<v8::String>()),
+      gin::ConvertToV8(isolate, only_load_app_from_asar));
+  context->SetAlignedPointerInEmbedderData(kElectronContextEmbedderDataIndex,
+                                           static_cast<void*>(isolate_data));
+}
+
 }  // namespace
 
 NodeBindings::NodeBindings() : uv_loop_{InitEventLoop(&worker_loop_)} {}
@@ -446,7 +480,9 @@ void NodeBindings::Initialize(v8::Isolate* const isolate,
   }
 #endif
 
-  gin_helper::internal::Event::GetConstructor(isolate, context);
+  if (!context.IsEmpty()) {
+    gin_helper::internal::Event::GetConstructor(isolate, context);
+  }
 
   g_is_initialized = true;
 }
@@ -461,38 +497,25 @@ std::shared_ptr<node::Environment> NodeBindings::CreateEnvironment(
     std::optional<base::RepeatingCallback<void()>> on_app_code_ready) {
   // Feed node the path to initialization script.
 
-  gin_helper::Dictionary global(isolate, context->Global());
-
-  const std::vector<std::string> search_paths = {"app.asar", "app",
-                                                 "default_app.asar"};
-  const std::vector<std::string> app_asar_search_paths = {"app.asar"};
-
   const bool is_only_load_app_from_asar_enabled =
       fuses::IsOnlyLoadAppFromAsarEnabled();
-
-  context->Global()->SetPrivate(
-      context,
-      v8::Private::ForApi(
-          isolate,
-          gin::ConvertToV8(isolate, "appSearchPaths").As<v8::String>()),
-      gin::ConvertToV8(isolate, is_only_load_app_from_asar_enabled
-                                    ? app_asar_search_paths
-                                    : search_paths));
-  context->Global()->SetPrivate(
-      context,
-      v8::Private::ForApi(
-          isolate, gin::ConvertToV8(isolate, "appSearchPathsOnlyLoadASAR")
-                       .As<v8::String>()),
-      gin::ConvertToV8(isolate, is_only_load_app_from_asar_enabled));
 
   std::string init_script = "lynxtron/js2c/browser_init";
 
   args.insert(args.begin() + 1, init_script);
 
-  auto* isolate_data = node::CreateIsolateData(isolate, uv_loop_, platform);
+  const bool from_snapshot = context.IsEmpty();
+  auto snapshot_wrapper = from_snapshot
+                              ? node::SnapshotBuilder::GetEmbeddedSnapshotData()
+                                    ->AsEmbedderWrapper()
+                              : node::EmbedderSnapshotData::Pointer{};
+  auto* isolate_data = node::CreateIsolateData(isolate, uv_loop_, platform,
+                                               nullptr, snapshot_wrapper.get());
   isolate_data->max_young_gen_size = max_young_generation_size;
-  context->SetAlignedPointerInEmbedderData(kElectronContextEmbedderDataIndex,
-                                           static_cast<void*>(isolate_data));
+  if (!from_snapshot) {
+    SetUpContext(isolate, context, isolate_data,
+                 is_only_load_app_from_asar_enabled);
+  }
 
   uint64_t env_flags = node::EnvironmentFlags::kDefaultFlags |
                        node::EnvironmentFlags::kHideConsoleWindows |
@@ -510,6 +533,15 @@ std::shared_ptr<node::Environment> NodeBindings::CreateEnvironment(
       isolate, static_cast<node::IsolateData*>(isolate_data), context, args,
       exec_args, static_cast<node::EnvironmentFlags::Flags>(env_flags));
   DCHECK(env);
+
+  std::optional<v8::Context::Scope> snapshot_context_scope;
+  if (from_snapshot) {
+    context = env->context();
+    snapshot_context_scope.emplace(context);
+    SetUpContext(isolate, context, isolate_data,
+                 is_only_load_app_from_asar_enabled);
+    gin_helper::internal::Event::GetConstructor(isolate, context);
+  }
 
   node::IsolateSettings is;
 
@@ -538,6 +570,9 @@ std::shared_ptr<node::Environment> NodeBindings::CreateEnvironment(
       ModifyCodeGenerationFromStrings;
   is.policy = v8::MicrotasksPolicy::kExplicit;
 
+  if (from_snapshot) {
+    is.flags &= ~node::IsolateSettingsFlags::MESSAGE_LISTENER_WITH_ERROR_LEVEL;
+  }
   node::SetIsolateUpForNode(isolate, is);
   isolate->SetHostImportModuleDynamicallyCallback(HostImportModuleDynamically);
   isolate->SetHostImportModuleWithPhaseDynamicallyCallback(

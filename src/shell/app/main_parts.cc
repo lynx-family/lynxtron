@@ -12,6 +12,7 @@
 #include <utility>
 
 #include "app/application.h"
+#include "base/check.h"
 #include "base/command_line.h"
 #include "base/feature_list.h"
 #include "base/path_service.h"
@@ -36,6 +37,7 @@
 #include "shell/common/node_bindings.h"
 #include "shell/common/node_includes.h"
 #include "shell/common/path_provider.h"
+#include "third_party/node/src/node_snapshot_builder.h"
 
 #if BUILDFLAG(IS_WIN)
 #include "base/win/scoped_com_initializer.h"
@@ -153,20 +155,31 @@ void MainParts::Initialize() {
 
   // The ProxyResolverV8 has setup a complete V8 environment, in order to
   // avoid conflicts we only initialize our V8 environment after that.
-  js_env_ = std::make_unique<JavascriptEnvironment>(node_bindings_->uv_loop());
+  const bool from_node_snapshot =
+      node::SnapshotBuilder::GetEmbeddedSnapshotData() != nullptr;
+  js_env_ = std::make_unique<JavascriptEnvironment>(node_bindings_->uv_loop(),
+                                                    false, from_node_snapshot);
 
   v8::Isolate* const isolate = js_env_->isolate();
   v8::HandleScope scope(isolate);
-  if (main_parts_delegate_) {
-    main_parts_delegate_->PostV8Initialization();
-  }
-  node_bindings_->Initialize(isolate, isolate->GetCurrentContext());
+  v8::Local<v8::Context> context = isolate->GetCurrentContext();
+  node_bindings_->Initialize(isolate, context);
 
   // Create the global environment.
   node_env_ = node_bindings_->CreateEnvironment(
-      isolate, isolate->GetCurrentContext(), js_env_->platform(),
+      isolate, context, js_env_->platform(),
       js_env_->max_young_generation_size_in_bytes());
-
+  if (from_node_snapshot) {
+    node_env_->context()->Enter();
+    // The normal path registers the profiler after entering its context.
+    js_env_->InitializeRuntimeProfiler();
+  }
+  // The snapshot context is restored by CreateEnvironment, so run delegates
+  // only after the main context is entered on both initialization paths.
+  if (main_parts_delegate_) {
+    CHECK(!isolate->GetCurrentContext().IsEmpty());
+    main_parts_delegate_->PostNodeEnvironmentInitialization();
+  }
   node_env_->set_trace_sync_io(node_env_->options()->trace_sync_io);
 
   // We do not want to crash the main process on unhandled rejections.
