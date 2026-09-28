@@ -2,6 +2,7 @@
 # Licensed under the Apache License Version 2.0 that can be found in the
 # LICENSE file in the root directory of this source tree.
 import("//build/config/win/manifest.gni")
+import("//lynx/clay/common/config.gni")
 import("//lynx/config.gni")
 import("//lynx/core/Lynx.gni")
 import("//testing/test.gni")
@@ -1156,7 +1157,9 @@ if (is_linux) {
     ]
 
     configs += lynxtron_lib_extra_configs
-    ldflags = [ "-l:libepoxy.so.0" ]
+    if (!enable_skity) {
+      ldflags = [ "-l:libepoxy.so.0" ]
+    }
 
     include_dirs = [ "." ]
     sources = [ "shell/app/main_linux.cc" ]
@@ -1172,7 +1175,9 @@ if (is_linux) {
   shared_library("lynxtron_shared") {
     deps = [ ":lynxtron_lib" ]
     configs += lynxtron_lib_extra_configs
-    ldflags = [ "-l:libepoxy.so.0" ]
+    if (!enable_skity) {
+      ldflags = [ "-l:libepoxy.so.0" ]
+    }
     output_name = "lynxtron"
   }
 }
