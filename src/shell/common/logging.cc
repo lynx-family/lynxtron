@@ -162,7 +162,7 @@ void LynxLogCallback(lynx_log_level_e level, const char* tag, const char* msg) {
       LYNX_CALLBACK_LOG(FATAL, tag, msg);
       break;
     case LYNX_LOG_ERROR:
-      // LYNX_CALLBACK_LOG(ERROR, tag, msg);
+      LYNX_CALLBACK_LOG(ERROR, tag, msg);
       break;
     case LYNX_LOG_WARNING:
       LYNX_CALLBACK_LOG(WARNING, tag, msg);
