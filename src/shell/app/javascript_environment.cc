@@ -23,6 +23,7 @@
 #include "shell/common/gin_helper/cleaned_up_at_exit.h"
 #include "shell/common/node_includes.h"
 #include "shell/common/options_switches.h"
+#include "third_party/node/src/node_snapshot_builder.h"
 #include "third_party/node/src/node_wasm_web_api.h"
 
 #if ENABLE_TRACE_PERFETTO
@@ -48,6 +49,11 @@ std::unique_ptr<gin::IsolateHolder> CreateIsolateHolder(
   // --heapsnapshot-near-heap-limit=max_count.
   *max_young_generation_size =
       create_params->constraints.max_young_generation_size_in_bytes();
+  const node::SnapshotData* snapshot =
+      node::SnapshotBuilder::GetEmbeddedSnapshotData();
+  CHECK(snapshot);
+  create_params->snapshot_blob =
+      const_cast<v8::StartupData*>(&snapshot->v8_snapshot_blob_data);
   // Align behavior with V8 Isolate default for Node.js.
   // This is necessary for important aspects of Node.js
   // including heap and cpu profilers to function properly.
@@ -64,19 +70,22 @@ std::unique_ptr<gin::IsolateHolder> CreateIsolateHolder(
 
 JavascriptEnvironment::JavascriptEnvironment(uv_loop_t* event_loop,
                                              bool setup_wasm_streaming)
-    : isolate_holder_{CreateIsolateHolder(
-          Initialize(event_loop, setup_wasm_streaming),
-          &max_young_generation_size_)},
+    : isolate_holder_{
+          CreateIsolateHolder(Initialize(event_loop, setup_wasm_streaming),
+                              &max_young_generation_size_)},
       isolate_{isolate_holder_->isolate()},
       locker_{std::make_unique<v8::Locker>(isolate_)} {
   isolate_->Enter();
+}
 
-  v8::HandleScope scope(isolate_);
-  auto context = node::NewContext(isolate_);
+void JavascriptEnvironment::EnterContext(v8::Local<v8::Context> context) {
   CHECK(!context.IsEmpty());
-
+  DCHECK(isolate_->GetCurrentContext().IsEmpty());
   context->Enter();
+  InitializeRuntimeProfiler();
+}
 
+void JavascriptEnvironment::InitializeRuntimeProfiler() {
 #if ENABLE_TRACE_PERFETTO
   lynxtron::trace::RuntimeProfileHelper::GetInstance().SetV8RuntimeProfiler(
       isolate_);
@@ -87,7 +96,10 @@ JavascriptEnvironment::~JavascriptEnvironment() {
   DCHECK_NE(platform_, nullptr);
   {
     v8::HandleScope scope(isolate_);
-    isolate_->GetCurrentContext()->Exit();
+    v8::Local<v8::Context> context = isolate_->GetCurrentContext();
+    if (!context.IsEmpty()) {
+      context->Exit();
+    }
   }
   isolate_->Exit();
   g_isolate = nullptr;
@@ -128,7 +140,7 @@ v8::Isolate* JavascriptEnvironment::Initialize(uv_loop_t* event_loop,
   gin::IsolateHolder::Initialize(
       gin::IsolateHolder::kNonStrictMode,
       gin::ArrayBufferAllocator::SharedInstance(),
-      nullptr /* external_reference_table */, js_flags,
+      node::SnapshotBuilder::CollectExternalReferences().data(), js_flags,
       false /* disallow_v8_feature_flag_overrides */,
       nullptr /* fatal_error_callback */, nullptr /* oom_error_callback */,
       false /* create_v8_platform */);
