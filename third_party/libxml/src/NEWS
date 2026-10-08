@@ -2136,7 +2136,7 @@ v2.9.9: Jan 03 2019:
   Add newlines to 'xmllint --xpath' output (Nick Wellnhofer),
   Don't include SAX.h from globals.h (Nick Wellnhofer),
   Support xmlTextReaderNextSibling w/o preparsed doc (Felix Bünemann),
-  Don't instruct user to run make when autogen.sh failed (林博仁(Buo-ren Lin)),
+  Don't instruct user to run make when autogen.sh failed (Buo-ren Lin),
   Run Travis ASan tests with "sudo: required" (Nick Wellnhofer),
   Improve restoring of context size and position (Nick Wellnhofer),
   Simplify and harden nodeset filtering (Nick Wellnhofer),
