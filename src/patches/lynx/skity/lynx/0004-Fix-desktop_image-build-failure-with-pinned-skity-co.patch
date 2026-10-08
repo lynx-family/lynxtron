@@ -5,56 +5,60 @@ Subject: [PATCH] Fix desktop_image build failure with pinned skity codec API
 
 The open-source build pins skity at a revision whose skity::Codec only
 exposes Decode() and has no DecodeOptions struct / Decode(DecodeOptions)
-overload. desktop_image.cc used the newer decode-time scaling API, which
+overload. The desktop codec used the newer decode-time scaling API, which
 fails to compile:
 
   error: no member named 'DecodeOptions' in namespace 'skity'
 
-Decode at the intrinsic size instead. ScalePixmap() in ToBitmap() already
-resizes the decoded pixmap to the requested render size, so the visible
-output is unchanged; only the decode-time downscaling optimization is
-dropped.
----
- clay/shell/platform/common/desktop/codec/desktop_image.cc | 22 ++++++++--------
- 1 file changed, 10 insertions(+), 12 deletions(-)
+Decode at the intrinsic size instead. DesktopImage::ToBitmap() scales the
+decoded pixmap to the requested render size, so the visible output is
+unchanged; only the decode-time downscaling optimization is dropped.
 
-diff --git a/clay/shell/platform/common/desktop/codec/desktop_image.cc b/clay/shell/platform/common/desktop/codec/desktop_image.cc
-index b917833d11..520f6df085 100644
---- a/clay/shell/platform/common/desktop/codec/desktop_image.cc
-+++ b/clay/shell/platform/common/desktop/codec/desktop_image.cc
-@@ -158,13 +158,12 @@ DesktopImage::DesktopImage(std::shared_ptr<skity::Codec> codec,
-   decoder_ = codec_->DecodeMultiFrame();
-   is_animated_ = decoder_ && decoder_->GetFrameCount() > 1;
- 
--  if (!is_animated_ && !decode_size.IsZero()) {
--    current_pixmap_ = codec_->Decode(
--        skity::DecodeOptions{decode_size.width(), decode_size.height()});
--  }
--  if (!current_pixmap_) {
--    current_pixmap_ = codec_->Decode();
--  }
-+  // NOTE: skity's Codec::Decode(DecodeOptions) (decode-time downscaling) is not
-+  // available in the skity revision pinned for the open-source build, so decode
-+  // at the intrinsic size here. ScalePixmap() in ToBitmap() still scales the
-+  // pixmap to the requested render size, so the visible result is unchanged.
-+  (void)decode_size;
-+  current_pixmap_ = codec_->Decode();
-   if (!current_pixmap_ || !current_pixmap_->Addr() ||
-       current_pixmap_->Width() <= 0 || current_pixmap_->Height() <= 0 ||
-       current_pixmap_->RowBytes() <= 0) {
-@@ -196,10 +195,9 @@ std::shared_ptr<skity::Pixmap> DesktopImage::ToBitmap(
-     const ImageInfo& render_info) {
-   auto pixmap = std::move(current_pixmap_);
-   if (!pixmap && codec_ && width_ > 0 && height_ > 0) {
--    pixmap = codec_->Decode(skity::DecodeOptions{width_, height_});
--    if (!pixmap) {
--      pixmap = codec_->Decode();
--    }
-+    // See the note in the constructor: decode at intrinsic size; ScalePixmap()
-+    // below resizes to the requested render size.
-+    pixmap = codec_->Decode();
-   }
-   return ScalePixmap(std::move(pixmap), render_info);
+The Skity codec calls now live in skity_image_codec.cc after the desktop
+image codec refactor.
+---
+ .../platform/common/desktop/codec/skity_image_codec.cc    | 15 ++-------------
+ 1 file changed, 2 insertions(+), 13 deletions(-)
+
+diff --git a/clay/shell/platform/common/desktop/codec/skity_image_codec.cc b/clay/shell/platform/common/desktop/codec/skity_image_codec.cc
+index 7d889ec9..34d2a01e 100644
+--- a/clay/shell/platform/common/desktop/codec/skity_image_codec.cc
++++ b/clay/shell/platform/common/desktop/codec/skity_image_codec.cc
+@@ -51,17 +51,6 @@ FrameInfo MakeFrameInfo(std::shared_ptr<skity::Pixmap> pixmap, int duration) {
+   return {MakeGraphicsImage(std::move(pixmap)), duration};
  }
+
+-std::shared_ptr<skity::Pixmap> DecodeInitialPixmap(
+-    const std::shared_ptr<skity::Codec>& codec, const Size& decode_size,
+-    bool is_animated) {
+-  if (is_animated || decode_size.IsZero()) {
+-    return codec->Decode();
+-  }
+-  auto pixmap = codec->Decode(
+-      skity::DecodeOptions{decode_size.width(), decode_size.height()});
+-  return pixmap ? pixmap : codec->Decode();
+-}
+-
+ }  // namespace
+
+ class SkityImageCodec::State {
+@@ -105,7 +94,7 @@ class SkityImageCodec::State {
+ };
+
+ std::shared_ptr<ImageCodecGenerator> SkityImageCodecGenerator::Create(
+-    std::shared_ptr<skity::Data> encoded_data, const Size& decode_size) {
++    std::shared_ptr<skity::Data> encoded_data, const Size&) {
+   if (!encoded_data || encoded_data->IsEmpty()) {
+     return nullptr;
+   }
+@@ -119,7 +108,7 @@ std::shared_ptr<ImageCodecGenerator> SkityImageCodecGenerator::Create(
+       multi_frame_decoder ? multi_frame_decoder->GetFrameCount() : 0;
+   const bool is_animated = decoded_frame_count > 1;
+
+-  auto current_pixmap = DecodeInitialPixmap(codec, decode_size, is_animated);
++  auto current_pixmap = codec->Decode();
+   if (!IsValidPixmap(current_pixmap)) {
+     return nullptr;
+   }
 -- 
 2.30.0

@@ -15,8 +15,8 @@ index 3782ae1..0581455 100644
  
    sources = []
  
--  if (is_mac || is_linux || target_cpu == "wasm") {
-+  if (is_mac || is_linux || is_win || target_cpu == "wasm") {
+-  if (is_ios || is_mac || is_linux || target_cpu == "wasm") {
++  if (is_ios || is_mac || is_linux || is_win || target_cpu == "wasm") {
      deps += [ ":bidi" ]
    }
  
