@@ -119,6 +119,33 @@ deps = {
         "condition": system in ['darwin', 'windows'],
          "require": ["../buildtools"]
     },
+    '../buildtools/gperf': {
+        "type": "http",
+        "url": "https://downloads.sourceforge.net/project/gnuwin32/gperf/3.0.1/gperf-3.0.1-bin.zip",
+        "sha256": "413d9f5562c39c2fcac1e48b3e2155838680a0aec1ddcb95b23cb2f092962dcc",
+        "ignore_in_git": True,
+        "condition": system == "windows" and machine == "x86_64",
+        "require": ["../buildtools"]
+    },
+    '../buildtools/gperf-linux.zip': {
+        "type": "http",
+        "url": "https://chrome-infra-packages.appspot.com/dl/infra/3pp/tools/gperf/linux-amd64/+/version:3@3.2",
+        "sha256": "a2dad151e1d0afdce5c6d4f8b097d226ab29cad056afd2243eb859f1b1689676",
+        "decompress": False,
+        "ignore_in_git": True,
+        "condition": system == "linux" and machine == "x86_64",
+        "require": ["../buildtools"]
+    },
+    'unpack_gperf': {
+        "type": "action",
+        "cwd": root_dir,
+        "commands": [
+            "python3 -m zipfile -e ../buildtools/gperf-linux.zip ../buildtools/gperf",
+            "chmod +x ../buildtools/gperf/bin/gperf",
+        ],
+        "require": ["../buildtools/gperf-linux.zip"],
+        "condition": system == "linux" and machine == "x86_64",
+    },
     '../buildtools/corepack/pnpm/7.33.6': {
         "type": "http",
         "url": "https://registry.npmjs.org/pnpm/-/pnpm-7.33.6.tgz",
