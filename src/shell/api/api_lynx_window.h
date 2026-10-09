@@ -159,6 +159,7 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
 #endif
 
   bool software_render_ = true;
+  bool enable_js_group_ = false;
   std::vector<std::string> node_integration_preload_ = {};
   std::unique_ptr<LynxView> lynx_view_;
   static bool lynx_global_init_;
