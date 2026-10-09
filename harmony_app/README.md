@@ -205,6 +205,44 @@ harmony_app/entry/build/default/outputs/default/entry-default-unsigned.hap
 `command-line-tools` under the repository, its parent, or `OHOS_TOOLS`.
 Setting it explicitly is recommended for reproducible builds.
 
+### Background JS / useEffect troubleshooting
+
+The HAP must contain `resources/resfile/resources/lynx_core.js`. Generate it
+for the checked-out Lynx revision with:
+
+```sh
+(cd lynx && python3 tools/js_tools/build.py --platform android)
+```
+
+`build_hap.sh` copies this generated file into the HAP and builds it if absent.
+After switching Lynx revisions, regenerate it explicitly: an existing output
+is not automatically rebuilt by the packaging script.
+
+Packaging the file alone is insufficient. `src/lib/browser/api/lynx-resource-fetcher.ts`
+must resolve `assets://lynx_core.js` against `process.resourcesPath`. If the log
+says `on-fetch-resource: Unsupported protocol: assets:`, the background runtime
+cannot load its core script. The synchronous first screen can still appear,
+but `useEffect`, JS event handlers and state updates do not work. Restore the
+`assets://` handler rather than changing the JS engine or effect scheduler.
+This handler existed in the old HarmonyOS integration commit `fa39917`.
+
+For device verification, render a counter updated once per second by
+`setInterval` inside `useEffect`, with `clearInterval` in its cleanup. Verify
+that the displayed counter keeps increasing; a rendered first screen alone
+does not establish that background JS works. Rebuild the application bundle
+before packaging a modified default app:
+
+```sh
+python3 src/packages/default_app/app/build.py
+ninja -C out/harmony_arm64_Release -j6 \
+  lynxtron_app lynxtron_napi_bridge default_app_static default_app_asar
+bash harmony_app/build_hap.sh --signed
+```
+
+Resource-loading regression coverage is in
+`src/spec/lynx-resource-fetcher-spec.ts` (core asset, file URL, invalid asset
+paths, missing file and unavailable resources directory).
+
 ## Sign the HAP
 
 The configured application bundle name is `com.huawei.electron`. The signing
