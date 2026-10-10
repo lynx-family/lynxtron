@@ -6,6 +6,11 @@ const path = require('node:path');
 
 const projectRoot = __dirname;
 const distDir = path.resolve(projectRoot, 'dist');
+const rspeedyPackagePath = require.resolve('@lynx-js/rspeedy/package.json');
+const rspeedyBin = path.resolve(
+  path.dirname(rspeedyPackagePath),
+  require(rspeedyPackagePath).bin.rspeedy
+);
 
 const { entries } = require('./cards.config');
 const allProjects = Object.keys(entries);
