@@ -6,6 +6,7 @@ import("//lynx/clay/common/config.gni")
 import("//lynx/config.gni")
 import("//lynx/core/Lynx.gni")
 import("//testing/test.gni")
+import("//third_party/node/node.gni")
 import("//tools/v8_context_snapshot/v8_context_snapshot.gni")
 import("../config.gni")
 import("build/asar.gni")
@@ -25,6 +26,11 @@ if (is_mac) {
   assert(
       mac_deployment_target == "12.0",
       "Chromium has updated the mac_deployment_target, please update this assert and flag this as a breaking change (docs/breaking-changes.md)")
+}
+
+if (is_mac || is_win || is_linux) {
+  assert(node_use_node_snapshot,
+         "Lynxtron requires the embedded Node startup snapshot")
 }
 
 lynxtron_project_name = "lynxtron"
@@ -454,6 +460,7 @@ source_set("lynxtron_lib") {
     "//gin",
     "//third_party/libxml:xml_writer",
     "//third_party/node:libnode",
+    "//third_party/node:node_snapshot",
     "//third_party/re2",
     "//url",
     "//v8",
@@ -914,15 +921,6 @@ if (is_mac) {
     }
     if (v8_use_external_startup_data) {
       public_deps += [ "//v8" ]
-      sources += [ "$root_out_dir/snapshot_blob.bin" ]
-
-      # TODO(Guo Xi): review use_v8_context_snapshot
-      # if (use_v8_context_snapshot) {
-      #   sources += [ "$root_out_dir/$v8_context_snapshot_filename" ]
-      #   public_deps += [ "//tools/v8_context_snapshot" ]
-      # } else {
-      #   sources += [ "$root_out_dir/snapshot_blob.bin" ]
-      # }
     }
     outputs = [ "{{bundle_resources_dir}}/{{source_file_part}}" ]
   }

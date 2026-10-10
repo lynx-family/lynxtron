@@ -14,6 +14,7 @@
 #include "base/memory/raw_ptr.h"
 #include "gin/public/isolate_holder.h"
 #include "uv.h"  // NOLINT(build/include_directory)
+#include "v8/include/v8-context.h"
 #include "v8/include/v8-locker.h"
 
 namespace node {
@@ -37,6 +38,8 @@ class JavascriptEnvironment {
 
   void CreateMicrotasksRunner();
   void DestroyMicrotasksRunner();
+  // Enter the Node context restored after this isolate is created.
+  void EnterContext(v8::Local<v8::Context> context);
 
   node::MultiIsolatePlatform* platform() const { return platform_.get(); }
   v8::Isolate* isolate() const { return isolate_; }
@@ -48,6 +51,7 @@ class JavascriptEnvironment {
 
  private:
   v8::Isolate* Initialize(uv_loop_t* event_loop, bool setup_wasm_streaming);
+  void InitializeRuntimeProfiler();
   std::unique_ptr<node::MultiIsolatePlatform> platform_;
 
   size_t max_young_generation_size_ = 0;

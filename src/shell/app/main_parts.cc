@@ -12,6 +12,7 @@
 #include <utility>
 
 #include "app/application.h"
+#include "base/check.h"
 #include "base/command_line.h"
 #include "base/feature_list.h"
 #include "base/path_service.h"
@@ -21,7 +22,6 @@
 #include "base/task/thread_pool/thread_pool_instance.h"
 #include "base/threading/hang_watcher.h"
 #include "build/build_config.h"
-#include "gin/v8_initializer.h"
 #include "main_parts_delegate.h"
 #include "shell/api/lynx_view/lynx_view.h"
 #if ENABLE_HEADLESS
@@ -36,6 +36,7 @@
 #include "shell/common/node_bindings.h"
 #include "shell/common/node_includes.h"
 #include "shell/common/path_provider.h"
+#include "third_party/node/src/node_snapshot_builder.h"
 
 #if BUILDFLAG(IS_WIN)
 #include "base/win/scoped_com_initializer.h"
@@ -149,7 +150,11 @@ void MainParts::Initialize() {
 #endif
 #endif
 
-  gin::V8Initializer::LoadV8Snapshot(gin::V8SnapshotFileType::kDefault);
+  const node::SnapshotData* snapshot =
+      node::SnapshotBuilder::GetEmbeddedSnapshotData();
+  CHECK(snapshot);
+  v8::V8::SetSnapshotDataBlob(
+      const_cast<v8::StartupData*>(&snapshot->v8_snapshot_blob_data));
 
   // The ProxyResolverV8 has setup a complete V8 environment, in order to
   // avoid conflicts we only initialize our V8 environment after that.
@@ -157,16 +162,20 @@ void MainParts::Initialize() {
 
   v8::Isolate* const isolate = js_env_->isolate();
   v8::HandleScope scope(isolate);
-  if (main_parts_delegate_) {
-    main_parts_delegate_->PostV8Initialization();
-  }
-  node_bindings_->Initialize(isolate, isolate->GetCurrentContext());
+  // Node restores the main context while creating its Environment.
+  v8::Local<v8::Context> context;
+  node_bindings_->Initialize(isolate, context);
 
   // Create the global environment.
   node_env_ = node_bindings_->CreateEnvironment(
-      isolate, isolate->GetCurrentContext(), js_env_->platform(),
+      isolate, context, js_env_->platform(),
       js_env_->max_young_generation_size_in_bytes());
-
+  js_env_->EnterContext(node_env_->context());
+  // Run delegates after the restored main context is entered.
+  if (main_parts_delegate_) {
+    CHECK(!isolate->GetCurrentContext().IsEmpty());
+    main_parts_delegate_->PostNodeEnvironmentInitialization();
+  }
   node_env_->set_trace_sync_io(node_env_->options()->trace_sync_io);
 
   // We do not want to crash the main process on unhandled rejections.

@@ -18,7 +18,7 @@ function getElectronExec () {
   const OUT_DIR = getOutDir();
   switch (process.platform) {
     case 'darwin':
-      return `out/${OUT_DIR}/Lynxtron.app/Contents/MacOS/Lynxtron`;
+      return `out/${OUT_DIR}/lynxtron.app/Contents/MacOS/lynxtron`;
     case 'win32':
       return `out/${OUT_DIR}/lynxtron.exe`;
     case 'linux':

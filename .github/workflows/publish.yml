@@ -316,7 +316,6 @@ jobs:
           if (Test-Path "$releaseDir\devtool_resources") { Copy-Item -Recurse -Path "$releaseDir\devtool_resources" -Destination "$archiveDir\devtool_resources" -Force }
           if (Test-Path "$releaseDir\resources") { Copy-Item -Recurse -Path "$releaseDir\resources" -Destination "$archiveDir\resources" -Force }
           if (Test-Path "$releaseDir\icudtl.dat") { Copy-Item -Path "$releaseDir\icudtl.dat" -Destination $archiveDir -Force }
-          if (Test-Path "$releaseDir\snapshot_blob.bin") { Copy-Item -Path "$releaseDir\snapshot_blob.bin" -Destination $archiveDir -Force }
 
           # Remove unnecessary executable files
           $unwantedExes = @("mksnapshot.exe", "protoc.exe", "torque.exe", "cppgen_plugin.exe", "protozero_plugin.exe", "nasm.exe", "gen-regexp-special-case.exe", "node_js2c.exe", "bytecode_builtins_list_generator.exe")
@@ -569,7 +568,6 @@ jobs:
           if (Test-Path "$releaseDir\devtool_resources") { Copy-Item -Recurse -Path "$releaseDir\devtool_resources" -Destination "$archiveDir\devtool_resources" -Force }
           if (Test-Path "$releaseDir\resources") { Copy-Item -Recurse -Path "$releaseDir\resources" -Destination "$archiveDir\resources" -Force }
           if (Test-Path "$releaseDir\icudtl.dat") { Copy-Item -Path "$releaseDir\icudtl.dat" -Destination $archiveDir -Force }
-          if (Test-Path "$releaseDir\snapshot_blob.bin") { Copy-Item -Path "$releaseDir\snapshot_blob.bin" -Destination $archiveDir -Force }
 
           $unwantedExes = @("mksnapshot.exe", "protoc.exe", "torque.exe", "cppgen_plugin.exe", "protozero_plugin.exe", "nasm.exe", "gen-regexp-special-case.exe", "node_js2c.exe", "bytecode_builtins_list_generator.exe")
           foreach ($exe in $unwantedExes) {

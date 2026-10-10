@@ -115,6 +115,10 @@ def main(argv):
 
   if get_current_os() == 'mac':
     gn_args += f' target_cpu="{args.mac_cpu}"'
+    if platform.machine() == 'arm64' and args.mac_cpu == 'x64':
+      # node_mksnapshot must execute x64 code under Rosetta. The default
+      # arm64_v8_x64 toolchain emits x64 code from an arm64 host binary.
+      gn_args += ' v8_snapshot_toolchain="//build/toolchain/mac:clang_x64"'
   elif get_current_os() == 'linux':
     gn_args += f' target_cpu="{args.linux_cpu}"'
   elif get_current_os() == 'win':

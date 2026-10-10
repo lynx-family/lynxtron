@@ -21,7 +21,6 @@
 #include "base/memory/weak_ptr.h"
 #include "base/types/to_address.h"
 #include "gin/public/context_holder.h"
-#include "gin/public/gin_embedders.h"
 #include "uv.h"  // NOLINT(build/include_directory)
 #include "v8/include/v8-forward.h"
 
@@ -206,12 +205,6 @@ class NodeBindings {
 
   // Current thread's MessageLoop.
   scoped_refptr<base::SingleThreadTaskRunner> task_runner_;
-
-  // Choose a reasonable unique index that's higher than any Blink uses
-  // and thus unlikely to collide with an existing index.
-  static constexpr int kElectronContextEmbedderDataIndex =
-      static_cast<int>(gin::kPerContextDataStartIndex) +
-      static_cast<int>(gin::kEmbedderElectron);
 
   // Thread to poll uv events.
   static void EmbedThreadRunner(void* arg);
