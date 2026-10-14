@@ -11,6 +11,29 @@ defaults:
     working-directory: lynxtron
 
 jobs:
+  npm-runtime-test:
+    runs-on: lynx-ubuntu-22.04-medium
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          path: lynxtron
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          registry-url: https://registry.npmjs.org
+      - name: Install isolated test dependencies
+        run: |
+          npm install --prefix "$RUNNER_TEMP/runtime-test-deps" --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org pacote@21 @npmcli/config@10 proper-lockfile@4.1.2 zip-lib@1.4.0 node-fetch@3.3.2 yazl@3.3.1 js-yaml@4 app-builder-lib@26.13.0
+          node -e "require('node:fs').symlinkSync(process.env.RUNNER_TEMP + '/runtime-test-deps/node_modules', 'src/node_modules', 'dir')"
+      - name: Test runtime distribution and builder configuration
+        run: |
+          node --test src/packages/lynxtron/*.test.js src/packages/lynxtron-builder/test/runtime-config.test.js
+          node --test --test-name-pattern='runtime packages|npm packages' src/packages/lynxtron-builder/test/publish-workflow.test.js
+
   static-check:
     runs-on: lynx-ubuntu-22.04-medium
     timeout-minutes: 30

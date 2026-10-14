@@ -3,6 +3,10 @@ name: publish
 on:
   workflow_call:
     inputs:
+      npm_tag:
+        description: 'Optional npm dist-tag override for prerelease validation'
+        required: false
+        type: string
       prefer_discrete_gpu:
         description: 'Prefer high-performance Windows graphics instead of system selection'
         required: false
@@ -18,6 +22,10 @@ on:
         type: string
   workflow_dispatch:
     inputs:
+      npm_tag:
+        description: 'Optional npm dist-tag override for alpha validation (e.g. runtime-test)'
+        required: false
+        type: string
       prefer_discrete_gpu:
         description: 'Prefer high-performance Windows graphics instead of system selection'
         required: false
@@ -698,6 +706,8 @@ jobs:
           provenance: false
       - name: Sync version from tag
         id: prepare
+        env:
+          REQUESTED_NPM_TAG: ${{ inputs.npm_tag }}
         run: |
           VERSION=${{ needs.get-version.outputs.version }}
           cd ${{ github.workspace }}/lynxtron
@@ -717,6 +727,13 @@ jobs:
             NPM_TAG="$PRERELEASE"
           else
             NPM_TAG="latest"
+          fi
+          if [ -n "$REQUESTED_NPM_TAG" ]; then
+            if ! printf '%s' "$REQUESTED_NPM_TAG" | grep -Eq '^[a-z][a-z0-9-]*$' || [ "$REQUESTED_NPM_TAG" = latest ] || [ -z "$PRERELEASE" ]; then
+              echo "Custom npm tag must be a non-latest tag for a prerelease version"
+              exit 1
+            fi
+            NPM_TAG="$REQUESTED_NPM_TAG"
           fi
           echo "npm_tag=$NPM_TAG" >> "$GITHUB_OUTPUT"
           echo "Using npm dist-tag: $NPM_TAG"
