@@ -15,7 +15,8 @@
   },
   "scripts": {
     "postinstall": "node install.js",
-    "test": "node --test \"*.test.js\""
+    "test": "node --test \"*.test.js\"",
+    "test:types:web-host": "tsc --noEmit -p type-tests/tsconfig.web-host.json"
   },
   "dependencies": {
     "node-fetch": "3.3.2",
