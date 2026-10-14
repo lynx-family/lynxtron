@@ -342,3 +342,12 @@ test('legacy -dev release tags are rejected', () => {
   assert.match(versionScript, /\*-dev\|\*-dev\.\*/);
   assert.match(versionScript, /must not include a '-dev' pre-release label/);
 });
+
+test('runtime packages are prepared and verified before publishing the framework', () => {
+  const steps = jobs['publish-npm'].steps;
+  const prepare = steps.findIndex(step => step.name === 'Prepare platform npm packages');
+  const verify = steps.findIndex(step => step.name === 'Publish and verify platform npm packages');
+  const framework = steps.findIndex(step => step.name === 'Publish');
+  assert.ok(prepare >= 0 && prepare < verify && verify < framework);
+  assert.match(steps[verify].run, /runtime-npm\/publish.cjs/);
+});

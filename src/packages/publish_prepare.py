@@ -52,7 +52,7 @@ BASE_URL_REWRITE_PATTERN = re.compile(
 PREPARE_CONFIG = {
     "lynxtron": {
         "package_dir": "./lynxtron",
-        "base_url_rewrite": True,
+        "base_url_rewrite": False,
     },
     # `npm run build` runs generate-template.js + generate-versions.js, which
     # copies the sibling `lynxtron-shell-demo` into `dist/lynxtron-shell-demo`,
@@ -70,7 +70,7 @@ PREPARE_CONFIG = {
     },
     "lynxtron-builder": {
         "package_dir": "./lynxtron-builder",
-        "mirror_rewrite": True,
+        "mirror_rewrite": False,
     },
     "lynxtron-rebuild": {
         "package_dir": "./lynxtron-rebuild",
@@ -151,6 +151,13 @@ def module_init(modules, packages_dir, cfg, args):
         with pkg_path.open("r", encoding="utf-8") as f:
             pkg = json.load(f)
         pkg["version"] = args.version
+        if module == "lynxtron":
+            pkg["optionalDependencies"] = {
+                f"@lynx-js/lynxtron-runtime-{platform}-{arch}-devtool": args.version
+                for platform, arch in [("darwin", "arm64"), ("darwin", "x64"),
+                                       ("linux", "x64"), ("win32", "x64")]
+            }
+
         new_package_name = module_cfg.get("package_name")
         original_package_name = pkg["name"]
         if new_package_name and new_package_name != original_package_name:

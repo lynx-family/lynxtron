@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import lockfile from 'proper-lockfile';
 import zipLib from 'zip-lib';
 
+import { copyRuntimePackageArchive } from './runtime-package.js';
 import runtimeArtifacts from './runtime-artifacts.cjs';
 import { downloadBinary } from './utils/download.js';
 import {
@@ -59,6 +60,11 @@ export async function ensureRuntime({
   packageRoot = __dirname,
   executableRelativePath = PLATFROM_EXE_PATH,
   platform = PLATFORM,
+  arch = ARCH,
+  version = VERSION,
+  allowFetch = variant === 'release',
+  registryCwd = process.cwd(),
+  packageArchive = copyRuntimePackageArchive,
   download = downloadBinary,
   extract = extractRuntimeArchive,
 } = {}) {
@@ -91,21 +97,19 @@ export async function ensureRuntime({
       return { downloaded: false, executablePath, variant: normalizedVariant };
     }
 
-    const downloadUrl = customUrl || getRuntimeDownloadUrl({ variant: normalizedVariant });
-    if (!downloadUrl) {
-      throw new Error(
-        `Lynxtron ${normalizedVariant} runtime is not installed and no download base URL is configured.`
-      );
-    }
-
     const temporaryDirectory = await fs.promises.mkdtemp(
       path.join(distRoot, `.${normalizedVariant}-`)
     );
     const archivePath = `${temporaryDirectory}.zip`;
 
-    console.log(`downloading Lynxtron ${normalizedVariant} runtime from ${downloadUrl}`);
+
     try {
-      await download(downloadUrl, archivePath, { timeoutMs });
+      if (customUrl) {
+        await download(customUrl, archivePath, { timeoutMs });
+      } else {
+        await packageArchive({ platform, arch, version, variant: normalizedVariant,
+          packageRoot, archivePath, allowFetch, cwd: registryCwd });
+      }
       await extract(archivePath, { dir: temporaryDirectory });
 
       const temporaryExecutable = path.join(temporaryDirectory, executableRelativePath);
@@ -114,7 +118,7 @@ export async function ensureRuntime({
           `Expected executable ${temporaryExecutable} was not found in the runtime archive`
         );
       }
-      if (platform === 'darwin' || platform === 'mas') {
+      if (platform === 'darwin' || platform === 'linux') {
         await fs.promises.chmod(temporaryExecutable, 0o755);
       }
 
@@ -129,4 +133,23 @@ export async function ensureRuntime({
   } finally {
     await releaseLock();
   }
+}
+
+// Builder caches target runtimes separately from the host development runtime.
+export async function ensureTargetRuntime({ platform, arch, version = VERSION,
+  variant = 'release', cwd = process.cwd(), cacheRoot } = {}) {
+  runtimeArtifacts.getRuntimePackageName({ platform, arch, variant });
+  if (!cacheRoot) {
+    const { loadRegistryOptions } = await import('./runtime-package.js');
+    const options = await loadRegistryOptions(cwd);
+    cacheRoot = path.join(options.cache, 'lynxtron-runtimes');
+  }
+  if (!/^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(version)) {
+    throw new Error(`Invalid runtime version: ${version}`);
+  }
+  const packageRoot = path.join(cacheRoot, version, `${platform}-${arch}`);
+  await ensureRuntime({ platform, arch, version, variant, packageRoot,
+    executableRelativePath: runtimeArtifacts.getRuntimeExecutableRelativePath(platform),
+    allowFetch: true, registryCwd: cwd });
+  return getRuntimeDirectory(variant, packageRoot);
 }

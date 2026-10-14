@@ -18,7 +18,9 @@
     "test": "node --test \"*.test.js\""
   },
   "dependencies": {
+    "@npmcli/config": "^10.0.0",
     "node-fetch": "3.3.2",
+    "pacote": "^21.0.0",
     "proper-lockfile": "4.1.2",
     "zip-lib": "1.4.0"
   },
@@ -49,7 +51,8 @@
     "web-worker.js",
     "context-bridge.js",
     "README.md",
-    "package.json"
+    "package.json",
+    "runtime-package.js"
   ],
   "exports": {
     ".": {
@@ -73,7 +76,8 @@
       "types": "./apis/web-host.d.ts",
       "default": "./web-host/index.js"
     },
-    "./web-worker": "./web-worker.js"
+    "./web-worker": "./web-worker.js",
+    "./runtime-manager": "./runtime-manager.js"
   },
   "engines": {
     "node": "^22.18.0 || ^24.0.0 || ^26.0.0"

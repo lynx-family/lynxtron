@@ -76,52 +76,61 @@ function readConfig() {
   return yaml.load(fs.readFileSync(configPath, 'utf8')) || {};
 }
 
-function runBuild(arch, rawArgs, { filterTargets = false } = {}) {
+async function runBuild(arch, rawArgs, { filterTargets = false } = {}) {
+  const config = readConfig();
+  const lynxtronPackage = getLynxtronPackage();
+  const prepared = prepareRuntimeConfig({
+    config,
+    args: rawArgs,
+    env: process.env,
+    arch,
+    platform: process.platform,
+    defaultArch: process.arch,
+    lynxtronVersion: lynxtronPackage.version,
+    runtimeArtifacts: lynxtronPackage.runtimeArtifacts,
+  });
+
+  if (prepared.useNpmRuntime) {
+    const managerPath = require.resolve('@lynx-js/lynxtron/runtime-manager', { paths: [projectRoot] });
+    const { ensureTargetRuntime } = await import(require('node:url').pathToFileURL(managerPath).href);
+    config.electronDist = await ensureTargetRuntime({
+      platform: prepared.platform, arch: prepared.arch, version: prepared.version,
+      variant: prepared.variant, cwd: projectRoot,
+    });
+  }
+
+  const cliArchitectures = resolveCliArchitectures(prepared.forwardedArgs);
+  if (arch || cliArchitectures.length === 1) {
+    applyArchitectureToConfig(config, prepared.platform, prepared.arch, {
+      filterTargets,
+    });
+  }
+
+  prepareAutoLinkPackaging({
+    config,
+    projectRoot,
+    platform: prepared.platform,
+    arch: prepared.arch,
+  });
+
+  fs.writeFileSync(tempConfigPath, JSON.stringify(config, null, 2));
+
+  const electronBuilderPath = require.resolve('electron-builder/out/cli/cli.js');
+  const args = prepared.forwardedArgs.filter(arg =>
+    arg !== '--universal' &&
+    arg !== '--mas' &&
+    (!arch || !resolveCliArchitectures([arg]).length)
+  );
+  const finalArgs = ['-c', tempConfigPath, ...args];
+  if (arch) {
+    finalArgs.push(arch);
+  }
   return new Promise((resolve, reject) => {
-    const config = readConfig();
-    const lynxtronPackage = getLynxtronPackage();
-    const prepared = prepareRuntimeConfig({
-      config,
-      args: rawArgs,
-      env: process.env,
-      arch,
-      platform: process.platform,
-      defaultArch: process.arch,
-      lynxtronVersion: lynxtronPackage.version,
-      runtimeArtifacts: lynxtronPackage.runtimeArtifacts,
-    });
-
-    const cliArchitectures = resolveCliArchitectures(prepared.forwardedArgs);
-    if (arch || cliArchitectures.length === 1) {
-      applyArchitectureToConfig(config, prepared.platform, prepared.arch, {
-        filterTargets,
-      });
-    }
-
-    prepareAutoLinkPackaging({
-      config,
-      projectRoot,
-      platform: prepared.platform,
-      arch: prepared.arch,
-    });
-
-    fs.writeFileSync(tempConfigPath, JSON.stringify(config, null, 2));
-
-    const electronBuilderPath = require.resolve('electron-builder/out/cli/cli.js');
-    const args = prepared.forwardedArgs.filter(arg =>
-      arg !== '--universal' &&
-      arg !== '--mas' &&
-      (!arch || !resolveCliArchitectures([arg]).length)
-    );
-    const finalArgs = ['-c', tempConfigPath, ...args];
-    if (arch) {
-      finalArgs.push(arch);
-    }
-
     const child = spawn('node', [electronBuilderPath, ...finalArgs], {
       stdio: 'inherit',
     });
 
+    child.on('error', reject);
     child.on('close', (code) => {
       if (code === 0) {
         resolve();
@@ -163,6 +172,7 @@ async function makeUniversal() {
       stdio: 'inherit',
     });
 
+    child.on('error', reject);
     child.on('close', (code) => {
       if (code === 0) {
         resolve();

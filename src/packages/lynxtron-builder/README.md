@@ -38,3 +38,9 @@ their symbolic links preserved. Nested applications use `appBundles` and are
 included before electron-builder signs the outer application. For Windows
 targets, declared `files` stay under `app.asar.unpacked`, including the selected
 `.node` addon, DLLs, resource packs, and locales.
+
+## Runtime distribution
+
+Default builds fetch the exact Release runtime platform package from the configured npm registry, extract it into the npm cache, and pass the directory to electron-builder as `electronDist`. DevTool builds use the matching DevTool package. Cross-platform targets and macOS universal slices fetch their own target archives independently.
+
+Project/user `.npmrc` registry, scoped registry, authentication and proxy settings apply. Existing explicit `electronDist` or `electronDownload` configuration takes priority. MAS has no published npm runtime and requires an explicit runtime source.

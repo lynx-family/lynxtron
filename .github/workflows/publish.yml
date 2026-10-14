@@ -723,6 +723,17 @@ jobs:
           # Update package.json version field
           cd ${{ github.workspace }}/lynxtron/src/packages
           python3 publish_prepare.py --version "$VERSION"
+      - name: Download runtime archives
+        uses: actions/download-artifact@v4
+        with:
+          path: runtime-artifacts
+          pattern: '{lynxtron-*,devtool-lynxtron-*}'
+      - name: Prepare platform npm packages
+        run: |
+          node ../runtime-npm/prepare.cjs '${{ needs.get-version.outputs.version }}' "$GITHUB_WORKSPACE/runtime-artifacts" "$RUNNER_TEMP/lynxtron-runtime-npm"
+      - name: Publish and verify platform npm packages
+        run: |
+          node ../runtime-npm/publish.cjs "$RUNNER_TEMP/lynxtron-runtime-npm" '${{ steps.prepare.outputs.npm_tag }}'
       - name: Publish
         run: |-
           NPM_TAG=${{ steps.prepare.outputs.npm_tag }}

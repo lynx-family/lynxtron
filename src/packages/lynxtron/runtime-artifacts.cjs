@@ -62,7 +62,29 @@ function resolveRuntimeVariant({
   );
 }
 
+const RUNTIME_PLATFORMS = Object.freeze([
+  ['darwin', 'arm64'], ['darwin', 'x64'], ['linux', 'x64'], ['win32', 'x64'],
+]);
+
+function getRuntimePackageName({ platform, arch, variant = 'release' }) {
+  if (!RUNTIME_PLATFORMS.some(([os, cpu]) => os === platform && cpu === arch)) {
+    throw new Error(`Lynxtron npm runtime is not available for ${platform}-${arch}`);
+  }
+  const suffix = normalizeRuntimeVariant(variant) === 'devtool' ? '-devtool' : '';
+  return `@lynx-js/lynxtron-runtime-${platform}-${arch}${suffix}`;
+}
+
+function getRuntimeExecutableRelativePath(platform) {
+  if (platform === 'darwin') return 'lynxtron.app/Contents/MacOS/lynxtron';
+  if (platform === 'win32') return 'lynxtron.exe';
+  if (platform === 'linux') return 'lynxtron';
+  throw new Error(`Unsupported runtime platform: ${platform}`);
+}
+
 module.exports = {
+  RUNTIME_PLATFORMS,
+  getRuntimePackageName,
+  getRuntimeExecutableRelativePath,
   VALID_RUNTIME_VARIANTS,
   getRuntimeArtifactFilename,
   normalizeRuntimeVariant,

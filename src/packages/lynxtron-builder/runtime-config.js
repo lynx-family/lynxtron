@@ -198,27 +198,20 @@ function prepareRuntimeConfig({
 
   delete config.lynxtron;
 
-  if (!config.electronDownload) {
-    const effectiveVersion = config.electronVersion || lynxtronVersion;
-    if (!config.electronVersion) {
-      config.electronVersion = effectiveVersion;
+  const effectiveVersion = config.electronVersion || lynxtronVersion;
+  if (!config.electronVersion) config.electronVersion = effectiveVersion;
+  const useNpmRuntime = !config.electronDownload && !config.electronDist;
+  if (useNpmRuntime) {
+    if (forwardedArgs.includes('--mas')) {
+      throw new Error('MAS npm runtimes are not published. Configure electronDist or electronDownload explicitly.');
     }
-    config.electronDownload = {
-      version: effectiveVersion,
-      mirror: '',
-      customDir: `v${effectiveVersion}`,
-      customFilename: runtimeArtifacts.getRuntimeArtifactFilename({
-        version: effectiveVersion,
-        platform: resolvedPlatform,
-        arch: resolvedArch,
-        variant,
-        mas: forwardedArgs.includes('--mas'),
-      }),
-    };
+    runtimeArtifacts.getRuntimePackageName({ platform: resolvedPlatform, arch: resolvedArch, variant });
   }
 
   return {
     config,
+    useNpmRuntime,
+    version: effectiveVersion,
     forwardedArgs,
     variant,
     arch: resolvedArch,

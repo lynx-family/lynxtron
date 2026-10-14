@@ -18,13 +18,23 @@ pnpm add @lynx-js/lynxtron
 npx lynxtron <args>
 ```
 
-Package installation always downloads the DevTool-enabled runtime, and the CLI runs it by default. Release and DevTool binaries use the same npm package version. To explicitly run the production runtime on demand:
+Published packages install the matching DevTool runtime as a platform-specific npm optional dependency. Postinstall only extracts its bundled ZIP locally, and the CLI runs it by default. Release and DevTool binaries use the same npm package version. To explicitly run the production runtime on demand:
 
 ```bash
 npx lynxtron --lynxtron-runtime=release <args>
 ```
 
-`LYNXTRON_RUNTIME_VARIANT=release` provides the same CLI override; it does not change what npm postinstall downloads. Missing selected runtimes are downloaded on demand and stored separately under `dist/release` or `dist/devtool`. `LYNXTRON_BINARY_URL` can point installation or lazy download at a custom runtime archive.
+`LYNXTRON_RUNTIME_VARIANT=release` provides the same CLI override; it does not change the default platform dependency. Release runtimes are fetched on demand from your configured npm registry and stored separately under `dist/release` or `dist/devtool`. `LYNXTRON_BINARY_URL` can point installation or lazy download at a custom runtime archive.
+
+The npm registry and `@lynx-js:registry` settings in your project/user `.npmrc` apply to on-demand runtime fetching. For example, to use a domestic npm mirror:
+
+```ini
+@lynx-js:registry=https://registry.npmmirror.com
+```
+
+Do not omit optional dependencies. If the matching platform package is missing, reinstall after checking mirror synchronization. With installation scripts disabled, the CLI extracts the already-installed DevTool archive on first use. `LYNXTRON_SKIP_DOWNLOAD=1` skips postinstall for source builds.
+
+Supported npm runtime targets: macOS arm64/x64, Linux x64, Windows x64. Package versions are pinned exactly to the framework version; platform packages contain ZIPs without their own lifecycle scripts.
 
 - Fuse CLI:
 
@@ -59,8 +69,8 @@ console.log(await getCurrentFuses('C:\\path\\to\\lynxtron'));
 - `package.json` — ESM config (`type: "module"`), `bin` entry, `types` entry, `postinstall`, dependencies, publish `files`.
 - `fuses.js` — Reads and flips Lynxtron fuse bytes embedded in the packaged runtime.
 - `fuses-cli.js` — CLI wrapper for reading and writing fuse values.
-- `install.js` — Postinstall script that downloads the DevTool runtime by default.
-- `runtime-manager.js` — Downloads and isolates `release` and `devtool` runtimes under `dist/<variant>/`.
+- `install.js` — Locally extracts the installed DevTool platform package.
+- `runtime-manager.js` — Extracts and isolates `release` and `devtool` runtimes under `dist/<variant>/`.
 - `lynxtron_bin.js` — Resolves the default DevTool executable path.
 - `utils/env-config.js` — Resolves platform, arch and version; builds the executable filename for each OS.
 - `utils/download.js` — Download helper using `node-fetch` with timeout and single-write to disk.
