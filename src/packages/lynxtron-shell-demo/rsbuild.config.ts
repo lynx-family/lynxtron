@@ -8,6 +8,7 @@ import { defineConfig } from '@rsbuild/core';
 import { pluginLynxtron } from '@lynx-js/lynxtron-dev-plugins/rsbuild';
 /* WEB_SUPPORT_START */
 const rspeedyDevServer = 'http://localhost:5969';
+const webHostDevAssetPrefix = '/web-host/';
 /* WEB_SUPPORT_END */
 
 export default defineConfig({
@@ -18,10 +19,11 @@ export default defineConfig({
     proxy: [
       {
         pathFilter: (pathname: string) =>
-          pathname.endsWith('.bundle') ||
-          pathname.endsWith('.map') ||
-          pathname.includes('__rspeedy') ||
-          pathname.includes('/static/'),
+          !pathname.startsWith(webHostDevAssetPrefix) &&
+          (pathname.endsWith('.bundle') ||
+            pathname.endsWith('.map') ||
+            pathname.includes('__rspeedy') ||
+            pathname.includes('/static/')),
         target: rspeedyDevServer,
         pathRewrite: {
           '^/web/': '/',
@@ -59,6 +61,9 @@ export default defineConfig({
     },
     /* WEB_SUPPORT_START */
     web: {
+      dev: {
+        assetPrefix: webHostDevAssetPrefix,
+      },
       source: {
         entry: {
           'web-host': './src/main/web/web-host.ts',
