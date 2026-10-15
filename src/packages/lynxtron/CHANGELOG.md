@@ -1,5 +1,11 @@
 # @lynx-js/lynxtron
 
+## 0.0.29
+
+### Patch Changes
+
+- f0daa50: Align Web Host declarations with the existing implementation: use `nodejs.scriptURL` for background adapter scripts and accept multiple arguments in main-thread bridge handlers. This fixes type errors in the generated Web template without changing runtime behavior.
+
 ## 0.0.28
 
 ### Patch Changes
