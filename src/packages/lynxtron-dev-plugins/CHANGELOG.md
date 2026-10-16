@@ -1,5 +1,7 @@
 # @lynx-js/lynxtron-dev-plugins
 
+## 0.0.30
+
 ## 0.0.29
 
 ## 0.0.28

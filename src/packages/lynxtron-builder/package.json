@@ -1,6 +1,6 @@
 {
   "name": "@lynx-js/lynxtron-builder",
-  "version": "0.0.29",
+  "version": "0.0.30",
   "main": "cli.js",
   "repository": {
     "type": "git",

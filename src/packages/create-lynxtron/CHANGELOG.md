@@ -1,5 +1,11 @@
 # create-lynxtron
 
+## 0.0.30
+
+### Patch Changes
+
+- 3c831e7: Fix the desktop template bridge handler typecheck by inferring the invoke event type from LynxWindow.on instead of referencing the undeclared EventCallback type.
+
 ## 0.0.29
 
 ## 0.0.28

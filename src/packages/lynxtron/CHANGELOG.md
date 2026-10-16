@@ -1,5 +1,11 @@
 # @lynx-js/lynxtron
 
+## 0.0.30
+
+### Patch Changes
+
+- cc9e2ad: Distribute desktop runtimes through platform-specific npm packages so installation and application packaging can use configured npm mirrors instead of GitHub release downloads.
+
 ## 0.0.29
 
 ### Patch Changes
