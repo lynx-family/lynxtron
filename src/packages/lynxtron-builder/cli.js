@@ -13,10 +13,17 @@ const {
   resolveTargetPlatform,
 } = require('./runtime-config.js');
 const { prepareAutoLinkPackaging } = require('./autolink-packaging.js');
+const { ensureBundleForBuild } = require('./patch.js');
 
 const projectRoot = process.cwd();
 const configPath = path.join(projectRoot, 'electron-builder.yml');
 const tempConfigPath = path.join(projectRoot, 'config.json');
+// Preload via execArgv so processes forked by electron-builder inherit it.
+const electronBuilderArgs = [
+  '--require',
+  path.join(__dirname, 'module-resolver.js'),
+  path.join(__dirname, 'electron-builder-launcher.js'),
+];
 
 function getLynxtronPackage() {
   try {
@@ -43,6 +50,9 @@ function getLynxtronPackage() {
 }
 
 async function build() {
+  // Single-process entry: make sure the patched vendor/ exists before any
+  // electron-builder subprocess loads the resolver (which only verifies it).
+  ensureBundleForBuild();
   const rawArgs = process.argv.slice(2);
   const { runtimeArtifacts } = getLynxtronPackage();
   const { forwardedArgs } = runtimeArtifacts.parseRuntimeArguments(rawArgs);
@@ -117,7 +127,6 @@ async function runBuild(arch, rawArgs, { filterTargets = false } = {}) {
 
   fs.writeFileSync(tempConfigPath, JSON.stringify(config, null, 2));
 
-  const electronBuilderPath = require.resolve('electron-builder/out/cli/cli.js');
   const args = prepared.forwardedArgs.filter(arg =>
     arg !== '--universal' &&
     arg !== '--mas' &&
@@ -128,7 +137,7 @@ async function runBuild(arch, rawArgs, { filterTargets = false } = {}) {
     finalArgs.push(arch);
   }
   return new Promise((resolve, reject) => {
-    const child = spawn('node', [electronBuilderPath, ...finalArgs], {
+    const child = spawn(process.execPath, [...electronBuilderArgs, ...finalArgs], {
       stdio: 'inherit',
     });
 
@@ -168,9 +177,7 @@ async function makeUniversal() {
   fs.writeFileSync(tempConfigPath, JSON.stringify(packaging.config, null, 2));
 
   return new Promise((resolve, reject) => {
-    const electronBuilderPath = require.resolve('electron-builder/out/cli/cli.js');
-
-    const child = spawn('node', [electronBuilderPath, ...packaging.args], {
+    const child = spawn(process.execPath, [...electronBuilderArgs, ...packaging.args], {
       stdio: 'inherit',
     });
 
