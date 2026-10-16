@@ -4,6 +4,7 @@ import platform
 system = platform.system().lower()
 machine = platform.machine().lower()
 machine = "x86_64" if machine == "amd64" else machine
+archive_machine = "arm64" if machine == "aarch64" else machine
 
 python_path = "python3"
 if system == "windows":
@@ -29,7 +30,7 @@ deps = {
     },
     '../tools/clang/dsymutil/bin': {
         "type": "http",
-        "url": f"https://github.com/zsy-jason/buildtools/releases/download/dsymutil-8e05e94b/dsymutil-{system}-{machine}.tar.gz",
+        "url": f"https://github.com/zsy-jason/buildtools/releases/download/dsymutil-8e05e94b/dsymutil-{system}-{archive_machine}.tar.gz",
         "ignore_in_git": True,
         "condition": system in ['darwin'],
     },
@@ -45,13 +46,13 @@ deps = {
     },
     '../third_party/llvm-build/Release+Asserts': {
         "type": "http",
-        "url": f"https://github.com/zsy-jason/buildtools/releases/download/chromium-140/clang-{system}-{machine}.tar.gz",
+        "url": f"https://github.com/zsy-jason/buildtools/releases/download/chromium-140/clang-{system}-{archive_machine}.tar.gz",
         "ignore_in_git": True,
         "condition": system in ['linux', 'darwin', 'windows'],
     },
     '../third_party/llvm-build/Release+Asserts/clangd.tar.gz': {
         "type": "http",
-        "url": f"https://github.com/zsy-jason/buildtools/releases/download/chromium-140/clangd-{system}-{machine}.tar.gz",
+        "url": f"https://github.com/zsy-jason/buildtools/releases/download/chromium-140/clangd-{system}-{archive_machine}.tar.gz",
         "ignore_in_git": True,
         "condition": system in ['linux', 'darwin', 'windows'],
         "decompress": False,
@@ -67,7 +68,7 @@ deps = {
     },
     '../third_party/llvm-build/Release+Asserts/llvmobjdump.tar.gz': {
         "type": "http",
-        "url": f"https://github.com/zsy-jason/buildtools/releases/download/chromium-140/llvmobjdump-{system}-{machine}.tar.gz",
+        "url": f"https://github.com/zsy-jason/buildtools/releases/download/chromium-140/llvmobjdump-{system}-{archive_machine}.tar.gz",
         "ignore_in_git": True,
         "condition": system in ['linux', 'darwin', 'windows'],
         "decompress": False,
@@ -83,7 +84,7 @@ deps = {
     },
     '../third_party/rust-toolchain': {
         "type": "http",
-        "url": f"https://github.com/zsy-jason/buildtools/releases/download/chromium-140/rust-toolchain-{system}-{machine}.tar.gz",
+        "url": f"https://github.com/zsy-jason/buildtools/releases/download/chromium-140/rust-toolchain-{system}-{archive_machine}.tar.gz",
         "ignore_in_git": True,
         "condition": system in ['linux', 'darwin', 'windows'],
     },
