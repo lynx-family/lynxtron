@@ -92,6 +92,11 @@ void AppendLynxPreferencePreload(const gin_helper::Dictionary& lynx_preference,
 bool ExtractLoadDataOptions(gin::Arguments* args,
                             gin_helper::Dictionary* data,
                             gin_helper::Dictionary* global_props) {
+  if (lynxtron::Application::Get()->is_shutting_down()) {
+    args->ThrowTypeError(
+        "Cannot load a Lynx view while the app is shutting down");
+    return false;
+  }
   v8::Isolate* isolate = args->isolate();
   *data = gin::Dictionary::CreateEmpty(isolate);
   *global_props = gin::Dictionary::CreateEmpty(isolate);
@@ -1032,6 +1037,11 @@ bool LynxWindow::SendGlobalEvent(const std::string& name,
 // static
 gin_helper::WrappableBase* LynxWindow::New(gin_helper::ErrorThrower thrower,
                                            gin::Arguments* args) {
+  if (Application::Get()->is_shutting_down()) {
+    thrower.ThrowError(
+        "Cannot create LynxWindow while the app is shutting down");
+    return nullptr;
+  }
   if (!Application::Get()->is_ready()) {
     thrower.ThrowError("Cannot create LynxWindow before app is ready");
     return nullptr;

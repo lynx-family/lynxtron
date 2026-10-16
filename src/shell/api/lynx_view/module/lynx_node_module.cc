@@ -357,6 +357,10 @@ void LynxNodeModule::OnRuntimeDetach() {
     node::FreeIsolateData(isolate_data_);
     isolate_data_ = nullptr;
   }
+  // The extension factory can outlive its runtime. Drop all V8 handles before
+  // terminal shutdown releases the thread's shared isolate.
+  node_exports_.Reset();
+  node_context_.Reset();
 }
 
 void RegisterLynxNodeModuleToLynxView(

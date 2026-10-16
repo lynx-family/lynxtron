@@ -77,6 +77,7 @@ class MainParts {
   // A place to remember the exit code once the message loop is ready.
   // Before then, we just exit() without any intermediate steps.
   std::optional<int> exit_code_;
+  bool lynx_shutdown_complete_ = false;
 
 #if BUILDFLAG(IS_WIN)
   std::unique_ptr<base::win::ScopedCOMInitializer> com_initializer_;
