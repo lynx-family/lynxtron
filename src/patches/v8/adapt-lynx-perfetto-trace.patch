@@ -46,12 +46,18 @@ index 8dda88f8..031798e2 100644
      include_dirs = [
        "//third_party/perfetto/include",
        "$root_gen_dir/third_party/perfetto",
-@@ -7433,6 +7443,22 @@ if (current_toolchain == v8_generator_toolchain) {
+@@ -7433,6 +7443,28 @@ if (current_toolchain == v8_generator_toolchain) {
  }
  
  if (current_toolchain == v8_snapshot_toolchain) {
 +  # To enable perfetto tracing for v8 snapshot, need to link lynx_trace_for_v8_snapshot library separately
-+  shared_library("lynx_trace_for_v8_snapshot") {
++  # Windows snapshot tools also link libuv through libnode. Forward the
++  # dependencies without creating an empty archive or another exporting DLL.
++  snapshot_trace_target_type = "shared_library"
++  if (is_win) {
++    snapshot_trace_target_type = "group"
++  }
++  target(snapshot_trace_target_type, "lynx_trace_for_v8_snapshot") {
 +    if(is_mac) {
 +      deps = [
 +        "//lynx/base/trace/darwin:LynxTrace",
@@ -69,7 +75,7 @@ index 8dda88f8..031798e2 100644
    v8_executable("mksnapshot") {
      sources = [
        "src/snapshot/builtins-effects-dummy.cc",
-@@ -7474,6 +7500,12 @@ if (current_toolchain == v8_snapshot_toolchain) {
+@@ -7474,6 +7506,12 @@ if (current_toolchain == v8_snapshot_toolchain) {
        ":v8_tracing",
        "//build/win:default_exe_manifest",
      ]

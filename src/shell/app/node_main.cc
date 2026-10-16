@@ -7,21 +7,14 @@
 #include <iostream>
 #include <memory>
 #include <string>
-#include <string_view>
-#include <utility>
 #include <vector>
 
-#include "base/base_paths.h"
-#include "base/command_line.h"
-#include "base/files/file.h"
-#include "base/files/file_path.h"
-#include "base/files/memory_mapped_file.h"
+#include "base/check.h"
 #include "base/message_loop/message_pump_type.h"
 #include "base/path_service.h"
 #include "base/task/single_thread_task_executor.h"
 #include "base/task/thread_pool/thread_pool_instance.h"
 #include "build/buildflag.h"
-#include "gin/v8_initializer.h"
 #include "shell/app/javascript_environment.h"
 #include "shell/app/uv_stdio_fix.h"
 #include "shell/common/lynxtron_command_line.h"
@@ -30,6 +23,7 @@
 #include "shell/common/node_includes.h"
 #include "shell/common/node_util.h"
 #include "shell/common/path_provider.h"
+#include "third_party/node/src/node_snapshot_builder.h"
 #include "uv.h"
 #include "v8-isolate.h"
 #include "v8-local-handle.h"
@@ -79,32 +73,11 @@ int RunNodeMain() {
   base::ThreadPoolInstance::CreateAndStartWithDefaultParams("lynxtron");
   base::SingleThreadTaskExecutor task_executor(base::MessagePumpType::DEFAULT,
                                                true);
-#if BUILDFLAG(IS_MAC)
-  base::FilePath exe_path =
-      base::CommandLine::ForCurrentProcess()->GetProgram();
-  if (exe_path.empty()) {
-    base::PathService::Get(base::FILE_EXE, &exe_path);
-  }
-  base::FilePath snapshot_path =
-      exe_path.DirName()
-          .DirName()
-          .Append("Frameworks")
-          .Append(LYNXTRON_PRODUCT_NAME " Framework.framework")
-          .Append("Resources")
-          .Append("snapshot_blob.bin");
-  base::File snapshot_file(snapshot_path,
-                           base::File::FLAG_OPEN | base::File::FLAG_READ);
-  if (snapshot_file.IsValid()) {
-    base::MemoryMappedFile::Region region =
-        base::MemoryMappedFile::Region::kWholeFile;
-    gin::V8Initializer::LoadV8SnapshotFromFile(
-        std::move(snapshot_file), &region, gin::V8SnapshotFileType::kDefault);
-  } else {
-    gin::V8Initializer::LoadV8Snapshot(gin::V8SnapshotFileType::kDefault);
-  }
-#else
-  gin::V8Initializer::LoadV8Snapshot(gin::V8SnapshotFileType::kDefault);
-#endif
+  const node::SnapshotData* snapshot =
+      node::SnapshotBuilder::GetEmbeddedSnapshotData();
+  CHECK(snapshot);
+  v8::V8::SetSnapshotDataBlob(
+      const_cast<v8::StartupData*>(&snapshot->v8_snapshot_blob_data));
 
   int exit_code = 1;
   {
@@ -118,18 +91,20 @@ int RunNodeMain() {
     v8::Isolate* isolate = js_env.isolate();
     v8::HandleScope scope(isolate);
 
-    node::IsolateData* isolate_data =
-        node::CreateIsolateData(isolate, loop, js_env.platform());
+    auto snapshot_wrapper = snapshot->AsEmbedderWrapper();
+    node::IsolateData* isolate_data = node::CreateIsolateData(
+        isolate, loop, js_env.platform(), nullptr, snapshot_wrapper.get());
 
     uint64_t env_flags = node::EnvironmentFlags::kDefaultFlags |
                          node::EnvironmentFlags::kHideConsoleWindows;
 
     node::Environment* env = lynxtron::util::CreateEnvironment(
-        isolate, isolate_data, isolate->GetCurrentContext(), result->args(),
+        isolate, isolate_data, v8::Local<v8::Context>(), result->args(),
         result->exec_args(),
         static_cast<node::EnvironmentFlags::Flags>(env_flags));
 
     if (env) {
+      js_env.EnterContext(env->context());
       node::SetIsolateUpForNode(isolate);
       node::LoadEnvironment(env, node::StartExecutionCallback{},
                             &lynxtron::OnNodePreload);

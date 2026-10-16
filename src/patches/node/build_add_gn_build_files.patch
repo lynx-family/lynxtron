@@ -61,8 +61,7 @@ index b049f0692980c3e26771c3209c3bdd2e9a4d637b..6096de35f19bdc0212cb8c7adedf0c2e
    # TODO(zcbenz): There are few broken things for now:
    #   1. cross-os compilation is not supported.
    #   2. node_mksnapshot crashes when cross-compiling for x64 from arm64.
--  node_use_node_snapshot = (host_os == target_os) && !(host_cpu == "arm64" && target_cpu == "x64")
-+  node_use_node_snapshot = false
+   node_use_node_snapshot = (host_os == target_os) && !(host_cpu == "arm64" && target_cpu == "x64")
  
    # Build with Amaro (TypeScript utils).
    node_use_amaro = true
