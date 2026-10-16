@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 
+#include "base/functional/callback_forward.h"
 #include "base/memory/weak_ptr.h"
 #include "shell/api/lynx_view/lynx_view_client.h"
 #include "shell/ui/gfx/geometry/rect.h"
@@ -28,6 +29,7 @@ class LynxView {
   ~LynxView();
 
   static void SetNodePlatformEnv(void* platform);
+  static void ShutdownRuntimes(base::OnceClosure completion);
   void LoadFile(const std::string& path,
                 const std::string& data,
                 const std::string& global_props);

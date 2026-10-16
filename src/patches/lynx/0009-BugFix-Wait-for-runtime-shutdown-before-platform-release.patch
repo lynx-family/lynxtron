@@ -1,0 +1,596 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Lynxtron Scripts <scripts@lynxtron>
+Date: Fri, 16 Oct 2026 18:00:00 +0800
+Subject: [PATCH] Wait for runtime and isolate shutdown before platform release
+
+Coordinate terminal teardown on each owning JS loop and wait for Node's
+per-isolate uv cleanup before allowing the host to release its platform.
+
+---
+diff --git a/core/runtime/js/bytecode/v8/v8_cache_generator.cc b/core/runtime/js/bytecode/v8/v8_cache_generator.cc
+index a4bc220c48..e636e47571 100644
+--- a/core/runtime/js/bytecode/v8/v8_cache_generator.cc
++++ b/core/runtime/js/bytecode/v8/v8_cache_generator.cc
+@@ -35,7 +35,9 @@ bool V8CacheGenerator::GenerateCacheImpl(
+     const std::string &origin_url, const std::shared_ptr<const Buffer> &buffer,
+     std::string &contents) {
+   auto isolate_wrapper = std::make_shared<V8IsolateInstanceNodeImpl>();
+-  isolate_wrapper->InitIsolate(nullptr, false);
++  if (!isolate_wrapper->TryInitIsolate(nullptr, false)) {
++    return false;
++  }
+   auto isolate = isolate_wrapper->Isolate();
+   V8ContextWrapperImpl context_wrapper(isolate_wrapper);
+   context_wrapper.Init();
+diff --git a/core/runtime/js/jsi/v8/v8_isolate_wrapper_node_impl.cc b/core/runtime/js/jsi/v8/v8_isolate_wrapper_node_impl.cc
+index b167944f8d..ccc9db3e11 100644
+--- a/core/runtime/js/jsi/v8/v8_isolate_wrapper_node_impl.cc
++++ b/core/runtime/js/jsi/v8/v8_isolate_wrapper_node_impl.cc
+@@ -4,70 +4,45 @@
+ #include "core/runtime/js/jsi/v8/v8_isolate_wrapper_node_impl.h"
+
+ #include <memory>
+-#include <mutex>
+-#include <string>
++#include <utility>
+
+ #include "base/include/fml/message_loop.h"
+ #include "base/include/fml/platform/node/message_loop_node.h"
+-#include "base/include/fml/task_runner.h"
+ #include "base/include/log/logging.h"
+-#include "core/renderer/utils/lynx_env.h"
+-#include "libplatform/libplatform.h"
+ #include "third_party/node/src/node.h"
+-#include "third_party/node/src/node_internals.h"
+-#include "uv.h"
+-#include "v8-cppgc.h"
+
+ namespace lynx {
+ namespace runtime {
+ namespace js {
+-
+ namespace {
+
+ class V8PlatformHelper : public V8PlatformData {
+  public:
+-  V8PlatformHelper() {}
+-  virtual ~V8PlatformHelper() { onDestory(); }
+-
+-  v8::Isolate* CreateIsolate();
+-  v8::Global<v8::Context> CreateNodeEnvContext(v8::Isolate* isolate);
+-
+-  void onDestory();
+-
+- private:
+-  void InitUVLoop();
+-
+-  static node::MultiIsolatePlatform* GetPlatform() {
+-    node::MultiIsolatePlatform* platform =
+-        static_cast<node::MultiIsolatePlatform*>(
+-            V8PlatformData::GetV8Platform());
+-    DCHECK(platform);
+-    return platform;
++  V8PlatformHelper()
++      : platform_(static_cast<node::MultiIsolatePlatform*>(GetV8Platform())) {
++    CHECK(platform_);
+   }
+
+-  bool is_destory_ = {false};
+-  uv_loop_t* uv_loop_;
+-};
+-
+-void V8PlatformHelper::onDestory() {
+-  if (is_destory_) {
+-    return;
++  v8::Isolate* CreateIsolate() {
++    auto* message_loop = static_cast<fml::MessageLoopNode*>(
++        fml::MessageLoop::GetCurrent().GetLoopImpl().get());
++    std::shared_ptr<node::ArrayBufferAllocator> allocator =
++        node::ArrayBufferAllocator::Create();
++    return node::NewIsolate(allocator, message_loop->GetUVLoop(), platform_);
+   }
+-}
+-
+-v8::Isolate* V8PlatformHelper::CreateIsolate() {
+-  InitUVLoop();
+
+-  std::shared_ptr<node::ArrayBufferAllocator> allocator =
+-      node::ArrayBufferAllocator::Create();
+-  return node::NewIsolate(allocator, uv_loop_, GetPlatform());
+-}
++  void DisposeIsolate(v8::Isolate* isolate) {
++    platform_->AddIsolateFinishedCallback(
++        isolate, [](void*) { V8PlatformData::IsolateFinished(); }, nullptr);
++    // Keep the platform registration during Dispose: cppgc may still request
++    // its foreground task runner. The callback also waits for uv_close work.
++    isolate->Dispose();
++    platform_->UnregisterIsolate(isolate);
++  }
+
+-void V8PlatformHelper::InitUVLoop() {
+-  auto* messageloop = reinterpret_cast<fml::MessageLoopNode*>(
+-      fml::MessageLoop::GetCurrent().GetLoopImpl().get());
+-  uv_loop_ = messageloop->GetUVLoop();
+-}
++ private:
++  node::MultiIsolatePlatform* const platform_;
++};
+
+ }  // namespace
+
+@@ -75,20 +50,25 @@ V8IsolateInstanceNodeImpl::V8IsolateInstanceNodeImpl() = default;
+
+ V8IsolateInstanceNodeImpl::~V8IsolateInstanceNodeImpl() {
+   if (isolate_ != nullptr) {
+-    auto helper = static_cast<V8PlatformHelper*>(platform_data_.get());
+-    helper->onDestory();
+-    isolate_->Dispose();
++    static_cast<V8PlatformHelper*>(platform_data_.get())
++        ->DisposeIsolate(isolate_);
+     LOGI("lynx ~V8IsolateInstance");
+   }
+ }
+
+ void V8IsolateInstanceNodeImpl::InitIsolate(const char* arg, bool useSnapshot) {
+-  LOGI("lynx V8IsolateInstanceImpl::InitIsolate");
+-  auto helper = std::make_shared<V8PlatformHelper>();
++  CHECK(TryInitIsolate(arg, useSnapshot));
++}
+
++bool V8IsolateInstanceNodeImpl::TryInitIsolate(const char* arg,
++                                               bool useSnapshot) {
++  if (!V8PlatformData::TryRegisterIsolate()) {
++    return false;
++  }
++  auto helper = std::make_shared<V8PlatformHelper>();
+   isolate_ = helper->CreateIsolate();
+-
+   platform_data_ = std::move(helper);
++  return true;
+ }
+
+ v8::Isolate* V8IsolateInstanceNodeImpl::Isolate() const { return isolate_; }
+diff --git a/core/runtime/js/jsi/v8/v8_isolate_wrapper_node_impl.h b/core/runtime/js/jsi/v8/v8_isolate_wrapper_node_impl.h
+index b3e2b6c70a..63dc814879 100644
+--- a/core/runtime/js/jsi/v8/v8_isolate_wrapper_node_impl.h
++++ b/core/runtime/js/jsi/v8/v8_isolate_wrapper_node_impl.h
+@@ -17,13 +17,14 @@ class V8IsolateInstanceNodeImpl : public V8IsolateInstance {
+   ~V8IsolateInstanceNodeImpl() override;
+
+   void InitIsolate(const char* arg, bool useSnapshot) override;
++  bool TryInitIsolate(const char* arg, bool useSnapshot);
+
+   v8::Isolate* Isolate() const override;
+
+  private:
+   std::shared_ptr<V8PlatformData> platform_data_;
+
+-  v8::Isolate* isolate_;
++  v8::Isolate* isolate_ = nullptr;
+   friend class V8Runtime;
+   friend class V8ContextWrapper;
+ };
+diff --git a/core/runtime/js/jsi/v8/v8_platform_data.cc b/core/runtime/js/jsi/v8/v8_platform_data.cc
+index e0a9fe0f00..7d61afcf27 100644
+--- a/core/runtime/js/jsi/v8/v8_platform_data.cc
++++ b/core/runtime/js/jsi/v8/v8_platform_data.cc
+@@ -4,15 +4,82 @@
+
+ #include "core/runtime/js/jsi/v8/v8_platform_data.h"
+
++#include <mutex>
++#include <utility>
++
++#include "base/include/log/logging.h"
++#include "base/include/no_destructor.h"
++
+ namespace lynx {
+ namespace runtime {
+ namespace js {
++namespace {
++struct PlatformState {
++  std::mutex mutex;
++  void* platform = nullptr;
++  size_t isolates = 0;
++  bool shutting_down = false;
++  base::closure completion;
++};
++
++PlatformState& GetState() {
++  static base::NoDestructor<PlatformState> state;
++  return *state;
++}
++}  // namespace
++
++void V8PlatformData::SetV8Platform(void* platform) {
++  auto& state = GetState();
++  std::lock_guard<std::mutex> lock(state.mutex);
++  state.platform = platform;
++}
++
++void* V8PlatformData::GetV8Platform() {
++  auto& state = GetState();
++  std::lock_guard<std::mutex> lock(state.mutex);
++  return state.platform;
++}
+
+-static void* v8_platform_ = nullptr;
++bool V8PlatformData::TryRegisterIsolate() {
++  auto& state = GetState();
++  std::lock_guard<std::mutex> lock(state.mutex);
++  if (state.shutting_down) {
++    return false;
++  }
++  ++state.isolates;
++  return true;
++}
+
+-void V8PlatformData::SetV8Platform(void* platform) { v8_platform_ = platform; }
++void V8PlatformData::IsolateFinished() {
++  auto& state = GetState();
++  base::closure completion;
++  {
++    std::lock_guard<std::mutex> lock(state.mutex);
++    CHECK(state.isolates > 0);
++    if (--state.isolates == 0 && state.shutting_down) {
++      completion = std::move(state.completion);
++    }
++  }
++  if (completion) {
++    LOGI("Lynx Node isolates shutdown complete");
++    completion();
++  }
++}
+
+-void* V8PlatformData::GetV8Platform() { return v8_platform_; }
++void V8PlatformData::Shutdown(base::closure completion) {
++  auto& state = GetState();
++  {
++    std::lock_guard<std::mutex> lock(state.mutex);
++    CHECK(!state.shutting_down);
++    state.shutting_down = true;
++    LOGI("Lynx Node isolates shutdown begin, pending:" << state.isolates);
++    if (state.isolates != 0) {
++      state.completion = std::move(completion);
++      return;
++    }
++  }
++  completion();
++}
+
+ }  // namespace js
+ }  // namespace runtime
+diff --git a/core/runtime/js/jsi/v8/v8_platform_data.h b/core/runtime/js/jsi/v8/v8_platform_data.h
+index 7ac59a5d17..b95716a886 100644
+--- a/core/runtime/js/jsi/v8/v8_platform_data.h
++++ b/core/runtime/js/jsi/v8/v8_platform_data.h
+@@ -5,6 +5,8 @@
+ #ifndef CORE_RUNTIME_JSI_V8_V8_PLATFORM_DATA_H_
+ #define CORE_RUNTIME_JSI_V8_V8_PLATFORM_DATA_H_
+
++#include "base/include/closure.h"
++
+ namespace lynx {
+ namespace runtime {
+ namespace js {
+@@ -16,6 +18,10 @@ class V8PlatformData {
+
+   static void SetV8Platform(void* platform);
+   static void* GetV8Platform();
++
++  static bool TryRegisterIsolate();
++  static void IsolateFinished();
++  static void Shutdown(base::closure completion);
+ };
+
+ }  // namespace js
+diff --git a/core/shell/BUILD.gn b/core/shell/BUILD.gn
+index ac1eedcdb6..21d0ea7e42 100644
+--- a/core/shell/BUILD.gn
++++ b/core/shell/BUILD.gn
+@@ -63,6 +63,8 @@ shell_shared_sources = [
+   "runtime/mts/mts_runtime.h",
+   "runtime/mts/mts_runtime_pool.cc",
+   "runtime/mts/mts_runtime_pool.h",
++  "runtime/runtime_shutdown.cc",
++  "runtime/runtime_shutdown.h",
+   "tasm_mediator.cc",
+   "tasm_mediator.h",
+   "tasm_operation_queue.cc",
+@@ -153,7 +155,7 @@ lynx_core_source_set("shell") {
+     "../../third_party/rapidjson",
+     "../resource",
+     "../runtime",
+-    "../runtime/lepus:lepus",
++    "../runtime/lepus",
+     "../services/timing_handler",
+     "../services/timing_handler:timing_handler_delegate",
+   ]
+diff --git a/core/shell/lynx_shell.cc b/core/shell/lynx_shell.cc
+index 06c787a316..17f3415850 100644
+--- a/core/shell/lynx_shell.cc
++++ b/core/shell/lynx_shell.cc
+@@ -39,6 +39,7 @@
+ #include "core/shell/lynx_entity_id_generator.h"
+ #include "core/shell/runtime/bts/bts_runtime_mediator.h"
+ #include "core/shell/runtime/bts/bts_runtime_standalone_helper.h"
++#include "core/shell/runtime/runtime_shutdown.h"
+ #include "core/shell/tasm_operation_queue_async.h"
+ #include "core/value_wrapper/value_impl_lepus.h"
+
+@@ -642,6 +643,7 @@ void LynxShell::InitRuntime(
+   runtime->SetPageOptions(page_options_);
+   runtime_actor_ = std::make_shared<LynxActor<BTSRuntime>>(
+       std::move(runtime), js_task_runner, instance_id_, enable_runtime_);
++  RuntimeShutdown::Instance().Register(runtime_actor_);
+   delegate_raw_ptr->set_vsync_monitor(vsync_monitor, runtime_actor_);
+   PublishLogContextIfReady();
+
+diff --git a/core/shell/runtime/bts/bts_runtime.cc b/core/shell/runtime/bts/bts_runtime.cc
+index 05871ccaa7..de01b7af22 100644
+--- a/core/shell/runtime/bts/bts_runtime.cc
++++ b/core/shell/runtime/bts/bts_runtime.cc
+@@ -32,6 +32,7 @@
+ #include "core/services/long_task_timing/long_task_monitor.h"
+ #include "core/services/timing_handler/timing_constants.h"
+ #include "core/shared_data/lynx_white_board.h"
++#include "core/shell/runtime/runtime_shutdown.h"
+ #include "core/template_bundle/template_codec/ttml_constant.h"
+ #include "core/value_wrapper/value_impl_piper.h"
+
+@@ -171,7 +172,10 @@ BTSRuntime::BTSRuntime(const std::string& group_id,
+ #endif
+ }
+
+-BTSRuntime::~BTSRuntime() { Destroy(); }
++BTSRuntime::~BTSRuntime() {
++  Destroy();
++  RuntimeShutdown::Instance().Unregister(this);
++}
+
+ void BTSRuntime::SetLogContext(const base::LogContext& context) {
+   log_context_ = context;
+diff --git a/core/shell/runtime/bts/bts_runtime_standalone_helper.cc b/core/shell/runtime/bts/bts_runtime_standalone_helper.cc
+index 366a70c503..c677afca06 100644
+--- a/core/shell/runtime/bts/bts_runtime_standalone_helper.cc
++++ b/core/shell/runtime/bts/bts_runtime_standalone_helper.cc
+@@ -17,6 +17,7 @@
+ #include "core/shell/lynx_entity_id_generator.h"
+ #include "core/shell/lynx_shell.h"
+ #include "core/shell/runtime/bts/bts_runtime_mediator.h"
++#include "core/shell/runtime/runtime_shutdown.h"
+
+ namespace lynx {
+ namespace shell {
+@@ -113,6 +114,7 @@ BTSRuntimeStandalone::InitRuntimeStandalone(
+       bytecode_source_url, runtime_flag, page_options);
+   auto runtime_actor = std::make_shared<LynxActor<BTSRuntime>>(
+       std::move(runtime), js_task_runner, instance_id, true);
++  RuntimeShutdown::Instance().Register(runtime_actor);
+   delegate_raw_ptr->set_vsync_monitor(vsync_monitor, runtime_actor);
+   perf_mediator_raw_ptr->SetRuntimeActor(runtime_actor);
+   timing_mediator_raw_ptr->SetRuntimeActor(runtime_actor);
+diff --git a/platform/embedder/lynx_env.cc b/platform/embedder/lynx_env.cc
+index 713f2359c4..89a6c43ce3 100644
+--- a/platform/embedder/lynx_env.cc
++++ b/platform/embedder/lynx_env.cc
+@@ -9,6 +9,7 @@
+ #include "third_party/debug_router/src/debug_router/native/core/debug_router_core.h"
+ #endif
+ #include "core/runtime/js/jsi/v8/v8_platform_data.h"
++#include "core/shell/runtime/runtime_shutdown.h"
+ #include "platform/embedder/lynx_env_platform.h"
+ #include "platform/embedder/module/global_module_registry.h"
+ #include "platform/embedder/public/capi/lynx_env_capi.h"
+@@ -139,3 +140,11 @@ LYNX_EXTERN_C void lynx_env_register_extension_module(
+ LYNX_CAPI_EXPORT void lynx_env_set_node_platform(void* platform) {
+   lynx::runtime::js::V8PlatformData::SetV8Platform(platform);
+ }
++
++LYNX_EXTERN_C void lynx_env_shutdown_runtimes(
++    lynx_env_shutdown_callback callback, void* user_data) {
++  lynx::shell::RuntimeShutdown::Instance().Shutdown([callback, user_data]() {
++    lynx::runtime::js::V8PlatformData::Shutdown(
++        [callback, user_data]() { callback(user_data); });
++  });
++}
+diff --git a/platform/embedder/public/capi/lynx_env_capi.h b/platform/embedder/public/capi/lynx_env_capi.h
+index de8028b67e..8dd0a81acb 100644
+--- a/platform/embedder/public/capi/lynx_env_capi.h
++++ b/platform/embedder/public/capi/lynx_env_capi.h
+@@ -53,6 +53,14 @@ LYNX_CAPI_EXPORT void lynx_env_register_extension_module(
+
+ LYNX_CAPI_EXPORT void lynx_env_set_node_platform(void* platform);
+
++// Terminal asynchronous shutdown. No new views or background runtimes may be
++// created after this call. Keep the host UI loop and JS loops running until the
++// callback is invoked (possibly on a JS thread). Call exactly once, before
++// destroying the shared Node/V8 platform.
++typedef void (*lynx_env_shutdown_callback)(void* user_data);
++LYNX_CAPI_EXPORT void lynx_env_shutdown_runtimes(
++    lynx_env_shutdown_callback callback, void* user_data);
++
+ LYNX_EXTERN_C_END
+
+ #endif  // PLATFORM_EMBEDDER_PUBLIC_CAPI_LYNX_ENV_CAPI_H_
+diff --git a/core/shell/runtime/runtime_shutdown.cc b/core/shell/runtime/runtime_shutdown.cc
+new file mode 100644
+--- /dev/null
++++ b/core/shell/runtime/runtime_shutdown.cc
+@@ -0,0 +1,80 @@
++// Copyright 2026 The Lynx Authors. All rights reserved.
++// Licensed under the Apache License Version 2.0 that can be found in the
++// LICENSE file in the root directory of this source tree.
++
++#include "core/shell/runtime/runtime_shutdown.h"
++
++#include <atomic>
++#include <utility>
++#include <vector>
++
++#include "base/include/log/logging.h"
++#include "core/runtime/js/js_realm_manager.h"
++#include "core/shell/runtime/bts/bts_runtime.h"
++
++namespace lynx {
++namespace shell {
++
++RuntimeShutdown& RuntimeShutdown::Instance() {
++  static base::NoDestructor<RuntimeShutdown> instance;
++  return *instance;
++}
++
++void RuntimeShutdown::Register(
++    const std::shared_ptr<LynxActor<BTSRuntime>>& actor) {
++  std::lock_guard<std::mutex> lock(mutex_);
++  CHECK(!shutting_down_);
++  auto runner = actor->GetRunner();
++  actors_[actor->Impl()] = {actor, runner};
++  runners_.emplace(runner->GetLoop().get(), std::move(runner));
++}
++
++void RuntimeShutdown::Unregister(BTSRuntime* runtime) {
++  std::lock_guard<std::mutex> lock(mutex_);
++  actors_.erase(runtime);
++}
++
++void RuntimeShutdown::Shutdown(base::closure completion) {
++  using Actors = std::vector<std::weak_ptr<LynxActor<BTSRuntime>>>;
++  std::unordered_map<fml::MessageLoopImpl*, Actors> actors_by_loop;
++  decltype(runners_) runners;
++  {
++    std::lock_guard<std::mutex> lock(mutex_);
++    CHECK(!shutting_down_);
++    shutting_down_ = true;
++    for (const auto& [runtime, registration] : actors_) {
++      actors_by_loop[registration.runner->GetLoop().get()].push_back(
++          registration.actor);
++    }
++    runners = runners_;
++  }
++
++  LOGI("Runtime shutdown begin, JS loops:" << runners.size());
++  if (runners.empty()) {
++    completion();
++    return;
++  }
++  auto pending = std::make_shared<std::atomic<size_t>>(runners.size());
++  auto done = std::make_shared<base::closure>(std::move(completion));
++  for (const auto& [loop, runner] : runners) {
++    runner->PostTask(
++        [actors = std::move(actors_by_loop[loop]), pending, done]() mutable {
++          // Runs behind previously enqueued initialization and destruction
++          // tasks. Destroy through the actor so later queued messages see a
++          // null runtime.
++          for (const auto& weak_actor : actors) {
++            if (auto actor = weak_actor.lock()) {
++              actor->Act([](auto& runtime) { runtime.reset(); });
++            }
++          }
++          runtime::JSRealmManager::Instance()->Shutdown();
++          if (pending->fetch_sub(1) == 1) {
++            LOGI("Runtime shutdown complete");
++            (*done)();
++          }
++        });
++  }
++}
++
++}  // namespace shell
++}  // namespace lynx
+diff --git a/core/shell/runtime/runtime_shutdown.h b/core/shell/runtime/runtime_shutdown.h
+new file mode 100644
+--- /dev/null
++++ b/core/shell/runtime/runtime_shutdown.h
+@@ -0,0 +1,50 @@
++// Copyright 2026 The Lynx Authors. All rights reserved.
++// Licensed under the Apache License Version 2.0 that can be found in the
++// LICENSE file in the root directory of this source tree.
++
++#ifndef CORE_SHELL_RUNTIME_RUNTIME_SHUTDOWN_H_
++#define CORE_SHELL_RUNTIME_RUNTIME_SHUTDOWN_H_
++
++#include <memory>
++#include <mutex>
++#include <unordered_map>
++
++#include "base/include/closure.h"
++#include "base/include/lynx_actor.h"
++#include "base/include/no_destructor.h"
++
++namespace lynx {
++namespace shell {
++
++class BTSRuntime;
++
++// Coordinates terminal embedder shutdown without blocking the UI or JS loops.
++class RuntimeShutdown {
++ public:
++  static RuntimeShutdown& Instance();
++
++  void Register(const std::shared_ptr<LynxActor<BTSRuntime>>& actor);
++  void Unregister(BTSRuntime* runtime);
++  void Shutdown(base::closure completion);
++
++ private:
++  friend class base::NoDestructor<RuntimeShutdown>;
++  RuntimeShutdown() = default;
++
++  std::mutex mutex_;
++  bool shutting_down_ = false;
++  struct Registration {
++    std::weak_ptr<LynxActor<BTSRuntime>> actor;
++    fml::RefPtr<fml::TaskRunner> runner;
++  };
++  std::unordered_map<BTSRuntime*, Registration> actors_;
++  // Keep every used loop, including loops whose last page has already closed:
++  // their thread-local realm managers can still own a shared VM.
++  std::unordered_map<fml::MessageLoopImpl*, fml::RefPtr<fml::TaskRunner>>
++      runners_;
++};
++
++}  // namespace shell
++}  // namespace lynx
++
++#endif  // CORE_SHELL_RUNTIME_RUNTIME_SHUTDOWN_H_
+diff --git a/core/runtime/js/js_realm_manager.h b/core/runtime/js/js_realm_manager.h
+--- a/core/runtime/js/js_realm_manager.h
++++ b/core/runtime/js/js_realm_manager.h
+@@ -80,6 +80,9 @@
+
+   ~JSRealmManager() override;
+
++  // Terminal cleanup on the owning JS thread, while its platform is alive.
++  void Shutdown();
++
+   static bool IsSingleJSContext(const std::string& group_id);
+
+   // One VM per runtime type in this manager, regardless of the page's group.
+diff --git a/core/runtime/js/js_realm_manager.cc b/core/runtime/js/js_realm_manager.cc
+--- a/core/runtime/js/js_realm_manager.cc
++++ b/core/runtime/js/js_realm_manager.cc
+@@ -284,14 +284,23 @@
+ #endif
+ }
+
+-JSRealmManager::~JSRealmManager() {
++JSRealmManager::~JSRealmManager() { Shutdown(); }
++
++void JSRealmManager::Shutdown() {
+   for (const auto& [type, vm] : mVMContainer_) {
+     if (type == runtime::js::JSRuntimeType::v8) {
+       UnregisterVMInstance(vm.get());
+     }
+   }
++  // Remove entries before destroying realms: release callbacks may look them up.
++  auto shared_contexts = std::move(shared_context_map_);
++  auto shared_groups = std::move(new_share_group_map_);
++  shared_contexts.clear();
++  shared_groups.clear();
+   // Should destroy js_realm_manager_delegate_ before mVMContainer_
+   js_realm_manager_delegate_.reset();
++  mVMContainer_.clear();
++  weak_runtimes_.clear();
+ }
+
+ bool JSRealmManager::IsSingleJSContext(const std::string& group_id) {

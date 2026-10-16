@@ -9,7 +9,9 @@
 #include <utility>
 
 #include "api/lynx_view/lynx_view_client.h"
+#include "base/functional/callback.h"
 #include "base/memory/weak_ptr.h"
+#include "base/task/bind_post_task.h"
 #include "gfx/geometry/rect.h"
 #include "lynx/platform/embedder/public/capi/lynx_env_capi.h"
 #include "lynx/platform/embedder/public/lynx_template_bundle.h"
@@ -33,6 +35,18 @@ LynxView::~LynxView() = default;
 void LynxView::SetNodePlatformEnv(void* platform) {
   lynx_env_set_node_platform(platform);
   SetNodePlatformEnvToLynxNodeModule(platform);
+}
+
+void LynxView::ShutdownRuntimes(base::OnceClosure completion) {
+  auto reply = std::make_unique<base::OnceClosure>(
+      base::BindPostTaskToCurrentDefault(std::move(completion)));
+  lynx_env_shutdown_runtimes(
+      [](void* user_data) {
+        auto callback = std::unique_ptr<base::OnceClosure>(
+            static_cast<base::OnceClosure*>(user_data));
+        std::move(*callback).Run();
+      },
+      reply.release());
 }
 
 void LynxView::LoadFile(const std::string& path,

@@ -221,8 +221,18 @@ void MainParts::WillRunMainMessageLoop(
     std::unique_ptr<base::RunLoop>& run_loop) {
   exit_code_ = 0;
   // js_env_->OnMessageLoopCreated();
-  Application::Get()->SetMainMessageLoopQuitClosure(
-      run_loop->QuitWhenIdleClosure());
+  Application::Get()->SetMainMessageLoopQuitClosure(base::BindOnce(
+      [](MainParts* parts, base::OnceClosure quit) {
+        // Keep the UI/Node loops alive for teardown callbacks and NAPI cleanup.
+        LynxView::ShutdownRuntimes(base::BindOnce(
+            [](MainParts* parts, base::OnceClosure quit) {
+              parts->lynx_shutdown_complete_ = true;
+              LynxView::SetNodePlatformEnv(nullptr);
+              std::move(quit).Run();
+            },
+            parts, std::move(quit)));
+      },
+      this, run_loop->QuitWhenIdleClosure()));
 #if !BUILDFLAG(IS_WIN)
   InstallShutdownSignalHandlers(
       base::BindOnce(&Application::Quit, base::Unretained(Application::Get())),
@@ -231,6 +241,7 @@ void MainParts::WillRunMainMessageLoop(
 }
 
 void MainParts::PostMainMessageLoopRun() {
+  CHECK(lynx_shutdown_complete_);
   // Destroy node platform after all destructors_ are executed, as they may
   // invoke Node/V8 APIs inside them.
   node_env_->set_trace_sync_io(false);

@@ -1271,6 +1271,7 @@ test("lynxtron_unittests") {
     libs = [ "Wintrust.lib" ]
   }
   sources = [
+    "shell/app/v8_platform_shutdown_unittest.cc",
     "shell/common/global_thread_unittest.cc",
     "shell/common/v8_util_unittest.cc",
     "shell/common/v8_value_converter_impl_unittest.cc",
