@@ -18,27 +18,23 @@ app.whenReady().then(() => {
   });
 
   // Handle bridge calls from Lynx UI
-  // @ts-ignore
-  w.on(
-    '-lynx-invoke',
-    async (callback: EventCallback, name: string, data: any) => {
-      // In our architecture, UI calls NativeModules.bridge.request({ method, params })
-      console.log(
-        `[PC_Host] NativeModule Call: bridge.${name}`,
-        data,
-        callback,
-        name
-      );
+  w.on('-lynx-invoke', async (event, name, data) => {
+    // In our architecture, UI calls NativeModules.bridge.request({ method, params })
+    console.log(
+      `[PC_Host] NativeModule Call: bridge.${name}`,
+      data,
+      event,
+      name
+    );
 
-      if (name === 'showDialog') {
-        const { message } = data;
-        dialog.showMessageBox({ message });
-        callback.sendReply('');
-      } else if (name == 'getAppVersion') {
-        callback.sendReply(app.getVersion());
-      }
+    if (name === 'showDialog') {
+      const { message } = data;
+      dialog.showMessageBox({ message });
+      event.sendReply('');
+    } else if (name == 'getAppVersion') {
+      event.sendReply(app.getVersion());
     }
-  );
+  });
 
   w.show();
   if (isDev) {
