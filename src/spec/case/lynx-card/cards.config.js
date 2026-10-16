@@ -6,6 +6,7 @@ module.exports = {
     'react-lazy': './src/react-lazy/index.tsx',
     'lynx-node-bts-await': './src/lynx-node-bts-await/index.tsx',
     'lynx-set-module': './src/lynx-set-module/index.tsx',
+    'runtime-shutdown': './src/runtime-shutdown/index.tsx',
     'metadata-update': './src/metadata-update/index.tsx',
   },
 };
