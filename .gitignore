@@ -57,6 +57,9 @@
 /buildtools/
 /build/
 /base/
+/mojo/
+/third_party/ipcz/
+/third_party/ply/
 .DS_Store
 /out/
 .venv/

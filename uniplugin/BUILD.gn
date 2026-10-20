@@ -1,0 +1,49 @@
+# Copyright 2026 The Lynxtron Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+shared_library("uniplugin_shared") {
+  sources = [
+    "./native_port.cc",
+    "./native_port.h",
+    "./plugin_process.cc",
+    "./plugin_process.h",
+    "./plugin_service.cc",
+    "./plugin_service.h",
+    "./process_callbacks.cc",
+    "./process_callbacks.h",
+    "./uniplugin.cc",
+    "./uniplugin_globals.cc",
+    "./uniplugin_globals.h",
+  ]
+
+  deps = [
+    "//base",
+    "//components/messaging",
+    "//mojo/core/embedder",
+    "//mojo/public/cpp/bindings",
+    "//mojo/public/cpp/platform",
+    "//mojo/public/cpp/system",
+    "//uniplugin/mojom",
+  ]
+
+  public = [
+    "//uniplugin/public/uniplugin.h",
+    "//uniplugin/public/uniplugin_export.h",
+  ]
+
+  public_configs = [ ":uniplugin_shared_config" ]
+
+  defines = [ "BUILDING_UNIPLUGIN_SHARED" ]
+}
+
+config("uniplugin_shared_config") {
+  include_dirs = [ "//uniplugin/public" ]
+
+  if (is_mac) {
+    ldflags = [ "-Wl,-install_name,@rpath/libuniplugin_shared.dylib" ]
+  }
+}
+
+group("uniplugin") {
+  public_deps = [ ":uniplugin_shared" ]
+}

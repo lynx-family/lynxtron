@@ -1,0 +1,12 @@
+# Copyright (c) 2022 Microsoft, Inc.
+# Use of this source code is governed by the MIT license that can be
+# found in the LICENSE file.
+
+import("//mojo/public/tools/bindings/mojom.gni")
+
+mojom("mojom") {
+  cpp_only = true
+  disable_variants = true
+  sources = [ "plugin_service.mojom" ]
+  public_deps = [ "//components/messaging/public/mojom" ]
+}
