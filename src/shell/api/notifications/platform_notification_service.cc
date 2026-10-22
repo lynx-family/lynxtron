@@ -19,6 +19,9 @@
 #endif
 
 namespace lynxtron {
+#if BUILDFLAG(IS_LINUX)
+std::unique_ptr<PlatformNotificationService> CreateLinuxNotificationService();
+#endif
 
 // static
 PlatformNotificationService* PlatformNotificationService::GetInstance() {
@@ -28,6 +31,8 @@ PlatformNotificationService* PlatformNotificationService::GetInstance() {
     instance.reset(new NotificationPlatformBridgeMac());
 #elif BUILDFLAG(IS_WIN)
     instance.reset(new NotificationPlatformBridgeWin());
+#elif BUILDFLAG(IS_LINUX)
+    instance = CreateLinuxNotificationService();
 #else
     // TODO: Implement for other platforms
 #endif

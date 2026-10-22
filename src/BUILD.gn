@@ -16,6 +16,33 @@ import("build/tsc.gni")
 import("build/webpack/webpack.gni")
 import("lynxtron_extra.gni")
 
+if (is_linux) {
+  import("//build/config/linux/gtk/gtk.gni")
+  import("//build/config/linux/pkg_config.gni")
+  assert(
+      is_headless,
+      "Linux native windows require is_headless=true for the Lynx renderer bridge")
+  pkg_config("linux_desktop") {
+    if (enable_lynx_gtk) {
+      assert(enable_skity && !use_gtk,
+             "GTK4 host requires Skity and disables Chromium GTK3 integration")
+      packages = [
+        "gtk4 >= 4.22",
+        "gio-unix-2.0",
+        "dbusmenu-glib-0.4",
+        "epoxy",
+        "xscrnsaver",
+      ]
+    } else {
+      packages = [
+        "gtk+-3.0",
+        "epoxy",
+        "xscrnsaver",
+      ]
+    }
+  }
+}
+
 if (is_mac) {
   import("//build/apple/templates/xib.gni")
   import("//build/config/mac/rules.gni")
@@ -73,6 +100,7 @@ config("lynxtron_lib_config") {
   }
   defines += [
     "ENABLE_HEADLESS=${is_headless}",
+    "LYNXTRON_USE_GTK4=${enable_lynx_gtk}",
     "ENABLE_TESTBENCH_REPLAY=${enable_lynxtron_testbench_replay}",
   ]
   if (is_mac && is_mas_build) {
@@ -732,17 +760,40 @@ source_set("lynxtron_lib") {
   }
 
   if (is_linux) {
+    configs += [ ":linux_desktop" ]
+    if (enable_lynx_gtk) {
+      sources += [
+        "shell/api/api_clipboard_gtk4_linux.cc",
+        "shell/api/api_menu_gtk4_linux.cc",
+        "shell/api/native_window_gtk4_linux.cc",
+        "shell/api/ui/file_dialog_gtk4_linux.cc",
+        "shell/api/ui/message_box_gtk4_linux.cc",
+        "shell/app/icon_manager_gtk4_linux.cc",
+        "shell/common/linux_desktop_gtk4.cc",
+        "shell/common/linux_screen_gtk4.cc",
+        "shell/ui/tray_icon_gtk4_linux.cc",
+      ]
+    } else {
+      sources += [
+        "shell/api/api_clipboard_linux.cc",
+        "shell/api/api_menu_linux.cc",
+        "shell/api/native_window_linux.cc",
+        "shell/api/ui/file_dialog_linux.cc",
+        "shell/api/ui/message_box_linux.cc",
+        "shell/app/icon_manager_linux.cc",
+        "shell/common/linux_desktop.cc",
+        "shell/common/linux_screen.cc",
+        "shell/ui/tray_icon_linux.cc",
+      ]
+    }
     sources += [
-      "shell/api/api_menu_linux.cc",
       "shell/api/api_native_image_linux.cc",
       "shell/api/api_power_monitor_linux.cc",
-      "shell/api/native_window_linux.cc",
-      "shell/api/ui/file_dialog_linux.cc",
-      "shell/api/ui/message_box_linux.cc",
+      "shell/api/notifications/notification_platform_bridge_linux.cc",
       "shell/app/application_linux.cc",
-      "shell/app/icon_manager_linux.cc",
       "shell/app/relauncher_linux.cc",
       "shell/common/application_info_linux.cc",
+      "shell/common/linux_desktop.h",
       "shell/common/node_bindings_linux.cc",
       "shell/common/platform_util_linux.cc",
       "shell/common/process_singleton/process_singleton_lock_posix.cc",

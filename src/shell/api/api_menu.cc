@@ -31,6 +31,10 @@
 #include "shell/common/node_includes.h"
 #include "shell/ui/events/event_constants.h"
 
+#if BUILDFLAG(IS_LINUX) && LYNXTRON_USE_GTK4
+#include "shell/common/linux_desktop.h"
+#endif
+
 #if BUILDFLAG(IS_WIN)
 #include <windows.h>
 #endif
@@ -228,16 +232,19 @@ void Menu::InsertItemAt(int index,
                         int command_id,
                         const std::u16string& label) {
   model_->InsertItemAt(index, command_id, label);
+  NotifyMenuChanged();
 }
 
 void Menu::InsertSeparatorAt(int index) {
   model_->InsertSeparatorAt(index);
+  NotifyMenuChanged();
 }
 
 void Menu::InsertCheckItemAt(int index,
                              int command_id,
                              const std::u16string& label) {
   model_->InsertCheckItemAt(index, command_id, label);
+  NotifyMenuChanged();
 }
 
 void Menu::InsertRadioItemAt(int index,
@@ -245,6 +252,7 @@ void Menu::InsertRadioItemAt(int index,
                              const std::u16string& label,
                              int group_id) {
   model_->InsertRadioItemAt(index, command_id, label, group_id);
+  NotifyMenuChanged();
 }
 
 void Menu::InsertSubMenuAt(int index,
@@ -253,6 +261,7 @@ void Menu::InsertSubMenuAt(int index,
                            Menu* menu) {
   menu->parent_ = this;
   model_->InsertSubMenuAt(index, command_id, label, menu->model_.get());
+  NotifyMenuChanged();
 }
 
 void Menu::SetIcon(int index, const gfx::Image& image) {
@@ -275,8 +284,15 @@ void Menu::SetCustomType(int index, const std::u16string& customType) {
   model_->SetCustomType(index, customType);
 }
 
+void Menu::NotifyMenuChanged() {
+#if BUILDFLAG(IS_LINUX) && LYNXTRON_USE_GTK4
+  RefreshLinuxMenus();
+#endif
+}
+
 void Menu::Clear() {
   model_->Clear();
+  NotifyMenuChanged();
 }
 
 int Menu::GetItemCount() const {
@@ -346,6 +362,9 @@ void Menu::ClosePopupAt(int32_t window_id) {
 void Menu::FillObjectTemplate(v8::Isolate* isolate,
                               v8::Local<v8::ObjectTemplate> templ) {
   gin::ObjectTemplateBuilder(isolate, GetClassName(), templ)
+#if BUILDFLAG(IS_LINUX) && LYNXTRON_USE_GTK4
+      .SetMethod("_notifyMenuChanged", &Menu::NotifyMenuChanged)
+#endif
       .SetMethod("insertItem", &Menu::InsertItemAt)
       .SetMethod("insertCheckItem", &Menu::InsertCheckItemAt)
       .SetMethod("insertRadioItem", &Menu::InsertRadioItemAt)
@@ -389,6 +408,22 @@ namespace {
 
 using lynxtron::api::Menu;
 
+#if BUILDFLAG(IS_LINUX) && LYNXTRON_USE_GTK4
+void SetApplicationMenuNullable(gin::Arguments* args) {
+  v8::Local<v8::Value> value;
+  if (!args->GetNext(&value)) {
+    return;
+  }
+  Menu* menu = nullptr;
+  if (!value->IsNullOrUndefined() &&
+      !gin::ConvertFromV8(args->isolate(), value, &menu)) {
+    args->ThrowTypeError("Invalid menu");
+    return;
+  }
+  Menu::SetApplicationMenu(menu);
+}
+#endif
+
 void Initialize(v8::Local<v8::Object> exports,
                 v8::Local<v8::Value> unused,
                 v8::Local<v8::Context> context,
@@ -396,8 +431,12 @@ void Initialize(v8::Local<v8::Object> exports,
   v8::Isolate* const isolate = lynxtron::JavascriptEnvironment::GetIsolate();
   gin_helper::Dictionary dict{isolate, exports};
   dict.Set("Menu", Menu::GetConstructor(isolate, context));
-#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN)
+#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN) || BUILDFLAG(IS_LINUX)
+#if BUILDFLAG(IS_LINUX) && LYNXTRON_USE_GTK4
+  dict.SetMethod("setApplicationMenu", &SetApplicationMenuNullable);
+#else
   dict.SetMethod("setApplicationMenu", &Menu::SetApplicationMenu);
+#endif
 #endif
 #if BUILDFLAG(IS_MAC)
   dict.SetMethod("sendActionToFirstResponder",
