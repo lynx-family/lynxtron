@@ -13,9 +13,17 @@ static const char* kMainPartsDelegateName = "MainPartsDelegate";
 
 class MainPartsDelegate : public GlobalDelegate {
  public:
+  // Runs at the start of MainParts::Initialize(), before the browser's V8 and
+  // Node environments are set up.
   virtual void PreInitialization() = 0;
-  virtual void PostV8Initialization() = 0;
+  // Runs after the Node environment is created and its main V8 context is
+  // entered, before Lynxtron bindings and app code are loaded.
+  virtual void PostNodeEnvironmentInitialization() = 0;
+  // Runs after LoadEnvironment() and JoinAppCode(), before the embed thread
+  // starts polling.
   virtual void PostInitialization() = 0;
+  // Runs at the start of MainParts::Shutdown(), before the global thread and
+  // thread pool are shut down.
   virtual void PreShutdown() = 0;
 };
 
