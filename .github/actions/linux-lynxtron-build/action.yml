@@ -19,11 +19,11 @@ runs:
   using: composite
   steps:
     - name: Python Setup
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
       with:
         python-version: '3.13'
     - name: Setup Node.js 22.18.0
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
       with:
         node-version: '22.18.0'
     - name: Install Common Dependencies

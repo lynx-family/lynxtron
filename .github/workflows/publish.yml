@@ -69,7 +69,7 @@ jobs:
       prerelease: ${{ steps.set-version.outputs.prerelease }}
     steps:
       - name: Resolve source revision
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           path: source
           ref: ${{ inputs.source_ref }}
@@ -127,7 +127,7 @@ jobs:
         arch: [arm64, x64]
     steps:
       - name: Download Source
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           path: lynxtron
           ref: ${{ needs.get-version.outputs.source_sha }}
@@ -183,18 +183,18 @@ jobs:
             ls -lh "../../publish/lynxtron-v${VERSION}-node-headers.zip"
           fi
       - name: Upload macOS artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: lynxtron-darwin-${{ matrix.arch }}
           path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-darwin-${{ matrix.arch }}.zip
       - name: Upload macOS symbols
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: lynxtron-darwin-${{ matrix.arch }}-symbols
           path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-darwin-${{ matrix.arch }}-symbols.zip
       - name: Upload node headers
         if: matrix.arch == 'arm64'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: lynxtron-node-headers
           path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-node-headers.zip
@@ -209,7 +209,7 @@ jobs:
         arch: [x64]
     steps:
       - name: Download Source
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           path: lynxtron
           ref: ${{ needs.get-version.outputs.source_sha }}
@@ -269,12 +269,12 @@ jobs:
           mv lynxtron-symbols.zip "../../publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}-symbols.zip"
           ls -lh "../../publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}-symbols.zip"
       - name: Upload Linux artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: lynxtron-linux-${{ matrix.arch }}
           path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-linux-${{ matrix.arch }}.zip
       - name: Upload Linux symbols
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: lynxtron-linux-${{ matrix.arch }}-symbols
           path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-linux-${{ matrix.arch }}-symbols.zip
@@ -296,7 +296,7 @@ jobs:
           git config --global http.sslBackend "schannel"
         working-directory: ./
       - name: Download Source
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           path: lynxtron
           ref: ${{ needs.get-version.outputs.source_sha }}
@@ -374,12 +374,12 @@ jobs:
           Write-Host "Created symbols package"
           Get-Item "$workspace\publish\lynxtron-v${VERSION}-win32-${{ matrix.arch }}-symbols.zip" | Select-Object Name, Length
       - name: Upload Windows artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: lynxtron-win32-${{ matrix.arch }}
           path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-win32-${{ matrix.arch }}.zip
       - name: Upload Windows symbols
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: lynxtron-win32-${{ matrix.arch }}-symbols
           path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-win32-${{ matrix.arch }}-symbols.zip
@@ -394,7 +394,7 @@ jobs:
           Copy-Item -Recurse -Force "$workspace\src\packages\cef-webview\dist\win32\${{ matrix.arch }}\*" $stageDir
           Compress-Archive -Path $stageDir -DestinationPath "$workspace\publish\$rootName.zip" -Force
       - name: Upload Windows CEF webview artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: cef-webview-win32-${{ matrix.arch }}
           path: lynxtron/publish/cef_webview-v${{ needs.get-version.outputs.version }}-win32-${{ matrix.arch }}.zip
@@ -410,7 +410,7 @@ jobs:
         arch: [arm64, x64]
     steps:
       - name: Download Source
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           path: lynxtron
           ref: ${{ needs.get-version.outputs.source_sha }}
@@ -451,12 +451,12 @@ jobs:
           zip -r -y "../../publish/lynxtron-v${VERSION}-darwin-${{ matrix.arch }}-devtool-symbols.zip" "$SYMBOLS_DIR"
           ls -lh "../../publish/lynxtron-v${VERSION}-darwin-${{ matrix.arch }}-devtool-symbols.zip"
       - name: Upload macOS artifact (DevTool)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: devtool-lynxtron-darwin-${{ matrix.arch }}
           path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-darwin-${{ matrix.arch }}-devtool.zip
       - name: Upload macOS symbols (DevTool)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: devtool-lynxtron-darwin-${{ matrix.arch }}-symbols
           path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-darwin-${{ matrix.arch }}-devtool-symbols.zip
@@ -472,7 +472,7 @@ jobs:
         arch: [x64]
     steps:
       - name: Download Source
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           path: lynxtron
           ref: ${{ needs.get-version.outputs.source_sha }}
@@ -532,12 +532,12 @@ jobs:
           mv lynxtron-symbols.zip "../../publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}-devtool-symbols.zip"
           ls -lh "../../publish/lynxtron-v${VERSION}-linux-${{ matrix.arch }}-devtool-symbols.zip"
       - name: Upload Linux artifact (DevTool)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: devtool-lynxtron-linux-${{ matrix.arch }}
           path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-linux-${{ matrix.arch }}-devtool.zip
       - name: Upload Linux symbols (DevTool)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: devtool-lynxtron-linux-${{ matrix.arch }}-symbols
           path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-linux-${{ matrix.arch }}-devtool-symbols.zip
@@ -560,7 +560,7 @@ jobs:
           git config --global http.sslBackend "schannel"
         working-directory: ./
       - name: Download Source
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           path: lynxtron
           ref: ${{ needs.get-version.outputs.source_sha }}
@@ -619,12 +619,12 @@ jobs:
           Rename-Item -Path "$outDir\lynxtron-symbols.zip" -NewName "lynxtron-v${VERSION}-win32-${{ matrix.arch }}-devtool-symbols.zip"
           Move-Item -Path "$outDir\lynxtron-v${VERSION}-win32-${{ matrix.arch }}-devtool-symbols.zip" -Destination "$workspace\publish\" -Force
       - name: Upload Windows artifact (DevTool)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: devtool-lynxtron-win32-${{ matrix.arch }}
           path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-win32-${{ matrix.arch }}-devtool.zip
       - name: Upload Windows symbols (DevTool)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: devtool-lynxtron-win32-${{ matrix.arch }}-symbols
           path: lynxtron/publish/lynxtron-v${{ needs.get-version.outputs.version }}-win32-${{ matrix.arch }}-devtool-symbols.zip
@@ -640,7 +640,7 @@ jobs:
         arch: [arm64, x64]
     steps:
       - name: Download Source
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           path: lynxtron
           ref: ${{ needs.get-version.outputs.source_sha }}
@@ -652,7 +652,7 @@ jobs:
           git config --global user.email "scripts@lynxtron.com"
           python3 lynxtron_tools/build_cef_webview.py --arch "${{ matrix.arch }}" --version "${{ needs.get-version.outputs.version }}"
       - name: Upload CEF webview artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: cef-webview-darwin-${{ matrix.arch }}
           path: lynxtron/publish/cef_webview-v${{ needs.get-version.outputs.version }}-darwin-${{ matrix.arch }}.zip
@@ -678,14 +678,14 @@ jobs:
         working-directory: ./
     steps:
       - name: Download release artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: artifacts
           pattern: '{lynxtron-*,devtool-lynxtron-*,cef-webview-*}'
       - name: List artifacts
         run: ls -lhR artifacts/
       - name: Create GitHub Release and upload assets
-        uses: ncipollo/release-action@v1
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1
         with:
           tag: ${{ needs.get-version.outputs.tag }}
           commit: ${{ needs.get-version.outputs.source_sha }}
@@ -709,15 +709,15 @@ jobs:
         working-directory: lynxtron/src/packages/lynxtron
     steps:
       - name: Download Source
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           path: lynxtron
           ref: ${{ needs.get-version.outputs.source_sha }}
       - name: Python Setup
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: '3.13'
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24.14.1
           registry-url: 'https://registry.npmjs.org'
@@ -774,7 +774,7 @@ jobs:
           assert run['status'] == 'completed', 'Source run must be complete'
           PYVALIDATE
       - name: Download runtime archives
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: runtime-artifacts
           run-id: ${{ inputs.artifacts_run_id || github.run_id }}
