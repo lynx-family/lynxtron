@@ -2,13 +2,17 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const http = require('node:http');
+const { createRequire } = require('node:module');
 const os = require('node:os');
 const path = require('node:path');
 
-const electronGet = require('@electron/get');
+const requireToolchain = createRequire(
+  require.resolve('../vendor/node_modules/app-builder-lib/package.json')
+);
+const electronGet = requireToolchain('@electron/get');
 const {
   downloadElectronArtifactZip,
-} = require('app-builder-lib/out/util/electronGet.js');
+} = requireToolchain('./out/util/electronGet.js');
 const runtimeArtifacts = require('../../lynxtron/runtime-artifacts.cjs');
 const { prepareRuntimeConfig } = require('../runtime-config.js');
 
