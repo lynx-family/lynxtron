@@ -2,6 +2,16 @@
 
 `lynxtron-builder` packages applications with the production runtime by default. The installed `lynxtron` CLI uses the DevTool-enabled runtime by default, so the normal development and packaging commands do not require different npm versions.
 
+## Building the npm package
+
+Publish with npm. Both `npm pack` and `npm publish` run `prepack` to install,
+patch, and verify the toolchain under `vendor/`. The published package includes
+this prepared toolchain, so npm, pnpm, and Yarn consumers do not need an install
+script to apply patches. When developing from source, run `npm run prepack` in
+this package before invoking the builder.
+
+## Runtime selection
+
 To package a DevTool-enabled application, add this package-specific section to `electron-builder.yml`:
 
 ```yaml

@@ -18,6 +18,17 @@ const projectRoot = process.cwd();
 const configPath = path.join(projectRoot, 'electron-builder.yml');
 const tempConfigPath = path.join(projectRoot, 'config.json');
 
+function resolveElectronBuilderCli() {
+  const cliPath = path.join(__dirname, 'vendor/node_modules/electron-builder/out/cli/cli.js');
+  if (!fs.existsSync(cliPath)) {
+    throw new Error(
+      '[lynxtron-builder] Bundled toolchain is missing. ' +
+      'Run "npm run prepack" in the lynxtron-builder source package before using it.'
+    );
+  }
+  return cliPath;
+}
+
 function getLynxtronPackage() {
   try {
     const packageJsonPath = require.resolve('@lynx-js/lynxtron/package.json', {
@@ -117,7 +128,7 @@ async function runBuild(arch, rawArgs, { filterTargets = false } = {}) {
 
   fs.writeFileSync(tempConfigPath, JSON.stringify(config, null, 2));
 
-  const electronBuilderPath = require.resolve('electron-builder/out/cli/cli.js');
+  const electronBuilderPath = resolveElectronBuilderCli();
   const args = prepared.forwardedArgs.filter(arg =>
     arg !== '--universal' &&
     arg !== '--mas' &&
@@ -168,7 +179,7 @@ async function makeUniversal() {
   fs.writeFileSync(tempConfigPath, JSON.stringify(packaging.config, null, 2));
 
   return new Promise((resolve, reject) => {
-    const electronBuilderPath = require.resolve('electron-builder/out/cli/cli.js');
+    const electronBuilderPath = resolveElectronBuilderCli();
 
     const child = spawn('node', [electronBuilderPath, ...packaging.args], {
       stdio: 'inherit',
