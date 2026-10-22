@@ -18,6 +18,16 @@ const projectRoot = process.cwd();
 const configPath = path.join(projectRoot, 'electron-builder.yml');
 const tempConfigPath = path.join(projectRoot, 'config.json');
 
+function resolveElectronBuilderCli() {
+  // Published packages carry the patched toolchain in vendor/. Source
+  // workspaces use the dependencies patched by the private root postinstall.
+  const vendorPath = path.join(__dirname, 'vendor');
+  if (fs.existsSync(vendorPath)) {
+    return require.resolve(path.join(vendorPath, 'node_modules/electron-builder/out/cli/cli.js'));
+  }
+  return require.resolve('electron-builder/out/cli/cli.js');
+}
+
 function getLynxtronPackage() {
   try {
     const packageJsonPath = require.resolve('@lynx-js/lynxtron/package.json', {
@@ -117,7 +127,7 @@ async function runBuild(arch, rawArgs, { filterTargets = false } = {}) {
 
   fs.writeFileSync(tempConfigPath, JSON.stringify(config, null, 2));
 
-  const electronBuilderPath = require.resolve('electron-builder/out/cli/cli.js');
+  const electronBuilderPath = resolveElectronBuilderCli();
   const args = prepared.forwardedArgs.filter(arg =>
     arg !== '--universal' &&
     arg !== '--mas' &&
@@ -168,7 +178,7 @@ async function makeUniversal() {
   fs.writeFileSync(tempConfigPath, JSON.stringify(packaging.config, null, 2));
 
   return new Promise((resolve, reject) => {
-    const electronBuilderPath = require.resolve('electron-builder/out/cli/cli.js');
+    const electronBuilderPath = resolveElectronBuilderCli();
 
     const child = spawn('node', [electronBuilderPath, ...packaging.args], {
       stdio: 'inherit',
