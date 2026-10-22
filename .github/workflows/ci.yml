@@ -18,10 +18,10 @@ jobs:
       matrix:
         node: [22, 24]
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           path: lynxtron
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ matrix.node }}
           registry-url: https://registry.npmjs.org
@@ -39,16 +39,16 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Python Setup
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: '3.13'
       - name: Download Source
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 2
           ref: ${{ github.event.pull_request.head.sha }}
           path: lynxtron
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           registry-url: 'https://registry.npmjs.org'
@@ -93,7 +93,7 @@ jobs:
         arch: [arm64, x64]
     steps:
       - name: Download Source
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           path: lynxtron
       - name: Build macOS Lynxtron
@@ -108,7 +108,7 @@ jobs:
         arch: [x64]
     steps:
       - name: Download Source
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           path: lynxtron
       - name: Build Linux Lynxtron
@@ -130,7 +130,7 @@ jobs:
           git config --global http.sslBackend "schannel"
         working-directory: ./
       - name: Download Source
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           path: lynxtron
       - name: Build Windows Lynxtron
