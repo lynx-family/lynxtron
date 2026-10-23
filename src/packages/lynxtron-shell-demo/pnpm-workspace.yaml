@@ -1,0 +1,14 @@
+packages:
+  - .
+
+# Keep unreviewed dependency scripts blocked without making installation fail.
+strictDepBuilds: false
+
+allowBuilds:
+  '@lynx-js/lynxtron': true
+  '@speedy-js/esbuild': true
+  core-js: false
+  crc64-ecma182.js: true
+  electron-winstaller: true
+  esbuild: true
+  unrs-resolver: true

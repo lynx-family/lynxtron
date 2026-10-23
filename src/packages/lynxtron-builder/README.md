@@ -2,6 +2,13 @@
 
 `lynxtron-builder` packages applications with the production runtime by default. The installed `lynxtron` CLI uses the DevTool-enabled runtime by default, so the normal development and packaging commands do not require different npm versions.
 
+Published releases depend on the upstream electron-builder package and contain
+private, pre-patched copies of `app-builder-lib` and `dmg-builder`. The private
+copies reuse electron-builder's dependency graph instead of duplicating its
+toolchain. Patches run only while producing the npm tarball. Installing the
+published package does not modify the project's `node_modules`, depend on a
+hoisted layout, or write patched files to the pnpm store.
+
 To package a DevTool-enabled application, add this package-specific section to `electron-builder.yml`:
 
 ```yaml

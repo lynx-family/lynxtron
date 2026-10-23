@@ -8,7 +8,7 @@ const path = require('node:path');
 const electronGet = require('@electron/get');
 const {
   downloadElectronArtifactZip,
-} = require('app-builder-lib/out/util/electronGet.js');
+} = require('../vendor/app-builder-lib/out/util/electronGet.js');
 const runtimeArtifacts = require('../../lynxtron/runtime-artifacts.cjs');
 const { prepareRuntimeConfig } = require('../runtime-config.js');
 

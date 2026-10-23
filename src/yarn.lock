@@ -1354,8 +1354,6 @@ __metadata:
   resolution: "@lynx-js/lynxtron-builder@workspace:packages/lynxtron-builder"
   dependencies:
     "@electron/universal": "npm:^1.3.0"
-    app-builder-lib: "npm:26.13.0"
-    dmg-builder: "npm:26.13.0"
     electron-builder: "npm:26.13.0"
     js-yaml: "npm:^4.1.0"
     patch-package: "npm:^6.4.7"

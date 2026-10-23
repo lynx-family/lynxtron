@@ -194,6 +194,27 @@ test('all packages published by the runtime workflow use one Changesets version'
     publishPrepareSource,
     /"cef-webview"[\s\S]*?"replaces"[\s\S]*?"@lynx-js\/lynxtron"/
   );
+  assert.doesNotMatch(publishPrepareSource, /"electron-builder-fork"/);
+  assert.doesNotMatch(
+    publishPrepareSource,
+    /"electron-builder": "@lynx-js\/electron-builder"/
+  );
+
+  const publishScript = jobs['publish-npm'].steps.find(
+    (step) => step.name === 'Publish'
+  ).run;
+  assert.doesNotMatch(publishScript, /@lynx-js\/(app-builder-lib|dmg-builder|electron-builder)/);
+
+  const builderManifest = JSON.parse(
+    fs.readFileSync(path.resolve(__dirname, '../package.json'), 'utf8')
+  );
+  assert.equal(builderManifest.scripts.postinstall, undefined);
+  assert.equal(builderManifest.scripts.prepack, 'node patch.js');
+  assert.deepEqual(builderManifest.lynxtronPatchedDependencies, {
+    'app-builder-lib': '26.13.0',
+    'dmg-builder': '26.13.0',
+  });
+  assert.ok(builderManifest.files.includes('vendor/'));
 });
 
 test('release builds disable inspector and DevTool builds enable it', () => {
