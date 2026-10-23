@@ -18,10 +18,12 @@
 #include "base/power_monitor/power_monitor.h"
 #include "base/power_monitor/power_monitor_device_source.h"
 #include "base/run_loop.h"
+#include "base/task/bind_post_task.h"
 #include "base/task/thread_pool/thread_pool_instance.h"
 #include "base/threading/hang_watcher.h"
 #include "build/build_config.h"
 #include "gin/v8_initializer.h"
+#include "lynx/platform/embedder/public/capi/lynx_env_capi.h"
 #include "main_parts_delegate.h"
 #include "shell/api/lynx_view/lynx_view.h"
 #if ENABLE_HEADLESS
@@ -45,6 +47,17 @@
 namespace lynxtron {
 
 namespace {
+
+void ShutdownLynx(base::OnceClosure quit) {
+  lynx_env_shutdown_runtimes(
+      [](void* data) {
+        auto callback = std::unique_ptr<base::OnceClosure>(
+            static_cast<base::OnceClosure*>(data));
+        std::move(*callback).Run();
+      },
+      new base::OnceClosure(
+          base::BindPostTaskToCurrentDefault(std::move(quit))));
+}
 
 void InitializeFeatureList() {
   // Initialize base::FeatureList with the command-line flags.
@@ -221,8 +234,10 @@ void MainParts::WillRunMainMessageLoop(
     std::unique_ptr<base::RunLoop>& run_loop) {
   exit_code_ = 0;
   // js_env_->OnMessageLoopCreated();
+  // Keep the UI/Node loops alive until Lynx finishes runtime and isolate
+  // cleanup.
   Application::Get()->SetMainMessageLoopQuitClosure(
-      run_loop->QuitWhenIdleClosure());
+      base::BindOnce(&ShutdownLynx, run_loop->QuitWhenIdleClosure()));
 #if !BUILDFLAG(IS_WIN)
   InstallShutdownSignalHandlers(
       base::BindOnce(&Application::Quit, base::Unretained(Application::Get())),
