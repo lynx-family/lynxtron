@@ -104,6 +104,10 @@ JavascriptEnvironment::~JavascriptEnvironment() {
   lynxtron::trace::RuntimeProfileHelper::GetInstance()
       .RemoveV8RuntimeProfiler();
 #endif  // ENABLE_TRACE_PERFETTO
+
+  // Intentionally leak the shared platform until process exit. Lynx JS teardown
+  // can outlive this environment.
+  (void)platform_.release();
 }
 
 v8::Isolate* JavascriptEnvironment::Initialize(uv_loop_t* event_loop,
