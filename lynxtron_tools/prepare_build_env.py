@@ -49,6 +49,51 @@ def run_habitat_sync(command, description):
     return return_code
 
 
+def create_dir_symlink(link_path, target_path, system):
+    """Create a directory symlink at link_path pointing to target_path.
+
+    On Windows, regular symlinks require Administrator privileges or Developer
+    Mode, so prefer a directory junction (`mklink /J`, which needs neither) and
+    fall back to os.symlink only if the junction cannot be created. `mklink`
+    expects `<link> <target>` with an existing absolute target directory.
+    """
+    link_path = os.path.normpath(link_path)
+    target_path = os.path.normpath(target_path)
+    parent = os.path.dirname(link_path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    if os.path.islink(link_path) or os.path.exists(link_path):
+        # Junctions report as links on recent Python; unlink handles both links
+        # and junction-backed directories without recursing into the target.
+        if os.path.islink(link_path) or os.path.isdir(link_path):
+            os.unlink(link_path)
+        else:
+            os.remove(link_path)
+    try:
+        if system == "windows":
+            # Junctions store an absolute target, so resolve a relative
+            # target (e.g. "../src") against the link's directory.
+            if os.path.isabs(target_path):
+                abs_target = target_path
+            else:
+                abs_target = os.path.normpath(os.path.join(parent, target_path))
+            import subprocess
+            subprocess.run(
+                ["mklink", "/J", link_path, abs_target],
+                check=True,
+                shell=True,
+            )
+        else:
+            os.symlink(target_path, link_path)
+    except Exception:
+        if system == "windows":
+            # Developer Mode is enabled or elevation is available; a real
+            # symlink is an acceptable equivalent of the junction.
+            os.symlink(target_path, link_path)
+        else:
+            raise
+
+
 def configure_habitat_environment():
     os.environ["GIT_LFS_SKIP_SMUDGE"] = "1"
     os.environ["HABITAT_CONCURRENCY"] = HABITAT_CONCURRENCY
@@ -99,6 +144,27 @@ def main():
     if return_code != 0:
         print(f"{COLORED_YELLOW_MSG}sync tools_shared dependencies failed, exit{COLORED_PRINT_END}")
         return return_code
+
+    # lynx's testing/test.gni references
+    # //buildtools/tools_shared/tools_shared/gn_tools/gn_check_target_name.py.
+    # In the lynxtron integrated build "//" is the lynxtron root, so that path
+    # resolves to lynxtron/buildtools/tools_shared which nobody provides. Bridge
+    # it with a symlink to src/ (which contains tools_shared/gn_tools), so that
+    # buildtools/tools_shared/tools_shared/gn_tools unpacks to src/tools_shared/
+    # gn_tools. The `tools` sync above wipes lynxtron/buildtools, so this must
+    # run after all sync steps.
+    tools_shared_link = os.path.join(root_dir, "buildtools", "tools_shared")
+    tools_shared_target = os.path.join("..", "src")
+    try:
+        create_dir_symlink(tools_shared_link, tools_shared_target, system)
+        print(
+            f"{COLORED_GREEN_MSG}Linked {tools_shared_link} -> {tools_shared_target}{COLORED_PRINT_END}"
+        )
+    except Exception as e:
+        print(
+            f"{COLORED_RED_MSG}Warning: failed to link buildtools/tools_shared: {e}{COLORED_PRINT_END}"
+        )
+
     print(f"{COLORED_YELLOW_MSG}sync lynx dependencies............{COLORED_PRINT_END}")
     if system == "windows":
         lynx_sync_cmd = f"powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File \"{hab}\" sync . -f --no-history --target lynx --target-only"

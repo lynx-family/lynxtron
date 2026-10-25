@@ -5,20 +5,12 @@ Subject: [PATCH] [BugFix][macOS] Align TestBench bridge replay with Lynx
  Desktop
 
 ---
-diff --git a/core/services/replay/lynx_callback_testbench.h b/core/services/replay/lynx_callback_testbench.h
-index 91de8f0cd1233c3f39894645c5fc16e4efeae296..2e8c1bab4d75930925a15d150e8a932d15d51bbf 100644
---- a/core/services/replay/lynx_callback_testbench.h
-+++ b/core/services/replay/lynx_callback_testbench.h
-@@ -17,3 +17,3 @@ class ModuleCallbackTestBench : public ModuleCallback {
-   ~ModuleCallbackTestBench() override = default;
--  rapidjson::Value argument;
-+  rapidjson::Document argument;
-   void Invoke(Runtime *runtime, ModuleCallbackFunctionHolder *holder) override;
 diff --git a/core/services/replay/lynx_module_binding_testbench.cc b/core/services/replay/lynx_module_binding_testbench.cc
-index f5b06b7432cd7ce59c1fb9f6e3796ff42fec7d99..5dd0a6fb393882863eff364a33da761442791f5b 100644
+index f5b06b7432fa48b5af13902bd06599bbd2d9af9d..5dd0a6fb39f6ef8f0d126bde2c4becfd698b7805 100644
 --- a/core/services/replay/lynx_module_binding_testbench.cc
 +++ b/core/services/replay/lynx_module_binding_testbench.cc
-@@ -29,8 +29,11 @@ Value LynxJSIModuleBindingTestBench::get(Runtime *rt, const PropNameID &prop) {
+@@ -29,11 +29,14 @@ Value LynxJSIModuleBindingTestBench::get(Runtime *rt, const PropNameID &prop) {
+   std::string moduleName = prop.utf8(*rt);
    std::shared_ptr<LynxModule> module = nullptr;
    if (lynxModuleSet.find(moduleName) != lynxModuleSet.end()) {
 -    return moduleBindingPtrLynx_->get(rt, prop);
@@ -29,18 +21,19 @@ index f5b06b7432cd7ce59c1fb9f6e3796ff42fec7d99..5dd0a6fb393882863eff364a33da7614
 +      return native_module;
 +    }
    }
-
+ 
 +  module = moduleProvider_(moduleName);
 +
    if (module == nullptr) {
+     return Value::null();
+   }
 diff --git a/core/services/replay/lynx_module_testbench.cc b/core/services/replay/lynx_module_testbench.cc
-index 7d0e59730f675b99f0c3ca2b577e1509e9b06102..b71f60e87dd94dfd214f78422302e65099200e05 100644
+index 0950c2ad9281b2497207e7613b556673b09c0688..e40299142d07bfd5a467e3b66e0c16eca7128fa7 100644
 --- a/core/services/replay/lynx_module_testbench.cc
 +++ b/core/services/replay/lynx_module_testbench.cc
-@@ -7 +7,2 @@
-+#include <algorithm>
- #include <cmath>
-@@ -20,2 +21,20 @@ namespace runtime {
+@@ -20,6 +20,24 @@
+ namespace lynx {
+ namespace runtime {
  namespace js {
 +namespace {
 +
@@ -61,24 +54,12 @@ index 7d0e59730f675b99f0c3ca2b577e1509e9b06102..b71f60e87dd94dfd214f78422302e650
 +}  // namespace
 +
  std::string ModuleTestBench::kUndefined = "undefined";
-@@ -192,2 +211,11 @@ void ModuleTestBench::InvokeJsbCallback(Function callback_function,
-                                         int64_t delay) {
-+  auto owned_value = std::make_shared<rapidjson::Document>();
-+  owned_value->CopyFrom(value, owned_value->GetAllocator());
-+  InvokeJsbCallback(std::move(callback_function), std::move(owned_value),
-+                    delay);
-+}
-+
-+void ModuleTestBench::InvokeJsbCallback(
-+    Function callback_function, std::shared_ptr<rapidjson::Document> value,
-+    int64_t delay) {
-   int64_t callback_id =
-@@ -196,3 +224,3 @@ void ModuleTestBench::InvokeJsbCallback(Function callback_function,
-   auto wrapper = std::make_shared<ModuleCallbackTestBench>(callback_id);
--  wrapper->argument = value;
-+  wrapper->argument.CopyFrom(*value, wrapper->argument.GetAllocator());
-   if (delay < 0) {
-@@ -451 +479,112 @@ bool ModuleTestBench::isSameMethod(const MethodMetadata &method, Runtime *rt,
+ std::string ModuleTestBench::kHeader = "header";
+ std::string ModuleTestBench::kTimeStamp = "timestamp";
+@@ -728,6 +746,117 @@ bool ModuleTestBench::isSameMethod(const MethodMetadata &method, Runtime *rt,
+   return true;
+ }
+ 
 +bool ModuleTestBench::isSameBridgeCallMethod(const MethodMetadata &method,
 +                                             Runtime *rt, const Value *args,
 +                                             size_t count,
@@ -191,7 +172,11 @@ index 7d0e59730f675b99f0c3ca2b577e1509e9b06102..b71f60e87dd94dfd214f78422302e650
 +}
 +
  Value ModuleTestBench::getAttributeValue(Runtime *rt, std::string propName) {
-@@ -479,5 +618,28 @@ Value ModuleTestBench::invokeMethodKernel(const MethodMetadata &method,
+   return Value();
+ }
+@@ -757,9 +886,32 @@ void ModuleTestBench::syncToPlatform(const rapidjson::Value &moduleData,
+ Value ModuleTestBench::invokeMethodKernel(const MethodMetadata &method,
+                                           Runtime *rt, const Value *args,
                                            size_t count) {
 +  callbackFunctions.clear();
    if (this->moduleData.IsArray()) {
@@ -222,22 +207,34 @@ index 7d0e59730f675b99f0c3ca2b577e1509e9b06102..b71f60e87dd94dfd214f78422302e650
 +          }
 +        }
          this->syncToPlatform(moduleData[index], method, rt, args, count);
-@@ -494,2 +656,6 @@ Value ModuleTestBench::invokeMethodKernel(const MethodMetadata &method,
+         rapidjson::Value &callbackValue = moduleData[index]["Callback"];
+         /*
+@@ -772,6 +924,10 @@ Value ModuleTestBench::invokeMethodKernel(const MethodMetadata &method,
+          *  functions that callbackFunctions may contain being greater than the
+          *  actual number of callbacks.
           */
 +        if (name_ == "bridge" && method.name == "call" &&
 +            callbackFunctions.size() < callbackValue.Size()) {
 +          CollectTopLevelCallbackFunctions(rt, args, count);
 +        }
          if ((callbackValue.Size()) != 0 &&
+             (callbackFunctions.size() >= callbackValue.Size())) {
+           unsigned long start_index =
 diff --git a/core/services/replay/lynx_module_testbench.h b/core/services/replay/lynx_module_testbench.h
-index 7859afa4fe0b97c636cd5234c5a2b02f4801fda6..7fc64cbb5b68a1aeb9dfb781703451b17756f27d 100644
+index ab879d6124b9cc74ba8cf8597312d0404e425e3b..8badcd73f21de552f37c090d617482f823c8252e 100644
 --- a/core/services/replay/lynx_module_testbench.h
 +++ b/core/services/replay/lynx_module_testbench.h
-@@ -8,2 +8,3 @@
+@@ -6,6 +6,7 @@
+ #define CORE_SERVICES_REPLAY_LYNX_MODULE_TESTBENCH_H_
+ #include <memory>
  #include <string>
 +#include <unordered_map>
  #include <vector>
-@@ -95,2 +96,13 @@ class ModuleTestBench : public LynxJSIModule {
+ 
+ #include "base/include/fml/thread.h"
+@@ -104,6 +105,17 @@ class ModuleTestBench : public LynxJSIModule {
+ 
+   bool isSameMethod(const MethodMetadata& method, Runtime* rt,
                      const Value* args, size_t count, rapidjson::Value& value);
 +  bool isSameBridgeCallMethod(const MethodMetadata& method, Runtime* rt,
 +                              const Value* args, size_t count,
@@ -251,22 +248,23 @@ index 7859afa4fe0b97c636cd5234c5a2b02f4801fda6..7fc64cbb5b68a1aeb9dfb781703451b1
 +  void CollectTopLevelCallbackFunctions(Runtime* rt, const Value* args,
 +                                        size_t count);
    bool isSameArgs(Runtime* rt, const Value* args, size_t count,
-@@ -121,3 +133,5 @@ class ModuleTestBench : public LynxJSIModule {
-                          int64_t delay = -1);
-+  void InvokeJsbCallback(Function callback_function,
-+                         std::shared_ptr<rapidjson::Document> value,
-+                         int64_t delay = -1);
--
-   fml::Thread testbench_thread_;
-@@ -129,2 +143,3 @@ class ModuleTestBench : public LynxJSIModule {
+                   rapidjson::Value& value);
+   bool sameKernel(Runtime* rt, const Value* args, rapidjson::Value& value);
+@@ -138,6 +150,7 @@ class ModuleTestBench : public LynxJSIModule {
+   SyncToPlatformHandler sync_to_platform_handler_;
+   FetchDataHandler fetch_data_handler_;
    std::shared_ptr<GroupInterceptor> group_interceptor_;
 +  std::unordered_map<std::string, size_t> replay_offsets_;
  };
+ 
+ }  // namespace js
 diff --git a/platform/embedder/lynx_recorder/test_bench_replay_data_module.cc b/platform/embedder/lynx_recorder/test_bench_replay_data_module.cc
-index bf77a0a8f3a31d8c9394fd4fc172d5011abe4841..c9661df0816fb1285674231072445402110fd821 100644
+index bf77a0a8f3605d6a2a699cd1eb69a9c97868d208..c9661df08140c4b5c9c26a57476ee9cf29f80053 100644
 --- a/platform/embedder/lynx_recorder/test_bench_replay_data_module.cc
 +++ b/platform/embedder/lynx_recorder/test_bench_replay_data_module.cc
-@@ -166,4 +166,5 @@ std::string TestBenchReplayDataModule::GetRecordDataLocked() {
+@@ -166,8 +166,9 @@ std::string TestBenchReplayDataModule::GetRecordDataLocked() {
+     }
+     if (!new_dom.HasMember(module_name)) {
        rapidjson::Value new_values(rapidjson::kArrayType);
 -      new_dom.AddMember(rapidjson::StringRef(module_name), new_values,
 -                        allocator);
@@ -274,3 +272,5 @@ index bf77a0a8f3a31d8c9394fd4fc172d5011abe4841..c9661df0816fb1285674231072445402
 +                                       allocator);
 +      new_dom.AddMember(module_name_key, new_values, allocator);
      }
+     std::string method_name;
+     if (obj.HasMember("Method Name") && obj["Method Name"].IsString()) {
