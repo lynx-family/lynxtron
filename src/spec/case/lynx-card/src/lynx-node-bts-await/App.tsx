@@ -32,9 +32,15 @@ export default function App() {
       // test bts node env microtask
       const bridge = (NativeModules as any).bridge as any;
       api.fileExists().then((exists: boolean) => {
-        api.fileApi.fileExists().then((nestedExists: boolean) => {
+        api.fileApi.fileExists().then(async (nestedExists: boolean) => {
           const result = api.get(JSON.stringify(params));
-          bridge.send('nodejs_event', { ...result, exists, nestedExists });
+          const tsfn = params.testNative ? await api.nativeTSFN() : undefined;
+          bridge.send('nodejs_event', {
+            ...result,
+            exists,
+            nestedExists,
+            tsfn,
+          });
         });
       });
     };

@@ -21,6 +21,10 @@ describe('lynx BTS await with contextBridge', () => {
     'async/await works in lynx BTS and node preload',
     async function () {
       this.timeout(30000);
+      const testNative = !process.env.ELECTRON_SKIP_NATIVE_MODULE_TESTS;
+      if (testNative) {
+        require('./case/lynx-card/src/lynx-node-bts-await/build')();
+      }
       const w = new LynxWindow({
         width: 800,
         height: 600,
@@ -49,7 +53,7 @@ describe('lynx BTS await with contextBridge', () => {
 
       expect(started).to.equal(true);
 
-      await w.sendGlobalEvent('node_event', { msg: 'test-await' });
+      await w.sendGlobalEvent('node_event', { msg: 'test-await', testNative });
 
       const [messageMethod, messageParams] = await Promise.race([
         messagePromise,
@@ -61,10 +65,11 @@ describe('lynx BTS await with contextBridge', () => {
       expect(messageMethod).to.equal('nodejs_event');
       expect(messageParams.from).to.equal('contextBridge');
       expect(messageParams.message).to.equal(
-        JSON.stringify({ msg: 'test-await' })
+        JSON.stringify({ msg: 'test-await', testNative })
       );
       expect(messageParams.exists).to.equal(false);
       expect(messageParams.nestedExists).to.equal(false);
+      expect(messageParams.tsfn).to.equal(testNative ? true : undefined);
       expect(w.isDestroyed()).to.equal(false);
     }
   );

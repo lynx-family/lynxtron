@@ -1,0 +1,34 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: lidadating <springrain.ting@qq.com>
+Date: Mon, 26 Oct 2026 12:20:26 +0800
+Subject: fix: enter threadsafe function context before callback scope
+
+The BTS libuv loop can dispatch work outside the owning Node environment's
+context. Enter the TSFN context before constructing CallbackScope for both
+queued calls and finalizers, and keep it entered through scope destruction.
+
+Regression coverage lives in Lynxtron's preload spec with a native TSFN addon.
+
+diff --git a/src/node_api.cc b/src/node_api.cc
+index f642744c006ebc3ec8e887acb1e055c690e4c1dc..480eb4f60faa5f70b68a8d17778cfb600f422383 100644
+--- a/src/node_api.cc
++++ b/src/node_api.cc
+@@ -407,6 +407,9 @@
+
+     if (popped_value) {
+       v8::HandleScope scope(env->isolate);
++      // The embedder may dispatch this TSFN from another context. Keep the
++      // owning context entered for CallbackScope construction and destruction.
++      v8::Context::Scope context_scope(env->context());
+       CallbackScope cb_scope(this);
+       napi_value js_callback = nullptr;
+       if (!ref.IsEmpty()) {
+@@ -423,6 +426,8 @@
+
+   void Finalize() {
+     v8::HandleScope scope(env->isolate);
++    // uv_close callbacks can also run outside this TSFN's owning context.
++    v8::Context::Scope context_scope(env->context());
+     if (finalize_cb) {
+       CallbackScope cb_scope(this);
+       env->CallFinalizer<false>(finalize_cb, finalize_data, context);
