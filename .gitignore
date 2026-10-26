@@ -61,6 +61,7 @@
 /out/
 .venv/
 /src/packages/lynxtron-dev-plugins/dist/
+/src/packages/lynxtron-builder/vendor/
 # skills
 .trae/
 .claude/

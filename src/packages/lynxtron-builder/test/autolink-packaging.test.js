@@ -5,7 +5,7 @@ const path = require('node:path');
 const test = require('node:test');
 const {
   validateConfiguration,
-} = require('app-builder-lib/out/util/config/config.js');
+} = require('../vendor/app-builder-lib/out/util/config/config.js');
 
 const { prepareAutoLinkPackaging } = require('../autolink-packaging.js');
 

@@ -8,7 +8,11 @@
   },
   "files": [
     "patches/",
+    "vendor/",
     "cli.js",
+    "electron-builder-dynamic-import.js",
+    "electron-builder-launcher.js",
+    "module-resolver.js",
     "patch.js",
     "runtime-config.js",
     "autolink-packaging.js",
@@ -17,18 +21,23 @@
   ],
   "bin": "./cli.js",
   "scripts": {
-    "postinstall": "node patch.js",
-    "test": "node --test \"test/*.test.js\""
+    "prepack": "node patch.js",
+    "pretest": "node patch.js",
+    "test": "node --require ./module-resolver.js --test \"test/*.test.js\""
   },
   "engines": {
     "node": "^22.18.0 || ^24.0.0 || ^26.0.0"
   },
   "dependencies": {
     "@electron/universal": "^1.3.0",
-    "app-builder-lib": "26.13.0",
-    "dmg-builder": "26.13.0",
     "electron-builder": "26.13.0",
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
     "patch-package": "^6.4.7"
+  },
+  "lynxtronPatchedDependencies": {
+    "app-builder-lib": "26.13.0",
+    "dmg-builder": "26.13.0"
   }
 }
