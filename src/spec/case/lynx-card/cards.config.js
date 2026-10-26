@@ -7,5 +7,6 @@ module.exports = {
     'lynx-node-bts-await': './src/lynx-node-bts-await/index.tsx',
     'lynx-set-module': './src/lynx-set-module/index.tsx',
     'metadata-update': './src/metadata-update/index.tsx',
+    raf: './src/raf/index.tsx',
   },
 };
