@@ -6,6 +6,7 @@ const www = async (message) => {
 }
 
 contextBridge.exposeInLynxBTS({
+  nativeTSFN: () => require('./build/preload.node').run(),
   get: (message) => {
     return {
       from: 'contextBridge',
