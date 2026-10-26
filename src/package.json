@@ -7,6 +7,7 @@
   "devDependencies": {
     "@changesets/cli": "^2.27.7",
     "@electron/asar": "^3.2.13",
+    "@lynx-js/lynxtron-builder": "workspace:*",
     "@swc/core": "^1.15.40",
     "@types/estree": "^1.0.5",
     "@types/node": "^22.7.7",
@@ -27,6 +28,7 @@
     "version-packages": "cd .. && npm run version-packages --",
     "release": "cd .. && npm run release --",
     "generate-version-json": "node script/generate-version-json.js",
+    "postinstall": "node packages/lynxtron-builder/patch.js",
     "pre-flight": "pre-flight",
     "tsc": "tsc",
     "webpack": "webpack",

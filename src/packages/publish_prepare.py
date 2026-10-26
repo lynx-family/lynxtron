@@ -70,6 +70,7 @@ PREPARE_CONFIG = {
     },
     "lynxtron-builder": {
         "package_dir": "./lynxtron-builder",
+        "prepare_script": ["node", "prepare-bundled-deps.js"],
         "mirror_rewrite": False,
     },
     "lynxtron-rebuild": {
