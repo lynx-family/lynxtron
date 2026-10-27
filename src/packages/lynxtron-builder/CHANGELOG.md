@@ -1,5 +1,14 @@
 # @lynx-js/lynxtron-builder
 
+## 0.0.31
+
+### Patch Changes
+
+- 23cb6ab: Support pnpm installation and application packaging. Fix resource paths in the
+  generated template's `dev:web` command. Restore requestAnimationFrame callbacks
+  on macOS. Enter the owning V8 context before TSFN callbacks and finalizers,
+  preventing native preload Promise and callback operations from aborting.
+
 ## 0.0.30
 
 ### Patch Changes
