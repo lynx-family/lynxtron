@@ -62,12 +62,12 @@ jobs:
           cd ${{ github.workspace }}/lynxtron
           source lynxtron_tools/envsetup.sh
           python3 -m pip install requests
-          python3 src/tools_shared/git_lynx.py check --checkers file-type
+          python3 src/tools_shared/tools_shared/git_lynx.py check --checkers file-type
       - name: Run cpplint check
         run: |
           cd ${{ github.workspace }}/lynxtron
           source lynxtron_tools/envsetup.sh
-          python3 src/tools_shared/git_lynx.py check --checkers cpplint
+          python3 src/tools_shared/tools_shared/git_lynx.py check --checkers cpplint
       - name: Run commit-message check
         run: |
           cd ${{ github.workspace }}/lynxtron
@@ -77,14 +77,14 @@ jobs:
             exit 0
           fi
           source lynxtron_tools/envsetup.sh
-          python3 src/tools_shared/git_lynx.py check --checkers commit-message
+          python3 src/tools_shared/tools_shared/git_lynx.py check --checkers commit-message
       - name: Run coding-style check
         run: |
           cd ${{ github.workspace }}/lynxtron
           source lynxtron_tools/envsetup.sh
           which gn
           gn --version
-          python3 src/tools_shared/git_lynx.py check --checkers coding-style
+          python3 src/tools_shared/tools_shared/git_lynx.py check --checkers coding-style
   macos-lynxtron-build:
     timeout-minutes: 120
     runs-on: lynx-darwin-15.6.1-medium

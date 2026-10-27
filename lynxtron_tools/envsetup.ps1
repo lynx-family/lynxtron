@@ -14,6 +14,7 @@ function Lynxtron-Env-Setup {
     $env:PATH += Join-Path $buildtoolsDir 'gn;'
     $env:PATH += Join-Path $buildtoolsDir 'ninja;'
     $env:PATH += Join-Path $buildtoolsDir 'sccache;'
+    $env:PATH += Join-Path $buildtoolsDir 'cmake\bin;'
 
     # Habitat syncs Chromium's pinned resource compiler into the repository.
     # Prefer it over a runner- or machine-provided Windows SDK copy so GN's

@@ -15,9 +15,11 @@ lynxtron_envsetup() {
   local TOOLS_REAL_PATH=$(dirname $SCRIPT_REAL_PATH)
   export LYNXTRON_ROOT_DIR="$(dirname $TOOLS_REAL_PATH)"
   export BUILDTOOLS_DIR="${LYNXTRON_ROOT_DIR}/buildtools"
-  export TOOLSSHARED_DIR="${LYNXTRON_ROOT_DIR}/src/tools_shared"
-  export CLANGFORMAT_DIR="${LYNXTRON_ROOT_DIR}/src/tools_shared/buildtools/clang-format"
-  export PATH=${CLANGFORMAT_DIR}:${TOOLSSHARED_DIR}:${BUILDTOOLS_DIR}/sccache:${BUILDTOOLS_DIR}/llvm/bin:${BUILDTOOLS_DIR}/gn:${BUILDTOOLS_DIR}/ninja:${BUILDTOOLS_DIR}/node/bin:$PATH
+  export TOOLSSHARED_DIR="${LYNXTRON_ROOT_DIR}/src/tools_shared/tools_shared/"
+  export CLANGFORMAT_DIR="${LYNXTRON_ROOT_DIR}/src/tools_shared/tools_shared/buildtools/clang-format"
+  export CMAKE_BIN_DIR_LINUX="${BUILDTOOLS_DIR}/cmake/bin"
+  export CMAKE_BIN_DIR_MAC="${BUILDTOOLS_DIR}/cmake/CMake.app/Contents/bin"
+  export PATH=${CLANGFORMAT_DIR}:${TOOLSSHARED_DIR}:${BUILDTOOLS_DIR}/sccache:${BUILDTOOLS_DIR}/llvm/bin:${BUILDTOOLS_DIR}/gn:${BUILDTOOLS_DIR}/ninja:${BUILDTOOLS_DIR}/node/bin:${CMAKE_BIN_DIR_LINUX}:${CMAKE_BIN_DIR_MAC}:$PATH
   echo "BUILDTOOLS_DIR: $BUILDTOOLS_DIR"
 
   # install git hooks

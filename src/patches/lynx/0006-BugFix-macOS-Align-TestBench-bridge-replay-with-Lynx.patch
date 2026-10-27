@@ -5,15 +5,6 @@ Subject: [PATCH] [BugFix][macOS] Align TestBench bridge replay with Lynx
  Desktop
 
 ---
-diff --git a/core/services/replay/lynx_callback_testbench.h b/core/services/replay/lynx_callback_testbench.h
-index 91de8f0cd1233c3f39894645c5fc16e4efeae296..2e8c1bab4d75930925a15d150e8a932d15d51bbf 100644
---- a/core/services/replay/lynx_callback_testbench.h
-+++ b/core/services/replay/lynx_callback_testbench.h
-@@ -17,3 +17,3 @@ class ModuleCallbackTestBench : public ModuleCallback {
-   ~ModuleCallbackTestBench() override = default;
--  rapidjson::Value argument;
-+  rapidjson::Document argument;
-   void Invoke(Runtime *runtime, ModuleCallbackFunctionHolder *holder) override;
 diff --git a/core/services/replay/lynx_module_binding_testbench.cc b/core/services/replay/lynx_module_binding_testbench.cc
 index f5b06b7432cd7ce59c1fb9f6e3796ff42fec7d99..5dd0a6fb393882863eff364a33da761442791f5b 100644
 --- a/core/services/replay/lynx_module_binding_testbench.cc
@@ -37,9 +28,6 @@ diff --git a/core/services/replay/lynx_module_testbench.cc b/core/services/repla
 index 7d0e59730f675b99f0c3ca2b577e1509e9b06102..b71f60e87dd94dfd214f78422302e65099200e05 100644
 --- a/core/services/replay/lynx_module_testbench.cc
 +++ b/core/services/replay/lynx_module_testbench.cc
-@@ -7 +7,2 @@
-+#include <algorithm>
- #include <cmath>
 @@ -20,2 +21,20 @@ namespace runtime {
  namespace js {
 +namespace {
@@ -61,23 +49,6 @@ index 7d0e59730f675b99f0c3ca2b577e1509e9b06102..b71f60e87dd94dfd214f78422302e650
 +}  // namespace
 +
  std::string ModuleTestBench::kUndefined = "undefined";
-@@ -192,2 +211,11 @@ void ModuleTestBench::InvokeJsbCallback(Function callback_function,
-                                         int64_t delay) {
-+  auto owned_value = std::make_shared<rapidjson::Document>();
-+  owned_value->CopyFrom(value, owned_value->GetAllocator());
-+  InvokeJsbCallback(std::move(callback_function), std::move(owned_value),
-+                    delay);
-+}
-+
-+void ModuleTestBench::InvokeJsbCallback(
-+    Function callback_function, std::shared_ptr<rapidjson::Document> value,
-+    int64_t delay) {
-   int64_t callback_id =
-@@ -196,3 +224,3 @@ void ModuleTestBench::InvokeJsbCallback(Function callback_function,
-   auto wrapper = std::make_shared<ModuleCallbackTestBench>(callback_id);
--  wrapper->argument = value;
-+  wrapper->argument.CopyFrom(*value, wrapper->argument.GetAllocator());
-   if (delay < 0) {
 @@ -451 +479,112 @@ bool ModuleTestBench::isSameMethod(const MethodMetadata &method, Runtime *rt,
 +bool ModuleTestBench::isSameBridgeCallMethod(const MethodMetadata &method,
 +                                             Runtime *rt, const Value *args,
@@ -251,13 +222,6 @@ index 7859afa4fe0b97c636cd5234c5a2b02f4801fda6..7fc64cbb5b68a1aeb9dfb781703451b1
 +  void CollectTopLevelCallbackFunctions(Runtime* rt, const Value* args,
 +                                        size_t count);
    bool isSameArgs(Runtime* rt, const Value* args, size_t count,
-@@ -121,3 +133,5 @@ class ModuleTestBench : public LynxJSIModule {
-                          int64_t delay = -1);
-+  void InvokeJsbCallback(Function callback_function,
-+                         std::shared_ptr<rapidjson::Document> value,
-+                         int64_t delay = -1);
--
-   fml::Thread testbench_thread_;
 @@ -129,2 +143,3 @@ class ModuleTestBench : public LynxJSIModule {
    std::shared_ptr<GroupInterceptor> group_interceptor_;
 +  std::unordered_map<std::string, size_t> replay_offsets_;
