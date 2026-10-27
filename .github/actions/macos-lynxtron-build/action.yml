@@ -32,7 +32,6 @@ runs:
       shell: bash
       run: |-
         set -x
-        brew install cmake
         cd ${{ github.workspace }}/lynxtron
         source lynxtron_tools/envsetup.sh
         GN_EXTRA_ARGS=""

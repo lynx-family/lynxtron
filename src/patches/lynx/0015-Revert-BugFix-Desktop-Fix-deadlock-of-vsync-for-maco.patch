@@ -1,17 +1,17 @@
-From 4ae4c3901c67df4ae98b1bad05e630d8369a33ee Mon Sep 17 00:00:00 2001
+From 59608a9fbc55b1c44cc2be5ddb068d8b8368d775 Mon Sep 17 00:00:00 2001
 From: "chenyouhui.duke" <scripts@lynxtron>
 Date: Thu, 30 Jul 2026 19:57:50 +0800
 Subject: [PATCH] Revert [BugFix][Desktop] Fix deadlock of vsync for macos
 
 ---
- .../macos/common/vsync_monitor_macos.mm       | 36 +++++++++++--------
- 1 file changed, 22 insertions(+), 14 deletions(-)
+ .../macos/common/vsync_monitor_macos.mm       | 39 +++++++++++--------
+ 1 file changed, 23 insertions(+), 16 deletions(-)
 
 diff --git a/platform/darwin/macos/common/vsync_monitor_macos.mm b/platform/darwin/macos/common/vsync_monitor_macos.mm
-index dd41254ab..f531fdcba 100644
+index cb459e5c01..595b4b9abe 100644
 --- a/platform/darwin/macos/common/vsync_monitor_macos.mm
 +++ b/platform/darwin/macos/common/vsync_monitor_macos.mm
-@@ -59,6 +59,24 @@ using VSyncCallback = std::function<void(fml::TimePoint, fml::TimePoint)>;
+@@ -59,5 +59,23 @@ using VSyncCallback = std::function<void(fml::TimePoint, fml::TimePoint)>;
  namespace lynx {
  namespace base {
  
@@ -33,10 +33,9 @@ index dd41254ab..f531fdcba 100644
 +  }
 +}
 +
- std::shared_ptr<VSyncMonitor> VSyncMonitor::Create(bool is_on_ui_thread) {
-   if (@available(macOS 14.0, *)) {
-     return std::make_shared<lynx::base::VSyncMonitorMacOS>();
-@@ -76,11 +94,7 @@ void VSyncMonitorMacOS::Init() {
+ VSyncMonitorMacOS::VSyncMonitorMacOS()
+     : VSyncMonitorFallback(fml::TimeDelta::FromSecondsF(1.0 / 60)) {}
+@@ -72,11 +90,7 @@ void VSyncMonitorMacOS::Init() {
    std::weak_ptr<VSyncMonitorMacOS> weak_this =
        std::static_pointer_cast<VSyncMonitorMacOS>(shared_from_this());
  
@@ -49,7 +48,7 @@ index dd41254ab..f531fdcba 100644
      impl_ = [[DisplayLinkImpl alloc]
          initWith:[weak_this](fml::TimePoint start_time, fml::TimePoint target_time) {
            if (auto vsync_monitor = weak_this.lock()) {
-@@ -96,14 +110,8 @@ VSyncMonitorMacOS::~VSyncMonitorMacOS() {
+@@ -92,14 +106,7 @@ VSyncMonitorMacOS::~VSyncMonitorMacOS() {
  
    auto impl = impl_;
    impl_ = nil;
@@ -59,18 +58,23 @@ index dd41254ab..f531fdcba 100644
 -    }
 -    return;
 -  }
- 
+-
 -  fml::TaskRunner::RunNowOrPostTask(runner_, ^{
 +  ExecuteOnMainThreadAsync(^{
      if (impl) {
        [impl destroy];
      }
-@@ -111,11 +119,11 @@ VSyncMonitorMacOS::~VSyncMonitorMacOS() {
+@@ -107,15 +114,15 @@ VSyncMonitorMacOS::~VSyncMonitorMacOS() {
  }
  
  void VSyncMonitorMacOS::RequestVSync() {
 -  if (destroying_.load() || !runner_) {
 +  if (destroying_.load()) {
+     return;
+   }
+-  if (!runner_->GetLoop()) {
++  if (runner_ && !runner_->GetLoop()) {
+     VSyncMonitorFallback::RequestVSync();
      return;
    }
    auto impl = impl_;

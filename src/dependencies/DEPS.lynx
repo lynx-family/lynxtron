@@ -11,14 +11,14 @@ deps = {
     '../lynx': {
         'type': 'solution',
         'url': 'https://github.com/lynx-family/lynx.git',
-        'commit': '0264af38be0644ab4e6a62d5059b180b58f486e5',
+        'commit': 'acf84d1a09d0d543aedec8269a278a8c710d6e34',
         "deps_file": "dependencies/DEPS.lynxtron",
         "ignore_in_git": True,
     },
     '../third_party/skity': {
         "type": "solution",
         "url": "https://github.com/lynx-family/skity.git",
-        "commit": "8d5f121e5f1a96d8f8068111502f49e0b962a118",
+        "commit": "d68693d19457fed75ceb8584a66417361e9cc00c",
         "deps_file": "hab/DEPS",
         "ignore_in_git": True,
         "enable_lfs": False,
@@ -27,7 +27,7 @@ deps = {
     '../third_party/textlayout': {
         "type": "git",
         "url": "https://github.com/lynx-family/lynx-textra.git",
-        "commit": "6fdae3a4d9d723ff73ada670bd96088b6f61c80f",
+        "commit": "e25c993b23abdf72782b21703db1ce5c2a331e76",
         "deps_file": "DEPS",
         "ignore_in_git": True,
         "enable_lfs": False,
@@ -36,7 +36,7 @@ deps = {
     '../third_party/ServalKit': {
         "type": "git",
         "url": "https://github.com/lynx-family/serval-kit.git",
-        "commit": "3281cfd22b1daa76e75d132027bce84fc9ff6a79",
+        "commit": "2d4eb733c7f247ef27d35e38173440a58c288856",
         "ignore_in_git": True,
         "require": [ "../lynx" ],
     },

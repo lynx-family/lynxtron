@@ -15,8 +15,8 @@ def symlink_tools_shared():
         "gn_tools",
     ]
     for dir in sub_dirs:
-        src = os.path.join(os.getcwd(), f"tools_shared/{dir}")
-        dest = os.path.join(os.getcwd(), f"../tools_shared/{dir}")
+        src = os.path.join(os.getcwd(), f"tools_shared/tools_shared/{dir}")
+        dest = os.path.join(os.getcwd(), f"../buildtools/tools_shared/tools_shared/{dir}")
         symlink_dir(src, dest)
 
 def symlink_dir(src, dest):
@@ -69,6 +69,21 @@ deps = {
         "url": f"https://github.com/zsy-jason/buildtools/releases/download/gn-07d3c6f4/buildtools-gn-{system}-{machine}.tar.gz",
         "condition": system in ['linux', 'darwin', 'windows'],
         "require": ["../buildtools"]
+    },
+    '../buildtools/cmake': {
+        "type": "http",
+        "url": {
+            "linux": f"https://github.com/Kitware/CMake/releases/download/v3.31.12/cmake-3.31.12-linux-x86_64.tar.gz",
+            "darwin": f"https://github.com/Kitware/CMake/releases/download/v3.31.12/cmake-3.31.12-macos-universal.tar.gz",
+            "windows": f"https://github.com/Kitware/CMake/releases/download/v3.31.12/cmake-3.31.12-windows-x86_64.zip"
+        }.get(system, None),
+        "sha256": {
+            "linux": "0dc2e9a6860f06bf10bd8fadc03e35d9eeb4df46e33763a7e480e987758f385c",
+            "darwin": "799af7fd545db9bf1b9cfe72f8095880e727a2d4e0df0e3dffc3bc7b95c2d3b0",
+            "windows": "0c4baa40f28b3f8225eb3fdf6946c987b4fe901403b4eaf2fbbd9378100aaa0c"
+        }.get(system, None),
+        "ignore_in_git": True,
+        "condition": system in ['linux', 'darwin', 'windows']
     },
     '../buildtools/ninja': {
         "type": "http",
@@ -188,10 +203,11 @@ deps = {
     },
     "tools_shared": {
         "type": "solution",
-        "url": "https://github.com/lynx-family/tools-shared.git",
-        "commit": "99c58ed78f15f0d29fae10b4ee74dfc71f1001a1",
-        'deps_file': 'dependencies/DEPS',
+        "url": "https://github.com/lynx-family/buildtools.git",
+        "commit": "97d59e99bb4c35c404e463ddcdf3081dadd12ff1",
+        'deps_file': 'tools_shared/dependencies/DEPS',
         "ignore_in_git": True,
+        "paths": ["tools_shared"]
     },
     "symlink_tools_shared": {
         'type': 'action',
