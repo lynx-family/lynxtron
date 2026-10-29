@@ -16,7 +16,7 @@ lynxtron_envsetup() {
   export LYNXTRON_ROOT_DIR="$(dirname $TOOLS_REAL_PATH)"
   export BUILDTOOLS_DIR="${LYNXTRON_ROOT_DIR}/buildtools"
   export TOOLSSHARED_DIR="${LYNXTRON_ROOT_DIR}/src/tools_shared/tools_shared/"
-  export CLANGFORMAT_DIR="${LYNXTRON_ROOT_DIR}/src/tools_shared/tools_shared/buildtools/clang-format"
+  export CLANGFORMAT_DIR="${LYNXTRON_ROOT_DIR}/src/tools_shared/buildtools/clang-format"
   export CMAKE_BIN_DIR_LINUX="${BUILDTOOLS_DIR}/cmake/bin"
   export CMAKE_BIN_DIR_MAC="${BUILDTOOLS_DIR}/cmake/CMake.app/Contents/bin"
   export PATH=${CLANGFORMAT_DIR}:${TOOLSSHARED_DIR}:${BUILDTOOLS_DIR}/sccache:${BUILDTOOLS_DIR}/llvm/bin:${BUILDTOOLS_DIR}/gn:${BUILDTOOLS_DIR}/ninja:${BUILDTOOLS_DIR}/node/bin:${CMAKE_BIN_DIR_LINUX}:${CMAKE_BIN_DIR_MAC}:$PATH
