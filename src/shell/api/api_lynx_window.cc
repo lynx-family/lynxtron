@@ -471,6 +471,7 @@ void LynxWindow::OnWindowLeaveFullScreen() {
 
 void LynxWindow::OnWindowClosed() {
   SyncRenderActiveState();
+  lynx_view_.reset();
   BaseWindow::OnWindowClosed();
 }
 
