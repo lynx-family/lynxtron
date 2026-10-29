@@ -7,5 +7,6 @@ module.exports = {
     'lynx-node-bts-await': './src/lynx-node-bts-await/index.tsx',
     'metadata-update': './src/metadata-update/index.tsx',
     'harmony-dpi': './src/harmony-dpi/index.tsx',
+    'harmony-window-layout': './src/harmony-window-layout/index.tsx',
   },
 };
