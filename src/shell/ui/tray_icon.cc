@@ -16,6 +16,10 @@
 #endif
 
 namespace lynxtron {
+#if BUILDFLAG(IS_LINUX)
+std::unique_ptr<TrayIcon> CreateLinuxTrayIcon(TrayIconObserver*,
+                                              const std::string&);
+#endif
 
 std::unique_ptr<TrayIcon> TrayIcon::Create(TrayIconObserver* observer,
                                            const std::string& guid) {
@@ -23,6 +27,8 @@ std::unique_ptr<TrayIcon> TrayIcon::Create(TrayIconObserver* observer,
   return std::make_unique<TrayIconMac>(observer, guid);
 #elif BUILDFLAG(IS_WIN)
   return std::make_unique<TrayIconWin>(observer, guid);
+#elif BUILDFLAG(IS_LINUX)
+  return CreateLinuxTrayIcon(observer, guid);
 #else
   return nullptr;
 #endif

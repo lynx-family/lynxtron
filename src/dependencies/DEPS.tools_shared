@@ -5,6 +5,7 @@ import shutil
 system = platform.system().lower()
 machine = platform.machine().lower()
 machine = "x86_64" if machine == "amd64" else machine
+archive_machine = "arm64" if machine == "aarch64" else machine
 
 python_path = "python3"
 if system == "windows":
@@ -66,7 +67,7 @@ deps = {
     },
     '../buildtools/gn': {
         "type": "http",
-        "url": f"https://github.com/zsy-jason/buildtools/releases/download/gn-07d3c6f4/buildtools-gn-{system}-{machine}.tar.gz",
+        "url": f"https://github.com/zsy-jason/buildtools/releases/download/gn-07d3c6f4/buildtools-gn-{system}-{archive_machine}.tar.gz",
         "condition": system in ['linux', 'darwin', 'windows'],
         "require": ["../buildtools"]
     },
@@ -88,12 +89,16 @@ deps = {
     '../buildtools/ninja': {
         "type": "http",
         "url": {
-            "linux": "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip",
+            "linux": ("https://github.com/ninja-build/ninja/releases/download/v1.13.2/ninja-linux-aarch64.zip"
+                      if machine == "aarch64" else
+                      "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip"),
             "darwin": "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-mac.zip",
             "windows": "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-win.zip"
         }.get(system, None),
         "sha256": {
-            "linux": "b901ba96e486dce377f9a070ed4ef3f79deb45f4ffe2938f8e7ddc69cfb3df77",
+            "linux": ("fd2cacc8050a7f12a16a2e48f9e06fca5c14fc4c2bee2babb67b58be17a607fc"
+                      if machine == "aarch64" else
+                      "b901ba96e486dce377f9a070ed4ef3f79deb45f4ffe2938f8e7ddc69cfb3df77"),
             "darwin": "482ecb23c59ae3d4f158029112de172dd96bb0e97549c4b1ca32d8fad11f873e",
             "windows": "524b344a1a9a55005eaf868d991e090ab8ce07fa109f1820d40e74642e289abc"
         }.get(system, None),
