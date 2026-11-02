@@ -1126,6 +1126,7 @@ if (is_win) {
     configs += [ "//build/config/win:delayloads" ]
     libs = [
       "Comctl32.lib",
+      "Rpcrt4.lib",
       "Wintrust.lib",
       "wtsapi32.lib",
       "Dwmapi.lib",
