@@ -44,6 +44,11 @@ export interface LynxWindowConstructorOptions {
    */
   windowless?: boolean;
   /**
+   * Whether to render this window's Lynx content on the CPU. Default is `false`.
+   * Not supported when `windowless` is `true`.
+   */
+  softwareRendering?: boolean;
+  /**
    * (**required** if y is used) Window's left offset from screen. Default is to
    * center the window.
    */
