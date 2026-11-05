@@ -114,6 +114,14 @@ int LynxtronMain(int argc, char* argv[]) {
     lynxtron::LynxtronCommandLine::Init(argc, argv);
     LocalFree(argv);
   }
+  if (!IsRunAsNode() && base::CommandLine::ForCurrentProcess()
+                            ->GetSwitchValueASCII(kProcessType)
+                            .empty()) {
+    // Allow WER before graphics initialization can save and restore the
+    // process error mode. libuv must not disable WER again during startup.
+    // cspell:ignore NOGPFAULTERRORBOX
+    SetErrorMode(GetErrorMode() & ~SEM_NOGPFAULTERRORBOX);
+  }
 #elif BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
   base::CommandLine::Init(argc, argv);
   lynxtron::LynxtronCommandLine::Init(argc, argv);

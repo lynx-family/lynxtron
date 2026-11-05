@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: linshengwei.lin <>
+Date: Mon, 16 Nov 2026 12:00:00 +0800
+Subject: [PATCH] fix: keep Windows Error Reporting enabled
+
+Do not temporarily disable WER during libuv initialization: concurrent graphics
+initialization can save that state and restore it after the host enables WER.
+Keep suppression of critical-error and OpenFile dialogs.
+
+diff --git a/deps/uv/src/win/core.c b/deps/uv/src/win/core.c
+index 73f26c68..439ca701 100644
+--- a/deps/uv/src/win/core.c
++++ b/deps/uv/src/win/core.c
+@@ -177,9 +177,11 @@ void uv__wake_all_loops(void) {
+ }
+ 
+ static void uv__init(void) {
+-  /* Tell Windows that we will handle critical errors. */
+-  SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX |
+-               SEM_NOOPENFILEERRORBOX);
++  /* Suppress critical-error dialogs without disabling Windows Error Reporting.
++   * Graphics initialization may concurrently save and restore the error mode;
++   * setting SEM_NOGPFAULTERRORBOX even temporarily can leave WER disabled.
++   */
++  SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOOPENFILEERRORBOX);
+ 
+   /* Tell the CRT to not exit the application when an invalid parameter is
+    * passed. The main issue is that invalid FDs will trigger this behavior.
