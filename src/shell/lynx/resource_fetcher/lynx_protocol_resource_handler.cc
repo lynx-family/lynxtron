@@ -106,7 +106,7 @@ const char* GetResourceTypeString(lynx_resource_type_e type) {
   }
 }
 
-std::string RewriteRequestUrl(const std::string& url) {
+std::string RewriteRequestUrl(const std::string& url, int window_id) {
   if (!GlobalThread::CurrentlyOn(GlobalThread::UI)) {
     return url;
   }
@@ -117,7 +117,8 @@ std::string RewriteRequestUrl(const std::string& url) {
   v8::HandleScope handle_scope(isolate);
 
   v8::Local<v8::Value> result;
-  if (!api::protocol::InvokeRequestRewriter(isolate, url).ToLocal(&result) ||
+  if (!api::protocol::InvokeRequestRewriter(isolate, url, window_id)
+           .ToLocal(&result) ||
       result.IsEmpty() || !result->IsString()) {
     return url;
   }
@@ -133,6 +134,7 @@ void HandleProtocolRequest(
     const std::shared_ptr<LynxResourceRequest>& request,
     const std::shared_ptr<LynxResourceResponse>& response,
     const std::string& url,
+    int window_id,
     std::function<void()> fallback) {
   v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
   v8::Locker locker(isolate);
@@ -143,8 +145,8 @@ void HandleProtocolRequest(
                                        v8::MicrotasksScope::kRunMicrotasks);
 
   v8::Local<v8::Value> result;
-  if (!api::protocol::InvokeHandler(isolate, url,
-                                    GetResourceTypeString(request->GetType()))
+  if (!api::protocol::InvokeHandler(
+           isolate, url, GetResourceTypeString(request->GetType()), window_id)
            .ToLocal(&result)) {
     if (fallback) {
       fallback();

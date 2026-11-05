@@ -64,7 +64,8 @@ v8::MaybeLocal<v8::Object> CreateResourceRequest(
     v8::Isolate* isolate,
     const std::string& url,
     const std::string& scheme,
-    const std::string* resource_type) {
+    const std::string* resource_type,
+    int window_id) {
   v8::Local<v8::Context> context = isolate->GetCurrentContext();
   v8::Local<v8::Object> request = v8::Object::New(isolate);
   const auto set_string = [&](const char* key, const std::string& value) {
@@ -79,6 +80,10 @@ v8::MaybeLocal<v8::Object> CreateResourceRequest(
   if (resource_type && !set_string("resourceType", *resource_type)) {
     return v8::MaybeLocal<v8::Object>();
   }
+  if (window_id &&
+      !gin_helper::Dictionary(isolate, request).Set("windowId", window_id)) {
+    return v8::MaybeLocal<v8::Object>();
+  }
   return request;
 }
 
@@ -86,10 +91,11 @@ v8::MaybeLocal<v8::Value> InvokeCallback(v8::Isolate* isolate,
                                          v8::Local<v8::Function> callback,
                                          const std::string& url,
                                          const std::string& scheme,
-                                         const std::string* resource_type) {
+                                         const std::string* resource_type,
+                                         int window_id) {
   v8::Local<v8::Context> context = isolate->GetCurrentContext();
   v8::Local<v8::Object> request;
-  if (!CreateResourceRequest(isolate, url, scheme, resource_type)
+  if (!CreateResourceRequest(isolate, url, scheme, resource_type, window_id)
            .ToLocal(&request)) {
     return v8::MaybeLocal<v8::Value>();
   }
@@ -164,7 +170,8 @@ void SetRequestRewriter(gin_helper::ErrorThrower thrower,
 
 v8::MaybeLocal<v8::Value> InvokeHandler(v8::Isolate* isolate,
                                         const std::string& url,
-                                        const std::string& resource_type) {
+                                        const std::string& resource_type,
+                                        int window_id) {
   const std::string scheme = ExtractSchemeFromURL(url);
   if (scheme.empty()) {
     return v8::False(isolate);
@@ -177,18 +184,19 @@ v8::MaybeLocal<v8::Value> InvokeHandler(v8::Isolate* isolate,
   }
 
   return InvokeCallback(isolate, it->second.Get(isolate), url, scheme,
-                        &resource_type);
+                        &resource_type, window_id);
 }
 
 v8::MaybeLocal<v8::Value> InvokeRequestRewriter(v8::Isolate* isolate,
-                                                const std::string& url) {
+                                                const std::string& url,
+                                                int window_id) {
   auto& request_rewriter = GetRequestRewriter();
   if (request_rewriter.IsEmpty()) {
     return v8::Undefined(isolate);
   }
 
   return InvokeCallback(isolate, request_rewriter.Get(isolate), url,
-                        ExtractSchemeFromURL(url), nullptr);
+                        ExtractSchemeFromURL(url), nullptr, window_id);
 }
 
 }  // namespace lynxtron::api::protocol
