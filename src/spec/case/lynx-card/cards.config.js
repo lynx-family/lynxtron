@@ -9,5 +9,6 @@ module.exports = {
     'harmony-dpi': './src/harmony-dpi/index.tsx',
     'harmony-window-layout': './src/harmony-window-layout/index.tsx',
     'harmony-modifiers': './src/harmony-modifiers/index.tsx',
+    'harmony-digit-shortcuts': './src/harmony-digit-shortcuts/index.tsx',
   },
 };
