@@ -1862,6 +1862,38 @@ uint64_t ToLynxLogicalKey(OH_NativeXComponent_KeyCode code) {
   }
 }
 
+// Shift/Ctrl/Alt keys currently held, tracked from XComponent key events.
+// OH_NativeXComponent_GetKeyEventModifierKeyStates only reports a modifier on
+// that modifier's own event (it is 0 on the following digit), so it cannot be
+// used alone. Returns true if any of them is held after this event.
+bool UpdateHeldModifiers(OH_NativeXComponent_KeyEvent* key_event,
+                         OH_NativeXComponent_KeyCode code,
+                         OH_NativeXComponent_KeyAction action) {
+  static std::atomic<uint32_t> held{0};
+  uint32_t bit = 0;
+  switch (code) {
+    case KEY_SHIFT_LEFT: bit = 1 << 0; break;
+    case KEY_SHIFT_RIGHT: bit = 1 << 1; break;
+    case KEY_CTRL_LEFT: bit = 1 << 2; break;
+    case KEY_CTRL_RIGHT: bit = 1 << 3; break;
+    case KEY_ALT_LEFT: bit = 1 << 4; break;
+    case KEY_ALT_RIGHT: bit = 1 << 5; break;
+    default: break;
+  }
+  if (bit != 0) {
+    if (action == OH_NATIVEXCOMPONENT_KEY_ACTION_UP) {
+      held.fetch_and(~bit);
+    } else {
+      held.fetch_or(bit);
+    }
+  }
+  uint64_t system_keys = 0;
+  OH_NativeXComponent_GetKeyEventModifierKeyStates(key_event, &system_keys);
+  return held.load() != 0 ||
+         (system_keys & (ARKUI_MODIFIER_KEY_SHIFT | ARKUI_MODIFIER_KEY_CTRL |
+                         ARKUI_MODIFIER_KEY_ALT)) != 0;
+}
+
 void DispatchKeyEvent(OH_NativeXComponent* component, void*) {
   OH_NativeXComponent_KeyEvent* key_event = nullptr;
   if (OH_NativeXComponent_GetKeyEvent(component, &key_event) != 0 ||
@@ -1896,7 +1928,10 @@ void DispatchKeyEvent(OH_NativeXComponent* component, void*) {
     // events.  A key event carries no character payload, so Clay cannot turn
     // those events into text even though letters work.  Queue the committed
     // digit after key-down so the focused editor has processed the key first.
-    if (action != OH_NATIVEXCOMPONENT_KEY_ACTION_UP &&
+    // Skip it while Shift/Ctrl/Alt is held: Shift+digit already arrives as a
+    // symbol through the IME, and Ctrl/Alt+digit are shortcuts, not text.
+    const bool has_modifier = UpdateHeldModifiers(key_event, code, action);
+    if (action != OH_NATIVEXCOMPONENT_KEY_ACTION_UP && !has_modifier &&
         ((code >= KEY_0 && code <= KEY_9) ||
          (code >= KEY_NUMPAD_0 && code <= KEY_NUMPAD_9))) {
       if (!g_send_text && g_lynxtron_handle) {
