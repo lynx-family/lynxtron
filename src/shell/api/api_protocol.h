@@ -13,10 +13,12 @@ namespace lynxtron::api::protocol {
 
 v8::MaybeLocal<v8::Value> InvokeHandler(v8::Isolate* isolate,
                                         const std::string& url,
-                                        const std::string& resource_type);
+                                        const std::string& resource_type,
+                                        int window_id);
 
 v8::MaybeLocal<v8::Value> InvokeRequestRewriter(v8::Isolate* isolate,
-                                                const std::string& url);
+                                                const std::string& url,
+                                                int window_id);
 
 }  // namespace lynxtron::api::protocol
 
