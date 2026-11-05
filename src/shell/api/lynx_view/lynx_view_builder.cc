@@ -4,6 +4,7 @@
 
 #include "shell/api/lynx_view/lynx_view_builder.h"
 
+#include <memory>
 #include <unordered_map>
 #include <utility>
 
@@ -16,6 +17,10 @@
 #if ENABLE_HEADLESS
 #include "lynx/platform/embedder/public/lynx_windowless_renderer.h"
 #endif
+#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN)
+#include "platform/embedder/http_service/lynx_http_service_impl.h"
+#include "platform/embedder/public/capi/lynx_service_center_capi.h"
+#endif
 #include "shell/api/lynx_view/lynx_view.h"
 #include "shell/api/lynx_view/lynx_view_impl.h"
 #include "shell/api/lynx_view/module/lynx_bridge_module.h"
@@ -23,7 +28,6 @@
 #include "shell/api/lynx_view/module/lynx_node_module.h"
 #include "shell/api/lynx_view/module/lynx_set_module.h"
 #include "shell/api/lynx_view/testbench_replay_controller.h"
-#include "shell/lynx/http_service/lynx_http_service.h"
 #include "shell/lynx/resource_fetcher/lynx_generic_resource_fetcher_factory.h"
 
 #if BUILDFLAG(IS_MAC)
@@ -139,7 +143,17 @@ std::unique_ptr<LynxView> LynxViewBuilder::Build() {
 #endif
   SetICUDataPath(icu_data_path.AsUTF8Unsafe());
 
-  RegisterLynxHttpService();
+#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN)
+  auto* service_center = lynx_service_get_center_instance();
+  if (!lynx_service_get_service(service_center, kServiceTypeHttp)) {
+    // The C API handler holds a weak reference to the service.
+    static auto http_service =
+        std::make_shared<lynx::embedder::LynxHttpServiceImpl>();
+    http_service->InitIfNeeded();
+    lynx_service_register_service(service_center, kServiceTypeHttp,
+                                  http_service->Impl());
+  }
+#endif
   SetGenericResourceFetcher(
       LynxGenericResourceFetcherFactory::Create(lynx_window_));
 
