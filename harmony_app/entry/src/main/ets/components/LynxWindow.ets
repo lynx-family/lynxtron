@@ -187,7 +187,10 @@ export struct LynxWindow {
       // NativeXComponent only dispatches registered hardware-key callbacks
       // while its ArkUI node owns focus. A mouse click must therefore move
       // focus to this surface before the Lynx input receives number keys.
+      // defaultFocus gives it focus as soon as the window shows, so keyboard
+      // shortcuts work before the first click.
       .focusable(true)
       .focusOnTouch(true)
+      .defaultFocus(true)
   }
 }
