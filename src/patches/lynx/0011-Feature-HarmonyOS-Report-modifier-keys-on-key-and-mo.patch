@@ -1,0 +1,207 @@
+From 54cd1ebe1e82a6a0291319470ab88790804fabc8 Mon Sep 17 00:00:00 2001
+From: "wenhua.liu" <wenhua.liu@haitaichina.com>
+Date: Thu, 5 Nov 2026 09:24:19 +0800
+Subject: [PATCH] [Feature][HarmonyOS] Report modifier keys on key and mouse
+ events
+
+Track Shift/Control/Alt/Meta from the key events Clay receives and use
+that state to fill ctrlKey/shiftKey/altKey/metaKey on JS key and mouse
+events, and on native view motion events, on platforms without a
+synchronous OS keyboard query (e.g. HarmonyOS). Windows and macOS keep
+querying the OS.
+---
+ clay/lynx_adaptor/lynx_event_dispatcher.cc    |  9 +++
+ .../native_view_service_embedder.cc           |  7 ++
+ clay/ui/component/page_view.cc                |  3 +
+ clay/ui/event/key_event.cc                    | 73 +++++++++++++++++++
+ clay/ui/event/key_event.h                     | 16 ++++
+ 5 files changed, 108 insertions(+)
+
+diff --git a/clay/lynx_adaptor/lynx_event_dispatcher.cc b/clay/lynx_adaptor/lynx_event_dispatcher.cc
+index bf3a77c4c..b881c0e54 100644
+--- a/clay/lynx_adaptor/lynx_event_dispatcher.cc
++++ b/clay/lynx_adaptor/lynx_event_dispatcher.cc
+@@ -10,6 +10,7 @@
+ #include "clay/lynx_adaptor/base_def.h"
+ #include "clay/lynx_adaptor/clay_value.h"
+ #include "clay/public/value.h"
++#include "clay/ui/event/key_event.h"
+ 
+ #if OS_WIN
+ #include <Windows.h>
+@@ -209,6 +210,14 @@ void AddKeyModifierProperties(clay::Value::Map& dict) {
+                             kVK_RightCommand)) {
+     metaKey = true;
+   }
++#else
++  // No synchronous OS query (e.g. HarmonyOS): use the state tracked from the
++  // modifier key events Clay has received.
++  const uint32_t modifiers = clay::GetKeyModifierState();
++  altKey = (modifiers & clay::kKeyModifierAlt) != 0;
++  ctrlKey = (modifiers & clay::kKeyModifierControl) != 0;
++  shiftKey = (modifiers & clay::kKeyModifierShift) != 0;
++  metaKey = (modifiers & clay::kKeyModifierMeta) != 0;
+ #endif
+   dict["altKey"] = clay::Value(altKey);
+   dict["shiftKey"] = clay::Value(shiftKey);
+diff --git a/clay/lynx_adaptor/native_view_service_embedder.cc b/clay/lynx_adaptor/native_view_service_embedder.cc
+index 76cbd31ef..ca1adb683 100644
+--- a/clay/lynx_adaptor/native_view_service_embedder.cc
++++ b/clay/lynx_adaptor/native_view_service_embedder.cc
+@@ -15,6 +15,7 @@
+ #include "clay/ui/component/native_view.h"
+ #include "clay/ui/component/page_view.h"
+ #include "clay/ui/event/gesture_event.h"
++#include "clay/ui/event/key_event.h"
+ 
+ #if OS_WIN
+ #include <Windows.h>
+@@ -154,6 +155,12 @@ class NativeViewPluginEmbedder : public NativeViewPlugin {
+                               kVK_RightCommand)) {
+       motion_event.metaKey = true;
+     }
++#else
++    const uint32_t key_modifiers = GetKeyModifierState();
++    motion_event.altKey = (key_modifiers & kKeyModifierAlt) != 0;
++    motion_event.ctrlKey = (key_modifiers & kKeyModifierControl) != 0;
++    motion_event.shiftKey = (key_modifiers & kKeyModifierShift) != 0;
++    motion_event.metaKey = (key_modifiers & kKeyModifierMeta) != 0;
+ #endif
+     if (native_platform_view_->HandleMotionEvent(&motion_event)) {
+       return;
+diff --git a/clay/ui/component/page_view.cc b/clay/ui/component/page_view.cc
+index 9a26f6782..d320be3fc 100644
+--- a/clay/ui/component/page_view.cc
++++ b/clay/ui/component/page_view.cc
+@@ -1353,6 +1353,9 @@ void PageView::DispatchKeyEvent(
+     std::unique_ptr<KeyEvent> event,
+     std::function<void(bool /* handled */)> callback) {
+   FML_DCHECK(event);
++  // Track modifiers before reporting so a Ctrl keydown itself already carries
++  // ctrlKey=true, matching the web.
++  UpdateKeyModifierState(*event);
+   bool keyevent_handled = false;
+   if (overlay_manager_->DispatchKeyEvent(event.get())) {
+     keyevent_handled = true;
+diff --git a/clay/ui/event/key_event.cc b/clay/ui/event/key_event.cc
+index 3f53e987f..1c8a89183 100644
+--- a/clay/ui/event/key_event.cc
++++ b/clay/ui/event/key_event.cc
+@@ -4,6 +4,7 @@
+ 
+ #include "clay/ui/event/key_event.h"
+ 
++#include <atomic>
+ #include <sstream>
+ 
+ namespace clay {
+@@ -13,8 +14,80 @@ const char* c_key_event_type_string[] = {
+     "KeyUp",
+     "KeyRepeat",
+ };
++
++// Left and right keys are tracked separately so releasing one side does not
++// clear a modifier still held on the other.
++enum SidedModifierBits : uint32_t {
++  kShiftLeftBit = 1 << 0,
++  kShiftRightBit = 1 << 1,
++  kControlLeftBit = 1 << 2,
++  kControlRightBit = 1 << 3,
++  kAltLeftBit = 1 << 4,
++  kAltRightBit = 1 << 5,
++  kMetaLeftBit = 1 << 6,
++  kMetaRightBit = 1 << 7,
++};
++
++std::atomic<uint32_t> g_sided_modifiers{0};
++
++uint32_t SidedBitForKey(LogicalKeyboardKey key) {
++  switch (key) {
++    case LogicalKeyboardKey::kShiftLeft:
++    case LogicalKeyboardKey::kShift:
++      return kShiftLeftBit;
++    case LogicalKeyboardKey::kShiftRight:
++      return kShiftRightBit;
++    case LogicalKeyboardKey::kControlLeft:
++    case LogicalKeyboardKey::kControl:
++      return kControlLeftBit;
++    case LogicalKeyboardKey::kControlRight:
++      return kControlRightBit;
++    case LogicalKeyboardKey::kAltLeft:
++    case LogicalKeyboardKey::kAlt:
++      return kAltLeftBit;
++    case LogicalKeyboardKey::kAltRight:
++      return kAltRightBit;
++    case LogicalKeyboardKey::kMetaLeft:
++    case LogicalKeyboardKey::kMeta:
++      return kMetaLeftBit;
++    case LogicalKeyboardKey::kMetaRight:
++      return kMetaRightBit;
++    default:
++      return 0;
++  }
++}
+ }  // namespace
+ 
++void UpdateKeyModifierState(const KeyEvent& event) {
++  const uint32_t bit = SidedBitForKey(event.GetLogical());
++  if (bit == 0) {
++    return;
++  }
++  switch (event.GetType()) {
++    case KeyEventType::kDown:
++    case KeyEventType::kRepeat:
++      g_sided_modifiers.fetch_or(bit, std::memory_order_relaxed);
++      break;
++    case KeyEventType::kUp:
++      g_sided_modifiers.fetch_and(~bit, std::memory_order_relaxed);
++      break;
++    default:
++      break;
++  }
++}
++
++uint32_t GetKeyModifierState() {
++  const uint32_t sided = g_sided_modifiers.load(std::memory_order_relaxed);
++  uint32_t flags = kKeyModifierNone;
++  if (sided & (kShiftLeftBit | kShiftRightBit)) flags |= kKeyModifierShift;
++  if (sided & (kControlLeftBit | kControlRightBit)) {
++    flags |= kKeyModifierControl;
++  }
++  if (sided & (kAltLeftBit | kAltRightBit)) flags |= kKeyModifierAlt;
++  if (sided & (kMetaLeftBit | kMetaRightBit)) flags |= kKeyModifierMeta;
++  return flags;
++}
++
+ std::string KeyEvent::ToString() const {
+   if (type_ < KeyEventType::kDown || type_ > KeyEventType::kRepeat) {
+     return "InvalidKeyEvent";
+diff --git a/clay/ui/event/key_event.h b/clay/ui/event/key_event.h
+index 77f6f5e37..efcaac380 100644
+--- a/clay/ui/event/key_event.h
++++ b/clay/ui/event/key_event.h
+@@ -61,5 +61,21 @@ class KeyEvent {
+   std::string character_;
+ };
+ 
++// Modifier keys currently held down, as seen by the key events Clay receives.
++// Platforms that cannot query the OS keyboard state synchronously (e.g.
++// HarmonyOS) use this to fill ctrlKey/shiftKey/altKey/metaKey on JS events.
++enum KeyModifierFlags : uint32_t {
++  kKeyModifierNone = 0,
++  kKeyModifierShift = 1 << 0,
++  kKeyModifierControl = 1 << 1,
++  kKeyModifierAlt = 1 << 2,
++  kKeyModifierMeta = 1 << 3,
++};
++
++// Updates the tracked modifier state from a key down/up/repeat event.
++void UpdateKeyModifierState(const KeyEvent& event);
++// Returns a bitmask of KeyModifierFlags.
++uint32_t GetKeyModifierState();
++
+ }  // namespace clay
+ #endif  // CLAY_UI_EVENT_KEY_EVENT_H_
+-- 
+2.34.1
+
