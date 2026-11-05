@@ -126,6 +126,7 @@ export async function ensureRuntime({
       }
       if (platform === 'darwin' || platform === 'linux') {
         await fs.promises.chmod(temporaryExecutable, 0o755);
+        await fs.promises.chmod(temporaryDirectory, 0o755);
       }
 
       await fs.promises.rm(runtimeDirectory, { recursive: true, force: true });

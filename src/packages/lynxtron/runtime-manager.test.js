@@ -109,6 +109,10 @@ test('runtime installation is atomic, isolated by variant, and reused', async ()
     });
     assert.equal(devtool.downloaded, true);
     assert.equal(await fs.readFile(devtool.executablePath, 'utf8'), 'synthetic executable');
+    assert.equal(
+      (await fs.stat(getRuntimeDirectory('devtool', packageRoot))).mode & 0o777,
+      0o755
+    );
 
     const reused = await ensureRuntime({
       variant: 'devtool',
