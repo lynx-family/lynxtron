@@ -39,6 +39,7 @@
 
 #if BUILDFLAG(IS_WIN)
 #include "base/win/scoped_com_initializer.h"
+#include "lynx/platform/embedder/public/capi/lynx_env_capi.h"
 #include "shell/ui/display/desktop_screen.h"
 #endif
 
@@ -116,6 +117,9 @@ void MainParts::Initialize() {
   base::FeatureList::ClearInstanceForTesting();
 
 #if BUILDFLAG(IS_WIN)
+  // DirectX preparation temporarily changes the process error mode. Start it
+  // after libuv and crash reporter setup so it preserves the established mode.
+  lynx_env_prewarm_async();
   com_initializer_ = std::make_unique<base::win::ScopedCOMInitializer>();
 #endif
 

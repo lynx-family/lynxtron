@@ -125,7 +125,7 @@ int LynxtronMain(int argc, char* argv[]) {
   base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
   const std::string process_type =
       command_line->GetSwitchValueASCII(kProcessType);
-  if (!run_as_node && process_type.empty()) {
+  if (!BUILDFLAG(IS_WIN) && !run_as_node && process_type.empty()) {
     // Overlap optional platform resource preparation with ICU and Node/V8
     // startup. The engine handles platform support and synchronous fallback.
     lynx_env_prewarm_async();
