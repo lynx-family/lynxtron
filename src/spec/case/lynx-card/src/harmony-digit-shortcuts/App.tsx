@@ -5,7 +5,7 @@
 import { useState } from '@lynx-js/react';
 
 // Manual check for app-level digit shortcuts (e.g. Ctrl+1 selects the first
-// tab). Shortcuts are read with global-bindkeydown so they work whether or
+// tab) and zoom shortcuts (Ctrl+= / Ctrl++ / Ctrl+- / Ctrl+0). Shortcuts are read with global-bindkeydown so they work whether or
 // not an element has focus. A plain bindkeydown counter is shown alongside to
 // tell the two delivery paths apart.
 const TAB_COUNT = 9;
@@ -51,6 +51,7 @@ export default function App() {
   const [hits, setHits] = useState<Record<string, number>>({});
   const [globalCount, setGlobalCount] = useState(0);
   const [bubbleCount, setBubbleCount] = useState(0);
+  const [zoom, setZoom] = useState(100);
 
   const onGlobalKeyDown = (event: any) => {
     setGlobalCount((n) => n + 1);
@@ -61,8 +62,21 @@ export default function App() {
       `key="${key}" ctrl=${mods.ctrl} shift=${mods.shift} alt=${mods.alt} ` +
         `meta=${mods.meta} repeat=${detail.repeat === true}`,
     );
+    const onlyCtrl = mods.ctrl && !mods.alt && !mods.meta;
+    // Zoom: Ctrl+= or Ctrl++ (Shift+=) zooms in, Ctrl+- zooms out. Repeats
+    // are allowed so holding the keys keeps zooming.
+    if (onlyCtrl && (key === '=' || key === '+' || key === '-' || key === '_')) {
+      const zoomIn = key === '=' || key === '+';
+      const combo = `${comboName(mods, key)} (zoom ${zoomIn ? 'in' : 'out'})`;
+      console.log(`[SHORTCUT] ${combo}`);
+      setLastCombo(combo);
+      setHits((prev) => ({ ...prev, [combo]: (prev[combo] ?? 0) + 1 }));
+      setZoom((z) => Math.max(30, Math.min(300, z + (zoomIn ? 10 : -10))));
+      return;
+    }
     const digit = digitOf(key);
     if (!digit || detail.repeat === true) return;
+    if (onlyCtrl && !mods.shift && digit === '0') setZoom(100);
     const hasModifier = mods.ctrl || mods.alt || mods.shift || mods.meta;
     if (!hasModifier) return;
 
@@ -96,7 +110,8 @@ export default function App() {
         Digit shortcut test
       </text>
       <text style={{ fontSize: '15px', color: '#333333', marginTop: '6px' }}>
-        Press Ctrl+1 ... Ctrl+9: the matching tab is selected. Also try
+        Press Ctrl+1 ... Ctrl+9: the matching tab is selected. Ctrl+= / Ctrl++
+        zooms in, Ctrl+- zooms out, Ctrl+0 resets the zoom. Also try
         Alt/Shift/Ctrl+Shift + digit, number row and numpad, with and without
         the input focused (click empty space to unfocus).
       </text>
@@ -128,14 +143,14 @@ export default function App() {
       </view>
       <view
         style={{
-          height: '56px',
+          minHeight: '56px',
           justifyContent: 'center',
           paddingLeft: '12px',
           backgroundColor: '#f3f6fa',
         }}
       >
-        <text style={{ fontSize: '18px', color: '#1565c0' }}>
-          {`Content of Tab ${activeTab + 1}`}
+        <text style={{ fontSize: `${(18 * zoom) / 100}px`, color: '#1565c0' }}>
+          {`Content of Tab ${activeTab + 1}  (zoom ${zoom}%)`}
         </text>
       </view>
 
