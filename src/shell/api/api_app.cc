@@ -856,6 +856,15 @@ bool App::Relaunch(gin::Arguments* js_args) {
 }
 
 LoginItemSettings App::GetLoginItemSettings(gin::Arguments* args) {
+#if BUILDFLAG(IS_LINUX)
+  LoginItemSettings options;
+  LoginItemSettings result;
+  args->GetNext(&options);
+  gin::ConvertFromV8(args->isolate(),
+                     Application::Get()->GetLoginItemSettings(options),
+                     &result);
+  return result;
+#endif
   // TODO(Guo Xi):support LoginItemSettings
   // LoginItemSettings options;
   // args->GetNext(&options);
