@@ -130,5 +130,8 @@ group("lynx_lib") {
       "//lynx/platform/linux:lynx_linux_group",
     ]
   }
+  if (is_mac || is_win) {
+    deps += [ "//lynx/platform/embedder/http_service" ]
+  }
   public_configs = [ "//lynx/platform/embedder:public_api" ]
 }
