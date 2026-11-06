@@ -34,6 +34,8 @@ export type ProtocolRequestRewriter = (
 export interface Protocol {
   /**
    * Register a resource handler for a URL scheme such as `app`.
+   * File handlers receive templates opened with `LynxWindow.loadURL(fileURL)`;
+   * `LynxWindow.loadFile(path)` reads local files directly.
    *
    * Returning `false` or `undefined` falls back to the normal Lynx resource
    * loading path. Return a Promise when the response data is produced

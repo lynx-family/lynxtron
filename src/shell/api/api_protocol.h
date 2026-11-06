@@ -11,6 +11,8 @@
 
 namespace lynxtron::api::protocol {
 
+bool IsProtocolHandled(const std::string& scheme);
+
 v8::MaybeLocal<v8::Value> InvokeHandler(v8::Isolate* isolate,
                                         const std::string& url,
                                         const std::string& resource_type,
