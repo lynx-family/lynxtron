@@ -176,6 +176,13 @@ component("gfx") {
     "display_color_spaces.h",
   ]
 
+  if (is_linux) {
+    sources += [
+      "shadow_value.cc",
+      "skia_color_space_util.cc",
+    ]
+  }
+
   if (is_mac) {
     sources += [
       # "ca_layer_result.h",
