@@ -1847,6 +1847,31 @@ uint64_t ToLynxLogicalKey(OH_NativeXComponent_KeyCode code) {
     case KEY_ALT_RIGHT: return 0x00200000105ULL;
     case KEY_META_LEFT: return 0x00200000106ULL;
     case KEY_META_RIGHT: return 0x00200000107ULL;
+    // Punctuation keys use their US-layout character as the logical key, so
+    // JS sees key "-", "=" and so on (needed for Ctrl+- / Ctrl+= shortcuts).
+    case KEY_GRAVE: return '`';
+    case KEY_MINUS: return '-';
+    case KEY_EQUALS: return '=';
+    case KEY_LEFT_BRACKET: return '[';
+    case KEY_RIGHT_BRACKET: return ']';
+    case KEY_BACKSLASH: return '\\';
+    case KEY_SEMICOLON: return ';';
+    case KEY_APOSTROPHE: return '\'';
+    case KEY_COMMA: return ',';
+    case KEY_PERIOD: return '.';
+    case KEY_SLASH: return '/';
+    case KEY_PLUS: return '+';
+    case KEY_STAR: return '*';
+    case KEY_POUND: return '#';
+    case KEY_AT: return '@';
+    // Keypad operators report the same key as the main keyboard, as browsers do.
+    case KEY_NUMPAD_ADD: return '+';
+    case KEY_NUMPAD_SUBTRACT: return '-';
+    case KEY_NUMPAD_MULTIPLY: return '*';
+    case KEY_NUMPAD_DIVIDE: return '/';
+    case KEY_NUMPAD_DOT: return '.';
+    case KEY_NUMPAD_COMMA: return ',';
+    case KEY_NUMPAD_EQUALS: return '=';
     default:
       if (code >= KEY_A && code <= KEY_Z) return static_cast<uint64_t>('a' + code - KEY_A);
       if (code >= KEY_0 && code <= KEY_9) return static_cast<uint64_t>('0' + code - KEY_0);
@@ -1862,11 +1887,34 @@ uint64_t ToLynxLogicalKey(OH_NativeXComponent_KeyCode code) {
   }
 }
 
+// The US-layout symbol for Shift + a punctuation key ("=" -> "+"), or the key
+// itself if it has none. Browsers report the shifted symbol, e.g. Ctrl+Shift+=
+// arrives as key "+".
+uint64_t ShiftedPunctuation(uint64_t logical) {
+  switch (logical) {
+    case '`': return '~';
+    case '-': return '_';
+    case '=': return '+';
+    case '[': return '{';
+    case ']': return '}';
+    case '\\': return '|';
+    case ';': return ':';
+    case '\'': return '"';
+    case ',': return '<';
+    case '.': return '>';
+    case '/': return '?';
+    default: return logical;
+  }
+}
+
+constexpr uint32_t kHeldShift = (1 << 0) | (1 << 1);
+
 // Shift/Ctrl/Alt keys currently held, tracked from XComponent key events.
 // OH_NativeXComponent_GetKeyEventModifierKeyStates only reports a modifier on
 // that modifier's own event (it is 0 on the following digit), so it cannot be
-// used alone. Returns true if any of them is held after this event.
-bool UpdateHeldModifiers(OH_NativeXComponent_KeyEvent* key_event,
+// used alone. Returns the held-key bits after this event; the system state is
+// folded in as the left key's bit.
+uint32_t UpdateHeldModifiers(OH_NativeXComponent_KeyEvent* key_event,
                          OH_NativeXComponent_KeyCode code,
                          OH_NativeXComponent_KeyAction action) {
   static std::atomic<uint32_t> held{0};
@@ -1889,9 +1937,11 @@ bool UpdateHeldModifiers(OH_NativeXComponent_KeyEvent* key_event,
   }
   uint64_t system_keys = 0;
   OH_NativeXComponent_GetKeyEventModifierKeyStates(key_event, &system_keys);
-  return held.load() != 0 ||
-         (system_keys & (ARKUI_MODIFIER_KEY_SHIFT | ARKUI_MODIFIER_KEY_CTRL |
-                         ARKUI_MODIFIER_KEY_ALT)) != 0;
+  uint32_t result = held.load();
+  if (system_keys & ARKUI_MODIFIER_KEY_SHIFT) result |= 1 << 0;
+  if (system_keys & ARKUI_MODIFIER_KEY_CTRL) result |= 1 << 2;
+  if (system_keys & ARKUI_MODIFIER_KEY_ALT) result |= 1 << 4;
+  return result;
 }
 
 void DispatchKeyEvent(OH_NativeXComponent* component, void*) {
@@ -1920,7 +1970,10 @@ void DispatchKeyEvent(OH_NativeXComponent* component, void*) {
     if (surface_window_id <= 0) {
       surface_window_id = g_current_harmony_window_id;
     }
-    const uint64_t logical = ToLynxLogicalKey(code);
+    const uint32_t held = UpdateHeldModifiers(key_event, code, action);
+    const bool has_modifier = held != 0;
+    uint64_t logical = ToLynxLogicalKey(code);
+    if (held & kHeldShift) logical = ShiftedPunctuation(logical);
     g_send_key(surface_window_id,
                action == OH_NATIVEXCOMPONENT_KEY_ACTION_UP ? 0 : 1,
                logical, 0, NowMicros());
@@ -1930,7 +1983,6 @@ void DispatchKeyEvent(OH_NativeXComponent* component, void*) {
     // digit after key-down so the focused editor has processed the key first.
     // Skip it while Shift/Ctrl/Alt is held: Shift+digit already arrives as a
     // symbol through the IME, and Ctrl/Alt+digit are shortcuts, not text.
-    const bool has_modifier = UpdateHeldModifiers(key_event, code, action);
     if (action != OH_NATIVEXCOMPONENT_KEY_ACTION_UP && !has_modifier &&
         ((code >= KEY_0 && code <= KEY_9) ||
          (code >= KEY_NUMPAD_0 && code <= KEY_NUMPAD_9))) {
