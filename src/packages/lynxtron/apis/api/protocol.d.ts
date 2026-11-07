@@ -3,6 +3,8 @@
 // LICENSE file in the root directory of this source tree.
 
 export interface ResourceRequest {
+  /** The requesting LynxWindow.id; absent when the request has no window. */
+  windowId?: number;
   resourceType: string;
   scheme: string;
   url: string;
@@ -19,6 +21,8 @@ export type ProtocolHandler = (
 ) => ResourceResponse | Promise<ResourceResponse> | false | undefined;
 
 export interface ProtocolRewriteRequest {
+  /** The requesting LynxWindow.id; absent when the request has no window. */
+  windowId?: number;
   scheme: string;
   url: string;
 }

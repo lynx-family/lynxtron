@@ -19,12 +19,13 @@ using LynxResourceResponse = lynx::pub::resource::LynxResourceResponse;
 
 const char* GetResourceTypeString(lynx_resource_type_e type);
 
-std::string RewriteRequestUrl(const std::string& url);
+std::string RewriteRequestUrl(const std::string& url, int window_id);
 
 void HandleProtocolRequest(
     const std::shared_ptr<LynxResourceRequest>& request,
     const std::shared_ptr<LynxResourceResponse>& response,
     const std::string& url,
+    int window_id,
     std::function<void()> fallback);
 
 }  // namespace lynxtron::resource_fetcher

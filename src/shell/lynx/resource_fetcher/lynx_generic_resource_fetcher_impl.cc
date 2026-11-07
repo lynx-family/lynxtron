@@ -46,10 +46,18 @@ void FetchResourceOnUIThread(
     return;
   }
 
-  std::string url = resource_fetcher::RewriteRequestUrl(request->GetUrl());
+  std::string url = resource_fetcher::RewriteRequestUrl(
+      request->GetUrl(), lynx_window->weak_map_id());
+  // The JavaScript rewriter can synchronously destroy the window.
+  if (!lynx_window) {
+    CompleteWithError(response, resource_fetcher::kDefaultErrorCode,
+                      "Resource window was destroyed");
+    return;
+  }
   url = lynx_window->ResolveResourceUrl(url);
   resource_fetcher::HandleProtocolRequest(
-      request, response, url, [request, response, lynx_window, url]() {
+      request, response, url, lynx_window->weak_map_id(),
+      [request, response, lynx_window, url]() {
         if (!lynx_window) {
           return;
         }
