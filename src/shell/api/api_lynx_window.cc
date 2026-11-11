@@ -282,8 +282,7 @@ LynxWindow::LynxWindow(gin::Arguments* args,
                        const gin_helper::Dictionary& options)
     : BaseWindow(args->isolate(), options, CreateLynxNativeWindow(options)) {
   InitWithArgs(args);
-  // TODO(Guo Xi): support software render.
-  options.Get("software_render", &software_render_);
+  options.Get("softwareRendering", &software_render_);
 
   window()->InitFromOptions(options);
 
@@ -569,7 +568,8 @@ void LynxWindow::EnsureLynxView(const std::string* testbench_url) {
     builder.SetWindowlessRenderer(CreateWindowlessRenderer());
 #endif
   } else {
-    builder.SetParent(window_->GetNativeWindowHandle());
+    builder.SetParent(window_->GetNativeWindowHandle())
+        .SetEnableSoftwareRendering(software_render_);
   }
 
   if (lynx_view_state_observer_) {

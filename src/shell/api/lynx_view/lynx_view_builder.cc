@@ -66,6 +66,11 @@ LynxViewBuilder& LynxViewBuilder::SetParent(void* parent) {
   return *this;
 }
 
+LynxViewBuilder& LynxViewBuilder::SetEnableSoftwareRendering(bool enable) {
+  impl_->builder.SetEnableSoftwareRendering(enable);
+  return *this;
+}
+
 LynxViewBuilder& LynxViewBuilder::SetGenericResourceFetcher(
     std::shared_ptr<lynx::pub::LynxGenericResourceFetcher> fetcher) {
   impl_->builder.SetGenericResourceFetcher(fetcher);
