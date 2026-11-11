@@ -1909,6 +1909,25 @@ uint64_t ShiftedPunctuation(uint64_t logical) {
 
 constexpr uint32_t kHeldShift = (1 << 0) | (1 << 1);
 
+// Bits of the Shift/Ctrl/Alt keys currently held; see UpdateHeldModifiers.
+std::atomic<uint32_t> g_held_modifiers{0};
+
+// A key that was sent to Lynx as pressed and has not been released yet.
+struct PressedKey {
+  int32_t window_id;
+  uint64_t logical;
+};
+
+// Keys sent as pressed, per XComponent. XComponent callbacks all run on the
+// ArkUI main thread, so this needs no lock.
+std::unordered_map<OH_NativeXComponent*,
+                   std::unordered_map<int32_t, PressedKey>>&
+PressedKeys() {
+  static auto* keys = new std::unordered_map<
+      OH_NativeXComponent*, std::unordered_map<int32_t, PressedKey>>();
+  return *keys;
+}
+
 // Shift/Ctrl/Alt keys currently held, tracked from XComponent key events.
 // OH_NativeXComponent_GetKeyEventModifierKeyStates only reports a modifier on
 // that modifier's own event (it is 0 on the following digit), so it cannot be
@@ -1917,7 +1936,7 @@ constexpr uint32_t kHeldShift = (1 << 0) | (1 << 1);
 uint32_t UpdateHeldModifiers(OH_NativeXComponent_KeyEvent* key_event,
                          OH_NativeXComponent_KeyCode code,
                          OH_NativeXComponent_KeyAction action) {
-  static std::atomic<uint32_t> held{0};
+  std::atomic<uint32_t>& held = g_held_modifiers;
   uint32_t bit = 0;
   switch (code) {
     case KEY_SHIFT_LEFT: bit = 1 << 0; break;
@@ -1974,6 +1993,18 @@ void DispatchKeyEvent(OH_NativeXComponent* component, void*) {
     const bool has_modifier = held != 0;
     uint64_t logical = ToLynxLogicalKey(code);
     if (held & kHeldShift) logical = ShiftedPunctuation(logical);
+    auto& pressed = PressedKeys()[component];
+    if (action == OH_NATIVEXCOMPONENT_KEY_ACTION_UP) {
+      // Release the key that was actually pressed, even if Shift changed
+      // the logical key in between (e.g. "+" pressed, "=" released).
+      auto it = pressed.find(static_cast<int32_t>(code));
+      if (it != pressed.end()) {
+        logical = it->second.logical;
+        pressed.erase(it);
+      }
+    } else if (logical != 0) {
+      pressed[static_cast<int32_t>(code)] = {surface_window_id, logical};
+    }
     g_send_key(surface_window_id,
                action == OH_NATIVEXCOMPONENT_KEY_ACTION_UP ? 0 : 1,
                logical, 0, NowMicros());
@@ -2001,6 +2032,51 @@ void DispatchKeyEvent(OH_NativeXComponent* component, void*) {
       }
     }
   }
+}
+
+// Lynx logical keys 0x00200000100..0x00200000107 are the left/right
+// Ctrl/Shift/Alt/Meta keys (see ToLynxLogicalKey).
+bool IsModifierLogicalKey(uint64_t logical) {
+  return logical >= 0x00200000100ULL && logical <= 0x00200000107ULL;
+}
+
+// Sends a key-up for every key this XComponent still has pressed and clears
+// the held modifiers. When focus moves to another window (e.g. Ctrl+N opens
+// the system file picker) the key-ups go to that window, so without this Lynx
+// keeps Ctrl and N pressed: later mouse events carry ctrlKey and the app can
+// fire the shortcut again.
+void ReleasePressedKeys(OH_NativeXComponent* component, const char* reason) {
+  g_held_modifiers.store(0);
+  auto& all = PressedKeys();
+  auto it = all.find(component);
+  if (it == all.end() || it->second.empty()) {
+    return;
+  }
+  OH_LOG_INFO(LOG_APP, "[KEY] %{public}s: release %{public}zu pressed keys",
+              reason, it->second.size());
+  if (g_send_key) {
+    // Release ordinary keys before modifiers, like a user letting go of
+    // Ctrl+N, so the N key-up still reports ctrlKey.
+    for (bool modifiers : {false, true}) {
+      for (const auto& entry : it->second) {
+        if (IsModifierLogicalKey(entry.second.logical) == modifiers) {
+          g_send_key(entry.second.window_id, 0, entry.second.logical, 0,
+                     NowMicros());
+        }
+      }
+    }
+  }
+  all.erase(it);
+}
+
+void OnXComponentBlur(OH_NativeXComponent* component, void*) {
+  ReleasePressedKeys(component, "blur");
+}
+
+// Focus can leave with the whole window without a blur on this node, so
+// also drop stale keys when focus comes back.
+void OnXComponentFocus(OH_NativeXComponent* component, void*) {
+  ReleasePressedKeys(component, "focus");
 }
 
 // NAPI export notifyWindowState(windowId, state, [resizeEdge]): forwards an
@@ -3142,6 +3218,13 @@ napi_value Init(napi_env env, napi_value exports) {
       OH_LOG_INFO(LOG_APP, "[XC] RegisterAxisEventCallback ret=%{public}d", ra);
       int32_t rk = OH_NativeXComponent_RegisterKeyEventCallback(xc, DispatchKeyEvent);
       OH_LOG_INFO(LOG_APP, "[XC] RegisterKeyEventCallback ret=%{public}d", rk);
+      int32_t rf =
+          OH_NativeXComponent_RegisterFocusEventCallback(xc, OnXComponentFocus);
+      int32_t rb =
+          OH_NativeXComponent_RegisterBlurEventCallback(xc, OnXComponentBlur);
+      OH_LOG_INFO(LOG_APP,
+                  "[XC] RegisterFocus/BlurEventCallback ret=%{public}d/%{public}d",
+                  rf, rb);
     } else {
       OH_LOG_ERROR(LOG_APP, "[XC] napi_unwrap xcomponent failed");
     }
