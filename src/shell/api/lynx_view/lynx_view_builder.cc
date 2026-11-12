@@ -4,8 +4,11 @@
 
 #include "shell/api/lynx_view/lynx_view_builder.h"
 
+#include <memory>
+#include <string>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "base/base_paths.h"
 #include "base/files/file_path.h"
@@ -161,9 +164,7 @@ std::unique_ptr<LynxView> LynxViewBuilder::Build() {
 #endif
 
   auto view_impl = std::make_unique<LynxViewImpl>();
-#if ENABLE_TESTBENCH_REPLAY
   view_impl->SetLynxWindow(lynx_window_);
-#endif
   view_impl->Initialize(impl_->builder.Build());
   return LynxView::Create(std::move(view_impl));
 }

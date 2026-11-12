@@ -8,8 +8,10 @@
 #include <cmath>
 #include <initializer_list>
 #include <memory>
+#include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 #include "base/files/file_path.h"
 #include "base/files/file_util.h"
@@ -20,6 +22,7 @@
 #include "lynx/platform/embedder/public/capi/lynx_env_capi.h"
 #include "shell/api/api_app.h"
 #include "shell/api/api_lynx_template_bundle.h"
+#include "shell/api/api_protocol.h"
 #include "shell/api/lynx_view/lynx_update_meta.h"
 #include "shell/api/lynx_view/lynx_view.h"
 #include "shell/api/lynx_view/lynx_view_builder.h"
@@ -686,13 +689,15 @@ bool LynxWindow::LoadFile(const std::string& path, gin::Arguments* args) {
 
 bool LynxWindow::LoadUrl(const std::string& url, gin::Arguments* args) {
   GURL parsed_url(url);
+  base::FilePath local_path;
   if (parsed_url.SchemeIsFile()) {
-    base::FilePath local_path;
     if (!FileURLToFilePath(parsed_url, &local_path)) {
       LOG(ERROR) << "Invalid file URL: " << url;
       return false;
     }
-    return LoadFile(local_path.AsUTF8Unsafe(), args);
+    if (!protocol::IsProtocolHandled("file")) {
+      return LoadFile(local_path.AsUTF8Unsafe(), args);
+    }
   }
 
   gin_helper::Dictionary data;
@@ -716,7 +721,11 @@ bool LynxWindow::LoadUrl(const std::string& url, gin::Arguments* args) {
     return false;
   }
 
-  SetTemplateResourceBaseFromUrl(url);
+  if (parsed_url.SchemeIsFile()) {
+    SetTemplateResourceBaseFromFile(local_path);
+  } else {
+    SetTemplateResourceBaseFromUrl(url);
+  }
   lynx_view_->LoadURL(url, data_json.value(),
                       global_props.IsEmpty() ? "" : props_json.value());
   return true;

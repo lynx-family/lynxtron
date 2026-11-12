@@ -5,6 +5,7 @@
 #include "shell/api/lynx_view/lynx_view_impl.h"
 
 #include <algorithm>
+#include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -32,10 +33,13 @@
 #include "shell/api/lynx_view/testbench_replay_controller.h"
 #include "shell/common/asar/archive.h"
 #include "shell/common/asar/asar_util.h"
+#include "shell/common/file_url_util.h"
 #include "shell/common/global_thread.h"
 #include "shell/common/thread_restrictions.h"
 #include "shell/lynx/resource_fetcher/lynx_generic_resource_fetcher_factory.h"
+#include "shell/lynx/resource_fetcher/lynx_protocol_resource_handler.h"
 #include "shell/ui/gfx/geometry/rect.h"
+#include "url/gurl.h"
 
 #if BUILDFLAG(IS_WIN)
 #include <windows.h>
@@ -176,12 +180,9 @@ void LynxViewImpl::Initialize(std::unique_ptr<lynx::pub::LynxView> core_view) {
   lynx_view_->AddClient(self_shared_ptr_);
 }
 
-#if ENABLE_TESTBENCH_REPLAY
 void LynxViewImpl::SetLynxWindow(base::WeakPtr<api::LynxWindow> lynx_window) {
   lynx_window_ = std::move(lynx_window);
 }
-
-#endif
 
 bool LynxViewImpl::StartTestbenchReplay(const std::string& url) {
 #if ENABLE_TESTBENCH_REPLAY
@@ -209,10 +210,12 @@ bool LynxViewImpl::StartTestbenchReplay(const std::string& url) {
 void LynxViewImpl::LoadFile(const std::string& path,
                             const std::string& data,
                             const std::string& global_props) {
+  ++load_id_;
   auto meta = std::make_shared<lynx::pub::LynxLoadMeta>();
   base::FilePath local_path = base::FilePath::FromUTF8Unsafe(path);
   auto source = LoadFileData(path);
   if (source.empty()) {
+    OnReceivedError(-1, "Failed to read file template");
     return;
   }
 
@@ -241,6 +244,7 @@ void LynxViewImpl::LoadFile(const std::string& path,
 void LynxViewImpl::LoadURL(const std::string& url,
                            const std::string& data,
                            const std::string& global_props) {
+  const auto load_id = ++load_id_;
 #if ENABLE_TESTBENCH_REPLAY
   if (IsTestbenchReplayUrl(url) && StartTestbenchReplay(url)) {
     return;
@@ -255,13 +259,64 @@ void LynxViewImpl::LoadURL(const std::string& url,
     meta->SetGlobalProps(
         std::make_shared<lynx::pub::LynxTemplateData>(global_props));
   }
-  lynx_view_->LoadTemplate(std::move(meta));
+  base::FilePath local_path;
+  if (!FileURLToFilePath(GURL(url), &local_path)) {
+    lynx_view_->LoadTemplate(std::move(meta));
+    return;
+  }
+
+  auto weak_self = std::weak_ptr<LynxViewImpl>(self_shared_ptr_);
+  auto fallback = [weak_self, local_path, data, global_props, load_id]() {
+    auto self = weak_self.lock();
+    if (!self || self->load_id_ != load_id || !self->lynx_window_ ||
+        self->lynx_window_->window()->IsClosed()) {
+      return;
+    }
+    self->LoadFile(local_path.AsUTF8Unsafe(), data, global_props);
+  };
+  auto request = std::make_shared<resource_fetcher::LynxResourceRequest>(
+      lynx_resource_request_create(url.c_str(), kLynxResourceTypeTemplate));
+  using LoadCallback = std::function<void(lynx_resource_response_t*)>;
+  auto callback = std::make_shared<LoadCallback>(
+      [weak_self, meta, load_id](lynx_resource_response_t* result) {
+        auto self = weak_self.lock();
+        if (!self || self->load_id_ != load_id || !self->lynx_window_ ||
+            self->lynx_window_->window()->IsClosed()) {
+          return;
+        }
+        const int code = lynx_resource_response_get_code(result);
+        if (code != 0) {
+          self->OnReceivedError(
+              code, "Failed to load file URL through protocol handler");
+          return;
+        }
+        const auto* bytes = lynx_resource_response_get_data(result);
+        const size_t length = lynx_resource_response_get_data_length(result);
+        std::vector<uint8_t> source;
+        if (length) {
+          source.assign(bytes, bytes + length);
+        }
+        meta->SetBinaryData(source);
+        self->lynx_view_->LoadTemplate(meta);
+      });
+  auto* result = lynx_resource_response_create(
+      [](lynx_resource_response_t* response, void* user_data) {
+        (*static_cast<LoadCallback*>(user_data))(response);
+      },
+      callback.get());
+  auto response = std::shared_ptr<resource_fetcher::LynxResourceResponse>(
+      new resource_fetcher::LynxResourceResponse(result),
+      [callback](auto* response) { delete response; });
+  const int window_id = lynx_window_ ? lynx_window_->weak_map_id() : 0;
+  resource_fetcher::HandleProtocolRequest(request, response, url, window_id,
+                                          std::move(fallback));
 }
 
 void LynxViewImpl::LoadBundle(
     std::shared_ptr<lynx::pub::LynxTemplateBundle> bundle,
     const std::string& data,
     const std::string& global_props) {
+  ++load_id_;
   auto meta = std::make_shared<lynx::pub::LynxLoadMeta>();
   meta->SetUrl("bundle://local");
   meta->SetTemplateBundle(std::move(bundle));
@@ -332,6 +387,7 @@ void LynxViewImpl::Focus() {
 }
 
 void LynxViewImpl::Close() {
+  ++load_id_;
   if (self_shared_ptr_) {
     lynx_view_->RemoveClient(self_shared_ptr_);
     self_shared_ptr_.reset();
