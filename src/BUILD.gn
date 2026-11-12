@@ -1162,9 +1162,7 @@ if (is_linux) {
     ]
 
     configs += lynxtron_lib_extra_configs
-    if (!enable_skity) {
-      ldflags = [ "-l:libepoxy.so.0" ]
-    }
+    ldflags = [ "-l:libepoxy.so.0" ]
 
     include_dirs = [ "." ]
     sources = [ "shell/app/main_linux.cc" ]
