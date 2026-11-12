@@ -1,5 +1,7 @@
 # @lynx-js/lynxtron-builder
 
+## 0.0.32
+
 ## 0.0.31
 
 ### Patch Changes

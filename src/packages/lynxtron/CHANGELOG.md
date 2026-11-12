@@ -1,5 +1,11 @@
 # @lynx-js/lynxtron
 
+## 0.0.32
+
+### Patch Changes
+
+- 00af29e: Include the requesting LynxWindow.id in protocol handler and request rewriter callbacks.
+
 ## 0.0.31
 
 ### Patch Changes
