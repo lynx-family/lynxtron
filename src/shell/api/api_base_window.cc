@@ -7,6 +7,10 @@
 // LICENSE file in the root directory of this source tree.
 
 #include "shell/api/api_base_window.h"
+#if BUILDFLAG(IS_LINUX)
+#include "shell/api/api_menu.h"
+#include "shell/common/linux_desktop.h"
+#endif
 
 #include <string>
 #include <utility>
@@ -640,31 +644,26 @@ bool BaseWindow::IsFocusable() const {
 }
 
 void BaseWindow::SetMenu(v8::Isolate* isolate, v8::Local<v8::Value> value) {
-  // auto context = isolate->GetCurrentContext();
-  // gin::Handle<Menu> menu;
-  // v8::Local<v8::Object> object;
-  // if (value->IsObject() && value->ToObject(context).ToLocal(&object) &&
-  //    gin::ConvertFromV8(isolate, value, &menu) && !menu.IsEmpty()) {
-  //  menu_.Reset(isolate, menu.ToV8());
-
-  //  // We only want to update the menu if the menu has a non-zero item count,
-  //  // or we risk crashes.
-  //  if (menu->model()->GetItemCount() == 0) {
-  //    RemoveMenu();
-  //  } else {
-  //    window_->SetMenu(menu->model());
-  //  }
-  //} else if (value->IsNull()) {
-  //  RemoveMenu();
-  //} else {
-  //  isolate->ThrowException(
-  //      v8::Exception::TypeError(gin::StringToV8(isolate, "Invalid Menu")));
-  //}
+#if BUILDFLAG(IS_LINUX)
+  if (value->IsNull()) {
+    RemoveMenu();
+    return;
+  }
+  Menu* menu = nullptr;
+  if (!gin::ConvertFromV8(isolate, value, &menu) || !menu) {
+    isolate->ThrowException(
+        v8::Exception::TypeError(gin::StringToV8(isolate, "Invalid Menu")));
+    return;
+  }
+  linux_menu_.Reset(isolate, value);
+  SetLinuxWindowMenu(window_.get(), menu->model());
+#endif
 }
-
 void BaseWindow::RemoveMenu() {
-  // menu_.Reset();
-  // window_->SetMenu(nullptr);
+#if BUILDFLAG(IS_LINUX)
+  SetLinuxWindowMenu(window_.get(), nullptr);
+  linux_menu_.Reset();
+#endif
 }
 
 void BaseWindow::SetParentWindow(v8::Local<v8::Value> value,
@@ -690,7 +689,11 @@ void BaseWindow::SetParentWindow(v8::Local<v8::Value> value,
 }
 
 v8::Local<v8::Value> BaseWindow::GetNativeWindowHandle() {
+#if BUILDFLAG(IS_LINUX)
+  uintptr_t handle = GetLinuxNativeWindowId(window_.get());
+#else
   NativeWindowHandle handle = window_->GetNativeWindowHandle();
+#endif
   return ToBuffer(isolate(), base::byte_span_from_ref(handle));
 }
 

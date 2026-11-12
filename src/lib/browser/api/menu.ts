@@ -233,9 +233,13 @@ Menu.setApplicationMenu = function (menu: any) {
 
   applicationMenu = menu;
 
-  if (process.platform === 'darwin' || process.platform === 'win32') {
-    if (!menu) return;
-    menu._callMenuWillShow();
+  if (
+    process.platform === 'darwin' ||
+    process.platform === 'win32' ||
+    process.platform === 'linux'
+  ) {
+    if (!menu && process.platform !== 'linux') return;
+    menu?._callMenuWillShow();
     bindings.setApplicationMenu(menu);
   }
 };
@@ -350,6 +354,9 @@ function insertItemByType(this: any, item: any, pos: number) {
             if (other !== item) checked.set(other, false);
           }
           checked.set(item, true);
+          if (process.platform === 'linux') {
+            this._notifyMenuChanged?.();
+          }
         },
       });
       this.insertRadioItem(pos, item.commandId, item.label, item.groupId);

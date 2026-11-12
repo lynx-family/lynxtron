@@ -18,6 +18,9 @@
 #include "ui/display/screen.h"
 
 namespace lynxtron::api {
+#if BUILDFLAG(IS_LINUX)
+bool LinuxOnBatteryPower(const PowerMonitor*);
+#endif
 
 gin::DeprecatedWrapperInfo PowerMonitor::kWrapperInfo = {
     gin::kEmbedderNativeGin};
@@ -90,6 +93,9 @@ int PowerMonitor::GetSystemIdleTime() const {
 }
 
 bool PowerMonitor::IsOnBatteryPower() const {
+#if BUILDFLAG(IS_LINUX)
+  return LinuxOnBatteryPower(this);
+#endif
   auto* power_monitor = base::PowerMonitor::GetInstance();
   if (!power_monitor->IsInitialized()) {
     return false;
