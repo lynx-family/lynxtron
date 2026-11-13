@@ -1,0 +1,16 @@
+// Copyright (c) 2022 Microsoft, Inc.
+// Use of this source code is governed by the MIT license that can be
+// found in the LICENSE file.
+
+module uniplugin.mojom;
+
+import "components/messaging/public/mojom/message_port_descriptor.mojom";
+
+struct PluginServiceParams {
+  messaging.mojom.MessagePortDescriptor port;
+};
+
+
+interface PluginService {
+  Initialize(PluginServiceParams params);
+};

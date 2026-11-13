@@ -1,0 +1,72 @@
+# Copyright 2026 The Lynxtron Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+import("//mojo/public/tools/bindings/mojom.gni")
+
+mojom("mojom") {
+  cpp_only = true
+
+  # We don't need the blink variant.
+  disable_variants = true
+
+  cpp_typemaps = [
+    {
+      types = [
+        {
+          mojom = "messaging.mojom.UnguessableToken"
+          cpp = "::base::UnguessableToken"
+        },
+      ]
+      traits_headers = [
+        "//components/messaging/public/cpp/unguessable_token_mojom_traits.h",
+      ]
+    },
+    {
+      types = [
+        {
+          mojom = "messaging.mojom.MessagePortDescriptor"
+          cpp = "::messaging::MessagePortDescriptor"
+          move_only = true
+        },
+      ]
+      traits_headers = [ "//components/messaging/public/cpp/message_port_descriptor_mojom_traits.h" ]
+    },
+    {
+      types = [
+        {
+          mojom = "messaging.mojom.CloneableMessage"
+          cpp = "::messaging::CloneableMessage"
+          move_only = true
+        },
+      ]
+      traits_headers =
+          [ "//components/messaging/public/cpp/cloneable_message.h" ]
+      traits_private_headers = [
+        "//components/messaging/public/cpp/cloneable_message_mojom_traits.h",
+      ]
+    },
+    {
+      types = [
+        {
+          mojom = "messaging.mojom.TransferableMessage"
+          cpp = "::messaging::TransferableMessage"
+          move_only = true
+        },
+      ]
+      traits_headers = [
+        "//components/messaging/public/cpp/message_port_channel.h",
+        "//components/messaging/public/cpp/transferable_message.h",
+      ]
+      traits_private_headers = [
+        "//components/messaging/public/cpp/transferable_message_mojom_traits.h",
+      ]
+    },
+  ]
+
+  sources = [
+    "cloneable_message.mojom",
+    "message_port_descriptor.mojom",
+    "transferable_message.mojom",
+    "unguessable_token.mojom",
+  ]
+}

@@ -1,0 +1,18 @@
+module messaging.mojom;
+
+import "components/messaging/public/mojom/cloneable_message.mojom";
+import "components/messaging/public/mojom/message_port_descriptor.mojom";
+
+// A MessagePort is represented as a raw mojo message pipe, as such no interface
+// definition exists for it here. Messages on this pipe are serialized versions
+// of the TransferableMessage struct defined below.
+
+// This struct combines the cloneable part of a message with the parts of the
+// message that are merely transferable. In particular that includes ports that
+// are transferred. This struct is used for most postMessage style APIs,
+// including messages posted on MessagePorts themselves.
+struct TransferableMessage {
+  CloneableMessage message;
+  // Any ports being transferred as part of this message.
+  array<MessagePortDescriptor> ports;
+};

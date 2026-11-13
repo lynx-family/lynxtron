@@ -1,0 +1,143 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Lynxtron Authors <scripts@lynxtron>
+Date: Fri, 13 Nov 2026 12:00:00 +0800
+Subject: build: adapt Mojo dependencies for Lynxtron uniplugin
+
+Disable Mojo tests, Blink bindings and Closure compilation, and remove IPC
+serialization dependencies that are not available in the Lynxtron build.
+
+diff --git a/BUILD.gn b/BUILD.gn
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -7,7 +7,12 @@ import("//build/config/ui.gni")
+ import("//mojo/features.gni")
+ import("//testing/test.gni")
+
+-group("mojo") {
++declare_args() {
++  enable_mojo_tests = false
++}
++
++if (enable_mojo_tests) {
++  group("mojo") {
+   # Meta-target, don't link into production code.
+   testonly = true
+   deps = [ ":tests" ]
+@@ -21,6 +26,7 @@ group("mojo") {
+   }
+
+   deps += [ "//services/service_manager:all" ]
++  }
+ }
+
+ buildflag_header("buildflags") {
+@@ -31,6 +37,7 @@ buildflag_header("buildflags") {
+   ]
+ }
+
++if (enable_mojo_tests) {
+ group("tests") {
+   testonly = true
+   deps = [
+@@ -89,3 +96,4 @@ test("mojo_perftests") {
+     ]
+   }
+ }
++}
+diff --git a/public/cpp/bindings/BUILD.gn b/public/cpp/bindings/BUILD.gn
+--- a/public/cpp/bindings/BUILD.gn
++++ b/public/cpp/bindings/BUILD.gn
+@@ -9,6 +9,10 @@ import("//build/config/features.gni")
+ import("//tools/ipc_fuzzer/ipc_fuzzer.gni")
+
+ declare_args() {
++  enable_mojo_blink_bindings = false
++}
++
++declare_args() {
+   # Note that even when set to false, there still exists minimal trace events
+   # for sync calls. See https://crrev.com/952184
+   enable_mojo_tracing = extended_tracing_enabled
+@@ -199,9 +203,6 @@ component("bindings") {
+     "lib/multiplex_router.cc",
+     "lib/multiplex_router.h",
+     "lib/native_enum_data.h",
+-    "lib/native_enum_serialization.h",
+-    "lib/native_struct_serialization.cc",
+-    "lib/native_struct_serialization.h",
+     "lib/pipe_control_message_handler.cc",
+     "lib/pipe_control_message_proxy.cc",
+     "lib/sequence_local_sync_event_watcher.cc",
+@@ -267,16 +268,11 @@ component("bindings") {
+     ":bindings_base",
+     ":struct_traits",
+     "//base",
+-    "//ipc:message_support",
+-    "//ipc:param_traits",
+     "//mojo/public/cpp/system",
+     "//mojo/public/interfaces/bindings",
+   ]
+
+-  deps = [
+-    "//ipc:native_handle_type_converters",
+-    "//mojo/core/embedder",
+-  ]
++  deps = [ "//mojo/core/embedder" ]
+
+   configs += [ "//build/config/compiler:wexit_time_destructors" ]
+
+@@ -313,7 +309,7 @@ source_set("protobuf_support") {
+   ]
+ }
+
+-if (use_blink) {
++if (use_blink && enable_mojo_blink_bindings) {
+   component("wtf_support") {
+     sources = [
+       "lib/string_traits_wtf.cc",
+@@ -336,4 +332,8 @@ if (use_blink) {
+       "//third_party/blink/renderer/platform/wtf",
+     ]
+   }
++} else {
++  group("wtf_support") {
++    public_deps = [ ":bindings" ]
++  }
+ }
+diff --git a/public/tools/bindings/mojom.gni b/public/tools/bindings/mojom.gni
+--- a/public/tools/bindings/mojom.gni
++++ b/public/tools/bindings/mojom.gni
+@@ -2,11 +2,7 @@
+ # Use of this source code is governed by a BSD-style license that can be
+ # found in the LICENSE file.
+
+-import("//third_party/closure_compiler/closure_args.gni")
+-import("//third_party/closure_compiler/compile_js.gni")
+ import("//third_party/protobuf/proto_library.gni")
+-import("//ui/webui/resources/tools/generate_grd.gni")
+-import("//ui/webui/webui_features.gni")
+
+ import("//build/config/cast.gni")
+
+@@ -56,19 +52,12 @@ declare_args() {
+   # Enables Closure compilation of generated JS lite bindings. In environments
+   # where compilation is supported, any mojom target "foo" will also have a
+   # corresponding "foo_js_library_for_compile" target generated.
+-  if (is_chromeos) {
+-    enable_mojom_closure_compile = enable_js_type_check && optimize_webui
+-  }
++  enable_mojom_closure_compile = false
+ }
+
+ # Closure libraries are needed for mojom_closure_compile, and when
+ # js_type_check is enabled on Ash.
+-if (is_chromeos) {
+-  generate_mojom_closure_libraries =
+-      enable_mojom_closure_compile || enable_js_type_check
+-} else {
+-  generate_mojom_closure_libraries = false
+-}
++generate_mojom_closure_libraries = false
+
+ # NOTE: We would like to avoid scrambling message IDs where it doesn't add
+ # value, so we limit the behavior to desktop builds for now.

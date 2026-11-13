@@ -1,0 +1,28 @@
+# Copyright 2026 The Lynxtron Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+component("messaging") {
+  sources = [
+    "cloneable_message.cc",
+    "cloneable_message_mojom_traits.cc",
+    "message_port_channel.cc",
+    "message_port_descriptor.cc",
+    "message_port_descriptor_mojom_traits.cc",
+    "public/cpp/cloneable_message.h",
+    "public/cpp/cloneable_message_mojom_traits.h",
+    "public/cpp/message_port_channel.h",
+    "public/cpp/message_port_descriptor.h",
+    "public/cpp/message_port_descriptor_mojom_traits.h",
+    "public/cpp/transferable_message.h",
+    "public/cpp/transferable_message_mojom_traits.h",
+    "public/cpp/unguessable_token_mojom_traits.h",
+    "transferable_message.cc",
+    "transferable_message_mojom_traits.cc",
+    "unguessable_token_mojom_traits.cc",
+  ]
+  deps = [
+    "//base",
+    "//components/messaging/public/mojom",
+    "//mojo/public/cpp/bindings",
+  ]
+}

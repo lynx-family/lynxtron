@@ -6,6 +6,7 @@
 import argparse
 import json
 import os
+import platform
 import warnings
 
 from lib import git
@@ -16,6 +17,9 @@ COLORED_GREEN_MSG = '\033[92m'
 COLORED_PRINT_END = '\033[0m'
 
 def apply_patches(target):
+  platforms = target.get('platforms')
+  if platforms is not None and platform.system().lower() not in platforms:
+    return
   repo = target.get('repo')
   if not os.path.exists(repo):
     warnings.warn(f'repo not found: {repo}')

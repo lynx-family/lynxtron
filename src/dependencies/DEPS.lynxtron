@@ -6,13 +6,37 @@ machine = "x86_64" if machine == "amd64" else machine
 system = platform.system().lower()
 
 deps = {
+    '../mojo': {
+        "type": "git",
+        "url": "https://chromium.googlesource.com/chromium/src/mojo.git",
+        "commit": "952698501cd107d8a6c6862929e4b4552bf7fb04",
+        "ignore_in_git": True,
+        "condition": system in ['darwin', 'windows'],
+    },
+    '../third_party/ply': {
+        "type": "http",
+        # Gitiles regenerates this archive for each request, so its compressed
+        # bytes do not have a stable SHA-256 even though the tag is fixed.
+        "url": "https://chromium.googlesource.com/chromium/src/+archive/refs/tags/140.0.7319.0/third_party/ply.tar.gz",
+        "ignore_in_git": True,
+        "condition": system in ['darwin', 'windows'],
+    },
+    '../third_party/ipcz': {
+        "type": "git",
+        "url": "https://chromium.googlesource.com/chromium/src/third_party/ipcz.git",
+        "commit": "917e9d3c13d218a28724e55684c3e6cd281ee3aa",
+        "ignore_in_git": True,
+        "condition": system in ['darwin', 'windows'],
+    },
     'apply_all_patches': {
         "type": "action",
         "cwd": os.path.join(root_dir, '..'),
         "commands": [
             "python3 src/script/apply_all_patches.py src/patches/config.json",
         ],
-        "require": ["../base", "../build", "../third_party/node", "../url", "../tools", "../v8"],
+        "require": ["../base", "../build", "../third_party/node", "../url", "../tools", "../v8"] + (
+            ["../mojo"] if system in ['darwin', 'windows'] else []
+        ),
     },
     '../build/toolchain/win/rc/win/rc.exe': {
         "type": "http",

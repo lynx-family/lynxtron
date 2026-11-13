@@ -1,0 +1,7 @@
+module messaging.mojom;
+
+// This struct represents the cloneable part of messages that are sent across
+// postMessage style APIs. In particular this is used for BroadcastChannel.
+struct CloneableMessage {
+  array<uint8> encoded_message;
+};
