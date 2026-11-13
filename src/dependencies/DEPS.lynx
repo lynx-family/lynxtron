@@ -11,7 +11,7 @@ deps = {
     '../lynx': {
         'type': 'solution',
         'url': 'https://github.com/lynx-family/lynx.git',
-        'commit': '3927726d1674e6ca67a59ce2190fea48204d22e0',
+        'commit': 'ab894d56adf1e4baaef6f304d971146d443b386e',
         "deps_file": "dependencies/DEPS.lynxtron",
         "ignore_in_git": True,
     },
@@ -36,7 +36,7 @@ deps = {
     '../third_party/ServalKit': {
         "type": "git",
         "url": "https://github.com/lynx-family/serval-kit.git",
-        "commit": "2d4eb733c7f247ef27d35e38173440a58c288856",
+        "commit": "bc54d8a39e6931eb83e66ba569a6eaa67b8f394e",
         "ignore_in_git": True,
         "require": [ "../lynx" ],
     },
