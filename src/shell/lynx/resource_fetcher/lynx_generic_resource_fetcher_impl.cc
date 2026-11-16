@@ -15,6 +15,7 @@
 #include "shell/api/lynx_view/module/lynx_emit_event.h"
 #include "shell/app/javascript_environment.h"
 #include "shell/common/global_thread.h"
+#include "shell/lynx/resource_fetcher/lynx_file_resource_loader.h"
 #include "shell/lynx/resource_fetcher/lynx_generic_resource_fetcher_factory.h"
 #include "shell/lynx/resource_fetcher/lynx_protocol_resource_handler.h"
 #include "shell/lynx/resource_fetcher/lynx_resource_response_utils.h"
@@ -59,6 +60,9 @@ void FetchResourceOnUIThread(
       request, response, url, lynx_window->weak_map_id(),
       [request, response, lynx_window, url]() {
         if (!lynx_window) {
+          return;
+        }
+        if (resource_fetcher::TryLoadFileResource(url, response)) {
           return;
         }
 

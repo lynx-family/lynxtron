@@ -22,6 +22,23 @@ source_set("protocol_resource_handler") {
   ]
 }
 
+source_set("file_resource_loader") {
+  include_dirs = [
+    "../../../",
+    "//lynx/lynx",
+  ]
+
+  sources = [
+    "lynx_file_resource_loader.cc",
+    "lynx_file_resource_loader.h",
+  ]
+
+  deps = [
+    "//base",
+    "//url",
+  ]
+}
+
 source_set("resource_fetcher") {
   include_dirs = [
     "../../../",
@@ -35,6 +52,7 @@ source_set("resource_fetcher") {
   ]
 
   deps = [
+    ":file_resource_loader",
     ":protocol_resource_handler",
     "//base",
     "//third_party/node:libnode",
