@@ -1264,7 +1264,11 @@ if (is_harmony) {
   shared_library("lynxtron_napi_bridge") {
     output_name = "lynxtron_napi"
     output_extension = "so"
-    sources = [ "shell/app/lynxtron_napi_bridge.cc" ]
+    sources = [
+      "shell/app/lynxtron_napi_bridge.cc",
+      "shell/app/harmony_touchpad_input_state.cc",
+      "shell/app/harmony_touchpad_input_state.h",
+    ]
     include_dirs = [ "." ]
     libs = [
       "ace_napi.z",

@@ -21,6 +21,7 @@
 #include <hilog/log.h>
 
 #include "shell/app/lynx_windowless_renderer_harmony.h"
+#include "shell/app/harmony_touchpad_input_state.h"
 #include "shell/app/window_creation_bridge_harmony.h"
 #include <inputmethod/inputmethod_attach_options_capi.h>
 #include <inputmethod/inputmethod_controller_capi.h>
@@ -1449,6 +1450,26 @@ using SendScrollFn = void (*)(int32_t harmony_window_id, double x, double y,
                               size_t timestamp, bool precise);
 SendScrollFn g_send_scroll = nullptr;
 
+using SendTouchpadFn = void (*)(int32_t, int, int32_t, double, double,
+                                double, double, size_t);
+SendTouchpadFn g_send_touchpad = nullptr;
+lynxtron::HarmonyTouchpadInputState g_touchpad_state;
+
+void SendTouchpadEvents(const std::vector<lynxtron::HarmonyTouchpadEvent>& events) {
+  if (!g_send_touchpad) return;
+  for (const auto& event : events) {
+    g_send_touchpad(event.window_id, event.phase, event.device, event.x, event.y,
+                    event.pan_x, event.pan_y, event.timestamp);
+  }
+}
+
+double NowMicros();
+
+void CancelInputForWindow(int32_t window_id) {
+  if (window_id <= 0) window_id = g_current_harmony_window_id;
+  SendTouchpadEvents(g_touchpad_state.CancelWindow(window_id, NowMicros()));
+}
+
 // ArkUI reports mouse events with no device id and may report the primary
 // touch contact as id 0.  Lynx keys pointer state by `device`, so sharing 0
 // makes a touch Down reuse the mouse Hover pointer and prevents a tap from
@@ -1691,6 +1712,7 @@ void OnSurfaceDestroyed(OH_NativeXComponent* component, void* window) {
   OH_LOG_INFO(LOG_APP, "[XC] OnSurfaceDestroyed");
   const int32_t surface_window_id = GetSurfaceWindowId(component);
   std::lock_guard<std::mutex> lock(g_mouse_buttons_mutex);
+  CancelInputForWindow(surface_window_id);
   g_mouse_buttons_by_window.erase(surface_window_id);
   g_native_window = nullptr;
 }
@@ -1795,7 +1817,9 @@ void DispatchMouseEvent(OH_NativeXComponent* component, void* window) {
                  /*mouse=*/1, timestamp);
 }
 
-void DispatchHoverEvent(OH_NativeXComponent* component, bool isHover) {}
+void DispatchHoverEvent(OH_NativeXComponent* component, bool isHover) {
+  if (!isHover) CancelInputForWindow(GetSurfaceWindowId(component));
+}
 
 OH_NativeXComponent_MouseEvent_Callback g_mouse_callback = {
     .DispatchMouseEvent = DispatchMouseEvent,
@@ -1803,17 +1827,32 @@ OH_NativeXComponent_MouseEvent_Callback g_mouse_callback = {
 };
 
 // Mouse-wheel and touchpad scrolling are delivered by ArkUI as AXIS events,
-// not through OH_NativeXComponent_MouseEvent. Forward their physical deltas
-// as Lynx scroll signals so ScrollView/List can consume them directly.
+// not through OH_NativeXComponent_MouseEvent. Preserve phased touchpad
+// gestures; ordinary wheels and legacy runtimes use scroll signals.
 void DispatchAxisEvent(OH_NativeXComponent* component,
                        ArkUI_UIInputEvent* event,
                        ArkUI_UIInputEvent_Type type) {
   if (!component || !event || type != ARKUI_UIINPUTEVENT_TYPE_AXIS) return;
   const double delta_x = OH_ArkUI_AxisEvent_GetHorizontalAxisValue(event);
   const double delta_y = OH_ArkUI_AxisEvent_GetVerticalAxisValue(event);
-  if (delta_x == 0.0 && delta_y == 0.0) return;
   int32_t surface_window_id = GetSurfaceWindowId(component);
   if (surface_window_id <= 0) surface_window_id = g_current_harmony_window_id;
+  const int action = OH_ArkUI_AxisEvent_GetAxisAction(event);
+  if (OH_ArkUI_UIInputEvent_GetToolType(event) == UI_INPUT_EVENT_TOOL_TYPE_TOUCHPAD &&
+      action >= 1 && action <= 4 && g_lynxtron_handle) {
+    if (!g_send_touchpad) {
+      g_send_touchpad = reinterpret_cast<SendTouchpadFn>(dlsym(
+          g_lynxtron_handle, "LynxtronSendTouchpadPanZoomEventForWindow"));
+    }
+    if (g_send_touchpad) {
+      SendTouchpadEvents(g_touchpad_state.Update(
+          surface_window_id, OH_ArkUI_UIInputEvent_GetDeviceId(event), action,
+          OH_ArkUI_PointerEvent_GetX(event), OH_ArkUI_PointerEvent_GetY(event),
+          delta_x, delta_y, NowMicros()));
+      return;
+    }
+  }
+  if (delta_x == 0.0 && delta_y == 0.0) return;
   const int32_t source = OH_ArkUI_UIInputEvent_GetSourceType(event);
   const bool precise = source != 1;
   ForwardScroll(surface_window_id, OH_ArkUI_PointerEvent_GetX(event),
@@ -2070,6 +2109,7 @@ void ReleasePressedKeys(OH_NativeXComponent* component, const char* reason) {
 }
 
 void OnXComponentBlur(OH_NativeXComponent* component, void*) {
+  CancelInputForWindow(GetSurfaceWindowId(component));
   ReleasePressedKeys(component, "blur");
 }
 
@@ -2105,6 +2145,10 @@ napi_value NotifyWindowState(napi_env env, napi_callback_info info) {
                 "state=%{public}s resizeEdge=%{public}d argc=%{public}d",
                 window_id, state, resize_edge, (int)argc);
 
+    if (std::string(state) == "background" || std::string(state) == "hide" ||
+        std::string(state) == "minimize") {
+      CancelInputForWindow(window_id);
+    }
     if (EnsureLynxtronLoaded()) {
       auto fn = reinterpret_cast<LynxtronNotifyWindowStateFn>(
           dlsym(g_lynxtron_handle, "LynxtronNotifyWindowState"));

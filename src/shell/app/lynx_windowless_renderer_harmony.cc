@@ -1013,6 +1013,39 @@ extern "C" __attribute__((visibility("default"))) void LynxtronSendPointerEventF
                               phase, x, y, buttons, device, kind, timestamp));
 }
 
+extern "C" __attribute__((visibility("default")))
+void LynxtronSendTouchpadPanZoomEventForWindow(
+    int32_t window_id, int phase, int32_t device, double x, double y,
+    double pan_x, double pan_y, size_t timestamp) {
+  PostToLynxUi(base::BindOnce(
+      [](int32_t window_id, int phase, int32_t device, double x, double y,
+         double pan_x, double pan_y, size_t timestamp) {
+        auto renderer = window_id > 0
+            ? lynxtron::GetHarmonyWindowlessRendererForWindow(window_id)
+            : lynxtron::GetCurrentHarmonyWindowlessRenderer();
+        if (!renderer) return;
+        lynx_pointer_event_t event = {};
+        event.struct_size = sizeof(event);
+        switch (phase) {
+          case 0: event.phase = kLynxPointerPhasePanZoomStart; break;
+          case 1: event.phase = kLynxPointerPhasePanZoomUpdate; break;
+          case 2: event.phase = kLynxPointerPhasePanZoomEnd; break;
+          case 3: event.phase = kLynxPointerPhaseCancel; break;
+          default: return;
+        }
+        event.device = device;
+        event.device_kind = kLynxPointerDeviceKindTrackpad;
+        event.x = x;
+        event.y = y;
+        event.pan_x = pan_x;
+        event.pan_y = pan_y;
+        event.scale = 1;
+        event.is_precise_scroll = 1;
+        event.timestamp = timestamp;
+        renderer->SendPointerEvent(&event);
+      }, window_id, phase, device, x, y, pan_x, pan_y, timestamp));
+}
+
 extern "C" __attribute__((visibility("default"))) void LynxtronSendScrollEventForWindow(
     int32_t harmony_window_id, double x, double y, double delta_x,
     double delta_y, size_t timestamp, bool precise) {

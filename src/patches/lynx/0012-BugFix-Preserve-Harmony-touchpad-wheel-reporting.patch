@@ -1,0 +1,135 @@
+diff --git a/clay/ui/component/page_view.cc b/clay/ui/component/page_view.cc
+index d320be3fc..d7025f4ca 100644
+--- a/clay/ui/component/page_view.cc
++++ b/clay/ui/component/page_view.cc
+@@ -1116,9 +1116,32 @@ int PageView::GetHitTestingTargetNativeViewId(const FloatPoint& position,
+ void PageView::ReportTopViewEvent(const PointerEvent& event,
+                                   ClayEventType type) {
+   overlay_manager_->OnReportTopViewEvent(event, type);
++#if defined(OS_HARMONY)
++  if (event.device == PointerEvent::DeviceType::kTrackpad &&
++      event.type == PointerEvent::EventType::kPanZoomStartEvent) {
++    pan_zoom_target_ = {};
++  }
++  if (event.device == PointerEvent::DeviceType::kTrackpad &&
++      (event.type == PointerEvent::EventType::kPanZoomEndEvent ||
++       event.type == PointerEvent::EventType::kCancel)) {
++    pan_zoom_target_ = {};
++    return;
++  }
++#endif
+   auto position = event.position;
+   BaseView* top_view = nullptr;
+   FloatPoint transformed_position;
++#if defined(OS_HARMONY)
++  if (event.device == PointerEvent::DeviceType::kTrackpad &&
++      event.type == PointerEvent::EventType::kPanZoomUpdateEvent) {
++    top_view = pan_zoom_target_.get();
++    if (!top_view || !top_view->attach_to_tree()) {
++      pan_zoom_target_ = {};
++      return;
++    }
++    transformed_position = top_view->GetPointBySelf(position);
++  } else
++#endif
+   if (type == kClayEventTypeTouchMove || type == kClayEventTypeTouchEnd ||
+       type == kClayEventTypeTouchCancel) {
+     auto it = touch_view_map_.find(event.pointer_id);
+@@ -1239,11 +1262,19 @@ void PageView::ReportTopViewEvent(const PointerEvent& event,
+     } break;
+     case PointerEvent::DeviceType::kTrackpad: {
+       if (event.type == PointerEvent::EventType::kPanZoomStartEvent) {
++#if defined(OS_HARMONY)
++        pan_zoom_target_ = top_view->GetWeakPtr();
++#else
+         pan_zoom_target_ = top_view;
++#endif
+         return;
+       }
+       if (event.type == PointerEvent::EventType::kPanZoomEndEvent) {
++#if defined(OS_HARMONY)
++        pan_zoom_target_ = {};
++#else
+         pan_zoom_target_ = nullptr;
++#endif
+         return;
+       }
+       if (event.type != PointerEvent::EventType::kPanZoomUpdateEvent) {
+@@ -1251,12 +1282,24 @@ void PageView::ReportTopViewEvent(const PointerEvent& event,
+                        << static_cast<int>(event.type);
+         return;
+       }
++#if defined(OS_HARMONY)
++      bool has_pan_data =
++          event.pan_delta.width() != 0 || event.pan_delta.height() != 0;
++      auto native_event = event;
++      native_event.pan_delta = {-event.pan_delta.width(),
++                                -event.pan_delta.height()};
++#else
+       bool has_pan_data =
+           event.pan_delta.width() > 0 || event.pan_delta.height() > 0;
++#endif
+       if (UNLIKELY(top_view->Is<NativeView>())) {
+         auto native_view = static_cast<NativeView*>(top_view);
+         if (native_view->IsScrollEnabled() && has_pan_data) {
++#if defined(OS_HARMONY)
++          native_view->SendMotionEvent(native_event, transformed_position);
++#else
+           native_view->SendMotionEvent(event, transformed_position);
++#endif
+         }
+       }
+       bool is_scale = event.scale != 1;
+@@ -1270,7 +1313,11 @@ void PageView::ReportTopViewEvent(const PointerEvent& event,
+           event_delegate_->OnWheelEvent(
+               "wheel", pan_zoom_target_->id(), transformed_position.x(),
+               transformed_position.y(), position.x(), position.y(),
++#if defined(OS_HARMONY)
++              -event.pan_delta.width(), -event.pan_delta.height());
++#else
+               event.pan_delta.width(), event.pan_delta.height());
++#endif
+         }
+       }
+     } break;
+diff --git a/clay/ui/component/page_view.h b/clay/ui/component/page_view.h
+index cfbb4aa97..d8b8ed96d 100644
+--- a/clay/ui/component/page_view.h
++++ b/clay/ui/component/page_view.h
+@@ -657,7 +657,11 @@ class PageView : public BaseView,
+   const std::shared_ptr<ServiceManager> service_manager_;
+ 
+   const uint64_t page_unique_id_;
++#if defined(OS_HARMONY)
++  fml::WeakPtr<BaseView> pan_zoom_target_;
++#else
+   BaseView* pan_zoom_target_ = nullptr;
++#endif
+   BaseView* wheel_target_ = nullptr;
+   std::unique_ptr<OverlayManager> overlay_manager_;
+ 
+diff --git a/clay/ui/gesture/mouse_region_manager.cc b/clay/ui/gesture/mouse_region_manager.cc
+index 839e786a6..a4d3f4b70 100644
+--- a/clay/ui/gesture/mouse_region_manager.cc
++++ b/clay/ui/gesture/mouse_region_manager.cc
+@@ -4,6 +4,7 @@
+ 
+ #include "clay/ui/gesture/mouse_region_manager.h"
+ 
++#include "build/build_config.h"
+ #include "clay/fml/logging.h"
+ #include "clay/ui/component/base_view.h"
+ #include "clay/ui/component/native_view.h"
+@@ -59,6 +60,12 @@ void MouseRegionManager::HandleEvents(BaseView* root,
+ }
+ void MouseRegionManager::HandleEvent(BaseView* root,
+                                      const PointerEvent& event) {
++#if defined(OS_HARMONY)
++  if (event.device == PointerEvent::DeviceType::kTrackpad &&
++      event.type == PointerEvent::EventType::kPanZoomUpdateEvent) {
++    return;
++  }
++#endif
+   // TODO: Consider to be refactored with TouchEventHandler in future, see:
+   // lynx/core/renderer/events/touch_event_handler.cc.
+   BaseView* top_view = nullptr;

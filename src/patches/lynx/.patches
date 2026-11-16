@@ -8,3 +8,4 @@
 0008-BugFix-Copy-fetch-response-body-into-V8-sandbox.patch
 0010-Adapt-Lynxtron-runtime-for-HarmonyOS.patch
 0011-Feature-HarmonyOS-Report-modifier-keys-on-key-and-mo.patch
+0012-BugFix-Preserve-Harmony-touchpad-wheel-reporting.patch
