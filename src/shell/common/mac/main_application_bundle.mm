@@ -18,18 +18,36 @@
 namespace lynxtron {
 base::FilePath MainApplicationBundlePath() {
   // Start out with the path to the running executable.
-  base::FilePath path;
-  base::PathService::Get(base::FILE_EXE, &path);
+  base::FilePath exe_path;
+  base::PathService::Get(base::FILE_EXE, &exe_path);
+
+  // Up to MacOS.
+  base::FilePath macos_dir = exe_path.DirName();
+  DCHECK_EQ(macos_dir.BaseName().value(), "MacOS");
 
   // Up to Contents.
-  path = path.DirName().DirName();
-  DCHECK_EQ(path.BaseName().value(), "Contents");
+  base::FilePath contents_dir = macos_dir.DirName();
+  DCHECK_EQ(contents_dir.BaseName().value(), "Contents");
 
-  // Up one more level to the .app.
-  path = path.DirName();
-  DCHECK_EQ(path.BaseName().Extension(), ".app");
+  // Up one more level to the current .app.
+  base::FilePath current_app = contents_dir.DirName();
+  DCHECK_EQ(current_app.BaseName().Extension(), ".app");
 
-  return path;
+  // If the current app is nested under:
+  // Outer.app/Contents/Frameworks/Helper.app
+  // return the outer app instead of the helper app.
+  base::FilePath maybe_frameworks_dir = current_app.DirName();
+  if (maybe_frameworks_dir.BaseName().value() == "Frameworks") {
+    base::FilePath maybe_outer_contents = maybe_frameworks_dir.DirName();
+    if (maybe_outer_contents.BaseName().value() == "Contents") {
+      base::FilePath outer_app = maybe_outer_contents.DirName();
+      if (outer_app.BaseName().Extension() == ".app") {
+        return outer_app;
+      }
+    }
+  }
+
+  return current_app;
 }
 
 NSBundle* MainApplicationBundle() {
