@@ -4,7 +4,6 @@
 
 #include "shell/api/api_lynx_window.h"
 
-#include <algorithm>
 #include <cmath>
 #include <initializer_list>
 #include <memory>
@@ -180,18 +179,8 @@ std::unique_ptr<NativeWindow> CreateLynxNativeWindow(
       NativeWindow::Create(options, parent_window));
 }
 
-std::string ToFileUrl(const base::FilePath& path) {
-  std::string normalized = path.AsUTF8Unsafe();
-  std::replace(normalized.begin(), normalized.end(), '\\', '/');
-#if BUILDFLAG(IS_WIN)
-  return "file:///" + normalized;
-#else
-  return "file://" + normalized;
-#endif
-}
-
 std::string ToDirectoryFileUrl(const base::FilePath& path) {
-  std::string directory_url = ToFileUrl(path.DirName());
+  std::string directory_url = FilePathToFileURL(path.DirName()).spec();
   if (!directory_url.empty() && directory_url.back() != '/') {
     directory_url.push_back('/');
   }
@@ -645,7 +634,13 @@ void LynxWindow::OnWindowHide() {
 }
 
 bool LynxWindow::LoadFile(const std::string& path, gin::Arguments* args) {
-  base::FilePath local_path = base::FilePath::FromUTF8Unsafe(path.data());
+  base::FilePath local_path;
+  if (!FileURLToFilePath(
+          FilePathToFileURL(base::FilePath::FromUTF8Unsafe(path)),
+          &local_path)) {
+    LOG(ERROR) << "Invalid file path: " << path;
+    return false;
+  }
   base::FilePath asar_path, relative_path;
   if (!base::PathExists(local_path)) {
     // if file exists in asar
