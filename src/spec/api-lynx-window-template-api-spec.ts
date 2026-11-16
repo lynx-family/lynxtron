@@ -5,13 +5,13 @@
 import { LynxWindow } from 'lynxtron';
 import { expect } from 'chai';
 import * as fs from 'node:fs';
-import { once } from 'node:events';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
 
 import { closeAllWindows } from './lib/window-helpers';
+import { loadAndWait } from './lib/lynx-window-helpers';
 
 const { LynxTemplateBundle } = require('lynxtron') as {
   LynxTemplateBundle?: new (buffer: Buffer | ArrayBufferView) => {
@@ -37,20 +37,6 @@ const createWindow = (title: string) =>
     height: 600,
     title,
   });
-
-const loadAndWait = async (
-  window: LynxWindow,
-  load: () => void,
-  successEvent = 'ready-to-show'
-) => {
-  const loaded = once(window, successEvent);
-  const failed = once(window, '--lynx-error').then(([, code, message]) => {
-    throw new Error(`Lynx load failed (${String(code)}): ${String(message)}`);
-  });
-
-  load();
-  await Promise.race([loaded, failed]);
-};
 
 describe('LynxWindow template APIs', () => {
   afterEach(closeAllWindows);
@@ -140,11 +126,7 @@ describe('LynxWindow template APIs', () => {
 
     const w = createWindow('LynxWindow ready-to-show event');
 
-    await loadAndWait(
-      w,
-      () => (w as any).loadFile(bundlePath),
-      'ready-to-show'
-    );
+    await loadAndWait(w, () => (w as any).loadFile(bundlePath));
     expect(w.isDestroyed()).to.equal(false);
   });
 

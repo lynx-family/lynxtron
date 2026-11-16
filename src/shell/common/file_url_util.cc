@@ -7,10 +7,12 @@
 // Adapted from Chromium's file URL conversion logic:
 // https://source.chromium.org/chromium/chromium/src/+/main:net/base/filename_util.cc
 
+#include <algorithm>
 #include <string>
 #include <string_view>
 
 #include "base/files/file_path.h"
+#include "base/files/file_util.h"
 #include "base/strings/escape.h"
 #include "build/build_config.h"
 
@@ -34,6 +36,29 @@ bool IsWindowsDrivePath(std::string_view path) {
 #endif
 
 }  // namespace
+
+GURL FilePathToFileURL(const base::FilePath& file_path) {
+  base::FilePath absolute_path = file_path;
+  if (!absolute_path.IsAbsolute()) {
+    base::FilePath current_directory;
+    if (!base::GetCurrentDirectory(&current_directory)) {
+      return GURL();
+    }
+    absolute_path = current_directory.Append(file_path);
+  }
+
+  std::string normalized = absolute_path.AsUTF8Unsafe();
+#if BUILDFLAG(IS_WIN)
+  std::replace(normalized.begin(), normalized.end(), '\\', '/');
+  std::string escaped = base::EscapePath(normalized);
+  if (normalized.size() >= 2 && normalized[1] == ':') {
+    escaped.replace(1, 3, ":");
+  }
+  return GURL((normalized.starts_with("//") ? "file:" : "file:///") + escaped);
+#else
+  return GURL("file://" + base::EscapePath(normalized));
+#endif
+}
 
 bool FileURLToFilePath(const GURL& url, base::FilePath* file_path) {
   if (!file_path || !url.is_valid() || !url.SchemeIsFile()) {
