@@ -28,6 +28,31 @@ const MenuItem = function (this: any, options: any) {
     if (this[name] == null) {
       this[name] = defaultValue;
     }
+    if (
+      process.platform === 'linux' &&
+      [
+        'label',
+        'sublabel',
+        'toolTip',
+        'enabled',
+        'visible',
+        'checked',
+        'acceleratorWorksWhenHidden',
+        'registerAccelerator',
+      ].includes(name)
+    ) {
+      let value = this[name];
+      Object.defineProperty(this, name, {
+        enumerable: true,
+        configurable: true,
+        get: () => value,
+        set: (next: any) => {
+          if (value === next) return;
+          value = next;
+          this.menu?._notifyMenuChanged?.();
+        },
+      });
+    }
   };
 
   const overrideReadOnlyProperty = (name: string, defaultValue?: any) => {

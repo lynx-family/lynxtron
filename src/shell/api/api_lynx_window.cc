@@ -26,6 +26,9 @@
 #include "shell/api/lynx_view/testbench_replay_controller.h"
 #if ENABLE_HEADLESS
 #include "shell/api/lynx_view/windowless_renderer.h"
+#if BUILDFLAG(IS_LINUX)
+#include "shell/common/linux_desktop.h"
+#endif
 #endif
 #include "shell/api/lynx_view_state_observer.h"
 #include "shell/api/lynx_window_manager.h"
@@ -569,7 +572,13 @@ void LynxWindow::EnsureLynxView(const std::string* testbench_url) {
     builder.SetWindowlessRenderer(CreateWindowlessRenderer());
 #endif
   } else {
+#if BUILDFLAG(IS_LINUX) && LYNXTRON_USE_GTK4
+    builder.SetParent(GetLinuxContentBox(window_.get()));
+#elif BUILDFLAG(IS_LINUX) && ENABLE_HEADLESS
+    builder.SetWindowlessRenderer(CreateLinuxDesktopRenderer(window_.get()));
+#else
     builder.SetParent(window_->GetNativeWindowHandle());
+#endif
   }
 
   if (lynx_view_state_observer_) {

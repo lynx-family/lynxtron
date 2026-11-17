@@ -244,6 +244,9 @@ class BaseWindow : public gin_helper::TrackableObject<BaseWindow>,
   typedef std::map<UINT, MessageCallback> MessageCallbackMap;
   MessageCallbackMap messages_callback_map_;
 #endif
+#if BUILDFLAG(IS_LINUX)
+  v8::Global<v8::Value> linux_menu_;
+#endif
   v8::Global<v8::Value> parent_window_;
   KeyWeakMap<int> child_windows_;
   std::unique_ptr<NativeWindow> window_;

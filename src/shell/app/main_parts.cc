@@ -37,6 +37,10 @@
 #include "shell/common/node_includes.h"
 #include "shell/common/path_provider.h"
 
+#if BUILDFLAG(IS_LINUX)
+#include "shell/common/linux_desktop.h"
+#endif
+
 #if BUILDFLAG(IS_WIN)
 #include "base/win/scoped_com_initializer.h"
 #include "shell/ui/display/desktop_screen.h"
@@ -144,7 +148,8 @@ void MainParts::Initialize() {
 
   global_thread_ = std::make_unique<GlobalThread>();
 #if BUILDFLAG(IS_LINUX)
-#if ENABLE_HEADLESS
+  InitializeLinuxDesktop();
+#if ENABLE_HEADLESS && !LYNXTRON_USE_GTK4
   InitializeWindowlessGlobalUITaskRunner();
 #endif
 #endif

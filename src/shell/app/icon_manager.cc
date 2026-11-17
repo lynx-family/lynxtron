@@ -81,9 +81,8 @@ void IconManager::LoadIcon(
     return;
   }
 
-#if BUILDFLAG(IS_MAC)
-  // AppKit APIs used by LoadPlatformIcon (NSWorkspace/NSImage) require the UI
-  // thread on macOS.
+#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
+  // AppKit and GTK icon theme APIs require the UI thread.
   auto task_runner = GetUIThreadTaskRunner();
   if (task_runner) {
     cancelable_task_tracker->PostTaskAndReplyWithResult(
