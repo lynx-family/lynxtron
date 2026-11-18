@@ -158,7 +158,7 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
   std::shared_ptr<HybridMonitorModule> hybrid_monitor_;
 #endif
 
-  bool software_render_ = true;
+  bool software_render_ = false;
   std::vector<std::string> node_integration_preload_ = {};
   std::unique_ptr<LynxView> lynx_view_;
   static bool lynx_global_init_;

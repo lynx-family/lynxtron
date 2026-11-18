@@ -37,6 +37,7 @@ class LynxViewBuilder {
   LynxViewBuilder& SetFrame(float x, float y, float width, float height);
   LynxViewBuilder& SetICUDataPath(const std::string& icu_data_path);
   LynxViewBuilder& SetParent(void* parent);
+  LynxViewBuilder& SetEnableSoftwareRendering(bool enable);
   LynxViewBuilder& SetGenericResourceFetcher(
       std::shared_ptr<lynx::pub::LynxGenericResourceFetcher> fetcher);
 #if ENABLE_HEADLESS

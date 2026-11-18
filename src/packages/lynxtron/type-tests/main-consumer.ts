@@ -4,7 +4,11 @@ import type {
   LynxBridgeMessageListener,
 } from '@lynx-js/lynxtron';
 
-const win = new LynxWindow({ width: 800, height: 600 });
+const win = new LynxWindow({
+  width: 800,
+  height: 600,
+  softwareRendering: true,
+});
 
 const invokeListener: LynxBridgeInvokeListener = (
   event,
