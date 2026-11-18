@@ -10,6 +10,8 @@ Example: download_from_google_storage.py --bucket chromium-browser-clang/rc -s .
 import argparse
 import hashlib
 import os
+import shutil
+import ssl
 import sys
 import urllib.request
 
@@ -27,6 +29,12 @@ def main():
     parser = argparse.ArgumentParser(description='Download file from Google Storage')
     parser.add_argument('--bucket', required=True, help='Google Storage bucket name')
     parser.add_argument('-s', '--sha1_file', required=True, help='Path to .sha1 file')
+    parser.add_argument(
+        '--no-verify',
+        action='store_true',
+        help='Disable SSL certificate verification, for environments behind a '
+        'TLS-intercepting proxy. The downloaded file is still verified by SHA1.',
+    )
     args = parser.parse_args()
     
     bucket = args.bucket
@@ -58,8 +66,16 @@ def main():
     url = f'https://storage.googleapis.com/{bucket}/{expected_sha1}'
     print(f'Downloading {url} to {output_file}...')
     
+    context = None
+    if args.no_verify:
+        context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+    
     try:
-        urllib.request.urlretrieve(url, output_file)
+        with urllib.request.urlopen(url, context=context) as response:
+            with open(output_file, 'wb') as f:
+                shutil.copyfileobj(response, f)
         print(f'Download complete.')
         
         # Verify
