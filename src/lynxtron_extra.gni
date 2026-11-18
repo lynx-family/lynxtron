@@ -17,4 +17,8 @@ declare_args() {
     "//lynx/third_party/rapidjson",
   ]
   lynxtron_testbench_linux_extra_deps = []
+
+  # Whether to link the WebView2 SDK into the Windows shell. Checkouts whose
+  # build environment does not provide WebView2 can set this to false.
+  lynxtron_enable_webview2 = true
 }

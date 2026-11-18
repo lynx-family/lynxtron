@@ -1128,12 +1128,15 @@ if (is_win) {
       "Wintrust.lib",
       "wtsapi32.lib",
       "Dwmapi.lib",
-      "WebView2LoaderStatic.lib",
       "runtimeobject.lib",
       "propsys.lib",
       "shlwapi.lib",
     ]
-    lib_dirs = [ "//third_party/webview2/Microsoft.Web.WebView2.1.0.902.49/build/native/$current_cpu" ]
+    lib_dirs = []
+    if (lynxtron_enable_webview2) {
+      lib_dirs += [ "//third_party/webview2/Microsoft.Web.WebView2.1.0.902.49/build/native/$current_cpu" ]
+      libs += [ "WebView2LoaderStatic.lib" ]
+    }
     output_name = "lynxtron"
     ldflags = []
     if (current_cpu == "x86") {

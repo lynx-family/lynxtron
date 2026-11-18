@@ -51,7 +51,6 @@ def symlink_dir(src, dest):
 
 yarn_version = '4.0.0'
 chromium_git = 'https://chromium.googlesource.com'
-boringssl_git = 'https://github.com/google/boringssl.git'
 nodejs_git = 'https://github.com/nodejs'
 
 url_revision = 'e93dc734ccd3f4a5b1f554121697749018b61f36'
