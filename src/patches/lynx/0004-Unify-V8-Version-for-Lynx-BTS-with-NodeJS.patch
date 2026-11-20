@@ -335,15 +335,14 @@ diff --git a/platform/embedder/lynx_env.cc b/platform/embedder/lynx_env.cc
 index 6090286768..78d9863bd2 100644
 --- a/platform/embedder/lynx_env.cc
 +++ b/platform/embedder/lynx_env.cc
-@@ -8,7 +8,8 @@
- #include "platform/embedder/lynx_devtool/devtool_env_embedder.h"
- #include "third_party/debug_router/src/debug_router/native/core/debug_router_core.h"
- #endif
+@@ -10,6 +10,7 @@
+ #include "core/base/threading/task_runner_manufactor.h"
+ #include "core/renderer/tasm/config.h"
 +#include "core/runtime/js/jsi/v8/v8_platform_data.h"
+ #include "core/services/performance/memory_monitor/memory_monitor.h"
+ #include "platform/embedder/lynx_devtool/lynx_devtool_provider.h"
  #include "platform/embedder/lynx_env_platform.h"
  #include "platform/embedder/module/global_module_registry.h"
- #include "platform/embedder/public/capi/lynx_env_capi.h"
- 
 @@ -125,3 +126,7 @@ LYNX_EXTERN_C void lynx_env_register_extension_module(
        name, creator, is_lazy_create, opaque);
  #endif
