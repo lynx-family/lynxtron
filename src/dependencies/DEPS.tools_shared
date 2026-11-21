@@ -122,7 +122,8 @@ deps = {
             "windows": "0c4baa40f28b3f8225eb3fdf6946c987b4fe901403b4eaf2fbbd9378100aaa0c"
         }.get(system, None),
         "ignore_in_git": True,
-        "condition": system in ['linux', 'darwin', 'windows']
+        "condition": system in ['linux', 'darwin', 'windows'],
+        "require": ["../buildtools"]
     },
     '../buildtools/ninja': {
         "type": "http",
