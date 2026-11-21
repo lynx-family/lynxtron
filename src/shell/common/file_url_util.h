@@ -10,6 +10,9 @@
 
 namespace lynxtron {
 
+// Converts a local path to an absolute, percent-escaped file:// URL.
+GURL FilePathToFileURL(const base::FilePath& file_path);
+
 // Converts a file:// URL into a local file path.
 //
 // This is adapted from Chromium's file URL handling so callers do not need to

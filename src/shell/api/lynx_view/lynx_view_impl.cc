@@ -4,12 +4,9 @@
 
 #include "shell/api/lynx_view/lynx_view_impl.h"
 
-#include <algorithm>
 #include <memory>
 #include <string>
-#include <string_view>
 #include <utility>
-#include <vector>
 
 #include "base/containers/span.h"
 #include "base/files/file_path.h"
@@ -30,10 +27,16 @@
 #include "shell/api/lynx_view/module/lynx_hybrid_monitor_module.h"
 #include "shell/api/lynx_view/module/lynx_node_module.h"
 #include "shell/api/lynx_view/testbench_replay_controller.h"
+#include "shell/common/file_url_util.h"
+#include "shell/common/global_thread.h"
+#if ENABLE_TESTBENCH_REPLAY
+#include <string_view>
+#include <vector>
+
 #include "shell/common/asar/archive.h"
 #include "shell/common/asar/asar_util.h"
-#include "shell/common/global_thread.h"
 #include "shell/common/thread_restrictions.h"
+#endif
 #include "shell/lynx/resource_fetcher/lynx_generic_resource_fetcher_factory.h"
 #include "shell/ui/gfx/geometry/rect.h"
 
@@ -47,6 +50,7 @@
 
 namespace {
 
+#if ENABLE_TESTBENCH_REPLAY
 std::vector<uint8_t> LoadFileData(std::string_view path) {
   base::FilePath in_file_name = base::FilePath::FromUTF8Unsafe(path);
   std::string file_contents;
@@ -60,16 +64,7 @@ std::vector<uint8_t> LoadFileData(std::string_view path) {
   std::vector<uint8_t> buf(file_contents.data(), file_contents.data() + size);
   return buf;
 }
-
-std::string ToFileUrl(const base::FilePath& path) {
-  std::string normalized = path.AsUTF8Unsafe();
-  std::replace(normalized.begin(), normalized.end(), '\\', '/');
-#if BUILDFLAG(IS_WIN)
-  return "file:///" + normalized;
-#else
-  return "file://" + normalized;
 #endif
-}
 
 #if BUILDFLAG(IS_WIN)
 constexpr wchar_t kLynxViewHitTestOldWndProcProp[] =
@@ -209,15 +204,15 @@ bool LynxViewImpl::StartTestbenchReplay(const std::string& url) {
 void LynxViewImpl::LoadFile(const std::string& path,
                             const std::string& data,
                             const std::string& global_props) {
-  auto meta = std::make_shared<lynx::pub::LynxLoadMeta>();
   base::FilePath local_path = base::FilePath::FromUTF8Unsafe(path);
+  const std::string file_url = FilePathToFileURL(local_path).spec();
+#if ENABLE_TESTBENCH_REPLAY
+  // Testbench records need their content inspected before rendering, so they
+  // still require the bytes to be read here.
   auto source = LoadFileData(path);
   if (source.empty()) {
     return;
   }
-
-  const std::string file_url = ToFileUrl(local_path);
-#if ENABLE_TESTBENCH_REPLAY
   const bool is_json_file =
       local_path.Extension() == FILE_PATH_LITERAL(".json");
   std::string source_text(source.begin(), source.end());
@@ -226,8 +221,12 @@ void LynxViewImpl::LoadFile(const std::string& path,
     return;
   }
 #endif
+
+  // Only hand the file URL to Lynx so the template goes through the resource
+  // loader / generic fetcher pipeline, where protocol handlers can intercept
+  // it.
+  auto meta = std::make_shared<lynx::pub::LynxLoadMeta>();
   meta->SetUrl(file_url);
-  meta->SetBinaryData(source);
   if (!data.empty()) {
     meta->SetInitialData(std::make_shared<lynx::pub::LynxTemplateData>(data));
   }
