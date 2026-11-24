@@ -22,6 +22,7 @@ REPOS_TO_CHECK = [
     "base",
     "build",
     "third_party/node",
+    "third_party/textlayout",
     "url",
     "tools",
     "v8",

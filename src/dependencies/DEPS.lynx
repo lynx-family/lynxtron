@@ -27,7 +27,7 @@ deps = {
     '../third_party/textlayout': {
         "type": "git",
         "url": "https://github.com/lynx-family/lynx-textra.git",
-        "commit": "b0e7f2abeb2e9dd24abd5e72424fb2ea08d62c79",
+        "commit": "ae136fa9b1297163e2d0a5ee2e29939caa970953",
         "deps_file": "DEPS",
         "ignore_in_git": True,
         "enable_lfs": False,

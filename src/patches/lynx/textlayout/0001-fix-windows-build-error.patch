@@ -8,15 +8,15 @@ Subject: [PATCH] fix windows build error.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/BUILD.gn b/src/BUILD.gn
-index 878978e..b8b3743 100644
+index 66ae432..8ac096d 100644
 --- a/src/BUILD.gn
 +++ b/src/BUILD.gn
-@@ -215,7 +215,7 @@ source_set("textlayout") {
+@@ -228,7 +228,7 @@ source_set("textlayout") {
  
    sources = []
  
--  if (is_mac || is_linux || target_cpu == "wasm") {
-+  if (is_mac || is_linux || is_win || target_cpu == "wasm") {
+-  if (is_ios || is_mac || is_linux || target_cpu == "wasm") {
++  if (is_ios || is_mac || is_linux || is_win || target_cpu == "wasm") {
      deps += [ ":bidi" ]
    }
  
