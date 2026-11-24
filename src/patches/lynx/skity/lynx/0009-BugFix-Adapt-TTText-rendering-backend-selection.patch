@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Lynxtron Scripts <scripts@lynxtron>
+Date: Wed, 25 Nov 2026 12:00:00 +0800
+Subject: [PATCH] [BugFix][Build] Adapt TTText rendering backend selection
+
+TextLayout now requires an explicit RenderingBackend instead of the removed
+kSelfRendering shaper type. Keep CoreText self-rendering shaping for Skity on
+Apple platforms, and select the Skity or Skia backend elsewhere.
+
+diff --git a/clay/third_party/txt/src/tttext/paragraph_tt_text.cc b/clay/third_party/txt/src/tttext/paragraph_tt_text.cc
+index a7e0218..8371463 100644
+--- a/clay/third_party/txt/src/tttext/paragraph_tt_text.cc
++++ b/clay/third_party/txt/src/tttext/paragraph_tt_text.cc
+@@ -7,5 +7,6 @@
+ #include <textra/layout_drawer.h>
+ #include <textra/layout_region.h>
++#include <textra/rendering_backend.h>
+ #include <textra/text_layout.h>
+ #include <textra/text_line.h>
+ #include <algorithm>
+@@ -292,10 +293,17 @@ void ParagraphTTText::Layout(double width) {
+ #if defined(ENABLE_SKITY)
+   auto i_font_collection =
+       font_collection_->GetIFontCollection(variation_font_manager_);
+-  tttext::TextLayout layout(&i_font_collection, tttext::kSelfRendering);
++#if OS_MAC || OS_IOS
++  // Keep CoreText shaping when drawing Apple platform text with Skity.
++  constexpr auto backend = tttext::RenderingBackend::kSkityCoreText;
++#else
++  constexpr auto backend = tttext::RenderingBackend::kSkity;
++#endif
++  tttext::TextLayout layout(&i_font_collection, backend);
+ #else
+   auto i_font_collection = font_collection_->CreateTTFontCollection();
+-  tttext::TextLayout layout(i_font_collection.get(), tttext::kSelfRendering);
++  tttext::TextLayout layout(i_font_collection.get(),
++                            tttext::RenderingBackend::kSkia);
+ #endif
+   auto& paragraph_style = paragraph_->GetParagraphStyle();
+   auto halign = paragraph_style.GetHorizontalAlign();
