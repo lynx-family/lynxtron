@@ -1,0 +1,120 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Lynxtron Authors <scripts@lynxtron>
+Date: Wed, 25 Nov 2026 16:00:00 +0800
+Subject: [PATCH] build: generate config.gypi from a GN configuration snapshot
+
+Write the evaluated Node build arguments to a JSON file during GN generation
+and pass it as an input to generate_config_gypi.py. This avoids invoking
+gn args from Ninja, which reloads BUILD.gn files and repeats dependency setup
+while compilers may be reading the files being replaced.
+
+Keep the GN query fallback and failure diagnostics for callers that do not
+provide a configuration snapshot.
+
+---
+ tools/generate_config_gypi.py | 36 ++++++++++++++++++++++++++++++------
+ unofficial.gni               | 19 +++++++++++++++++++
+ 2 files changed, 49 insertions(+), 6 deletions(-)
+
+diff --git a/tools/generate_config_gypi.py b/tools/generate_config_gypi.py
+index 296ec4c17823aa2eb4f5eb1e311266609d5f9910..bdf2049c52d44ad452166740f693127a4441bfe8 100755
+--- a/tools/generate_config_gypi.py
++++ b/tools/generate_config_gypi.py
+@@ -11,6 +11,7 @@ import argparse
+ import json
+ import re
+ import os
++import shutil
+ import subprocess
+ import sys
+ 
+@@ -27,11 +28,33 @@ def bool_to_number(v):
+ def bool_string_to_number(v):
+   return bool_to_number(v == 'true')
+ 
+-def get_gn_config(out_dir):
+-  # Read args from GN configurations.
+-  gn_args = subprocess.check_output(
+-      [GN, 'args', '--list', '--short', '-C', out_dir])
+-  config = dict(re.findall(GN_RE, gn_args.decode()))
++def get_gn_config(out_dir, gn_config=None):
++  if gn_config:
++    # Match the string values returned by "gn args --list --short".
++    with open(gn_config) as f:
++      config = {key: json.dumps(value) for key, value in json.load(f).items()}
++  else:
++    # Support callers that do not provide a GN-generated configuration snapshot.
++    command = [GN, 'args', '--list', '--short', '-C', out_dir]
++    try:
++      gn_args = subprocess.check_output(command)
++    except (subprocess.CalledProcessError, OSError) as error:
++      print('Failed to read GN build arguments.', file=sys.stderr)
++      print('Command: %s' % subprocess.list2cmdline(command), file=sys.stderr)
++      print('Resolved GN: %s' % (shutil.which(GN) or '<not found>'),
++            file=sys.stderr)
++      print('Working directory: %s' % os.getcwd(), file=sys.stderr)
++      print('Output directory: %s' % os.path.abspath(out_dir),
++            file=sys.stderr)
++      if isinstance(error, subprocess.CalledProcessError):
++        print('Exit code: %s' % error.returncode, file=sys.stderr)
++        print('GN stdout:', file=sys.stderr)
++        print((error.output or b'').decode('utf-8', errors='replace'),
++              file=sys.stderr)
++      else:
++        print('Launch error: %s' % error, file=sys.stderr)
++      raise
++    config = dict(re.findall(GN_RE, gn_args.decode()))
+   # Get napi_build_version from Node, which is not part of GN args.
+   config['napi_build_version'] = getnapibuildversion.get_napi_version()
+   return config
+@@ -93,11 +116,12 @@ def main():
+                       default='out/Release')
+   parser.add_argument('--node-gn-path', help='path of the node target in GN',
+                       default='//node')
++  parser.add_argument('--gn-config', help='path to a GN-generated JSON snapshot')
+   parser.add_argument('--dep-file', help='path to an optional dep file',
+                       default=None)
+   args, unknown_args = parser.parse_known_args()
+ 
+-  config = get_gn_config(args.out_dir)
++  config = get_gn_config(args.out_dir, args.gn_config)
+   v8_config = get_v8_config(args.out_dir, args.node_gn_path)
+ 
+   # Write output.
+diff --git a/unofficial.gni b/unofficial.gni
+index 0240618595f4ae6e4343889b59c08da657639ddd..e3f1c3f4ba338506795946e999da89c0337f1acb 100644
+--- a/unofficial.gni
++++ b/unofficial.gni
+@@ -305,6 +305,24 @@ template("node_gn_build") {
+ 
+   action("generate_config_gypi") {
+     deps = [ "$node_v8_path:v8_generate_features_json" ]
++    # Querying "gn args" from Ninja reloads BUILD.gn files and their exec_scripts.
++    # Capture the evaluated configuration while GN is generating the build.
++    gn_config = { }
++    gn_config.is_asan = is_asan
++    gn_config.is_clang = is_clang
++    gn_config.is_debug = is_debug
++    gn_config.is_tsan = is_tsan
++    gn_config.node_builtin_shareable_builtins = node_builtin_shareable_builtins
++    gn_config.node_enable_inspector = node_enable_inspector
++    gn_config.node_module_version = node_module_version
++    gn_config.node_use_amaro = node_use_amaro
++    gn_config.node_use_node_code_cache = node_use_node_code_cache
++    gn_config.node_use_node_snapshot = node_use_node_snapshot
++    gn_config.node_use_openssl = node_use_openssl
++    gn_config.use_thin_lto = use_thin_lto
++    gn_config_file = "$target_gen_dir/gn_config.json"
++    write_file(gn_config_file, gn_config, "json")
++    inputs = [ gn_config_file ]
+     script = "tools/generate_config_gypi.py"
+     outputs = [ "$target_gen_dir/config.gypi" ]
+     depfile = "$target_gen_dir/$target_name.d"
+@@ -312,6 +330,7 @@ template("node_gn_build") {
+       "--out-dir", rebase_path(root_build_dir, root_build_dir),
+       "--dep-file", rebase_path(depfile, root_build_dir),
+       "--node-gn-path", node_path,
++      "--gn-config", rebase_path(gn_config_file, root_build_dir),
+     ]
+   }
+ 
