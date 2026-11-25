@@ -24,6 +24,7 @@
 #include "shell/api/lynx_view/lynx_view_builder.h"
 #include "shell/api/lynx_view/testbench_replay_controller.h"
 #if ENABLE_HEADLESS
+#include "lynx/platform/embedder/public/lynx_windowless_renderer.h"
 #include "shell/api/lynx_view/windowless_renderer.h"
 #endif
 #include "shell/api/lynx_view_state_observer.h"
@@ -498,6 +499,9 @@ void LynxWindow::CloseImmediately() {
     last_render_active_ = false;
   }
   auto lynx_view = std::move(lynx_view_);
+#if ENABLE_HEADLESS
+  windowless_renderer_.reset();
+#endif
   BaseWindow::CloseImmediately();
 
   if (lynx_view) {
@@ -520,6 +524,18 @@ void LynxWindow::Blur() {
   BaseWindow::Blur();
 }
 
+void LynxWindow::SetBackgroundColor(const std::string& color_name) {
+  const SkColor previous_color =
+      window_ ? window_->GetBackgroundColor() : 0xFFFFFFFFu;
+  BaseWindow::SetBackgroundColor(color_name);
+#if ENABLE_HEADLESS
+  if (windowless_renderer_ && window_ && window_->IsWindowless() &&
+      window_->GetBackgroundColor() != previous_color) {
+    windowless_renderer_->SetBackgroundColor(window_->GetBackgroundColor());
+  }
+#endif
+}
+
 void LynxWindow::EnsureLynxView(const std::string* testbench_url) {
 #if ENABLE_TESTBENCH_REPLAY
   const bool requested_testbench = testbench_url != nullptr;
@@ -528,6 +544,9 @@ void LynxWindow::EnsureLynxView(const std::string* testbench_url) {
       lynx_view_->EnterBackground();
     }
     lynx_view_.reset();
+#if ENABLE_HEADLESS
+    windowless_renderer_.reset();
+#endif
     last_render_active_ = false;
     lynx_view_is_testbench_ = false;
   }
@@ -554,7 +573,9 @@ void LynxWindow::EnsureLynxView(const std::string* testbench_url) {
 #endif
   if (window_->IsWindowless()) {
 #if ENABLE_HEADLESS
-    builder.SetWindowlessRenderer(CreateWindowlessRenderer());
+    windowless_renderer_ = CreateWindowlessRenderer();
+    windowless_renderer_->SetBackgroundColor(window_->GetBackgroundColor());
+    builder.SetWindowlessRenderer(windowless_renderer_);
 #endif
   } else {
     builder.SetParent(window_->GetNativeWindowHandle())

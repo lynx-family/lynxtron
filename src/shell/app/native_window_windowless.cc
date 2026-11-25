@@ -15,6 +15,9 @@ NativeWindowWindowless::NativeWindowWindowless(
     : NativeWindow(options, parent), bounds_(0, 0, width(), height()) {
   device_pixel_ratio_ =
       options.ValueOrDefault(options::kDeviceScaleFactor, 2.0);
+  if (transparent()) {
+    SetBackgroundColor(0x00000000u);
+  }
 }
 
 NativeWindowWindowless::~NativeWindowWindowless() = default;

@@ -18,6 +18,12 @@
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/gin_helper/error_thrower.h"
 
+#if ENABLE_HEADLESS
+namespace lynx::pub {
+class LynxWindowlessRenderer;
+}  // namespace lynx::pub
+#endif
+
 namespace lynxtron {
 class LynxViewStateObserver;
 }
@@ -69,6 +75,7 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
   void CloseImmediately() override;
   void Focus() override;
   void Blur() override;
+  void SetBackgroundColor(const std::string& color_name) override;
 
   void OnWindowClosed() override;
   void OnWindowBlur() override;
@@ -161,6 +168,9 @@ class LynxWindow : public BaseWindow, public lynxtron::LynxViewClient {
   bool software_render_ = false;
   std::vector<std::string> node_integration_preload_ = {};
   std::unique_ptr<LynxView> lynx_view_;
+#if ENABLE_HEADLESS
+  std::shared_ptr<lynx::pub::LynxWindowlessRenderer> windowless_renderer_;
+#endif
   static bool lynx_global_init_;
   bool enable_fps_monitor_ = false;
   int sample_interval_millis_ = 1000;

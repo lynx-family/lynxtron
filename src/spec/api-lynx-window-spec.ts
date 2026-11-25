@@ -530,6 +530,34 @@ describe('LynxWindow module', () => {
         w.destroy();
       }
     });
+
+    it('applies and updates backgroundColor in windowless mode', async () => {
+      const w = new LynxWindow({
+        show: false,
+        windowless: true,
+        backgroundColor: '#123456',
+      } as any);
+      try {
+        expect(w.getBackgroundColor()).to.equal('#123456');
+        w.setBackgroundColor('#00AA55');
+        expect(w.getBackgroundColor()).to.equal('#00AA55');
+      } finally {
+        w.destroy();
+      }
+    });
+
+    it('defaults transparent windowless window background to zero alpha', async () => {
+      const w = new LynxWindow({
+        show: false,
+        windowless: true,
+        transparent: true,
+      } as any);
+      try {
+        expect(w.getBackgroundColor()).to.equal('#000000');
+      } finally {
+        w.destroy();
+      }
+    });
   });
 
   describe('garbage collection', () => {

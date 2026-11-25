@@ -1,0 +1,450 @@
+From 4448fdf669bc29fe5dbaddb8a57081ad4c6c803c Mon Sep 17 00:00:00 2001
+From: Lynxtron Authors <lynxtron@users.noreply.github.com>
+Date: Tue, 24 Nov 2026 13:01:03 +0800
+Subject: [PATCH] [Feature][Windowless] Support canvas background color and
+ snapshot compositing
+
+- Add Rasterizer::SetBackgroundColor / Shell::SetBackgroundColor / ClayHeadlessEngine::SetBackgroundColor to clear the offscreen canvas and force full-frame damage on updates
+
+- Default ScreenshotRequest::background_color_ to std::nullopt so snapshots inherit the configured Rasterizer canvas background color (falling back to white when unset) and preserve non-opaque alpha in Skia snapshots
+
+- Expose lynx_windowless_renderer_set_background_color and LynxWindowlessRenderer::SetBackgroundColor
+---
+ clay/common/graphics/screenshot.h             |  2 +-
+ clay/shell/common/rasterizer.cc               | 19 +++++-
+ clay/shell/common/rasterizer.h                |  9 +++
+ clay/shell/common/screenshot_utils.cc         |  3 +-
+ clay/shell/common/shell.cc                    | 60 +++++++++++++++++--
+ clay/shell/common/shell.h                     | 10 +++-
+ .../platform/headless/clay_headless_engine.cc |  7 +++
+ .../platform/headless/clay_headless_engine.h  |  2 +
+ .../capi/lynx_windowless_renderer_capi.h      |  8 +++
+ .../public/lynx_windowless_renderer.h         |  8 +++
+ .../windowless/lynx_ui_renderer_windowless.cc | 11 ++++
+ .../windowless/lynx_windowless_renderer.cc    | 13 ++++
+ .../lynx_windowless_renderer_priv.h           |  5 ++
+ 13 files changed, 144 insertions(+), 13 deletions(-)
+
+diff --git a/clay/common/graphics/screenshot.h b/clay/common/graphics/screenshot.h
+index 6a05d86d7..143dc49eb 100644
+--- a/clay/common/graphics/screenshot.h
++++ b/clay/common/graphics/screenshot.h
+@@ -42,7 +42,7 @@ struct ScreenshotRequest {
+   std::optional<ScreenshotCallback> callback_;
+   std::string format_;
+   int every_nth_frame_;
+-  uint32_t background_color_ = 0xffffffff;
++  std::optional<uint32_t> background_color_;
+ };
+ 
+ }  // namespace clay
+diff --git a/clay/shell/common/rasterizer.cc b/clay/shell/common/rasterizer.cc
+index c2d437b77..07b5b5b3b 100644
+--- a/clay/shell/common/rasterizer.cc
++++ b/clay/shell/common/rasterizer.cc
+@@ -113,12 +113,14 @@ void Rasterizer::Teardown() {
+   }
+ 
+   last_layer_tree_.reset();
++  background_color_dirty_ = false;
+   last_ignore_raster_cache_.store(false, std::memory_order_relaxed);
+ }
+ 
+ void Rasterizer::CleanForRecycle() {
+   user_override_resource_cache_bytes_ = false;
+   last_layer_tree_.reset();
++  background_color_dirty_ = false;
+   last_ignore_raster_cache_.store(false, std::memory_order_relaxed);
+   compositor_context_ = std::make_unique<clay::CompositorContext>(*this);
+   if (unref_queue_) {
+@@ -418,7 +420,8 @@ RasterStatus Rasterizer::DrawToSurfaceUnsafe(
+     std::unique_ptr<FrameDamage> damage;
+     if (frame->framebuffer_info().supports_partial_repaint) {
+       damage = std::make_unique<FrameDamage>();
+-      if (frame->framebuffer_info().existing_damage) {
++      if (frame->framebuffer_info().existing_damage &&
++          !background_color_dirty_) {
+         damage->SetPreviousLayerTree(last_layer_tree_.get());
+         damage->AddAdditionalDamage(*frame->framebuffer_info().existing_damage);
+         damage->SetClipAlignment(
+@@ -456,9 +459,10 @@ RasterStatus Rasterizer::DrawToSurfaceUnsafe(
+     if (frame_timings_recorder) {
+       frame_timings_recorder->RecordFrameTime(FrameTimingKey::kRasterStart);
+     }
++    const uint32_t clear_color =
++        background_color_.value_or(Color::kTransparent().Value());
+     RasterStatus raster_status = compositor_frame->Raster(
+-        layer_tree, ignore_raster_cache, damage.get(),
+-        Color::kTransparent().Value(), [&] {
++        layer_tree, ignore_raster_cache, damage.get(), clear_color, [&] {
+           frame->Prepare(damage ? damage->GetBufferDamage() : std::nullopt);
+         });
+     if (frame_timings_recorder) {
+@@ -512,6 +516,7 @@ RasterStatus Rasterizer::DrawToSurfaceUnsafe(
+             FrameTimingKey::kSubmitFrameEnd);
+       }
+     }
++    background_color_dirty_ = false;
+     compositor_context_->raster_cache().EndFrame();
+     if (frame_timings_recorder) {
+       frame_timings_recorder->RecordRasterEnd(
+@@ -677,4 +682,12 @@ void Rasterizer::SetRenderSettings(
+     fml::RefPtr<clay::RenderSettings> render_settings) {
+   render_settings_ = render_settings;
+ }
++
++void Rasterizer::SetBackgroundColor(uint32_t color) {
++  if (background_color_ == color) {
++    return;
++  }
++  background_color_ = color;
++  background_color_dirty_ = true;
++}
+ }  // namespace clay
+diff --git a/clay/shell/common/rasterizer.h b/clay/shell/common/rasterizer.h
+index 6fa7fec08..f618864e8 100644
+--- a/clay/shell/common/rasterizer.h
++++ b/clay/shell/common/rasterizer.h
+@@ -9,6 +9,7 @@
+ #define CLAY_SHELL_COMMON_RASTERIZER_H_
+ 
+ #include <atomic>
++#include <cstdint>
+ #include <deque>
+ #include <memory>
+ #include <optional>
+@@ -299,6 +300,12 @@ class Rasterizer final : public Stopwatch::RefreshRateUpdater,
+ 
+   void SetRenderSettings(fml::RefPtr<clay::RenderSettings> render_settings);
+ 
++  void SetBackgroundColor(uint32_t color);
++
++  std::optional<uint32_t> GetBackgroundColor() const {
++    return background_color_;
++  }
++
+   fml::RefPtr<PaintImage> MakeRasterSnapshot(
+       std::unique_ptr<LayerTree> layer_tree);
+ 
+@@ -355,6 +362,8 @@ class Rasterizer final : public Stopwatch::RefreshRateUpdater,
+   std::vector<std::pair<uint64_t, fml::closure>> next_frame_snapshot_callbacks_;
+   bool user_override_resource_cache_bytes_;
+   std::optional<size_t> max_cache_bytes_;
++  std::optional<uint32_t> background_color_;
++  bool background_color_dirty_ = false;
+   fml::RefPtr<GPUUnrefQueue> unref_queue_;
+   fml::RefPtr<clay::RenderSettings> render_settings_;
+   bool last_memory_strategy_ = false;  // true: low memory usage, false: normal
+diff --git a/clay/shell/common/screenshot_utils.cc b/clay/shell/common/screenshot_utils.cc
+index ef1d46458..f93da64f2 100644
+--- a/clay/shell/common/screenshot_utils.cc
++++ b/clay/shell/common/screenshot_utils.cc
+@@ -56,7 +56,8 @@ static sk_sp<SkData> ScreenshotLayerTreeAsImage(
+     clay::CompositorContext& compositor_context, bool compressed,
+     uint32_t background_color) {
+   auto sk_image = TakeScreenshotWithOpaque(tree, surface, compositor_context,
+-                                           true, background_color);
++                                           Color(background_color).Opaque(),
++                                           background_color);
+   if (!sk_image) {
+     return nullptr;
+   }
+diff --git a/clay/shell/common/shell.cc b/clay/shell/common/shell.cc
+index 67fe6853a..d9ae87145 100644
+--- a/clay/shell/common/shell.cc
++++ b/clay/shell/common/shell.cc
+@@ -1193,8 +1193,52 @@ Shell::GetResourceLoaderIntercept() {
+   return nullptr;
+ }
+ 
++namespace {
++uint32_t ResolveScreenshotBackgroundColor(
++    const std::optional<uint32_t>& request_color,
++    const Rasterizer* rasterizer) {
++  if (request_color.has_value()) {
++    return *request_color;
++  }
++  if (rasterizer && rasterizer->GetBackgroundColor().has_value()) {
++    return *rasterizer->GetBackgroundColor();
++  }
++  return Color::kWhite().Value();
++}
++}  // namespace
++
++void Shell::SetBackgroundColor(uint32_t color) {
++  FML_DCHECK(is_setup_);
++  const bool using_sync_compositor = settings_.enable_sync_compositor;
++  fml::TaskRunner::RunNowOrPostTask(
++      task_runners_.GetPlatformTaskRunner(),
++      [rasterizer_service = rasterizer_service_, color,
++       using_sync_compositor]() mutable {
++        rasterizer_service.Act([color,
++                                using_sync_compositor](auto& impl) mutable {
++          Rasterizer* rasterizer = impl.GetRasterizer();
++          if (!rasterizer || rasterizer->GetBackgroundColor() == color) {
++            return;
++          }
++          rasterizer->SetBackgroundColor(color);
++          if (!rasterizer->HasSurface() || !rasterizer->GetLastLayerTree()) {
++            return;
++          }
++          if (using_sync_compositor) {
++            clay::Puppet<clay::Owner::kRaster, RasterFrameService>
++                raster_frame_service = rasterizer->GetServiceManager()
++                                           ->GetService<RasterFrameService>();
++            raster_frame_service->RequestRasterFrame();
++          } else {
++            rasterizer->DrawLastLayerTree();
++          }
++        });
++      });
++}
++
+ ScreenshotData Shell::ScreenshotSync(
+-    ScreenshotData::ScreenshotType screenshot_type, uint32_t background_color) {
++    ScreenshotData::ScreenshotType screenshot_type,
++    std::optional<uint32_t> background_color) {
+   TRACE_EVENT("clay", "Shell::ScreenshotSync");
+   constexpr int kScreenshotTimeoutMs = 30;
+ 
+@@ -1226,7 +1270,9 @@ ScreenshotData Shell::ScreenshotSync(
+           ScreenshotData result;
+           if (weak_rasterizer) {
+             result = weak_rasterizer->ScreenshotLastLayerTree(
+-                screenshot_type, false, background_color);
++                screenshot_type, false,
++                ResolveScreenshotBackgroundColor(background_color,
++                                                 weak_rasterizer.get()));
+           }
+           state->promise.set_value(std::move(result));
+         };
+@@ -1244,7 +1290,9 @@ ScreenshotData Shell::ScreenshotSync(
+               ScreenshotData result;
+               if (weak_rasterizer) {
+                 result = weak_rasterizer->ScreenshotLastLayerTree(
+-                    screenshot_type, false, background_color);
++                    screenshot_type, false,
++                    ResolveScreenshotBackgroundColor(background_color,
++                                                     weak_rasterizer.get()));
+               }
+               state->promise.set_value(std::move(result));
+             },
+@@ -1263,7 +1311,7 @@ ScreenshotData Shell::ScreenshotSync(
+ }
+ 
+ void Shell::ScreenshotAsync(ScreenshotData::ScreenshotType screenshot_type,
+-                            uint32_t background_color,
++                            std::optional<uint32_t> background_color,
+                             std::function<void(ScreenshotData)> callback) {
+   fml::RefPtr<fml::TaskRunner> platform_task_runner =
+       task_runners_.GetPlatformTaskRunner();
+@@ -1307,7 +1355,9 @@ void Shell::ScreenshotAsync(ScreenshotData::ScreenshotType screenshot_type,
+             ScreenshotData result;
+             if (weak_rasterizer) {
+               result = weak_rasterizer->ScreenshotLastLayerTree(
+-                  screenshot_type, false, background_color);
++                  screenshot_type, false,
++                  ResolveScreenshotBackgroundColor(background_color,
++                                                   weak_rasterizer.get()));
+             }
+             state->platform_task_runner->PostTask(fml::MakeCopyable(
+                 [state, result = std::move(result)]() mutable {
+diff --git a/clay/shell/common/shell.h b/clay/shell/common/shell.h
+index d97c778ea..a0de2eb20 100644
+--- a/clay/shell/common/shell.h
++++ b/clay/shell/common/shell.h
+@@ -8,6 +8,7 @@
+ #ifndef CLAY_SHELL_COMMON_SHELL_H_
+ #define CLAY_SHELL_COMMON_SHELL_H_
+ 
++#include <cstdint>
+ #include <deque>
+ #include <functional>
+ #include <memory>
+@@ -249,11 +250,14 @@ class Shell final : public PlatformView::Delegate,
+   ///
+   /// @return     The screenshot result.
+   ///
+-  ScreenshotData ScreenshotSync(ScreenshotData::ScreenshotType type,
+-                                uint32_t background_color);
++  void SetBackgroundColor(uint32_t color);
++
++  ScreenshotData ScreenshotSync(
++      ScreenshotData::ScreenshotType type,
++      std::optional<uint32_t> background_color = std::nullopt);
+ 
+   void ScreenshotAsync(ScreenshotData::ScreenshotType type,
+-                       uint32_t background_color,
++                       std::optional<uint32_t> background_color,
+                        std::function<void(ScreenshotData)> callback);
+ 
+   //----------------------------------------------------------------------------
+diff --git a/clay/shell/platform/headless/clay_headless_engine.cc b/clay/shell/platform/headless/clay_headless_engine.cc
+index 8f82212bc..21216345d 100644
+--- a/clay/shell/platform/headless/clay_headless_engine.cc
++++ b/clay/shell/platform/headless/clay_headless_engine.cc
+@@ -410,6 +410,13 @@ void ClayHeadlessEngine::SetVisible(bool enable) {
+   engine_->GetShell().GetEngine()->SetVisible(enable);
+ }
+ 
++void ClayHeadlessEngine::SetBackgroundColor(uint32_t color) {
++  if (!IsValid()) {
++    return;
++  }
++  engine_->GetShell().SetBackgroundColor(color);
++}
++
+ void ClayHeadlessEngine::SetFontFaceCache(const char* font_family,
+                                           const char* local_path) {
+   if (!IsValid()) {
+diff --git a/clay/shell/platform/headless/clay_headless_engine.h b/clay/shell/platform/headless/clay_headless_engine.h
+index 5ddf1c603..e0821fd6a 100644
+--- a/clay/shell/platform/headless/clay_headless_engine.h
++++ b/clay/shell/platform/headless/clay_headless_engine.h
+@@ -6,6 +6,7 @@
+ #define CLAY_SHELL_PLATFORM_HEADLESS_CLAY_HEADLESS_ENGINE_H_
+ 
+ #include <chrono>
++#include <cstdint>
+ #include <map>
+ #include <memory>
+ 
+@@ -57,6 +58,7 @@ class ClayHeadlessEngine : public clay::PlatformViewEmbedderDelegate {
+   void DemandDrawHw();
+ 
+   void SetVisible(bool enable);
++  void SetBackgroundColor(uint32_t color);
+   void SetFontFaceCache(const char* font_family, const char* local_path);
+ 
+   void SendViewportMetrics(int32_t width, int32_t height, double pixel_ratio);
+diff --git a/platform/embedder/public/capi/lynx_windowless_renderer_capi.h b/platform/embedder/public/capi/lynx_windowless_renderer_capi.h
+index a88b1628f..7ad6c70f8 100644
+--- a/platform/embedder/public/capi/lynx_windowless_renderer_capi.h
++++ b/platform/embedder/public/capi/lynx_windowless_renderer_capi.h
+@@ -102,6 +102,14 @@ lynx_windowless_renderer_create_with_finalizer(
+ LYNX_CAPI_EXPORT void* lynx_windowless_renderer_get_user_data(
+     lynx_windowless_renderer_t*);
+ 
++// Sets the canvas background color for the windowless renderer using a
++// non-premultiplied 0xAARRGGBB color (for example, 0x00000000 is transparent
++// and 0xFFFFFFFF is opaque white). May be called before or after creating the
++// LynxView. When set, offscreen frames and snapshots clear the canvas to this
++// color before compositing the layer tree.
++LYNX_CAPI_EXPORT void lynx_windowless_renderer_set_background_color(
++    lynx_windowless_renderer_t*, uint32_t color);
++
+ // Optional platform-driven synchronous composition for windowless embedders.
+ // Currently validated only on the Linux windowless backend. Other platforms
+ // have not been validated and are not guaranteed to work. API presence and a
+diff --git a/platform/embedder/public/lynx_windowless_renderer.h b/platform/embedder/public/lynx_windowless_renderer.h
+index 7e742e13b..1ce5e99d3 100644
+--- a/platform/embedder/public/lynx_windowless_renderer.h
++++ b/platform/embedder/public/lynx_windowless_renderer.h
+@@ -5,6 +5,7 @@
+ #define PLATFORM_EMBEDDER_PUBLIC_LYNX_WINDOWLESS_RENDERER_H_
+ 
+ #include <cstdbool>
++#include <cstdint>
+ #include <memory>
+ 
+ #include "capi/lynx_types.h"
+@@ -216,6 +217,13 @@ class LynxWindowlessRenderer
+         });
+   }
+ 
++  // Sets the canvas background color in non-premultiplied 0xAARRGGBB format.
++  // May be called before or after creating the LynxView.
++  void SetBackgroundColor(uint32_t color) {
++    InitIfNeeded();
++    lynx_windowless_renderer_set_background_color(windowless_renderer_, color);
++  }
++
+   // Optional synchronous composition for windowless embedders, disabled by
+   // default. Currently validated only on the Linux windowless backend; other
+   // platforms have not been validated and are not guaranteed to work.
+diff --git a/platform/embedder/windowless/lynx_ui_renderer_windowless.cc b/platform/embedder/windowless/lynx_ui_renderer_windowless.cc
+index 3b4048753..676fefe67 100644
+--- a/platform/embedder/windowless/lynx_ui_renderer_windowless.cc
++++ b/platform/embedder/windowless/lynx_ui_renderer_windowless.cc
+@@ -94,12 +94,22 @@ LynxUIRendererWindowless::LynxUIRendererWindowless(lynx_view_builder_t* builder)
+   if (windowless_renderer_->enable_sync_compositor) {
+     windowless_renderer_->headless_engine = headless_engine_.get();
+   }
++  windowless_renderer_->set_background_color = [this](uint32_t color) {
++    headless_engine_->SetBackgroundColor(color);
++  };
++  if (windowless_renderer_->background_color.has_value()) {
++    headless_engine_->SetBackgroundColor(
++        *windowless_renderer_->background_color);
++  }
+ 
+   auto* view_context =
+       static_cast<clay::ViewContext*>(headless_engine_->GetViewContext());
+   if (builder->default_background_color) {
+     view_context->GetPageView()->SetDefaultBackgroundColor(
+         clay::Color(*builder->default_background_color));
++  } else if (windowless_renderer_->background_color.has_value()) {
++    view_context->GetPageView()->SetDefaultBackgroundColor(
++        clay::Color::kTransparent());
+   }
+   auto module_factory = std::unique_ptr<lynx::runtime::NativeModuleFactory>(
+       lynx::LynxModuleFactory::CreateModuleFactory(view_context));
+@@ -153,6 +163,7 @@ LynxUIRendererWindowless::~LynxUIRendererWindowless() {
+   windowless_renderer_->headless_engine = nullptr;
+   windowless_renderer_->frame_draw_future = {};
+   headless_engine_->SetHeadlessDelegate(nullptr);
++  windowless_renderer_->set_background_color = nullptr;
+   windowless_renderer_->run_task = nullptr;
+   windowless_renderer_->send_pointer_event = nullptr;
+   windowless_renderer_->send_key_event = nullptr;
+diff --git a/platform/embedder/windowless/lynx_windowless_renderer.cc b/platform/embedder/windowless/lynx_windowless_renderer.cc
+index ea6b1328d..ed128a7b3 100644
+--- a/platform/embedder/windowless/lynx_windowless_renderer.cc
++++ b/platform/embedder/windowless/lynx_windowless_renderer.cc
+@@ -27,6 +27,19 @@ LYNX_EXTERN_C void* lynx_windowless_renderer_get_user_data(
+       ->user_data;
+ }
+ 
++LYNX_EXTERN_C void lynx_windowless_renderer_set_background_color(
++    lynx_windowless_renderer_t* renderer, uint32_t color) {
++  if (!renderer) {
++    return;
++  }
++  auto* impl =
++      reinterpret_cast<lynx::embedder::LynxWindowlessRenderer*>(renderer);
++  impl->background_color = color;
++  if (impl->set_background_color) {
++    impl->set_background_color(color);
++  }
++}
++
+ LYNX_EXTERN_C bool lynx_windowless_renderer_set_sync_compositor(
+     lynx_windowless_renderer_t* renderer, bool enabled) {
+   auto* impl =
+diff --git a/platform/embedder/windowless/lynx_windowless_renderer_priv.h b/platform/embedder/windowless/lynx_windowless_renderer_priv.h
+index 33ab33944..81bfe5342 100644
+--- a/platform/embedder/windowless/lynx_windowless_renderer_priv.h
++++ b/platform/embedder/windowless/lynx_windowless_renderer_priv.h
+@@ -4,7 +4,10 @@
+ #ifndef PLATFORM_EMBEDDER_WINDOWLESS_LYNX_WINDOWLESS_RENDERER_PRIV_H_
+ #define PLATFORM_EMBEDDER_WINDOWLESS_LYNX_WINDOWLESS_RENDERER_PRIV_H_
+ 
++#include <cstdint>
++#include <functional>
+ #include <future>
++#include <optional>
+ 
+ #include "base/include/fml/memory/ref_counted.h"
+ #include "build/build_config.h"
+@@ -57,6 +60,8 @@ class LynxWindowlessRenderer
+   set_marked_text_rect set_marked_text_rect = nullptr;
+   set_editable_transform set_editable_transform = nullptr;
+ 
++  std::optional<uint32_t> background_color;
++  std::function<void(uint32_t color)> set_background_color = nullptr;
+   std::function<void(lynx_task_t task)> run_task = nullptr;
+   std::function<void(lynx_pointer_event_t* event)> send_pointer_event = nullptr;
+   std::function<void(lynx_key_event_t* event)> send_key_event = nullptr;
+-- 
+2.55.0
+
