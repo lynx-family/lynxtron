@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: lynxtron <lynxtron@lynxjs.com>
+Date: Mon, 23 Nov 2026 00:00:00 +0800
+Subject: [PATCH] [BugFix] Restore platform-specific icudtl.dat.
+
+Revert "[BugFix] Use flutter icudtl.dat on all platforms." so desktop
+platforms use the full ICU data bundle from common instead of flutter.
+
+---
+ BUILD.gn | 15 ++++++++++++++-
+ 1 file changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/BUILD.gn b/BUILD.gn
+index 5293c797c..37bc6d4b1 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -445,7 +445,20 @@ if (is_android && enable_java_templates) {
+   }
+ }
+ 
+-data_dir = "flutter"
++if (is_android) {
++  data_dir = "android"
++} else if (is_ios) {
++  data_dir = "ios"
++} else if (is_chromeos) {
++  data_dir = "chromeos"
++} else if (current_cpu == "wasm") {
++  data_dir = "flutter"
++} else if (icu_is_in_fuchsia && icu_fuchsia_override_data_dir != "") {
++  # See //config.gni for details.
++  data_dir = icu_fuchsia_override_data_dir
++} else {
++  data_dir = "common"
++}
+ 
+ if (current_cpu == "mips" || current_cpu == "mips64" ||
+     host_byteorder == "big") {
