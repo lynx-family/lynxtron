@@ -2,8 +2,21 @@
 # Licensed under the Apache License Version 2.0 that can be found in the
 # LICENSE file in the root directory of this source tree.
 import os
+import shutil
 import sys
 import zipfile
+
+def add_to_zip(zipf, fs_path, arcname):
+    # ZipFile.write() rejects entries whose mtime is before 1980, which can
+    # happen for prebuilt binaries extracted from third-party archives.
+    # Clamp such timestamps to 1980-01-01 instead of aborting the compression.
+    info = zipfile.ZipInfo.from_file(fs_path, arcname, strict_timestamps=False)
+    info.compress_type = zipf.compression
+    if os.path.isdir(fs_path):
+        zipf.writestr(info, b'')
+        return
+    with open(fs_path, 'rb') as src, zipf.open(info, 'w') as dst:
+        shutil.copyfileobj(src, dst)
 
 def compress_directory(target_dir):
     # Check if directory exists
@@ -31,13 +44,14 @@ def compress_directory(target_dir):
                 arcname = os.path.relpath(dir_path, target_dir)
                 # Key: append '/' to path, strictly following zip specification for directory definition
                 # This ensures all unzip tools (including Windows/Mac default tools) recognize it as a folder
-                zipf.write(dir_path, arcname + '/')
+                # (ZipInfo.from_file() appends the trailing '/' itself for directories)
+                add_to_zip(zipf, dir_path, arcname)
                 
             # Write regular files
             for file in files:
                 file_path = os.path.join(root, file)
                 arcname = os.path.relpath(file_path, target_dir)
-                zipf.write(file_path, arcname)
+                add_to_zip(zipf, file_path, arcname)
     
     print(f"Compression complete! File generated: {os.path.abspath(zip_filename)}")
 
