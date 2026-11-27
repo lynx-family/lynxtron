@@ -11,14 +11,14 @@ deps = {
     '../lynx': {
         'type': 'solution',
         'url': 'https://github.com/lynx-family/lynx.git',
-        'commit': '4c236e64ccf43078677c9bec1d82143eca1734e2',
+        'commit': '6416e93bc9441323c2d7b213d1feb750196bbf39',
         "deps_file": "dependencies/DEPS.lynxtron",
         "ignore_in_git": True,
     },
     '../third_party/skity': {
         "type": "solution",
         "url": "https://github.com/lynx-family/skity.git",
-        "commit": "d68693d19457fed75ceb8584a66417361e9cc00c",
+        "commit": "ae1449fe354336a888d67fd76714459843a64601",
         "deps_file": "hab/DEPS",
         "ignore_in_git": True,
         "enable_lfs": False,
@@ -27,7 +27,7 @@ deps = {
     '../third_party/textlayout': {
         "type": "git",
         "url": "https://github.com/lynx-family/lynx-textra.git",
-        "commit": "ae136fa9b1297163e2d0a5ee2e29939caa970953",
+        "commit": "14a7c148b59fc44505a9e871c6f90eeeed065054",
         "deps_file": "DEPS",
         "ignore_in_git": True,
         "enable_lfs": False,
