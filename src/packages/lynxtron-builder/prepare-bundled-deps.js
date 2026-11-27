@@ -68,6 +68,11 @@ function main() {
   const npmArgs = [
     '--workspaces=false', '--include=optional', '--os=darwin', '--no-audit', '--no-fund',
   ];
+  // Allow publishing hosts without access to the default npm registry to
+  // override it for the bundled toolchain install.
+  if (process.env.LYNXTRON_NPM_REGISTRY) {
+    npmArgs.push(`--registry=${process.env.LYNXTRON_NPM_REGISTRY}`);
+  }
   runNpm(['install', '--include=dev', ...npmArgs]);
 
   // 2. Apply the checked-in patches with the installed tool, failing on any
